@@ -14,7 +14,7 @@ class Admin_pos_riwayat extends Admin_Controller {
         $data["controller"] = get_class($this);
         $data["title"]      = "Riwayat Transaksi Cafe";
         $data["subtitle"]   = "Transaksi Lunas (Arsip)";
-        $data["content"]    = $this->load->view('admin_pos_riwayat_view',$data,true);
+        $data["content"]    = $this->load->view('Admin_pos_riwayat_view',$data,true);
         $this->render($data);
     }
 
