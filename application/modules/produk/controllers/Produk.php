@@ -761,9 +761,9 @@ public function leave_table(){
         // Penentuan gratis ongkir berdasar subtotal
         $batas_free = (int)($shop->batas_free_ongkir ?? 0);
         $is_free    = ($total >= $batas_free);
-
+        $this->load->helper('ongkir');
         if ($is_free) {
-            $this->load->helper('ongkir');
+            
             // === GRATIS ONGKIR: tidak wajib token; tetap validasi koordinat & radius di server
             if ($post_lat < -90 || $post_lat > 90 || $post_lng < -180 || $post_lng > 180) {
                 return $this->_json_err('Koordinat tidak valid.');
