@@ -1,0 +1,10 @@
+BEGIN:VCARD
+VERSION:3.0
+N:;Silaturahmi Makassar;;;
+FN:Silaturahmi Makassar
+ORG:Silaturahmi Makassar
+TEL;TYPE=CELL,VOICE:+6285333335330
+URL:https://silaturahmi.org
+item1.URL;type=pref:https://silaturahmi.org
+item1.X-ABLabel:Website
+END:VCARD

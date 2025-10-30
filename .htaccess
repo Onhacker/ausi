@@ -1,0 +1,106 @@
+<IfModule mod_php8.c>
+  AddHandler application/x-httpd-php80 .php
+</IfModule>
+
+# =========================================
+#  CodeIgniter + Caching + Compression
+# =========================================
+RewriteEngine On
+# RewriteBase /            # <-- uncomment kalau app di subfolder, mis: /silapas/
+
+# 0) Bypass beberapa file khusus
+RewriteRule ^service_worker\.js$ - [L]
+RewriteRule ^\.well-known/assetlinks\.json$ - [L]
+
+# 1) Tandai route sensitif agar NO-CACHE (HARUS di atas rewrite CI)
+RewriteRule ^(login|admin|api)(/.*)?$ - [E=FORCE_NOCACHE:1]
+
+# 2) CI rewrite standar
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)$ index.php/$1 [L]
+
+# ---------- Headers ----------
+<IfModule mod_headers.c>
+  # Keamanan ringan
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  Header unset ETag
+</IfModule>
+FileETag None
+Options -Indexes
+
+# Well-known JSON (Android app links)
+<IfModule mod_headers.c>
+  <Files ".well-known/assetlinks.json">
+    Header set Content-Type "application/json; charset=utf-8"
+    Header set Cache-Control "public, max-age=3600"
+  </Files>
+</IfModule>
+
+# ---------- Expires ----------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 0 seconds"   # default aman (HTML, PHP, dll)
+
+  # Gambar & font → lama (1 tahun)
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png  "access plus 1 year"
+  ExpiresByType image/gif  "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff  "access plus 1 year"
+
+  # CSS/JS → 1 bulan (boleh 1 tahun jika sudah fingerprint/versioning?)
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# ---------- Cache-Control ----------
+<IfModule mod_headers.c>
+  # Aset statik → long cache + immutable
+  <FilesMatch "\.(?:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf|map)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # HTML & PHP → no-cache
+  <FilesMatch "\.(?:html|php)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Service Worker → no-store (dan izinkan scope root, opsional)
+  <FilesMatch "^(?:service_worker|sw)\.js$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Service-Worker-Allowed "/"
+  </FilesMatch>
+
+  # Paksa NO-CACHE untuk route sensitif (dari env flag di atas)
+  Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0" env=FORCE_NOCACHE
+  Header set Pragma "no-cache" env=FORCE_NOCACHE
+  Header set Expires "0" env=FORCE_NOCACHE
+</IfModule>
+
+# ---------- Compression ----------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml application/xml \
+                                text/css application/javascript application/json
+  # Jangan gzip file yang sudah terkompres
+  SetEnvIfNoCase Request_URI "\.(?:gif|jpe?g|png|webp|zip)$" no-gzip dont-vary
+  Header append Vary Accept-Encoding
+</IfModule>
+
+<IfModule mod_brotli.c>
+  BrotliCompressionQuality 5
+  AddOutputFilterByType BROTLI_COMPRESS text/plain text/html text/css \
+                                        application/javascript application/json application/xml
+  Header append Vary Accept-Encoding
+</IfModule>
+
+# (Opsional) blok file sensitif
+<FilesMatch "^(\.env|composer\.(json|lock)|package\.json|yarn\.lock|phpunit\.xml)$">
+  Require all denied
+</FilesMatch>

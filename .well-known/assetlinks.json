@@ -1,0 +1,31 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.silaturahmi.twa",
+      "sha256_cert_fingerprints": [
+        "2A:86:F8:DE:5B:05:62:07:32:34:D8:B1:F2:76:F8:A0:F9:5F:92:9F:B8:5D:E9:B1:17:CF:1D:C9:A4:6B:77:D7",
+        "32:21:C8:E3:8D:02:A9:8D:86:C9:EB:FA:BB:6A:BB:BC:93:4F:78:6F:59:C2:94:90:4F:6E:A4:52:8D:46:DC:5C",
+        "9E:A0:7A:E5:D0:0D:C3:09:26:66:4C:DB:95:1B:44:C0:3B:6A:3C:AE:9B:1D:77:F5:4A:E7:EC:12:78:CB:F3:F9"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.silaturahmi.log",
+      "sha256_cert_fingerprints": [
+        "2A:86:F8:DE:5B:05:62:07:32:34:D8:B1:F2:76:F8:A0:F9:5F:92:9F:B8:5D:E9:B1:17:CF:1D:C9:A4:6B:77:D7",
+        "32:21:C8:E3:8D:02:A9:8D:86:C9:EB:FA:BB:6A:BB:BC:93:4F:78:6F:59:C2:94:90:4F:6E:A4:52:8D:46:DC:5C",
+        "9E:A0:7A:E5:D0:0D:C3:09:26:66:4C:DB:95:1B:44:C0:3B:6A:3C:AE:9B:1D:77:F5:4A:E7:EC:12:78:CB:F3:F9"
+      ]
+    }
+  }
+]

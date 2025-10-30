@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /home/get_permohonan_batch
+Disallow: /api/ajax_status_user
+Disallow: /on_login
+Disallow: /on_login/verifikasi_captcha
+
+Sitemap: https://silaturahmi.org/sitemap.xml
