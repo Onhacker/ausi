@@ -265,8 +265,9 @@ $feeNet = (int)($r->delivery_fee_net ?? (($feeRaw===1 && ($k==='transfer'||$k===
     private function _pdf($title, $html, $filename='laporan.pdf'){
         $this->load->library('pdf'); // TCPDF wrapper
         
+        $pdf = new Pdf('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
 
-        $pdf = new pdf('L', 'mm', 'A4', true, 'UTF-8', false);
+        // $pdf = new pdf('L', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('AusiApp');
         $pdf->SetAuthor('AusiApp');
         $pdf->SetTitle($title);
