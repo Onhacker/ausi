@@ -368,20 +368,7 @@ function buildSteps(mode){
         fd.set('ongkir', '0');
       }
 
-      // Swal.fire({ title:'Lagi diproses...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
-       // ========================
-      //  LOADER BERTAHAP  👇  //
-      // ========================
-      // daftar step yang mau ditampilkan
-      //  const steps = [
-      //   'Cek datamu bentar… 😎',
-      //   'Lihat kita lagi buka apa nggak… ⏰',
-      //   'Hitung jarak & ongkirnya… 🚚',
-      //   'Pesananmu mode apa… 🍽️',
-      //   'Bikin nomor order biar resmi… 🧾',
-      //   'Simpan ke sistem kasir… 💾',
-      //   'Kasih info balik ke kamu… 📲'
-      // ];
+   
       const steps = buildSteps(MODE);
         // buka loader progres bertahap
         startProgressLoader(steps, 900); // <-- NEW (ganti Swal.fire "Lagi diproses...")
@@ -404,11 +391,32 @@ function buildSteps(mode){
 
         Swal.fire({ title:'Mantap! Pesanan diterima ✔️', icon:'success', timer:1300, showConfirmButton:false });
         setTimeout(()=> { window.location.href = r.redirect; }, 900);
-      }).fail(function(){
-        // Swal.close();
-        stopProgressLoader(false); // <-- NEW
-        Swal.fire('Error','Koneksi lagi ngambek, coba lagi ya.','error');
+      // }).fail(function(){
+      //   stopProgressLoader(false); // <-- NEW
+      //   Swal.fire('Error','Koneksi lagi ngambek, coba lagi ya.','error');
+      // });
+      }).fail(function(jqXHR, textStatus, errorThrown){
+        stopProgressLoader(false);
+
+        // simpan info buat debug (bisa kamu lihat lewat DevTools console)
+        console.warn('AJAX submit_order FAIL:', {
+          status: jqXHR.status,
+          textStatus,
+          errorThrown,
+          responseText: jqXHR.responseText
+        });
+
+        let msgUser = 'Koneksi lagi ngambek, coba lagi ya.';
+        // Deteksi beberapa kasus umum dan kasih pesan lebih pas
+        if (jqXHR.status === 403){
+          msgUser = 'Sesi kamu kadaluarsa / keamanan blokir (403). Coba refresh halaman dulu ya 🙏';
+        } else if (jqXHR.status === 500){
+          msgUser = 'Server lagi error (500). Kru kami lagi beresin kok 🙏';
+        }
+
+        Swal.fire('Error', msgUser, 'error');
       });
+
     });
   });
 })();
