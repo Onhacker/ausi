@@ -6,6 +6,8 @@ class Admin_meja extends Admin_Controller {
     public function __construct(){
         parent::__construct();
         $this->load->model('M_admin_meja','dm');
+        cek_session_akses(get_class($this), $this->session->userdata('admin_session')); // jika dipakai
+        
     }
 
     public function index(){

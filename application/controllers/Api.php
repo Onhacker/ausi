@@ -23,16 +23,16 @@ class Api extends MX_Controller {
 $MENU_DEF = [
     [
         'label'   => 'Statistik',
-        'url'     => site_url('admin_dashboard'),
+        'url'     => site_url('admin_laporan/chart'),
         'icon'    => 'mdi mdi-chart-areaspline',
-        'require' => ['Statistik','dashboard','admin_dashboard'],
+        'require' => ['Statistik','dashboard','admin_laporan/chart'],
     ],
-    [
-        'label'   => 'Monitoring',
-        'url'     => site_url('admin_dashboard/monitor'),
-        'icon'    => 'mdi mdi-monitor-eye',
-        'require' => ['Monitoring','admin_dashboard/monitor','admin_monitor'],
-    ],
+    // [
+    //     'label'   => 'Monitoring',
+    //     'url'     => site_url('admin_dashboard/monitor'),
+    //     'icon'    => 'mdi mdi-monitor-eye',
+    //     'require' => ['Monitoring','admin_dashboard/monitor','admin_monitor'],
+    // ],
     [
         'label'   => 'Produk',
         'url'     => site_url('admin_produk'),
@@ -109,13 +109,25 @@ $MENU_DEF[] = [
             'require' => ['Setting System','admin_setting_web','user'],
         ],
         [
-            'label'   => 'Manajemen User',
-            'url'     => site_url('admin_user'),
-            'icon'    => 'mdi mdi-account-cog-outline',
-            'require' => ['Manajemen User','admin_user','user'],
+            'label'   => 'Meja Cafe',
+            'url'     => site_url('admin_meja'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['Meja','admin_meja'],
         ],
         [
-            'label'   => 'Kategori',
+            'label'   => 'Meja Billiard',
+            'url'     => site_url('admin_meja_billiard'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['Meja Billiard','admin_meja_billiard','user'],
+        ],
+        [
+            'label'   => 'Kurir',
+            'url'     => site_url('admin_kurir'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['Kurir','admin_kurir','user'],
+        ],
+        [
+            'label'   => 'Kategori Produk',
             'url'     => site_url('admin_kategori_produk'),
             'icon'    => 'mdi mdi-tag-multiple-outline',
             'require' => ['Kategori','admin_kategori_produk','user'],
@@ -126,23 +138,19 @@ $MENU_DEF[] = [
             'icon'    => 'mdi mdi-domain-plus',
             'require' => ['Unit Lain','admin_unit_lain','user'],
         ],
-        [
-            'label'   => 'Instansi Asal',
-            'url'     => site_url('admin_instansi_ref'),
-            'icon'    => 'mdi mdi-domain',
-            'require' => ['Pengumuman','admin_pengumuman','user'],
-        ],
+        
         [
             'label'   => 'Pengumuman',
             'url'     => site_url('admin_pengumuman'),
             'icon'    => 'mdi mdi-bullhorn-outline',
             'require' => ['Pengumuman','admin_pengumuman','user'],
         ],
+        
         [
-            'label'   => 'Meja',
-            'url'     => site_url('admin_meja'),
-            'icon'    => 'mdi mdi-table-chair',
-            'require' => ['Meja','admin_meja'],
+            'label'   => 'Manajemen User',
+            'url'     => site_url('admin_user'),
+            'icon'    => 'mdi mdi-account-cog-outline',
+            'require' => ['Manajemen User','admin_user','user'],
         ],
     ],
 ];

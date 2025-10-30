@@ -410,9 +410,8 @@ if (!$delivery_enabled) {
   <!-- Keterangan DI DALAM CARD -->
  
 
-  <?php if ($this->uri->segment(2)!="jadwal") { ?>
     <a class="op-cta mt-2" href="<?= site_url('produk'); ?>">Order</a>
-  <?php } ?>
+
 </div>
 
 <script>

@@ -225,7 +225,7 @@ $us = $this->om->user();
 <?php } ?>
 
 
-<?php if (strtolower($controller) == "admin_billiard" or strtolower($controller) == "admin_unit_lain"  or strtolower($controller) == "admin_produk" or strtolower($controller) == "admin_meja" or strtolower($controller) == "admin_pos" or strtolower($controller) == "admin_kategori_produk" or strtolower($controller) == "admin_pos_riwayat" or strtolower($controller) == "admin_riwayat_billiard" or strtolower($controller) == "admin_pengeluaran") {?>
+<?php if (strtolower($controller) == "admin_billiard" or strtolower($controller) == "admin_unit_lain"  or strtolower($controller) == "admin_produk" or strtolower($controller) == "admin_meja" or strtolower($controller) == "admin_pos" or strtolower($controller) == "admin_kategori_produk" or strtolower($controller) == "admin_pos_riwayat" or strtolower($controller) == "admin_riwayat_billiard" or strtolower($controller) == "admin_pengeluaran" or strtolower($controller) == "admin_meja_billiard" or strtolower($controller) == "admin_pengumuman" or strtolower($controller) == "admin_kurir") {?>
    <script src="<?php echo base_url(); ?>assets/admin/datatables/js/jquery.dataTables.min.js"></script>
    <script src="<?php echo base_url(); ?>assets/admin/datatables/js/dataTables.bootstrap4.min.js"></script>
    <script src="<?php echo base_url("assets/admin") ?>/libs/jquery-toast/jquery.toast.min.js"></script>
@@ -236,7 +236,7 @@ $us = $this->om->user();
    <script src="<?php echo base_url("assets/admin/") ?>libs/select2/select2.min.js"></script>
    <script src="<?php echo base_url("assets/admin") ?>/libs/tippy-js/tippy.all.min.js"></script>
 <?php } ?>
-<?php if (strtolower($controller) == "admin_produk") {?>
+<?php if (strtolower($controller) == "admin_produk"  or strtolower($controller) == "admin_pengumuman") {?>
   <script src="<?= base_url('assets/admin/summernote/summernote-bs4.min.js'); ?>"></script>
 
 <?php } ?>

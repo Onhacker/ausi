@@ -197,4 +197,100 @@ public function fetch_pos(array $f): array {
         if ($to)   $this->db->where("$field <=", $to);
         return $this->db;
     }
+
+        /**
+     * Pendapatan Cafe (POS) per hari
+     * grand_total_net:
+     *    grand_total - (case ongkir=1 + cash => 1 rupiah)
+     */
+    public function agg_daily_pos(array $f): array {
+        $pmExpr = "LOWER(TRIM(COALESCE(paid_method,'')))";
+
+        $this->db->select("
+            DATE(paid_at) AS d,
+            COALESCE(SUM(
+                grand_total
+                - CASE 
+                    WHEN COALESCE(delivery_fee,0)=1 AND {$pmExpr}='cash'
+                    THEN 1 ELSE 0
+                  END
+            ),0) AS total
+        ", false)->from('pesanan_paid');
+
+        $this->_where_date('paid_at', $f);
+
+        if (!empty($f['metode']) && $f['metode'] !== 'all'){
+            $this->db->where('LOWER(paid_method)', $f['metode']);
+        }
+        if (!empty($f['mode']) && $f['mode'] !== 'all'){
+            $this->db->where('LOWER(mode)', $f['mode']);
+        }
+        if (!empty($f['status']) && $f['status'] !== 'all'){
+            $this->db->where('LOWER(status)', $f['status']);
+        }
+
+        $this->db->group_by('DATE(paid_at)');
+        $rows = $this->db->get()->result();
+
+        $out = [];
+        foreach($rows as $r){
+            $out[$r->d] = (int)$r->total;
+        }
+        return $out;
+    }
+
+    /**
+     * Pendapatan Billiard per hari
+     */
+    public function agg_daily_billiard(array $f): array {
+        $this->db->select("
+            DATE(paid_at) AS d,
+            COALESCE(SUM(grand_total),0) AS total
+        ", false)->from('billiard_paid');
+
+        $this->_where_date('paid_at', $f);
+
+        if (!empty($f['metode']) && $f['metode'] !== 'all'){
+            $this->db->where('LOWER(metode_bayar)', $f['metode']);
+        }
+
+        $this->db->group_by('DATE(paid_at)');
+        $rows = $this->db->get()->result();
+
+        $out = [];
+        foreach($rows as $r){
+            $out[$r->d] = (int)$r->total;
+        }
+        return $out;
+    }
+
+    /**
+     * Pengeluaran per hari
+     */
+    public function agg_daily_pengeluaran(array $f): array {
+        $this->db->select("
+            DATE(tanggal) AS d,
+            COALESCE(SUM(jumlah),0) AS total
+        ", false)->from('pengeluaran');
+
+        $this->_where_date('tanggal', $f);
+
+        if (!empty($f['metode']) && $f['metode'] !== 'all'){
+            $this->db->where('LOWER(metode_bayar)', $f['metode']);
+        }
+        if (!empty($f['kategori']) && $f['kategori'] !== 'all'){
+            // kategori mungkin tidak selalu ada di $f, tapi kalau ada bolehlah
+            $this->db->where('kategori', $f['kategori']);
+        }
+
+        $this->db->group_by('DATE(tanggal)');
+        $rows = $this->db->get()->result();
+
+        $out = [];
+        foreach($rows as $r){
+            $out[$r->d] = (int)$r->total;
+        }
+        return $out;
+    }
+
 }

@@ -366,6 +366,110 @@ public function print_laba(){
         $pdf->Output($filename, 'I'); // inline
         exit;
     }
+    /** ==============================
+     * HALAMAN STATISTIK GRAFIK
+     * ============================== */
+    public function chart(){
+        // halaman HTML yg berisi filter + container chart
+        $data["controller"] = get_class($this);
+        $data["title"]      = "Statistik";
+        $data["subtitle"]   = "Statistik Grafik";
+        $data["content"]    = $this->load->view('Admin_laporan_chart',$data,true);
+        $this->render($data);
+    }
+
+    /**
+     * AJAX DATA UNTUK HIGHCHARTS
+     * return json:
+     * {
+     *   success: true,
+     *   categories: ["2025-10-28", "2025-10-29", ...],
+     *   cafe: [120000, 90000, ...],
+     *   billiard: [...],
+     *   pengeluaran: [...],
+     *   laba: [...],
+     *   total_rekap: {cafe:..., billiard:..., pengeluaran:..., laba:...},
+     *   filter: {...}
+     * }
+     */
+    public function chart_data(){
+        $f = $this->_parse_filter();
+
+        // ambil per-hari dari model
+        $cafeMap       = $this->lm->agg_daily_pos($f);          // ['2025-10-28'=>120000,...]
+        $billiardMap   = $this->lm->agg_daily_billiard($f);     // sama bentuknya
+        $pengeluaranMap= $this->lm->agg_daily_pengeluaran($f);  // sama
+
+        // bikin list semua tanggal dari range (date_from .. date_to) by day
+        $tz = new DateTimeZone('Asia/Makassar');
+
+        // potong ke YYYY-mm-dd (awal & akhir)
+        $startDay = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz);
+        $endDay   = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'],   $tz);
+        if (!$startDay) $startDay = new DateTime($f['date_from'], $tz);
+        if (!$endDay)   $endDay   = new DateTime($f['date_to'],   $tz);
+
+        // normalize jam ke 00:00 utk awal, 23:59 utk akhir loop harian,
+        // tapi hati-hati kalau beda hari sudah di-handle _parse_filter (bisa lintas)
+        $loopStart = clone $startDay;
+        $loopStart->setTime(0,0,0);
+        $loopEnd = clone $endDay;
+        $loopEnd->setTime(23,59,59);
+
+        $categories = [];
+        $cafeArr = [];
+        $bilArr  = [];
+        $pengArr = [];
+        $labaArr = [];
+
+        $sumCafe = 0;
+        $sumBil  = 0;
+        $sumPeng = 0;
+        $sumLaba = 0;
+
+        $cur = clone $loopStart;
+        while ($cur <= $loopEnd){
+            $key = $cur->format('Y-m-d');
+
+            $c  = (int)($cafeMap[$key]        ?? 0);
+            $b  = (int)($billiardMap[$key]    ?? 0);
+            $pe = (int)($pengeluaranMap[$key] ?? 0);
+            $l  = $c + $b - $pe;
+
+            $categories[] = $key;
+            $cafeArr[]    = $c;
+            $bilArr[]     = $b;
+            $pengArr[]    = $pe;
+            $labaArr[]    = $l;
+
+            $sumCafe += $c;
+            $sumBil  += $b;
+            $sumPeng += $pe;
+            $sumLaba += $l;
+
+            $cur->modify('+1 day');
+        }
+
+        $out = [
+            'success'       => true,
+            'filter'        => $f,
+            'categories'    => $categories,
+            'cafe'          => $cafeArr,
+            'billiard'      => $bilArr,
+            'pengeluaran'   => $pengArr,
+            'laba'          => $labaArr,
+            'total_rekap'   => [
+                'cafe'        => $sumCafe,
+                'billiard'    => $sumBil,
+                'pengeluaran' => $sumPeng,
+                'laba'        => $sumLaba,
+            ],
+        ];
+
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode($out));
+    }
 
     
 }
