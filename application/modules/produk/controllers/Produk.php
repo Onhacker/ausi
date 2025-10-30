@@ -13,11 +13,25 @@ class Produk extends MX_Controller {
     }
 
     /* ================== Helpers Umum ================== */
-    private function _nocache_headers(){
-        $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
-        $this->output->set_header('Pragma: no-cache');
-    }
+    /** Respon SANGAT sensitif / real-time / user-session */
+        private function _nocache_headers(){
+            $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+            $this->output->set_header('Pragma: no-cache');
+        }
+
+        /** Boleh cache SEBENTAR di sisi browser user sendiri (bukan publik/CDN) */
+        private function _private_cache_headers($seconds = 60){
+            $this->output->set_header('Cache-Control: private, max-age='.$seconds);
+            $this->output->set_header('Pragma: private');
+        }
+
+        /** Boleh cache PUBLIK karena isinya statis / umum */
+        private function _public_cache_headers($seconds = 3600){
+            $this->output->set_header('Cache-Control: public, max-age='.$seconds);
+            $this->output->set_header('Pragma: public');
+        }
+
 
     /** Token unik per-perangkat/session (hex 32 chars) */
 private function _client_token(){
@@ -30,9 +44,35 @@ private function _client_token(){
     return $tok;
 }
 
+public function katalog(){
+    $rec = $this->fm->web_me();
+
+    $data["rec"]       = $rec;
+    $data["title"]     = "Menu & Produk - ".$rec->nama_website;
+    $data["deskripsi"] = "Daftar menu ".$rec->nama_website." ".$rec->kabupaten;
+    $data["prev"]      = base_url("assets/images/produk.webp");
+
+    $data["kategoris"] = $this->pm->get_categories();
+
+    // tidak usah session-mode
+    $data["q"]         = '';
+    $data["kategori"]  = '';
+    $data["sort"]      = 'bestseller';
+
+    $data["meja_info"] = null;
+    $data["mode"]      = 'delivery'; // default public aja, bukan real session
+
+    // penting: JANGAN panggil _maybe_expire_meja_session()
+    // penting: JANGAN panggil _ensure_default_delivery_mode()
+
+    // halaman ini murni katalog publik
+    $this->load->view('produk_view', $data);
+}
+
 public function scan_qr(){
+    $this->_nocache_headers();
 	$this->output->set_header('Permissions-Policy: camera=(self)');
-$this->output->set_header("Feature-Policy: camera 'self'");
+    $this->output->set_header("Feature-Policy: camera 'self'");
 
     // data dasar buat view
     $rec = $this->fm->web_me();
@@ -94,6 +134,7 @@ $this->output->set_header("Feature-Policy: camera 'self'");
     }
 
    public function index(){
+    $this->_nocache_headers();
     $rec = $this->fm->web_me();
 
     // >>> default-kan delivery bila belum ada mode & bukan dine-in
@@ -146,6 +187,7 @@ $this->output->set_header("Feature-Policy: camera 'self'");
     /* ----------------- Listing & Detail ------------------ */
 
     public function struk(){
+        $this->_nocache_headers();
         $rec = $this->fm->web_me();
 
         $data["rec"]       = $rec;
@@ -167,6 +209,7 @@ $this->output->set_header("Feature-Policy: camera 'self'");
     }
 
     public function list_ajax(){
+        $this->_nocache_headers();
     $q        = trim($this->input->get('q', true) ?: '');
     $sub = $this->input->get('sub', true) ?: $this->input->get('sub_kategori', true) ?: '';
     $kategori = $this->input->get('kategori', true) ?: '';
@@ -211,6 +254,7 @@ $this->output->set_header("Feature-Policy: camera 'self'");
 }
 
 public function subkategori($kategori_id = null){
+    $this->_public_cache_headers(3600);
     $kategori_id = (int)$kategori_id;
     if ($kategori_id <= 0){
         return $this->output->set_content_type('application/json')
@@ -226,6 +270,7 @@ public function subkategori($kategori_id = null){
 
 
     public function detail($slug = null){
+        $this->_private_cache_headers(60);
         if (!$slug) show_404();
         $rec  = $this->fm->web_me();
         $prod = $this->pm->get_by_slug($slug);
@@ -241,6 +286,7 @@ public function subkategori($kategori_id = null){
     }
 
     public function detail_modal(){
+        $this->_nocache_headers();
     	// sleep(3);
         $slug = $this->input->get('slug', true);
         if (!$slug){
@@ -260,6 +306,7 @@ public function subkategori($kategori_id = null){
     /* ----------------- Cart Actions ------------------ */
 
     public function add_to_cart(){
+        $this->_nocache_headers();
         $id  = (int)$this->input->post('id');
         $qty = max(1, (int)$this->input->post('qty'));
 
@@ -340,6 +387,7 @@ public function subkategori($kategori_id = null){
     }
 
     public function cart_count(){
+        $this->_nocache_headers();
         $cart_id = $this->_get_active_cart_id();
         if ($cart_id) {
             $count = $this->cm->count_items($cart_id);
@@ -354,6 +402,7 @@ public function subkategori($kategori_id = null){
 
     /** Halaman Cart */
     public function cart(){
+        $this->_nocache_headers();
     $rec = $this->fm->web_me();
     $this->_maybe_expire_meja_session(120);
 
@@ -408,6 +457,7 @@ public function subkategori($kategori_id = null){
 
     /** API set qty (plus/minus/input) */
     public function cart_update(){
+         $this->_nocache_headers();
         $produk_id = (int)$this->input->post('produk_id');
         $qty       = (int)$this->input->post('qty');
 
@@ -439,6 +489,7 @@ public function subkategori($kategori_id = null){
 
     /** API remove baris */
     public function cart_remove(){
+         $this->_nocache_headers();
         $produk_id = (int)$this->input->post('produk_id');
         if ($produk_id <= 0) return $this->_json_err('Produk tidak valid');
 
@@ -464,6 +515,7 @@ public function subkategori($kategori_id = null){
 
     /** Halaman Order (konfirmasi) */
     public function order(){
+        $this->_nocache_headers();
     $rec = $this->fm->web_me();
 
     // >>> default-kan delivery bila belum ada mode & bukan dine-in
@@ -514,6 +566,7 @@ public function subkategori($kategori_id = null){
 
 // di class Produk
 public function leave_table(){
+    $this->_nocache_headers();
     $had = (bool)$this->session->userdata('guest_meja_kode');
     $this->_hard_reset_guest_context();   // sudah bersihkan guest_meja_*, cart_meja_id, cart__mode, dll
     $this->session->sess_regenerate(TRUE);
@@ -735,22 +788,33 @@ public function leave_table(){
             // === NON-GRATIS: wajib token & ambil dari sesi lock_ongkir
             $token = $this->input->post('ongkir_token', true);
             if (!$token) {
-                // pertahankan format respons seperti semula (dipakai front-end)
                 return $this->_json(['success'=>false,'title'=>'Belum Tau Ongkirnya','pesan'=>'Yuk pilih dulu lokasinya biar bisa dihitung~']);
             }
             $lock = $this->session->userdata('ongkir_lock_'.$token);
 
-            // Optional: kadaluarsa 10 menit
             if (($lock['ts'] ?? 0) < time()-600){
                 return $this->_json(['success'=>false,'title'=>'Kedaluwarsa','pesan'=>'Silakan pilih ulang lokasi.']);
             }
 
-            // Pakai nilai dari sesi (bukan dari form)
+            // Ambil nilai dari sesi
             $dest_lat     = (float)$lock['lat'];
             $dest_lng     = (float)$lock['lng'];
             $delivery_fee = (int)$lock['fee'];
             $distance_m   = (int)$lock['distance_m'];
+
+            // OPTIONAL HARDENING:
+            // hitung ulang cepat buat pastikan masih allowed
+            $calcCheck = hitung_ongkir_server(
+                (float)$shop->store_lat, (float)$shop->store_lng,
+                $dest_lat, $dest_lng,
+                (float)$shop->base_km, (int)$shop->base_fee, (int)$shop->per_km,
+                (int)$shop->max_radius_m
+            );
+            if (!$calcCheck['allowed']) {
+                return $this->_json_err('Alamat sudah di luar radius layanan 😔');
+            }
         }
+
     }
 
     // ===== Cutoff DELIVERY dari tabel identitas (tetap pakai $rec) =====
@@ -1514,25 +1578,27 @@ private function _maybe_expire_meja_session($minutes = 120){
     }
 
     public function qris_png($ref = null){
-	    if (!$ref) show_404();
+        if (!$ref) show_404();
 
-	    $row = $this->_get_order_by_ref($ref);
-	    if (!$row) show_404();
-	    $orderId = (int)$row->id;
-	    $status = strtolower($row->status ?? '');
-	    if (in_array($status, ['paid','canceled'], true)) show_404();
+    $this->_nocache_headers(); // tambah ini
 
-	    // $path = FCPATH.'uploads/qris/order_'.(int)$row->id.'.png'; // internal id
-	    $path = FCPATH.'uploads/qris/order_'.$orderId.'.png'; // <— pakai $orderId
-	    if (!is_file($path)) show_404();
+    $row = $this->_get_order_by_ref($ref);
+    if (!$row) show_404();
+    $orderId = (int)$row->id;
+    $status = strtolower($row->status ?? '');
+    if (in_array($status, ['paid','canceled'], true)) show_404();
 
-	    header('Content-Type: image/png');
-	    header('Content-Length: '.filesize($path));
-	    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-	    header('Pragma: no-cache');
-	    readfile($path);
-	    exit;
-	}
+    $path = FCPATH.'uploads/qris/order_'.$orderId.'.png';
+    if (!is_file($path)) show_404();
+
+    header('Content-Type: image/png');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Content-Length: '.filesize($path));
+    readfile($path);
+    exit;
+}
+
 
 
     /* ====== TRANSFER: verifikasi + kode unik + halaman instruksi ====== */
@@ -1583,6 +1649,7 @@ private function _maybe_expire_meja_session($minutes = 120){
 
     /** Upload bukti (transfer) → selesai flow + ke struk */
     public function upload_bukti($id = null){
+        $this->_nocache_headers();
         $id = (int)$id;
         if ($id <= 0) show_404();
 
@@ -1621,6 +1688,7 @@ private function _maybe_expire_meja_session($minutes = 120){
 
     /* Opsional: kasir tandai lunas */
     public function mark_transfer_paid($id = null, $secret = null){
+        $this->_nocache_headers();
         if ($secret !== 'YOUR_SECRET_TOKEN') show_404();
 
         $id = (int)$id;
@@ -1651,6 +1719,7 @@ private function _maybe_expire_meja_session($minutes = 120){
     }
 
     public function order_receipt_modal($id = null){
+        $this->_nocache_headers();
         if (!$id) show_404();
 
         [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
@@ -1671,6 +1740,7 @@ private function _maybe_expire_meja_session($minutes = 120){
     // === Cetak PDF Thermal via TCPDF ===
     // URL: produk/receipt_pdf/{id}?w=58|80  (default 58)
     public function receipt_pdf($id = null){
+         $this->_nocache_headers();
         if (!$id) show_404();
 
         // Ambil order & items
@@ -1774,6 +1844,7 @@ public function order_status($ref = null){
 // application/modules/produk/controllers/Produk.php
 public function load_map()
 {
+    $this->_private_cache_headers(60);
     // Ambil param dari query (fallback ke default bila kosong)
     // $store_lat = (float)$this->input->get_post('store_lat', true);
     // $store_lng = (float)$this->input->get_post('store_lng', true);
@@ -1888,6 +1959,7 @@ public function load_map()
 
   public function reverse_geocode()
 {
+    $this->_nocache_headers();
     // ===== CORS preflight (OPTIONS) =====
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
         $this->output
@@ -1954,12 +2026,13 @@ public function load_map()
     $this->output
         ->set_header('Access-Control-Allow-Origin: *')
         ->set_header('Access-Control-Allow-Methods: GET, OPTIONS')
-        ->set_header('Cache-Control: public, max-age=3600') // cache 1 jam di client
+        // ->set_header('Cache-Control: public, max-age=3600') // cache 1 jam di client
         ->set_content_type('application/json; charset=UTF-8')
         ->set_output($resp);
 }
 public function lock_ongkir()
 {
+    $this->_nocache_headers();
     $this->output->set_content_type('application/json', 'utf-8');
     $this->load->helper('ongkir');
 
@@ -2048,6 +2121,7 @@ protected function _json($data, $code = 200)
 }
 public function route_multi()
 {
+    $this->_nocache_headers();
   $this->output->set_content_type('application/json; charset=UTF-8');
 
   $lat1 = (float)$this->input->get('lat1', true);

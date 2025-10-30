@@ -19,7 +19,7 @@ class Admin_pengeluaran extends Admin_Controller {
         $data["controller"] = get_class($this);
         $data["title"]      = "Pengeluaran";
         $data["subtitle"]   = "Daftar Pengeluaran";
-        $data["content"]    = $this->load->view('admin_pengeluaran_view',$data,true);
+        $data["content"]    = $this->load->view('Admin_pengeluaran_view',$data,true);
         $this->render($data);
     }
 

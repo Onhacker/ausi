@@ -188,21 +188,59 @@
               <div class="product-price-tag">Rp <?= number_format((float)$p->harga, 0, ',', '.'); ?></div>
             </div>
           </div>
+<style>
+.btn-loading {
+  pointer-events: none;
+  opacity: .6;
+}
+
+/* kalau kamu sudah pakai Bootstrap, spinner-border bs dipakai langsung.
+   tapi aku kasih fallback custom biar aman */
+.spinner-border {
+  display: inline-block;
+  width: .9rem;
+  height: .9rem;
+  border: .15rem solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: -0.2em;
+  margin-right: .4rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* kalau belum ada .d-none dari Bootstrap */
+.d-none {
+  display: none !important;
+}
+</style>
+
 
           <!-- Aksi kiri-kanan (Detail kiri, Keranjang kanan) -->
           <div class="mt-2 d-flex align-items-center justify-content-between">
-            <button type="button" class="btn btn-sm btn-blue btn-detail btn-icon-only-sm"
-                    data-slug="<?= html_escape($slug); ?>" aria-label="Detail">
-              <i class="mdi mdi-eye-outline" aria-hidden="true"></i>
-              <span class="btn-text">Detail</span>
-            </button>
+           <button type="button"
+                  class="btn btn-sm btn-blue btn-detail btn-icon-only-sm"
+                  data-slug="<?= html_escape($slug); ?>"
+                  aria-label="Detail">
+            <span class="spinner-border d-none" aria-hidden="true"></span>
+            <i class="mdi mdi-eye-outline icon-default" aria-hidden="true"></i>
+            <span class="btn-text">Detail</span>
+          </button>
 
-            <button type="button" class="btn btn-sm btn-danger waves-effect waves-light btn-add-cart btn-icon-only-sm"
-                    data-id="<?= (int)$p->id; ?>" data-qty="1" <?= $soldout ? 'disabled' : ''; ?>
-                    aria-label="Tambah ke keranjang">
-              <i class="mdi mdi-cart" aria-hidden="true"></i>
-              <span class="btn-text">+ keranjang</span>
-            </button>
+          <button type="button"
+                  class="btn btn-sm btn-danger waves-effect waves-light btn-add-cart btn-icon-only-sm"
+                  data-id="<?= (int)$p->id; ?>"
+                  data-qty="1"
+                  <?= $soldout ? 'disabled' : ''; ?>
+                  aria-label="Tambah ke keranjang">
+            <span class="spinner-border d-none" aria-hidden="true"></span>
+            <i class="mdi mdi-cart icon-default" aria-hidden="true"></i>
+            <span class="btn-text">+ keranjang</span>
+          </button>
+
           </div>
         </div>
       </div>

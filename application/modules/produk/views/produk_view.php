@@ -272,13 +272,91 @@ if (!empty($kategoris)) {
 
 
 <!-- FAB Cart (mobile) -->
-<a href="<?= site_url('produk/cart') ?>" id="fab-cart" class="fab-cart" aria-label="Buka keranjang">
-  <i class="mdi mdi-cart-outline" aria-hidden="true"></i>
+<a href="<?= site_url('produk/cart') ?>"
+   id="fab-cart"
+   class="fab-cart"
+   aria-label="Buka keranjang">
+
+  <!-- spinner hidden by default -->
+  <span class="spinner-border d-none" aria-hidden="true"></span>
+
+  <!-- icon normal -->
+  <i class="mdi mdi-cart-outline icon-default" aria-hidden="true"></i>
+
   <?php if (!empty($meja_info)): ?>
-    <span class="d-none d-sm-inline">Meja <?= html_escape($meja_info) ?></span>
+    <span class="fab-label d-none d-sm-inline">
+      Meja <?= html_escape($meja_info) ?>
+    </span>
   <?php endif; ?>
+
   <span class="fab-badge" id="fab-count">0</span>
 </a>
+<style>
+/* state saat loading */
+.fab-loading {
+  pointer-events: none;
+  opacity: .75;
+}
+
+/* spinner kecil */
+.spinner-border {
+  display: inline-block;
+  width: .9rem;
+  height: .9rem;
+  border: .15rem solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: -0.2em;
+  margin-right: .4rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* util hide */
+.d-none {
+  display: none !important;
+}
+</style>
+<script>
+(function(){
+  var fab = document.getElementById('fab-cart');
+  if (!fab) return;
+
+  fab.addEventListener('click', function(e){
+    // kalau udah loading, jangan proses lagi
+    if (fab.classList.contains('fab-loading')) {
+      // cegah double tap super cepat (opsional)
+      e.preventDefault();
+      return;
+    }
+
+    // masuk mode loading visual
+    fab.classList.add('fab-loading');
+
+    var spinEl = fab.querySelector('.spinner-border');
+    var iconEl = fab.querySelector('.icon-default');
+
+    if (spinEl) spinEl.classList.remove('d-none');
+    if (iconEl) iconEl.classList.add('d-none');
+
+    // optional: ubah teks "Meja X" jadi "Memuat..." biar kelihatan banget
+    var lbl = fab.querySelector('.fab-label');
+    if (lbl && !lbl.dataset.orig) {
+      lbl.dataset.orig = lbl.textContent;
+      lbl.textContent = 'Memuat…';
+    }
+
+    // CATATAN:
+    // kita TIDAK preventDefault di sini
+    // supaya browser langsung lanjut ke href (/produk/cart)
+    // jadi spinner kelihatan sebentar, lalu halaman cart kebuka
+  }, {passive:true});
+})();
+</script>
+
 
 <script src="<?php echo base_url('assets/admin') ?>/js/vendor.min.js"></script>
 <script src="<?php echo base_url('assets/admin') ?>/js/app.min.js"></script>
@@ -502,7 +580,16 @@ if (!empty($kategoris)) {
   }
 
   function fetchAndRenderSubcats(kategoriId){
-    $subWrap.html('<span class="text-danger small">Memuat subkategori…</span>').show();
+    // $subWrap.html('<span class="text-danger small">Memuat subkategori…</span>').show();
+    $subWrap.html(
+      '<div class="d-inline-flex align-items-center rounded px-2 py-1 bg-light border small text-muted" ' +
+        'style="line-height:1.2;">' +
+        '  <span class="spinner-border spinner-border-sm mr-2" role="status" ' +
+        '        style="width:0.9rem;height:0.9rem;border-width:0.15rem;border-right-color:transparent;"></span>' +
+        '  <span>Memuat subkategori…</span>' +
+      '</div>'
+    ).show();
+
     $.getJSON(SUB_API + String(kategoriId))
       .done(function(r){
         const currentSelected = $('#sub_kategori').val() || '';
@@ -754,30 +841,96 @@ $(document).on('click', '#btn-reset', function(e){
 
 /* ===== Fix kecil data('qty') ===== */
 
+function btnStartLoading($btn, loadingText){
+  if (!$btn || !$btn.length) return;
+  if ($btn.hasClass('btn-loading')) return;
+
+  $btn.addClass('btn-loading');
+
+  // show spinner
+  $btn.find('.spinner-border').removeClass('d-none');
+
+  // hide icon normal
+  $btn.find('.icon-default').addClass('d-none');
+
+  // ganti teks (dan simpan teks lama biar bisa dikembalikan)
+  var $txt = $btn.find('.btn-text');
+  if ($txt.length){
+    if (!$txt.data('orig')) {
+      $txt.data('orig', $txt.text()); // simpan teks awal
+    }
+    $txt.text(loadingText || 'Loading...');
+  }
+}
+
+function btnStopLoading($btn){
+  if (!$btn || !$btn.length) return;
+  if (!$btn.hasClass('btn-loading')) return;
+
+  // sembunyikan spinner
+  $btn.find('.spinner-border').addClass('d-none');
+
+  // munculkan icon normal
+  $btn.find('.icon-default').removeClass('d-none');
+
+  // balikin teks
+  var $txt = $btn.find('.btn-text');
+  if ($txt.length){
+    var origText = $txt.data('orig');
+    if (origText){
+      $txt.text(origText);
+    }
+  }
+
+  $btn.removeClass('btn-loading');
+}
 
 /* ===== Add to cart (grid) – gunakan title & pesan dari API ===== */
 function bindAddToCart(){
-  $('#grid-products').off('click', '.btn-add-cart').on('click', '.btn-add-cart', function(e){
-    e.preventDefault();
-    const id  = $(this).data('id');
-    const qty = safeQty($(this).data('qty'));
-    $.ajax({
-      url: "<?= site_url('produk/add_to_cart'); ?>",
-      type: "POST",
-      dataType: "json",
-      data: { id, qty },
-    }).done(function(r){
-      if (!r || !r.success){
-        notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan');
-        return;
-      }
-      updateAllCartBadges(r.count);
-      notifySuccess(r.title || 'Mantap!', r.pesan || 'Item masuk keranjang');
-    }).fail(function(){
-      notifyError('Error', 'Gagal terhubung ke server');
+  $('#grid-products')
+    .off('click', '.btn-add-cart')
+    .on('click', '.btn-add-cart', function(e){
+      e.preventDefault();
+
+      const $btn = $(this);
+
+      // block spam / kalau lagi loading atau disabled
+      if ($btn.hasClass('btn-loading')) return;
+      if ($btn.is(':disabled')) return;
+
+      const id  = $btn.data('id');
+      const qty = safeQty($btn.data('qty'));
+
+      // <-- START LOADING VISUAL
+      btnStartLoading($btn, 'Menambah...');
+
+      $.ajax({
+        url: "<?= site_url('produk/add_to_cart'); ?>",
+        type: "POST",
+        dataType: "json",
+        data: { id, qty },
+      })
+      .done(function(r){
+        if (!r || !r.success){
+          notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan');
+          return;
+        }
+        updateAllCartBadges(r.count);
+        notifySuccess(
+          r.title || 'Mantap!',
+          r.pesan || 'Item masuk keranjang'
+        );
+      })
+      .fail(function(){
+        notifyError('Error', 'Gagal terhubung ke server');
+      })
+      .always(function(){
+        // <-- STOP LOADING VISUAL
+        btnStopLoading($btn);
+      });
     });
-  });
 }
+
 
 function loadCartCount(){
   $.getJSON("<?= site_url('produk/cart_count'); ?>")

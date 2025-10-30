@@ -14,7 +14,7 @@ class Admin_riwayat_billiard extends Admin_Controller {
         $data["controller"] = get_class($this);
         $data["title"]      = "Riwayat Billiard";
         $data["subtitle"]   = "Transaksi Lunas (Arsip)";
-        $data["content"]    = $this->load->view('admin_riwayat_billiard_view',$data,true);
+        $data["content"]    = $this->load->view('Admin_riwayat_billiard_view',$data,true);
         $this->render($data);
     }
 

@@ -267,9 +267,39 @@
   // Listen perubahan input agar auto-save
   // ⟵ KECUALIKAN #catatan dari trigger penyimpanan
   $(document).on('input change', '#form-order input, #form-order textarea:not(#catatan)', scheduleSaveDraft);
+function buildSteps(mode){
+  // mode di sini pakai string yang kamu sudah punya:
+  // 'dinein', 'delivery', atau 'walkin'
+
+  // Step awal yang selalu relevan
+  const list = [
+    'Cek datamu bentar… 😎',
+    'Lihat kita lagi buka apa nggak… ⏰', // cek jam layanan
+  ];
+
+  if (mode === 'delivery') {
+    // Step khusus delivery
+    list.push('Hitung jarak & ongkirnya… 🚚');
+    list.push('Catat alamat & nomor HP kamu… 📍');
+  } else if (mode === 'dinein') {
+    // Step khusus dine-in (meja)
+    list.push('Catat kamu lagi di meja ini… 🍽️');
+  } else {
+    // fallback = walkin / bungkus
+    list.push('Catat pesanan kamu buat dibungkus… 🛍️');
+  }
+
+  // Step akhir yang sama buat semua mode
+  list.push('Bikin nomor order biar resmi… 🧾');
+  list.push('Simpan ke sistem kasir… 💾');
+  list.push('Kasih info balik ke kamu… 📲');
+
+  return list;
+}
 
   // ====== Submit flow ======
   $('#btn-order').on('click', function(){
+
     const { $form, $nama, $catatan, $phone, $alamat, $ongkir } = getFormElems();
     const fd    = new FormData($form[0]);
 
@@ -338,8 +368,23 @@
         fd.set('ongkir', '0');
       }
 
-      Swal.fire({ title:'Lagi diproses...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
-
+      // Swal.fire({ title:'Lagi diproses...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+       // ========================
+      //  LOADER BERTAHAP  👇  //
+      // ========================
+      // daftar step yang mau ditampilkan
+      //  const steps = [
+      //   'Cek datamu bentar… 😎',
+      //   'Lihat kita lagi buka apa nggak… ⏰',
+      //   'Hitung jarak & ongkirnya… 🚚',
+      //   'Pesananmu mode apa… 🍽️',
+      //   'Bikin nomor order biar resmi… 🧾',
+      //   'Simpan ke sistem kasir… 💾',
+      //   'Kasih info balik ke kamu… 📲'
+      // ];
+      const steps = buildSteps(MODE);
+        // buka loader progres bertahap
+        startProgressLoader(steps, 900); // <-- NEW (ganti Swal.fire "Lagi diproses...")
       $.ajax({
         url: "<?= site_url('produk/submit_order'); ?>",
         type: "POST",
@@ -348,7 +393,8 @@
         contentType: false,
         dataType: 'json'
       }).done(function(r){
-        Swal.close();
+        stopProgressLoader(true); // <-- NEW
+        // Swal.close();
         if (!r || !r.success) {
           Swal.fire('Gagal 😥', (r && r.pesan) ? r.pesan : 'Tidak bisa membuat pesanan', 'error');
           return;
@@ -359,12 +405,285 @@
         Swal.fire({ title:'Mantap! Pesanan diterima ✔️', icon:'success', timer:1300, showConfirmButton:false });
         setTimeout(()=> { window.location.href = r.redirect; }, 900);
       }).fail(function(){
-        Swal.close();
+        // Swal.close();
+        stopProgressLoader(false); // <-- NEW
         Swal.fire('Error','Koneksi lagi ngambek, coba lagi ya.','error');
       });
     });
   });
 })();
+
+
+// GLOBAL: handle loader step multi-tahap
+// let __stepLoaderInterval = null;
+
+let __stepLoaderInterval = null;
+let __stepLoaderIndex = 0;
+let __stepLoaderSteps = [];
+
+/**
+ * startProgressLoader([
+ *   'Memvalidasi data…',
+ *   'Cek hari & jam…',
+ *   'Cek radius & ongkir…',
+ *   'Bikin nomor order…',
+ *   'Simpan ke kasir…',
+ *   'Persiapan kirim notifikasi…'
+ * ], 900)
+ */
+function startProgressLoader(stepsArray, intervalMs){
+  __stepLoaderSteps = Array.isArray(stepsArray) && stepsArray.length ? stepsArray : ['Memproses…'];
+  __stepLoaderIndex = 0;
+  const dur = intervalMs || 900;
+
+  // build daftar step awal (step 0 = active spinner, sisanya pending)
+  let listHtml = '';
+  for (let i=0; i<__stepLoaderSteps.length; i++){
+    const stepText = __stepLoaderSteps[i];
+
+    if (i === 0){
+      // langkah aktif pertama → spinner
+      listHtml += `
+        <div class="prog-step-row" data-step="${i}" style="display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.4rem;">
+          <div class="prog-icon prog-icon-active" style="
+              width:1.1rem;
+              height:1.1rem;
+              border:.18rem solid #3b82f6;
+              border-right-color:transparent;
+              border-radius:50%;
+              animation:swalSpin .6s linear infinite;
+              flex-shrink:0;
+            "></div>
+          <div class="prog-text prog-text-active" style="
+              font-size:.9rem;
+              line-height:1.4;
+              color:#111;
+              font-weight:600;
+            ">${escapeHtml(stepText)}</div>
+        </div>
+      `;
+    } else {
+      // langkah berikutnya → pending (belum aktif, abu-abu, tanpa icon dulu)
+      listHtml += `
+        <div class="prog-step-row" data-step="${i}" style="display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.4rem;opacity:.5;">
+          <div class="prog-icon prog-icon-pending" style="
+              width:1.1rem;
+              height:1.1rem;
+              border:.18rem solid #ccc;
+              border-radius:50%;
+              background-color:#f8f9fa;
+              flex-shrink:0;
+            "></div>
+          <div class="prog-text prog-text-pending" style="
+              font-size:.9rem;
+              line-height:1.4;
+              color:#666;
+              font-weight:500;
+            ">${escapeHtml(stepText)}</div>
+        </div>
+      `;
+    }
+  }
+
+  // body html swal
+  const bodyHtml = `
+    <div style="text-align:left;line-height:1.5">
+      <div id="prog-steps-wrap" style="margin-bottom:.75rem;">
+        ${listHtml}
+      </div>
+      <div style="font-size:.8rem;line-height:1.4;color:#777;">
+        Mohon tunggu sebentar ya 🙏
+      </div>
+    </div>
+
+    <style>
+      @keyframes swalSpin { to { transform: rotate(360deg); } }
+      .checkmark-icon {
+        width:1.1rem;
+        height:1.1rem;
+        border-radius:50%;
+        background-color:#10b981; /* hijau */
+        color:#fff;
+        font-size:.7rem;
+        line-height:1.1rem;
+        text-align:center;
+        font-weight:700;
+        box-shadow:0 0.25rem 0.5rem rgb(16 185 129 / .35);
+      }
+    </style>
+  `;
+
+  Swal.fire({
+    icon: 'warning',
+    title: "Memproses Pesanan…",
+    html: bodyHtml,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => {
+      const popup = Swal.getPopup();
+      if (popup) popup.style.zIndex = 200000; // optional naikkan z-index
+
+      // interval: tandai step lama -> selesai ✅, lalu aktifkan step berikutnya
+      __stepLoaderInterval = setInterval(()=>{
+        advanceProgressStep();
+      }, dur);
+    }
+  });
+}
+
+// panggil saat selesai / error
+function stopProgressLoader(finalize=true){
+  if (__stepLoaderInterval){
+    clearInterval(__stepLoaderInterval);
+    __stepLoaderInterval = null;
+  }
+
+  if (finalize){
+    // sebelum close, pastikan semua step ditandai selesai (biar keliatan rapi)
+    try { finishAllProgressSteps(); } catch(e){}
+  }
+
+  Swal.close();
+}
+
+
+/* ===== helper internal ===== */
+
+// Escape text biar aman kalau step ada karakter aneh
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+/**
+ * advanceProgressStep():
+ * - step index sekarang di-mark selesai (spinner -> checkmark hijau, text jadi abu agak redup)
+ * - step berikutnya di-mark aktif (spinner biru, teks bold gelap)
+ * - kalau sudah di step terakhir, kita tetap kasih centang dan stop interval
+ */
+function advanceProgressStep(){
+  const wrap = Swal.getPopup()?.querySelector('#prog-steps-wrap');
+  if (!wrap) return;
+
+  const rows = wrap.querySelectorAll('.prog-step-row');
+  if (!rows.length) return;
+
+  const current = __stepLoaderIndex;
+  const next    = current + 1;
+
+  // 1. Tandai step current jadi selesai (✅)
+  const rowCur = rows[current];
+  if (rowCur){
+    const iconCur = rowCur.querySelector('.prog-icon');
+    const textCur = rowCur.querySelector('.prog-text');
+
+    if (iconCur){
+      // ganti isi iconCur jadi checkmark hijau circle
+      iconCur.classList.remove('prog-icon-active','prog-icon-pending');
+      iconCur.classList.add('prog-icon-done');
+      iconCur.style.cssText = ''; // reset inline style
+      iconCur.innerHTML = '<div class="checkmark-icon">✓</div>';
+    }
+
+    if (textCur){
+      textCur.classList.remove('prog-text-active','prog-text-pending');
+      textCur.classList.add('prog-text-done');
+      textCur.style.cssText = `
+        font-size:.9rem;
+        line-height:1.4;
+        color:#4b5563;
+        font-weight:500;
+      `;
+    }
+
+    // turunkan opacity rowCur sedikit
+    rowCur.style.opacity = '.85';
+  }
+
+  // 2. Aktifkan step next (kalau ada)
+  if (next < rows.length){
+    const rowNext = rows[next];
+    const iconNext = rowNext.querySelector('.prog-icon');
+    const textNext = rowNext.querySelector('.prog-text');
+
+    if (rowNext) {
+      rowNext.style.opacity = '1';
+    }
+
+    if (iconNext){
+      iconNext.classList.remove('prog-icon-pending','prog-icon-done');
+      iconNext.classList.add('prog-icon-active');
+      iconNext.innerHTML = ''; // kosongkan isi agar spinner jalan pakai inline style
+      iconNext.style.cssText = `
+        width:1.1rem;
+        height:1.1rem;
+        border:.18rem solid #3b82f6;
+        border-right-color:transparent;
+        border-radius:50%;
+        animation:swalSpin .6s linear infinite;
+        flex-shrink:0;
+      `;
+    }
+
+    if (textNext){
+      textNext.classList.remove('prog-text-pending','prog-text-done');
+      textNext.classList.add('prog-text-active');
+      textNext.style.cssText = `
+        font-size:.9rem;
+        line-height:1.4;
+        color:#111;
+        font-weight:600;
+      `;
+    }
+
+    __stepLoaderIndex = next;
+  } else {
+    // Udah terakhir -> stop interval
+    if (__stepLoaderInterval){
+      clearInterval(__stepLoaderInterval);
+      __stepLoaderInterval = null;
+    }
+  }
+}
+
+/**
+ * finishAllProgressSteps():
+ * dipanggil pas mau tutup loader.
+ * Semua row jadi centang hijau (biar keliatan completed).
+ */
+function finishAllProgressSteps(){
+  const wrap = Swal.getPopup()?.querySelector('#prog-steps-wrap');
+  if (!wrap) return;
+  const rows = wrap.querySelectorAll('.prog-step-row');
+  rows.forEach(row => {
+    row.style.opacity = '.85';
+    const icon = row.querySelector('.prog-icon');
+    const txt  = row.querySelector('.prog-text');
+    if (icon){
+      icon.classList.remove('prog-icon-active','prog-icon-pending');
+      icon.classList.add('prog-icon-done');
+      icon.style.cssText = '';
+      icon.innerHTML = '<div class="checkmark-icon">✓</div>';
+    }
+    if (txt){
+      txt.classList.remove('prog-text-active','prog-text-pending');
+      txt.classList.add('prog-text-done');
+      txt.style.cssText = `
+        font-size:.9rem;
+        line-height:1.4;
+        color:#4b5563;
+        font-weight:500;
+      `;
+    }
+  });
+}
+
+
 </script>
 
 <script>

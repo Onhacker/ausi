@@ -5,13 +5,31 @@ const OFFLINE_URL = '/assets/offline.html';
 
 /* HTML publik yang boleh dicache (path tanpa query) */
 const HTML_CACHE_WHITELIST = new Set([
-  '/', '/home', '/hal', '/hal/kontak', '/hal/privacy_policy', '/hal/jadwal', '/hal/panduan', '/billiard', '/produk', '/hal/pengumuman'
+  '/',
+   '/home',
+   '/hal',
+   '/hal/kontak',
+   '/hal/privacy_policy',
+   '/hal/jadwal',
+   '/billiard',
+   '/produk',
+   '/hal/pengumuman'
 ])
 
 
-/* Precaches (URL asli, termasuk query). JANGAN masukkan endpoint dinamis seperti /home/chart_data */
+/* Precaches (URL asli,
+ termasuk query). JANGAN masukkan endpoint dinamis seperti /home/chart_data */
 const urlsToCache = [
-  '/', '/home', '/hal',  '/hal/kontak',  '/hal/privacy_policy','/hal/jadwal','/hal/panduan','/billiard', '/hal/pengumuman','/produk',
+  '/',
+   '/home',
+   '/hal',
+    '/hal/kontak',
+    '/hal/privacy_policy',
+    '/hal/jadwal',
+  '/billiard',
+   '/hal/pengumuman',
+   '/produk',
+  
   '/developer/manifest?v=8',
   OFFLINE_URL,
 

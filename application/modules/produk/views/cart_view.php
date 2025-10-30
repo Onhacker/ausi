@@ -176,9 +176,76 @@
             <small class="text-muted">Total</small>
             <div class="h5 mb-0" id="cart-total-desktop">Rp <?= number_format((int)$total,0,',','.') ?></div>
           </div> -->
-          <a href="<?= site_url('produk/order') ?>" class="btn btn-blue btn-block">
-            Lanjutkan Pesan <i class="mdi mdi-arrow-right ml-1"></i>
-          </a>
+          <style>
+          /* gaya dasar tombol kamu, asumsi sudah ada .btn, .btn-blue, .btn-block */
+
+          /* state loading */
+          .btn-loading {
+            pointer-events: none;
+            opacity: .7;
+            position: relative;
+          }
+
+          /* spinner mini */
+          .spinner-border {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: .15rem solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            vertical-align: -0.2em;
+            margin-left: .5rem;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        </style>
+
+        <a
+          href="<?= site_url('produk/order') ?>"
+          class="btn btn-blue btn-block js-go-order"
+        >
+          <span class="btn-text">Lanjutkan Pesan</span>
+          <i class="mdi mdi-arrow-right ml-1 btn-icon"></i>
+        </a>
+
+        <script>
+        (function(){
+          const link = document.querySelector('.js-go-order');
+          if (!link) return;
+
+          link.addEventListener('click', function(e){
+            // kalau sudah loading, jangan eksekusi lagi
+            if (link.classList.contains('btn-loading')) {
+              e.preventDefault();
+              return;
+            }
+
+            // ubah tampilan ke loading
+            link.classList.add('btn-loading');
+
+            // ganti isi icon jadi spinner
+            const iconEl = link.querySelector('.btn-icon');
+            if (iconEl) {
+              iconEl.outerHTML = '<span class="spinner-border" aria-hidden="true"></span>';
+            }
+
+            // optional: ganti teks juga kalau mau
+            const txtEl = link.querySelector('.btn-text');
+            if (txtEl) {
+              txtEl.textContent = 'Mohon tunggu...';
+            }
+
+            // biarkan browser lanjut ke href normal.
+            // TIDAK preventDefault => langsung navigate.
+            // (Kalau kamu pakai ajax single-page, baru kita preventDefault.)
+          }, {passive:true});
+        })();
+        </script>
+
         </div>
       <!-- </div> -->
     <?php endif; ?>
