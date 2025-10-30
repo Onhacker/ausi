@@ -1,4 +1,3 @@
-<?php $this->load->view("front_end/head.php") ?>
 
 <style>
 /* ====== Overlay Instal iOS PWA ====== */
@@ -364,4 +363,3 @@ function isSafariIOS() {
   };
 })();
 </script>
-<?php $this->load->view("front_end/footer.php") ?>

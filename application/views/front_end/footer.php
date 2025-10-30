@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (m && m.parentNode !== document.body) document.body.appendChild(m);
 });
 </script>
-
+<?php $this->load->view("front_end/app") ?>
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/app.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/sw.min.js') ?>"></script>
