@@ -71,21 +71,21 @@
               src="<?php echo base_url('assets/images/gp.webp') ?>"
               style="height:56px;width:auto;">
             </a> -->
-             <a id="installButton"
+         <!--     <a id="installButton"
             href="#"
             class="d-inline-block my-2 ms-2 ml-2"
             aria-label="Instal ke iOS (PWA)">
             <img alt="Instal ke iOS (Tambahkan ke Layar Utama)"
             src="<?= base_url('assets/images/ins_an.webp') ?>"
             style="height:56px;width:auto;">
-          </a>
+          </a> -->
             <!-- Badge iOS / PWA -->
             <a id="installButton"
             href="#"
             class="d-inline-block my-2 ms-2 ml-2"
             aria-label="Instal ke iOS (PWA)">
             <img alt="Instal ke iOS (Tambahkan ke Layar Utama)"
-            src="<?= base_url('assets/images/ip_ann.webp') ?>"
+            src="<?= base_url('assets/images/app.webp') ?>"
             style="height:56px;width:auto;">
           </a>
         </div>
