@@ -14,7 +14,7 @@ class Admin_laporan extends Admin_Controller
         $data["controller"] = get_class($this);
         $data["title"]      = "Laporan";
         $data["subtitle"]   = "Ringkasan & Cetak";
-        $data["content"]    = $this->load->view('admin_laporan_view',$data,true);
+        $data["content"]    = $this->load->view('Admin_laporan_view',$data,true);
         $this->render($data);
     }
 
