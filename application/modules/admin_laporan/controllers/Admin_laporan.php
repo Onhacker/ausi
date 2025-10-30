@@ -89,23 +89,25 @@ public function print_kurir(){
 
     $rows = $this->lm->fetch_pos($f); // ada delivery_fee_net
 
-    $rows_out = [];
-    $total_fee = 0;
-    $by_method = [];
+    $rows_out   = [];
+    $total_fee  = 0;
+    $by_method  = [];
 
     if (!empty($rows)){
         foreach ($rows as $r){
-            // di dalam foreach $rows as $r
-$pmKeyRaw = $r->paid_method ?? $r->paid_methode ?? '';
-$k = strtolower(trim((string)$pmKeyRaw));
+            // Ambil metode bayar (paid_method / paid_methode)
+            $pmKeyRaw = $r->paid_method ?? $r->paid_methode ?? '';
+            $k = strtolower(trim((string)$pmKeyRaw));
 
-$feeRaw = (int)($r->delivery_fee ?? 0);
-$feeNet = (int)($r->delivery_fee_net ?? (($feeRaw===1 && ($k==='transfer'||$k==='qris')) ? 0 : $feeRaw));
+            // Hitung feeNet (support ongkir = 1 => gratis)
+            $feeRaw = (int)($r->delivery_fee ?? 0);
+            $feeNet = (int)($r->delivery_fee_net ?? (($feeRaw===1 && ($k==='transfer'||$k==='qris')) ? 0 : $feeRaw));
 
             $cid   = (int)($r->courier_id   ?? 0);
             $cname = trim((string)($r->courier_name ?? ''));
             if ($cid <= 0 && $cname === '') continue; // kurir invalid → skip
 
+            // pastikan feeNet final
             $feeNet = (int)($r->delivery_fee_net ?? (((int)($r->delivery_fee ?? 0) === 1) ? 0 : (int)($r->delivery_fee ?? 0)));
 
             $pmKeyRaw = $r->paid_method ?? $r->paid_methode ?? '';
@@ -122,62 +124,106 @@ $feeNet = (int)($r->delivery_fee_net ?? (($feeRaw===1 && ($k==='transfer'||$k===
         'title'  => 'Laporan Kurir (Delivery)',
         'period' => $this->_period_label($f),
         'rows'   => $rows_out,
-        'sum'    => ['count'=>count($rows_out),'total_fee'=>$total_fee,'by_method'=>$by_method],
+        'sum'    => [
+            'count'     => count($rows_out),
+            'total_fee' => $total_fee,
+            'by_method' => $by_method
+        ],
         'f'      => $f,
         'idr'    => function($x){ return $this->_idr($x); },
     ];
+
+    // build nama file pakai period
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+    $safePeriod = trim($safePeriod, '_');
+    if ($safePeriod === '') {
+        $safePeriod = date('Ymd');
+    }
+    $filename = 'laporan_kurir_' . $safePeriod . '.pdf';
+
     $html = $this->load->view('admin_laporan/pdf_kurir', $data, true);
-    $this->_pdf($data['title'], $html, 'laporan_kurir.pdf');
+    $this->_pdf($data['title'], $html, $filename);
 }
 
 
+public function print_billiard(){
+    $f = $this->_parse_filter();
+    $data = [
+        'title'  => 'Laporan Billiard (Terkonfirmasi)',
+        'period' => $this->_period_label($f),
+        'rows'   => $this->lm->fetch_billiard($f),
+        'sum'    => $this->lm->sum_billiard($f),
+        'f'      => $f,
+        'idr'    => function($x){ return $this->_idr($x); },
+    ];
 
-    public function print_billiard(){
-        $f = $this->_parse_filter();
-        $data = [
-            'title'  => 'Laporan Billiard (Terkonfirmasi)',
-            'period' => $this->_period_label($f),
-            'rows'   => $this->lm->fetch_billiard($f),
-            'sum'    => $this->lm->sum_billiard($f),
-            'f'      => $f,
-            'idr'    => function($x){ return $this->_idr($x); },
-        ];
-        $html = $this->load->view('admin_laporan/pdf_billiard', $data, true);
-        $this->_pdf($data['title'], $html, 'laporan_billiard.pdf');
+    // nama file dinamis
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+    $safePeriod = trim($safePeriod, '_');
+    if ($safePeriod === '') {
+        $safePeriod = date('Ymd');
     }
+    $filename = 'laporan_billiard_' . $safePeriod . '.pdf';
 
-    public function print_pengeluaran(){
-        $f = $this->_parse_filter();
-        $data = [
-            'title'  => 'Laporan Pengeluaran',
-            'period' => $this->_period_label($f),
-            'rows'   => $this->lm->fetch_pengeluaran($f),
-            'sum'    => $this->lm->sum_pengeluaran($f),
-            'f'      => $f,
-            'idr'    => function($x){ return $this->_idr($x); },
-        ];
-        $html = $this->load->view('admin_laporan/pdf_pengeluaran', $data, true);
-        $this->_pdf($data['title'], $html, 'laporan_pengeluaran.pdf');
-    }
+    $html = $this->load->view('admin_laporan/pdf_billiard', $data, true);
+    $this->_pdf($data['title'], $html, $filename);
+}
 
-    public function print_laba(){
-        $f = $this->_parse_filter();
-        $sumPos = $this->lm->sum_pos($f);
-        $sumBil = $this->lm->sum_billiard($f);
-        $sumPen = $this->lm->sum_pengeluaran($f);
-        $data = [
-            'title'  => 'Laporan Laba',
-            'period' => $this->_period_label($f),
-            'sumPos' => $sumPos,
-            'sumBil' => $sumBil,
-            'sumPen' => $sumPen,
-            'laba'   => (int)$sumPos['total'] + (int)$sumBil['total'] - (int)$sumPen['total'],
-            'f'      => $f,
-            'idr'    => function($x){ return $this->_idr($x); },
-        ];
-        $html = $this->load->view('admin_laporan/pdf_laba', $data, true);
-        $this->_pdf($data['title'], $html, 'laporan_laba.pdf');
+
+public function print_pengeluaran(){
+    $f = $this->_parse_filter();
+    $data = [
+        'title'  => 'Laporan Pengeluaran',
+        'period' => $this->_period_label($f),
+        'rows'   => $this->lm->fetch_pengeluaran($f),
+        'sum'    => $this->lm->sum_pengeluaran($f),
+        'f'      => $f,
+        'idr'    => function($x){ return $this->_idr($x); },
+    ];
+
+    // nama file dinamis
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+    $safePeriod = trim($safePeriod, '_');
+    if ($safePeriod === '') {
+        $safePeriod = date('Ymd');
     }
+    $filename = 'laporan_pengeluaran_' . $safePeriod . '.pdf';
+
+    $html = $this->load->view('admin_laporan/pdf_pengeluaran', $data, true);
+    $this->_pdf($data['title'], $html, $filename);
+}
+
+
+public function print_laba(){
+    $f = $this->_parse_filter();
+
+    $sumPos = $this->lm->sum_pos($f);
+    $sumBil = $this->lm->sum_billiard($f);
+    $sumPen = $this->lm->sum_pengeluaran($f);
+
+    $data = [
+        'title'  => 'Laporan Laba',
+        'period' => $this->_period_label($f),
+        'sumPos' => $sumPos,
+        'sumBil' => $sumBil,
+        'sumPen' => $sumPen,
+        'laba'   => (int)$sumPos['total'] + (int)$sumBil['total'] - (int)$sumPen['total'],
+        'f'      => $f,
+        'idr'    => function($x){ return $this->_idr($x); },
+    ];
+
+    // nama file dinamis
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+    $safePeriod = trim($safePeriod, '_');
+    if ($safePeriod === '') {
+        $safePeriod = date('Ymd');
+    }
+    $filename = 'laporan_laba_' . $safePeriod . '.pdf';
+
+    $html = $this->load->view('admin_laporan/pdf_laba', $data, true);
+    $this->_pdf($data['title'], $html, $filename);
+}
+
     /* ===================== Helpers ===================== */
 
     private function _parse_filter(): array {
