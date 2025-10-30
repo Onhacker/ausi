@@ -55,6 +55,8 @@ public function summary_json(){
 // === CETAK POS (pakai grand_total_net) ===
 public function print_pos(){
     $f = $this->_parse_filter();
+
+    // rakit data buat view
     $data = [
         'title'  => 'Laporan Cafe (Transaksi Lunas)',
         'period' => $this->_period_label($f),
@@ -63,9 +65,22 @@ public function print_pos(){
         'f'      => $f,
         'idr'    => function($x){ return $this->_idr($x); },
     ];
+
+    // bikin nama file PDF pakai periode
+    // contoh period: "01 Okt 2025 s.d 30 Okt 2025"
+    // kita sanitize biar aman jadi: "01_Okt_2025_s_d_30_Okt_2025"
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', $data['period']);
+    $safePeriod = trim($safePeriod, '_'); // buang _ di awal/akhir kalau ada
+
+    $filename = 'laporan_cafe_' . $safePeriod . '.pdf';
+
+    // render HTML view jadi string
     $html = $this->load->view('admin_laporan/pdf_pos', $data, true);
-    $this->_pdf($data['title'], $html, 'laporan_cafe.pdf');
+
+    // kirim ke generator PDF
+    $this->_pdf($data['title'], $html, $filename);
 }
+
 
 // === CETAK KURIR (tampilkan semua; ongkir=1 dianggap 0; skip kurir invalid) ===
 public function print_kurir(){
