@@ -340,6 +340,7 @@ public function get_dataa(){
             $createdTs = strtotime($r->created_at ?: date('Y-m-d H:i:s')) ?: time();
             $lamaHtml  = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
 
+
             // Kitchen: berhenti kalau selesai (status_pesanan_kitchen=2)
             if ($isKitchen) {
                 if ((int)$r->status_pesanan_kitchen === 2) {
@@ -427,38 +428,52 @@ public function get_dataa(){
 
             // Row
             $row = [];
-            $row['id']      = (int)$r->id;
-            // $row['cek']     = '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id.'"><label></label></div>';
-            $row['no']      = '';
-            // $row['mode']    = '<span class="badge badge-pill '.$mode_badge.'">'.htmlspecialchars($mode_label,ENT_QUOTES,'UTF-8').'</span>';
-            $row['mode'] = 
-            '<div class="d-inline-block text-left">'
-            .   '<span class="badge badge-pill '.$mode_badge.'">'
-            .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
-            .   '</span>'
-              .   $kurirInfoHtml   // <- kosong kecuali mode=delivery
-              . '</div>';
 
-            $row['meja']    = $meja_html;
-            $row['waktu']   = htmlspecialchars(date('d-m-Y H:i', $createdTs), ENT_QUOTES, 'UTF-8');
-            $row['lama']    = $lamaHtml;
-            if ($isKitchen || $isBar) {
-                $row['pesanan'] = $pesananHtml;
-            }
-            // Jumlah/Metode: kosongkan bila kitchen/bar, tampilkan normal bila kasir/admin
-            if ($isKitchen || $isBar) {
-                $row['jumlah']  = '';
-                $row['status']  = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($status_label,ENT_QUOTES,'UTF-8').'</span>';
-                $row['metode']  = '';
-            } else {
-                $row['jumlah']  = 'Rp '.number_format($jumlah,0,',','.');
-                $row['status']  = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($status_label,ENT_QUOTES,'UTF-8').'</span>';
-                $row['metode']  = htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
-                $row['aksi']    = $actionsHtml; // <— tambahkan di kasir/admin
-            }
+                // 1. no
+                $row['no']    = '';
+
+                // 2. mode (sudah termasuk badge + kurir)
+                $row['mode']  = 
+                    '<div class="d-inline-block text-left">'
+                  .   '<span class="badge badge-pill '.$mode_badge.'">'
+                  .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+                  .   '</span>'
+                  .   $kurirInfoHtml
+                  . '</div>';
+
+                // 3. meja
+                $row['meja']  = $meja_html;
+
+                // 4. pesanan (HANYA di kitchen/bar, tapi kita tetap define key 'pesanan' supaya konsisten)
+                if ($isKitchen || $isBar) {
+                    $row['pesanan'] = $pesananHtml;
+                }
+
+                // 5. waktu
+                $row['waktu'] = htmlspecialchars(date('d-m-Y H:i', $createdTs), ENT_QUOTES, 'UTF-8');
+
+                // 6. lama  <-- penting: setelah waktu
+                $row['lama']  = $lamaHtml;
+
+                // 7. jumlah
+                $row['jumlah'] = ($isKitchen || $isBar) ? '' : ('Rp '.number_format($jumlah,0,',','.'));
 
 
-            $data[] = $row;
+                // 8. status
+                $row['status'] = '<span class="badge badge-pill badge-'.$badge.'">'
+                               . htmlspecialchars($status_label,ENT_QUOTES,'UTF-8')
+                               . '</span>';
+
+                // 9. metode
+                $row['metode'] = ($isKitchen || $isBar) ? '' : htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
+
+                // 10. aksi
+                if (!$isKitchen && !$isBar) {
+                    $row['aksi'] = $actionsHtml;
+                }
+
+                $data[] = $row;
+
         }
 
         $out = [

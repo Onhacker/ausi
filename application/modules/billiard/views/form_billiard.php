@@ -647,38 +647,154 @@ function validateTimeRange(){
     }
   }
 
-  async function doPost(){
+  // async function doPost(){
+  //   setLoading(true);
+  //   if (window.Swal) Swal.fire({ title: 'Nge-proses…', text: 'Sedang membuat booking, tunggu sebentar ya.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  //   try {
+  //     const fd = new FormData(frm);
+  //     const r  = await fetch(frm.action, { method:'POST', body: fd });
+  //     const j  = await r.json();
+  //     if (window.Swal) Swal.close();
+
+  //     if (j.success) {
+  //       const isFree = j.redirect_url && j.redirect_url.indexOf('/billiard/free') !== -1;
+  //       if (window.Swal) {
+  //         await Swal.fire({
+  //           title: isFree ? 'Voucher diterima 🎉' : 'Berhasil!',
+  //           html: isFree
+  //           ? `Booking gratis aktif.<br>Durasi ditentukan sistem: <b>${getFreeHours()}</b> jam.`
+  //           : (j.pesan || 'Booking berhasil dibuat.'),
+  //           icon: 'success',
+  //           confirmButtonText: 'Sip'
+  //         });
+  //       }
+  //       if (j.redirect_url) setTimeout(() => { window.location.href = j.redirect_url; }, 250);
+  //       return;
+  //     }
+
+  //     // === Tangani khusus error voucher ===
+  //     const title = (j.title||'').toLowerCase();
+  //     const pesan = (j.pesan||'');
+  //     const voucherFilled = !!(voucherInp && voucherInp.value.trim() !== '');
+
+  //     if (voucherFilled && (title.includes('voucher') || /voucher/i.test(pesan))) {
+  //       const res = await Swal.fire({
+  //         title: 'Kode vouchernya belum match 😅',
+  //         html: pesan + '<br><br>Mau lanjut tanpa voucher aja?',
+  //         icon: 'warning',
+  //         showCancelButton: true,
+  //         confirmButtonText: 'Lanjut tanpa voucher',
+  //         cancelButtonText: 'Cek/ubah kode'
+  //       });
+
+  //       if (res.isConfirmed) {
+  //         // kosongkan voucher & submit ulang
+  //         voucherInp.value = '';
+  //         return doPost();
+  //       } else {
+  //         // biar user bisa koreksi
+  //         voucherInp.focus();
+  //         return;
+  //       }
+  //     }
+
+  //     // default error (bukan voucher)
+  //     if (window.Swal) await Swal.fire({ title: j.title || 'Gagal', html: j.pesan || 'Gagal membuat booking.', icon: 'error', confirmButtonText: 'Oke' });
+  //     else alert(j.title || 'Gagal membuat booking');
+  //   } catch (err) {
+  //     if (window.Swal) { Swal.close(); await Swal.fire({ title: 'Waduh', text: 'Koneksi error. Coba lagi yaa.', icon: 'error', confirmButtonText: 'Oke' }); }
+  //     else alert('Koneksi error. Coba lagi.');
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
+
+async function doPost(){
     setLoading(true);
-    if (window.Swal) Swal.fire({ title: 'Nge-proses…', text: 'Sedang membuat booking, tunggu sebentar ya.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // daftar step yang nongol bertingkat
+    const steps = [
+      'Cek data form kamu dulu… 😎',
+      'Cek jam & durasi, bentrok nggak… ⏰',
+      'Kunci slot mejanya… 🎱',
+      'Bikin kode booking kamu… 🧾',
+      'Simpan ke sistem kasir… 💾',
+      'Ngabarin balik ke kamu… 📲'
+    ];
+
+    // buka loader progres bertahap
+    startBookingLoader(steps, 900);
 
     try {
       const fd = new FormData(frm);
-      const r  = await fetch(frm.action, { method:'POST', body: fd });
-      const j  = await r.json();
-      if (window.Swal) Swal.close();
 
-      if (j.success) {
+      // (opsional nanti: fd.append(CSRF_NAME, CSRF_HASH); kalau server pake CSRF)
+
+      const r  = await fetch(frm.action, {
+        method: 'POST',
+        body: fd
+      });
+
+      // begitu server udah jawab, tutup loader step
+      stopBookingLoader();
+
+      // coba parse JSON
+      let j;
+      try {
+        j = await r.json();
+      } catch(e) {
+        j = null;
+      }
+
+      // kalau gak dapet JSON sama sekali / HTTP bukan 200-an
+      if (!r.ok || !j){
+        if (window.Swal){
+          await Swal.fire({
+            title: 'Waduh',
+            text: 'Server nggak jawab normal. Coba lagi bentar ya 🙏',
+            icon: 'error',
+            confirmButtonText: 'Oke'
+          });
+        } else {
+          alert('Server error / response bukan JSON');
+        }
+        return;
+      }
+
+      // ===== SUCCESS HANDLING =====
+      if (j.success){
         const isFree = j.redirect_url && j.redirect_url.indexOf('/billiard/free') !== -1;
+
         if (window.Swal) {
           await Swal.fire({
             title: isFree ? 'Voucher diterima 🎉' : 'Berhasil!',
             html: isFree
-            ? `Booking gratis aktif.<br>Durasi ditentukan sistem: <b>${getFreeHours()}</b> jam.`
-            : (j.pesan || 'Booking berhasil dibuat.'),
+              ? `Booking gratis aktif.<br>Durasi ditentukan sistem: <b>${getFreeHours()}</b> jam.`
+              : (j.pesan || 'Booking berhasil dibuat.'),
             icon: 'success',
             confirmButtonText: 'Sip'
           });
+        } else {
+          alert('Booking berhasil dibuat.');
         }
-        if (j.redirect_url) setTimeout(() => { window.location.href = j.redirect_url; }, 250);
+
+        if (j.redirect_url){
+          setTimeout(()=>{
+            window.location.href = j.redirect_url;
+          }, 250);
+        }
         return;
       }
 
-      // === Tangani khusus error voucher ===
-      const title = (j.title||'').toLowerCase();
-      const pesan = (j.pesan||'');
+      // ===== ERROR HANDLING: VOUCHER SALAH =====
+      const titleLow   = (j.title||'').toLowerCase();
+      const pesan      = (j.pesan||'');
+      const voucherInp = document.getElementById('voucher');
       const voucherFilled = !!(voucherInp && voucherInp.value.trim() !== '');
 
-      if (voucherFilled && (title.includes('voucher') || /voucher/i.test(pesan))) {
+      if (voucherFilled && (titleLow.includes('voucher') || /voucher/i.test(pesan))){
         const res = await Swal.fire({
           title: 'Kode vouchernya belum match 😅',
           html: pesan + '<br><br>Mau lanjut tanpa voucher aja?',
@@ -688,29 +804,48 @@ function validateTimeRange(){
           cancelButtonText: 'Cek/ubah kode'
         });
 
-        if (res.isConfirmed) {
-          // kosongkan voucher & submit ulang
+        if (res.isConfirmed){
+          // kosongkan voucher & kirim ulang
           voucherInp.value = '';
           return doPost();
         } else {
-          // biar user bisa koreksi
           voucherInp.focus();
           return;
         }
       }
 
-      // default error (bukan voucher)
-      if (window.Swal) await Swal.fire({ title: j.title || 'Gagal', html: j.pesan || 'Gagal membuat booking.', icon: 'error', confirmButtonText: 'Oke' });
-      else alert(j.title || 'Gagal membuat booking');
+      // ===== ERROR UMUM =====
+      if (window.Swal){
+        await Swal.fire({
+          title: j.title || 'Gagal',
+          html: j.pesan || 'Gagal membuat booking.',
+          icon: 'error',
+          confirmButtonText: 'Oke'
+        });
+      } else {
+        alert(j.title || 'Gagal membuat booking');
+      }
+
     } catch (err) {
-      if (window.Swal) { Swal.close(); await Swal.fire({ title: 'Waduh', text: 'Koneksi error. Coba lagi yaa.', icon: 'error', confirmButtonText: 'Oke' }); }
-      else alert('Koneksi error. Coba lagi.');
-      console.error(err);
+      // kalau fetch() sendiri error (timeout / network / CORS dsb)
+      stopBookingLoader();
+
+      if (window.Swal){
+        await Swal.fire({
+          title: 'Waduh',
+          text: 'Koneksi error. Coba lagi yaa.',
+          icon: 'error',
+          confirmButtonText: 'Oke'
+        });
+      } else {
+        alert('Koneksi error. Coba lagi.');
+      }
+
+      console.error('Booking fetch error:', err);
     } finally {
       setLoading(false);
     }
   }
-
   frm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
