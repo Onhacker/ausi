@@ -710,6 +710,109 @@ function validateTimeRange(){
   //     setLoading(false);
   //   }
   // }
+/* =====================================================
+ * BOOKING LOADER STEP (SweetAlert versi bertingkat)
+ * - Muncul list step vertikal
+ * - Step aktif pakai spinner
+ * - Step yang sudah lewat jadi centang hijau
+ * - Step berikutnya abu-abu
+ * ===================================================== */
+let __bookTimer = null;
+
+function startBookingLoader(steps, durMs){
+  let idx = 0; // step aktif sekarang
+
+  // builder HTML list step
+  function makeListHtml(activeIdx){
+    let lis = '';
+    for (let i = 0; i < steps.length; i++){
+      if (i < activeIdx){
+        // sudah kelar -> centang
+        lis += `
+          <li class="mb-2" style="display:flex;align-items:flex-start;">
+            <i class="mdi mdi-check-circle-outline text-success mr-2"
+               style="font-size:1.1rem;line-height:1.1rem;"></i>
+            <span>${steps[i]}</span>
+          </li>`;
+      } else if (i === activeIdx){
+        // lagi jalan -> spinner
+        lis += `
+          <li class="mb-2" style="display:flex;align-items:flex-start;">
+            <span class="spinner-border spinner-border-sm mr-2"
+                  role="status" aria-hidden="true"></span>
+            <span>${steps[i]}</span>
+          </li>`;
+      } else {
+        // belum jalan -> abu2
+        lis += `
+          <li class="mb-2 text-muted"
+              style="display:flex;align-items:flex-start;opacity:.5;">
+            <i class="mdi mdi-checkbox-blank-circle-outline mr-2"
+               style="font-size:.9rem;line-height:1.1rem;"></i>
+            <span>${steps[i]}</span>
+          </li>`;
+      }
+    }
+    return `
+      <ul style="list-style:none;margin:0;padding-left:0;text-align:left;">
+        ${lis}
+      </ul>`;
+  }
+
+  Swal.fire({
+    title: 'Lagi dibuatin booking… 🙌',
+    html: makeListHtml(idx),
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    width: '480px',
+    didOpen: () => {
+      const box = Swal.getHtmlContainer();
+
+      __bookTimer = setInterval(()=>{
+        idx++;
+
+        // kalau udah lewat jumlah step, stop interval dan render semua centang hijau
+        if (idx >= steps.length){
+          clearInterval(__bookTimer);
+          __bookTimer = null;
+
+          if (box){
+            let doneLis = '';
+            for (let i = 0; i < steps.length; i++){
+              doneLis += `
+                <li class="mb-2" style="display:flex;align-items:flex-start;">
+                  <i class="mdi mdi-check-circle-outline text-success mr-2"
+                     style="font-size:1.1rem;line-height:1.1rem;"></i>
+                  <span>${steps[i]}</span>
+                </li>`;
+            }
+            box.innerHTML = `
+              <ul style="list-style:none;margin:0;padding-left:0;text-align:left;">
+                ${doneLis}
+              </ul>`;
+          }
+          return;
+        }
+
+        // update tampilan tiap "durMs"
+        if (box){
+          box.innerHTML = makeListHtml(idx);
+        }
+
+      }, durMs || 900);
+    }
+  });
+}
+
+// Tutup loader (panggil ini pas sudah dapat response server)
+function stopBookingLoader(){
+  if (__bookTimer){
+    clearInterval(__bookTimer);
+    __bookTimer = null;
+  }
+  Swal.close();
+}
 
 async function doPost(){
     setLoading(true);
