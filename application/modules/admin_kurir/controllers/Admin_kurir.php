@@ -7,14 +7,14 @@ class Admin_kurir extends Admin_Controller {
         parent::__construct();
         $this->load->model('M_admin_kurir','dm');
         cek_session_akses(get_class($this), $this->session->userdata('admin_session')); // jika dipakai
-        
+
     }
 
     public function index(){
         $data["controller"] = get_class($this);
         $data["title"]      = "Master";
         $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
-        $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
+        $data["content"]    = $this->load->view("admin_kurir_view",$data,true);
         $this->render($data);
     }
 
