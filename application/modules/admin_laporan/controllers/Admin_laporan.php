@@ -263,19 +263,10 @@ $feeNet = (int)($r->delivery_fee_net ?? (($feeRaw===1 && ($k==='transfer'||$k===
 
 
     private function _pdf($title, $html, $filename='laporan.pdf'){
-        // Siapkan TCPDF
-        if (!class_exists('TCPDF')){
-            // kalau sudah di-setup sebagai library:
-            if (method_exists($this->load, 'library')){
-                @$this->load->library('tcpdf');
-            }
-            // fallback manual (ubah path sesuai penempatan tcpdf di project kamu)
-            if (!class_exists('TCPDF') && file_exists(FCPATH.'vendor/tecnickcom/tcpdf/tcpdf.php')){
-                require_once FCPATH.'vendor/tecnickcom/tcpdf/tcpdf.php';
-            }
-        }
+        $this->load->library('pdf'); // TCPDF wrapper
+        
 
-        $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf = new pdf('L', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('AusiApp');
         $pdf->SetAuthor('AusiApp');
         $pdf->SetTitle($title);
