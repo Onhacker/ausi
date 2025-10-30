@@ -366,22 +366,26 @@ if (!empty($kategoris)) {
 
 <script>
 (function(){
-  // ==== KONFIG: endpoint publik untuk ambil subkategori per kategori ====
-  // Ubah ke endpoint kamu kalau berbeda (harus return JSON: {success:true, data:[{id,nama,slug}]})
-  const SUB_API = "<?= site_url('produk/subkategori/'); ?>"; // contoh: /produk/subkategori/{kategori_id}
+  // ==== KONFIG: endpoint subkategori ====
+  const SUB_API = "<?= site_url('produk/subkategori/'); ?>";
 
-  // ==== Elemen utama ====
-  const $grid = $('#grid-products');
-  const $pagi = $('#pagination-wrap');
+  // ==== Cache elemen utama ====
+  const $grid      = $('#grid-products');
+  const $pagi      = $('#pagination-wrap');
   const $cartCount = $('#cart-count');
   const $fabCount  = $('#fab-count');
 
-  // Pastikan hidden input sub_kategori ada
+  // Pastikan hidden input sub_kategori ada di form
   if (!$('#sub_kategori').length){
-    $('<input>', {type:'hidden', id:'sub_kategori', name:'sub_kategori', value:''}).appendTo('#filter-form');
+    $('<input>', {
+      type:'hidden',
+      id:'sub_kategori',
+      name:'sub_kategori',
+      value:''
+    }).appendTo('#filter-form');
   }
 
-  // Buat container subkategori tepat di bawah quickmenu (jika belum ada)
+  // Buat container subkategori (badge2) tepat di bawah quickmenu
   let $subWrap = $('#subcat-wrap');
   if (!$subWrap.length){
     $subWrap = $('<div id="subcat-wrap" class="mb-2" role="navigation" aria-label="Subkategori"></div>');
@@ -389,7 +393,9 @@ if (!empty($kategoris)) {
   }
   $subWrap.hide().empty();
 
-  // ====== Skeleton & loading ======
+  // ========= UTIL / HELPER ==========
+
+  // Skeleton placeholder saat loading produk
   function buildSkeleton(n){
     let html = '';
     for (let i=0;i<n;i++){
@@ -406,187 +412,283 @@ if (!empty($kategoris)) {
     }
     return html;
   }
+
   function loading(on=true){
-    if (on){ $grid.html(buildSkeleton(8)); $pagi.html(''); }
+    if (on){
+      $grid.html(buildSkeleton(8));
+      $pagi.html('');
+    }
   }
 
   function updateAllCartBadges(n){
     if ($cartCount && $cartCount.length) $cartCount.text(n);
-    if ($fabCount && $fabCount.length)  $fabCount.text(n);
+    if ($fabCount && $fabCount.length)   $fabCount.text(n);
   }
 
-  // ====== Filter serialize ======
-  function serializeFilters(page=1){
-    const q = $('#q').val() || '';
-    const kategori = $('#kategori').val() || '';
-    const sub_kategori = $('#sub_kategori').val() || '';
-    const sort = $('#sort').val() || 'random';
-    const per_page = 12;
+  // Spinner/state di tombol "Tambah"
+  function btnStartLoading($btn, loadingText){
+    if (!$btn || !$btn.length) return;
+    if ($btn.hasClass('btn-loading')) return;
 
+    $btn.addClass('btn-loading');
+    $btn.find('.spinner-border').removeClass('d-none'); // tampilkan spinner
+    $btn.find('.icon-default').addClass('d-none');      // sembunyikan icon biasa
+
+    const $txt = $btn.find('.btn-text');
+    if ($txt.length){
+      if (!$txt.data('orig')) {
+        $txt.data('orig', $txt.text());
+      }
+      $txt.text(loadingText || 'Menambah...');
+    }
+  }
+
+  function btnStopLoading($btn){
+    if (!$btn || !$btn.length) return;
+    if (!$btn.hasClass('btn-loading')) return;
+
+    $btn.find('.spinner-border').addClass('d-none');
+    $btn.find('.icon-default').removeClass('d-none');
+
+    const $txt = $btn.find('.btn-text');
+    if ($txt.length){
+      const origText = $txt.data('orig');
+      if (origText){
+        $txt.text(origText);
+      }
+    }
+    $btn.removeClass('btn-loading');
+  }
+
+  // Amanin qty minimal 1
+  function safeQty(v){
+    v = parseInt(v,10);
+    return (isNaN(v) || v<1) ? 1 : v;
+  }
+
+  // Alert helper (pakai SweetAlert kalau ada)
+  function notifySuccess(title, text){
+    if (window.Swal){
+      Swal.fire({
+        icon:'success',
+        title: title || 'Berhasil',
+        text:  text  || '',
+        timer:1500,
+        showConfirmButton:false
+      });
+    } else {
+      alert((title?title+': ':'')+(text||''));
+    }
+  }
+
+  function notifyError(title, text){
+    if (window.Swal){
+      Swal.fire({
+        icon:'error',
+        title: title || 'Gagal',
+        text:  text  || ''
+      });
+    } else {
+      alert((title?title+': ':'')+(text||''));
+    }
+  }
+
+  // Scroll sedikit ke area produk setelah user ganti kategori/halaman
+  function scrollToGrid(){
+    var el = document.getElementById('grandong');
+    if (!el) return;
+    var OFFSET = 70;
+    var y = el.getBoundingClientRect().top + window.pageYOffset - OFFSET;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }
+
+  // Ambil nilai filter (q/kategori/sub/sort/page/seed) untuk AJAX
+  function serializeFilters(page=1){
+    const q            = $('#q').val() || '';
+    const kategori     = $('#kategori').val() || '';
+    const sub_kategori = $('#sub_kategori').val() || '';
+    const sort         = $('#sort').val() || 'random';
+    const per_page     = 12;
+
+    // seed random untuk mode "For You"
     const url = new URL(window.location.href);
     let seed = url.searchParams.get('seed');
-    if (!seed && sort==='random') {
+    if (!seed && sort === 'random'){
       seed = String(Math.floor(Math.random()*1e9));
       url.searchParams.set('seed', seed);
       history.replaceState({}, '', url.toString());
     }
+
     return { q, kategori, sub_kategori, sort, page, per_page, seed };
   }
 
-  // ====== Produk loader ======
+  // Render daftar produk
   function loadProducts(page=1, pushUrl=true){
     loading(true);
     const params = serializeFilters(page);
+
     $.getJSON("<?= site_url('produk/list_ajax'); ?>", params)
-      .done(function(r){
-        if (!r || !r.success){
-          $grid.html('<div class="col-12 alert alert-danger">Gagal memuat data.</div>');
-          return;
-        }
-        $grid.html(r.items_html);
-        $pagi.html(r.pagination_html);
+    .done(function(r){
+      if (!r || !r.success){
+        $grid.html('<div class="col-12 alert alert-danger">Gagal memuat data.</div>');
+        return;
+      }
 
-        if (pushUrl){
-          const url = new URL(window.location.href);
-          url.searchParams.set('q', params.q);
-          url.searchParams.set('kategori', params.kategori);
-          url.searchParams.set('sub', params.sub_kategori);   // ⬅️ simpan sub di URL
-          url.searchParams.set('sort', params.sort);
-          url.searchParams.set('page', r.page);
-          url.searchParams.set('seed', params.seed);
-          history.pushState(params, '', url.toString());
-        }
+      $grid.html(r.items_html);
+      $pagi.html(r.pagination_html);
 
-        bindAddToCart();
-        bindPagination();
-        // bindDetailModal(); // panggil jika kamu punya detail modal
-      })
-      .fail(function(){
-        $grid.html('<div class="col-12 alert alert-danger">Koneksi bermasalah.</div>');
-      });
+      if (pushUrl){
+        const url = new URL(window.location.href);
+        url.searchParams.set('q',     params.q);
+        url.searchParams.set('kategori', params.kategori);
+        url.searchParams.set('sub',   params.sub_kategori);
+        url.searchParams.set('sort',  params.sort);
+        url.searchParams.set('page',  r.page);
+        url.searchParams.set('seed',  params.seed);
+        history.pushState(params, '', url.toString());
+      }
+
+      bindAddToCart();
+      bindPagination();
+      // kalau nanti punya modal detail produk:
+      bindDetailModal();
+    })
+    .fail(function(){
+      $grid.html('<div class="col-12 alert alert-danger">Koneksi bermasalah.</div>');
+    });
   }
 
+  // Klik pagination
   function bindPagination(){
     $('#pagination-wrap').off('click', 'a[data-page]').on('click', 'a[data-page]', function(e){
       e.preventDefault();
-      const p = parseInt($(this).data('page') || 1);
+      const p = parseInt($(this).data('page') || 1, 10);
       loadProducts(p);
       scrollToGrid();
     });
   }
 
-  // ====== Add to Cart (grid) ======
-  function safeQty(v){ v = parseInt(v,10); return (isNaN(v) || v<1) ? 1 : v; }
+  // Tambah ke keranjang dari card produk (pakai spinner tombol)
   function bindAddToCart(){
-    $('#grid-products').off('click', '.btn-add-cart').on('click', '.btn-add-cart', function(e){
-      e.preventDefault();
-      const id  = $(this).data('id');
-      const qty = safeQty($(this).data('qty'));
-      $.ajax({
-        url: "<?= site_url('produk/add_to_cart'); ?>",
-        type: "POST", dataType: "json", data: { id, qty }
-      }).done(function(r){
-        if (!r || !r.success){ notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan'); return; }
-        updateAllCartBadges(r.count);
-        notifySuccess(r.title || 'Mantap!', r.pesan || 'Item masuk keranjang');
-      }).fail(function(){ notifyError('Error', 'Gagal terhubung ke server'); });
-    });
+    $('#grid-products')
+      .off('click', '.btn-add-cart')
+      .on('click', '.btn-add-cart', function(e){
+        e.preventDefault();
+
+        const $btn = $(this);
+
+        // anti spam double click
+        if ($btn.hasClass('btn-loading')) return;
+        if ($btn.is(':disabled')) return;
+
+        const id  = $btn.data('id');
+        const qty = safeQty($btn.data('qty'));
+
+        btnStartLoading($btn, 'Menambah...');
+
+        $.ajax({
+          url: "<?= site_url('produk/add_to_cart'); ?>",
+          type: "POST",
+          dataType: "json",
+          data: { id, qty },
+        })
+        .done(function(r){
+          if (!r || !r.success){
+            notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan');
+            return;
+          }
+          updateAllCartBadges(r.count);
+          notifySuccess(
+            r.title || 'Mantap!',
+            r.pesan || 'Item masuk keranjang'
+          );
+        })
+        .fail(function(){
+          notifyError('Error', 'Gagal terhubung ke server');
+        })
+        .always(function(){
+          btnStopLoading($btn);
+        });
+      });
   }
 
+  // Hitung isi keranjang awal
   function loadCartCount(){
     $.getJSON("<?= site_url('produk/cart_count'); ?>")
-      .done(function(r){ if (r && r.success){ updateAllCartBadges(r.count); }});
+      .done(function(r){
+        if (r && r.success){
+          updateAllCartBadges(r.count);
+        }
+      });
   }
 
-  // ====== Search debounce ======
-  let typingTimer = null;
-  $('#q').on('input', function(){
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(()=>loadProducts(1), 350);
-  }).on('keydown', function(e){
-    if(e.key==='Enter'){ e.preventDefault(); clearTimeout(typingTimer); loadProducts(1); }
-  });
-
-  // ====== Sort ======
+  // Label tombol sort
   function setSortLabel(val){
     const map = {
-      'new':'Terbaru', 'bestseller':'Terlaris',
-      'price_low':'Harga Rendah', 'price_high':'Harga Tinggi',
-      'sold_out':'Habis', 'random':'For You'
+      'random':'For You',
+      'new':'Terbaru',
+      'bestseller':'Terlaris',
+      'price_low':'Harga Rendah',
+      'price_high':'Harga Tinggi',
+      'sold_out':'Habis'
     };
     $('#sortBtnLabel').text(map[val] || 'Urutkan');
   }
-  setSortLabel($('#sort').val() || 'random');
 
-  $(document).on('click', '.sort-opt', function(e){
-    e.preventDefault();
-    const val = $(this).data('sort');
-    $('#sort').val(val);
-    setSortLabel(val);
-    if (val === 'random') {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('seed');
-      history.replaceState({}, '', url.toString());
-    }
-    loadProducts(1);
-  });
-
-  // ====== Quickmenu Kategori ======
+  // Highlight kategori aktif di quickmenu
   function markActiveKategori(){
     const val = String($('#kategori').val() || '');
     $('#quickmenu .quickmenu-item')
       .not('[data-action="cart"]')
       .removeClass('active')
-      .filter(function(){ return String($(this).data('kategori') || '') === val; })
+      .filter(function(){
+        return String($(this).data('kategori') || '') === val;
+      })
       .addClass('active');
   }
 
-  $('#quickmenu').on('click', '.quickmenu-item', function(e){
-    if ($(this).data('action') === 'cart') return;
-    e.preventDefault();
-    const kat = String($(this).data('kategori') || '');
-    $('#kategori').val(kat);
-    // Reset sub saat ganti kategori
-    $('#sub_kategori').val('');
-    markActiveKategori();
-    // Load produk & sub kategori
-    loadProducts(1);
-    if (kat){ fetchAndRenderSubcats(kat); } else { hideSubcats(); }
-    scrollToGrid();
-  });
+  // ====== Subkategori badge logic ======
+  function hideSubcats(){
+    $subWrap.hide().empty();
+  }
 
-  // ====== Subkategori (badges) ======
-  function hideSubcats(){ $subWrap.hide().empty(); }
   function markActiveSub(subId){
     const sid = String(subId || '');
-    $subWrap.find('.subcat-badge').removeClass('badge-dark text-white active').addClass('badge-blue');
+    // default style semua jadi badge-blue
+    $subWrap.find('.subcat-badge')
+      .removeClass('badge-dark text-white active')
+      .addClass('badge-blue');
+
     if (sid === ''){
-      $subWrap.find('.subcat-badge[data-sub=""]').removeClass('badge-blue').addClass('badge-dark text-white active');
+      $subWrap.find('.subcat-badge[data-sub=""]')
+        .removeClass('badge-blue')
+        .addClass('badge-dark text-white active');
     } else {
-      $subWrap.find('.subcat-badge[data-sub="'+sid+'"]').removeClass('badge-blue').addClass('badge-dark text-white active');
+      $subWrap.find('.subcat-badge[data-sub="'+sid+'"]')
+        .removeClass('badge-blue')
+        .addClass('badge-dark text-white active');
     }
   }
 
   function renderSubBadges(list, selectedId){
-    // Gunakan badge Bootstrap pill
     let html = '';
-    // "Semua" sub (kosong)
-    html += `<a href="#" class="badge badge-pill subcat-badge badge-dark text-white mr-1 " data-sub="">Semua</a>`;
+    // badge "Semua"
+    html += `<a href="#" class="badge badge-pill subcat-badge badge-dark text-white mr-1" data-sub="">Semua</a>`;
     (list || []).forEach(it=>{
-      html += `<a href="#" class="badge badge-pill subcat-badge badge-blue mr-1 " data-sub="${it.id}">${it.nama}</a>`;
+      html += `<a href="#" class="badge badge-pill subcat-badge badge-blue mr-1" data-sub="${it.id}">${it.nama}</a>`;
     });
+
     $subWrap.html(html).show();
     markActiveSub(selectedId);
   }
 
   function fetchAndRenderSubcats(kategoriId){
-    // $subWrap.html('<span class="text-danger small">Memuat subkategori…</span>').show();
+    // loader kecil sementara
     $subWrap.html(
-      '<div class="d-inline-flex align-items-center rounded px-2 py-1 bg-light border small text-muted" ' +
-        'style="line-height:1.2;">' +
-        '  <span class="spinner-border spinner-border-sm mr-2" role="status" ' +
-        '        style="width:0.9rem;height:0.9rem;border-width:0.15rem;border-right-color:transparent;"></span>' +
-        '  <span>Memuat subkategori…</span>' +
+      '<div class="d-inline-flex align-items-center rounded px-2 py-1 bg-light border small text-muted" style="line-height:1.2;">' +
+      '  <span class="spinner-border spinner-border-sm mr-2" role="status" ' +
+      '        style="width:0.9rem;height:0.9rem;border-width:0.15rem;border-right-color:transparent;"></span>' +
+      '  <span>Memuat subkategori…</span>' +
       '</div>'
     ).show();
 
@@ -599,20 +701,35 @@ if (!empty($kategoris)) {
           hideSubcats();
         }
       })
-      .fail(function(){ hideSubcats(); });
+      .fail(function(){
+        hideSubcats();
+      });
   }
 
-  // Klik badge subkategori → filter
-  $(document).on('click', '.subcat-badge', function(e){
-    e.preventDefault();
-    const sid = String($(this).data('sub') || '');
-    $('#sub_kategori').val(sid);
-    markActiveSub(sid);
-    loadProducts(1);
-    scrollToGrid();
+  // ====== EVENT HANDLERS ======
+
+  // Ketik di search (debounce)
+  let typingTimer = null;
+  $('#q').on('input', function(){
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(function(){
+      loadProducts(1);
+    }, 350);
+  }).on('keydown', function(e){
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      clearTimeout(typingTimer);
+      loadProducts(1);
+    }
   });
 
-  // ====== Tombol Reset: bersihkan sub juga ======
+  // Tombol manual cari (kalau ada #btn-search)
+  $(document).on('click', '#btn-search', function(e){
+    e.preventDefault();
+    loadProducts(1);
+  });
+
+  // Tombol reset → bersihkan semua filter termasuk sub_kategori
   $(document).on('click', '#btn-reset', function(e){
     e.preventDefault();
     $('#q').val('');
@@ -631,423 +748,203 @@ if (!empty($kategoris)) {
     loadProducts(1);
   });
 
-  // ====== Init halaman ======
-  $(function(){
-    loadCartCount();
-    markActiveKategori();
-    $('#dropdownSortBtn').dropdown();
-
-    // Pull dari URL jika ada
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('q')) $('#q').val(url.searchParams.get('q'));
-    if (url.searchParams.has('kategori')) { $('#kategori').val(url.searchParams.get('kategori')); markActiveKategori(); }
-    if (url.searchParams.has('sort')) { $('#sort').val(url.searchParams.get('sort')); setSortLabel($('#sort').val()); }
-    if (url.searchParams.has('sub')) { $('#sub_kategori').val(url.searchParams.get('sub')); }
-
-    // Jika kategori ada → muat sub
-    const katInit = $('#kategori').val();
-    if (katInit){ fetchAndRenderSubcats(katInit); } else { hideSubcats(); }
-
-    const firstPage = parseInt(url.searchParams.get('page') || '1');
-    loadProducts(firstPage, false);
-  });
-
-  // Back/forward browser: restore termasuk sub
-  window.addEventListener('popstate', function(e){
-    const s = e.state || {};
-    $('#q').val(s.q || '');
-    $('#kategori').val(s.kategori || '');
-    $('#sub_kategori').val(s.sub_kategori || '');
-    $('#sort').val(s.sort || 'random'); setSortLabel($('#sort').val());
-    markActiveKategori();
-    if (s.kategori){ fetchAndRenderSubcats(s.kategori); } else { hideSubcats(); }
-    loadProducts(parseInt(s.page || 1), false);
-  });
-
-})(); // END IIFE
-
-// ===== Notif helper (pakai Swal kalau ada) =====
-function notifySuccess(title, text){
-  if (window.Swal) Swal.fire({ icon:'success', title: title||'Berhasil', text: text||'', timer:1500, showConfirmButton:false });
-  else alert((title?title+': ':'')+(text||''));
-}
-function notifyError(title, text){
-  if (window.Swal) Swal.fire({ icon:'error', title: title||'Gagal', text: text||'' });
-  else alert((title?title+': ':'')+(text||''));
-}
-
-// ===== Scroll to grid =====
-function scrollToGrid(){
-  var el = document.getElementById('grandong');
-  if (!el) return;
-  var OFFSET = 70;
-  var y = el.getBoundingClientRect().top + window.pageYOffset - OFFSET;
-  window.scrollTo({ top: y, behavior: 'smooth' });
-}
-</script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<?php if ($this->session->flashdata('cart_reset_msg')): ?>
-  <script>
-    if (window.Swal) {
-      Swal.fire({
-        icon:'info',
-        title:'<?= addslashes($this->session->flashdata('cart_reset_title')); ?>',
-        text:'<?= addslashes($this->session->flashdata('cart_reset_msg')); ?>'
-      });
-    }
-    document.addEventListener('DOMContentLoaded', function(){
-      var el = document.getElementById('fab-count');
-      if (el) el.textContent = '0';
-    });
-  </script>
-<?php endif; ?>
-
-<script>
-
-  (function(){
-    const $grid = $('#grid-products');
-    const $pagi = $('#pagination-wrap');
-    const $cartCount = $('#cart-count');
-    const $fabCount  = $('#fab-count');
-
-    /* ===== Skeleton builders (tetap) ===== */
-    function buildSkeleton(n){
-      let html = '';
-      for (let i=0; i<n; i++){
-        html += `
-        <div class="col-6 col-md-3 mb-3">
-        <div class="skel-card">
-        <div class="skel-thumb skel-shimmer"></div>
-        <div class="skel-line w80 skel-shimmer"></div>
-        <div class="skel-line w60 skel-shimmer"></div>
-        <div class="skel-price skel-shimmer"></div>
-        <div class="skel-btn skel-shimmer"></div>
-        </div>
-        </div>`;
-      }
-      return html;
-    }
-
-
-    function loading(on=true){
-      if (on){
-        $grid.html( buildSkeleton(8) );
-        $pagi.html('');
-      }
-    }
-
-    function updateAllCartBadges(n){
-      if ($cartCount && $cartCount.length) $cartCount.text(n);
-      if ($fabCount && $fabCount.length)  $fabCount.text(n);
-    }
-
-    function serializeFilters(page=1){
-      const q = $('#q').val() || '';
-      const kategori = $('#kategori').val() || '';
-      const sort = $('#sort').val() || 'random';
-      const per_page = 12;
-      // seed: kalau belum ada di URL, generate sekali
-      const url = new URL(window.location.href);
-      let seed = url.searchParams.get('seed');
-      if (!seed && sort==='random') {
-        seed = String(Math.floor(Math.random()*1e9));
-        url.searchParams.set('seed', seed);
-        history.replaceState({}, '', url.toString());
-      }
-      return { q, kategori, sort, page, per_page, seed };
-    }
-
-    function loadProducts(page=1, pushUrl=true){
-      loading(true);
-      const params = serializeFilters(page);
-      $.getJSON("<?= site_url('produk/list_ajax'); ?>", params)
-      .done(function(r){
-        if (!r || !r.success){
-          $grid.html('<div class="col-12 alert alert-danger">Gagal memuat data.</div>');
-          return;
-        }
-        $grid.html(r.items_html);
-        $pagi.html(r.pagination_html);
-        if (pushUrl){
-          const url = new URL(window.location.href);
-          url.searchParams.set('q', params.q);
-          url.searchParams.set('kategori', params.kategori);
-          url.searchParams.set('sort', params.sort);
-          url.searchParams.set('page', r.page);
-          url.searchParams.set('seed', params.seed); // <-- PENTING: persist seed
-          history.pushState(params, '', url.toString());
-        }
-
-        bindAddToCart();
-        bindPagination();
-        bindDetailModal();
-
-      })
-      .fail(function(){
-        $grid.html('<div class="col-12 alert alert-danger">Koneksi bermasalah.</div>');
-      });
-    }
-
-    function bindPagination(){
-      $('#pagination-wrap').off('click', 'a[data-page]').on('click', 'a[data-page]', function(e){
-        e.preventDefault();
-        const p = parseInt($(this).data('page') || 1);
-        loadProducts(p);
-        scrollToGrid();
-      });
-    }
-
-// Tombol Cari manual (kalau tetap mau tombol selain debounce/Enter)
-$(document).on('click', '#btn-search', function(e){
-  e.preventDefault();
-  loadProducts(1);
-});
-
-// Tombol Reset Pencarian
-$(document).on('click', '#btn-reset', function(e){
-  e.preventDefault();
-  $('#q').val('');
-  $('#kategori').val('');
-  $('#sort').val('random');
-  setSortLabel('random');
-  markActiveKategori();
-
-  const url = new URL(window.location.href);
-  url.searchParams.delete('seed'); // biar bikin seed baru
-  history.replaceState({}, '', url.toString());
-
-  loadProducts(1);
-});
-
-
-/* ===== Fix kecil data('qty') ===== */
-
-function btnStartLoading($btn, loadingText){
-  if (!$btn || !$btn.length) return;
-  if ($btn.hasClass('btn-loading')) return;
-
-  $btn.addClass('btn-loading');
-
-  // show spinner
-  $btn.find('.spinner-border').removeClass('d-none');
-
-  // hide icon normal
-  $btn.find('.icon-default').addClass('d-none');
-
-  // ganti teks (dan simpan teks lama biar bisa dikembalikan)
-  var $txt = $btn.find('.btn-text');
-  if ($txt.length){
-    if (!$txt.data('orig')) {
-      $txt.data('orig', $txt.text()); // simpan teks awal
-    }
-    $txt.text(loadingText || 'Loading...');
-  }
-}
-
-function btnStopLoading($btn){
-  if (!$btn || !$btn.length) return;
-  if (!$btn.hasClass('btn-loading')) return;
-
-  // sembunyikan spinner
-  $btn.find('.spinner-border').addClass('d-none');
-
-  // munculkan icon normal
-  $btn.find('.icon-default').removeClass('d-none');
-
-  // balikin teks
-  var $txt = $btn.find('.btn-text');
-  if ($txt.length){
-    var origText = $txt.data('orig');
-    if (origText){
-      $txt.text(origText);
-    }
-  }
-
-  $btn.removeClass('btn-loading');
-}
-
-/* ===== Add to cart (grid) – gunakan title & pesan dari API ===== */
-function bindAddToCart(){
-  $('#grid-products')
-    .off('click', '.btn-add-cart')
-    .on('click', '.btn-add-cart', function(e){
-      e.preventDefault();
-
-      const $btn = $(this);
-
-      // block spam / kalau lagi loading atau disabled
-      if ($btn.hasClass('btn-loading')) return;
-      if ($btn.is(':disabled')) return;
-
-      const id  = $btn.data('id');
-      const qty = safeQty($btn.data('qty'));
-
-      // <-- START LOADING VISUAL
-      btnStartLoading($btn, 'Menambah...');
-
-      $.ajax({
-        url: "<?= site_url('produk/add_to_cart'); ?>",
-        type: "POST",
-        dataType: "json",
-        data: { id, qty },
-      })
-      .done(function(r){
-        if (!r || !r.success){
-          notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan');
-          return;
-        }
-        updateAllCartBadges(r.count);
-        notifySuccess(
-          r.title || 'Mantap!',
-          r.pesan || 'Item masuk keranjang'
-        );
-      })
-      .fail(function(){
-        notifyError('Error', 'Gagal terhubung ke server');
-      })
-      .always(function(){
-        // <-- STOP LOADING VISUAL
-        btnStopLoading($btn);
-      });
-    });
-}
-
-
-function loadCartCount(){
-  $.getJSON("<?= site_url('produk/cart_count'); ?>")
-  .done(function(r){ if (r && r.success){ updateAllCartBadges(r.count); }});
-}
-
-  // ====== Search (debounce) & Sort ======
-  let typingTimer = null;
-  $('#q').on('input', function(){
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(function(){ loadProducts(1); }, 350);
-  }).on('keydown', function(e){
-    if(e.key==='Enter'){ e.preventDefault(); clearTimeout(typingTimer); loadProducts(1); }
-  });
-
-  // mapping label
-function setSortLabel(val){
-  const map = {
-    'new':'Terbaru', 'bestseller':'Terlaris',
-    'price_low':'Harga Rendah', 'price_high':'Harga Tinggi',
-    'sold_out':'Habis', 'random':'For You'
-  };
-  $('#sortBtnLabel').text(map[val] || 'Urutkan');
-}
-
-
-
-  // function setSortLabel(val){
-  //   const map = {
-  //     'new':'Terbaru', 'bestseller':'Terlaris',
-  //     'price_low':'Harga Rendah', 'price_high':'Harga Tinggi', 'sold_out':'Sold Out'
-  //   };
-  //   $('#sortBtnLabel').text(map[val] || 'Urutkan');
-  // }
-  setSortLabel($('#sort').val() || 'random');
-
+  // Klik opsi sort
   $(document).on('click', '.sort-opt', function(e){
     e.preventDefault();
     const val = $(this).data('sort');
     $('#sort').val(val);
     setSortLabel(val);
 
-    // Jika pindah ke "random", hapus seed agar generate baru
-    if (val === 'random') {
+    if (val === 'random'){
+      // hapus seed biar regeneration
       const url = new URL(window.location.href);
       url.searchParams.delete('seed');
       history.replaceState({}, '', url.toString());
     }
-
     loadProducts(1);
   });
 
-
-  // ====== Quickmenu Kategori ======
-  function markActiveKategori(){
-    const val = String($('#kategori').val() || '');
-    $('#quickmenu .quickmenu-item')
-    .not('[data-action="cart"]')
-    .removeClass('active')
-    .filter(function(){ return String($(this).data('kategori') || '') === val; })
-    .addClass('active');
-  }
+  // Klik kategori di quickmenu
   $('#quickmenu').on('click', '.quickmenu-item', function(e){
-    if ($(this).data('action') === 'cart') return;
+    if ($(this).data('action') === 'cart') return; // biarkan cart link jalan normal
     e.preventDefault();
-    const val = String($(this).data('kategori') || '');
-    $('#kategori').val(val);
+
+    const kat = String($(this).data('kategori') || '');
+    $('#kategori').val(kat);
+    $('#sub_kategori').val(''); // reset sub setiap ganti kategori
+
     markActiveKategori();
+    loadProducts(1);
+    if (kat){
+      fetchAndRenderSubcats(kat);
+    } else {
+      hideSubcats();
+    }
+    scrollToGrid();
+  });
+
+  // Klik badge subkategori
+  $(document).on('click', '.subcat-badge', function(e){
+    e.preventDefault();
+    const sid = String($(this).data('sub') || '');
+    $('#sub_kategori').val(sid);
+    markActiveSub(sid);
     loadProducts(1);
     scrollToGrid();
   });
 
-  // ====== Detail modal ======
-  
-  // ====== Init ======
-  $(document).ready(function(){
+  // Klik FAB cart → spinner kecil biar terasa responsif (punyamu sendiri, tetap dipakai)
+  (function(){
+    var fab = document.getElementById('fab-cart');
+    if (!fab) return;
+    fab.addEventListener('click', function(e){
+      if (fab.classList.contains('fab-loading')){
+        // udah loading → cegah spam double tap
+        e.preventDefault();
+        return;
+      }
+      fab.classList.add('fab-loading');
+
+      var spinEl = fab.querySelector('.spinner-border');
+      var iconEl = fab.querySelector('.icon-default');
+      if (spinEl) spinEl.classList.remove('d-none');
+      if (iconEl) iconEl.classList.add('d-none');
+
+      var lbl = fab.querySelector('.fab-label');
+      if (lbl && !lbl.dataset.orig){
+        lbl.dataset.orig = lbl.textContent;
+        lbl.textContent = 'Memuat…';
+      }
+      // nggak preventDefault → browser lanjut ke href cart
+    }, {passive:true});
+  })();
+
+  // SweetAlert saat user klik "keluar dari Dine-in"
+  $(document).on('click', '.js-leave-table', function(e){
+    e.preventDefault();
+    const url = this.href;
+
+    if (window.Swal){
+      Swal.fire({
+        icon: 'warning',
+        title: 'Keluar dari Meja?',
+        html: `
+          Santai, kamu bisa lanjut belanja dari rumah — pesanan bisa kami <b>antar</b> (Delivery) atau <b>dibungkus</b> (Takeaway). 😉<br><br>
+          <small style="display:inline-block;margin-top:.25rem;color:#6b7280">
+          Kalau masih mau makan di tempat, <b>scan ulang barcode di meja</b> ya. 🍽️📱
+          </small>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Iya, keluar',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+        focusCancel: true
+      }).then((res)=>{
+        if (res.isConfirmed){
+          Swal.fire({
+            icon:'success',
+            title:'Keluar dari Dine-in',
+            text:'Mode diubah. Lanjut belanja sebagai Delivery/Takeaway. 🙌',
+            timer: 900,
+            showConfirmButton: false
+          });
+          setTimeout(()=>{ window.location.href = url; }, 300);
+        }
+      });
+    } else {
+      if (confirm('Keluar dari mode Dine-in? Kalau masih mau makan di tempat, scan ulang barcode di meja ya.')){
+        window.location.href = url;
+      }
+    }
+  });
+
+  // Add to cart dari dalam modalProduk (pakai qty input)
+  $('#modalProduk').off('click', '#btn-add-cart-modal').on('click', '#btn-add-cart-modal', function(e){
+    e.preventDefault();
+    const $btn = $(this);
+    const id   = $btn.data('id');
+    const qty  = safeQty($('#qty-modal').val());
+
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: "<?= site_url('produk/add_to_cart'); ?>",
+      type: "POST",
+      dataType: "json",
+      data: { id, qty },
+    })
+    .done(function(r){
+      if (!r || !r.success){
+        notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan');
+        return;
+      }
+
+      const n = r.count || 0;
+      if ($fabCount && $fabCount.length) $fabCount.text(n);
+      if ($cartCount && $cartCount.length) $cartCount.text(n);
+
+      $('#modalProduk').one('hidden.bs.modal', function(){
+        notifySuccess(r.title || 'Mantap!', r.pesan || 'Item masuk keranjang');
+      });
+      $('#modalProduk').modal('hide');
+    })
+    .fail(function(){
+      notifyError('Error', 'Gagal terhubung ke server');
+    })
+    .always(function(){
+      $btn.prop('disabled', false);
+    });
+  });
+
+  // ====== INIT HALAMAN ======
+  $(function(){
     loadCartCount();
     markActiveKategori();
     $('#dropdownSortBtn').dropdown();
 
+    // Tarik parameter dari URL (refresh / direct link)
     const url = new URL(window.location.href);
-    if (url.searchParams.has('q')) $('#q').val(url.searchParams.get('q'));
-    if (url.searchParams.has('kategori')) { $('#kategori').val(url.searchParams.get('kategori')); markActiveKategori(); }
-    if (url.searchParams.has('sort')) { $('#sort').val(url.searchParams.get('sort')); setSortLabel($('#sort').val()); }
-    const firstPage = parseInt(url.searchParams.get('page') || '1');
+    if (url.searchParams.has('q'))        $('#q').val(url.searchParams.get('q'));
+    if (url.searchParams.has('kategori')) $('#kategori').val(url.searchParams.get('kategori'));
+    if (url.searchParams.has('sub'))      $('#sub_kategori').val(url.searchParams.get('sub'));
+    if (url.searchParams.has('sort'))     $('#sort').val(url.searchParams.get('sort'));
+
+    // Update label sort sesuai nilai awal
+    setSortLabel($('#sort').val() || 'random');
+    markActiveKategori();
+
+    // Kalau kategori terpilih saat load → muat subkategorinya
+    const katInit = $('#kategori').val();
+    if (katInit){
+      fetchAndRenderSubcats(katInit);
+    } else {
+      hideSubcats();
+    }
+
+    const firstPage = parseInt(url.searchParams.get('page') || '1', 10);
     loadProducts(firstPage, false);
   });
 
+  // Restore state saat user pakai tombol Back/Forward browser
   window.addEventListener('popstate', function(e){
     const s = e.state || {};
     $('#q').val(s.q || '');
     $('#kategori').val(s.kategori || '');
-    $('#sort').val(s.sort || 'random'); setSortLabel($('#sort').val());
+    $('#sub_kategori').val(s.sub_kategori || '');
+    $('#sort').val(s.sort || 'random');
+    setSortLabel($('#sort').val());
     markActiveKategori();
-    loadProducts(parseInt(s.page || 1), false);
+
+    if (s.kategori){
+      fetchAndRenderSubcats(s.kategori);
+    } else {
+      hideSubcats();
+    }
+
+    loadProducts(parseInt(s.page || 1,10), false);
   });
 
-})(); // END IIFE
-
-/* ===== Notif helper ===== */
-function notifySuccess(title, text){
-  if (window.Swal) {
-    Swal.fire({ icon:'success', title: title || 'Berhasil', text: text || '', timer:1500, showConfirmButton:false });
-  } else { alert((title?title+': ':'') + (text||'')); }
-}
-function notifyError(title, text){
-  if (window.Swal) {
-    Swal.fire({ icon:'error', title: title || 'Gagal', text: text || '' });
-  } else { alert((title?title+': ':'') + (text||'')); }
-}
-
-/* (opsional) killer masker lama */
-window.killMasks = function () {
-  $('.window-mask, .messager-mask, .datagrid-mask, .easyui-mask, .mm-wrapper__blocker')
-  .css('pointer-events','none').hide();
-};
-
+})(); // END big IIFE
 
 
 /* ===== Scroll hint quickmenu: fade kiri/kanan ===== */
@@ -1059,19 +956,17 @@ window.killMasks = function () {
   function updateQuickmenuShadows(){
     const maxScroll = q.scrollWidth - q.clientWidth;
     const x = Math.round(q.scrollLeft);
-    wrap.classList.toggle('show-left', x > 0);
+    wrap.classList.toggle('show-left',  x > 0);
     wrap.classList.toggle('show-right', x < (maxScroll - 1));
   }
 
-  // Perbarui saat scroll & resize
   q.addEventListener('scroll', updateQuickmenuShadows, {passive:true});
   window.addEventListener('resize', updateQuickmenuShadows);
 
-  // Panggil awal; ulangi lagi setelah render produk pertama kali
   document.addEventListener('DOMContentLoaded', updateQuickmenuShadows);
   setTimeout(updateQuickmenuShadows, 600);
 
-  // Nudge kecil sekali agar user “ngeh” bisa digeser (tanpa ganggu)
+  // "nudge" kecil biar user sadar bisa digeser
   let nudged = false;
   setTimeout(function(){
     const maxScroll = q.scrollWidth - q.clientWidth;
@@ -1083,77 +978,10 @@ window.killMasks = function () {
   }, 800);
 })();
 
-// Konfirmasi manis ala SweetAlert saat keluar dari Dine-in
-$(document).on('click', '.js-leave-table', function(e){
-  e.preventDefault();
-  const url = this.href;
-
-  if (window.Swal){
-    Swal.fire({
-      icon: 'warning',
-      title: 'Keluar dari Meja?',
-      html: `
-      Santai, kamu bisa lanjut belanja dari rumah — pesanan bisa kami <b>antar</b> (Delivery) atau <b>dibungkus</b> (Takeaway). 😉<br><br>
-      <small style="display:inline-block;margin-top:.25rem;color:#6b7280">
-      Kalau masih mau makan di tempat, <b>scan ulang barcode di meja</b> ya. 🍽️📱
-      </small>
-
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Iya, keluar',
-      cancelButtonText: 'Batal',
-      reverseButtons: true,
-      focusCancel: true
-    }).then((res)=>{
-      if (res.isConfirmed) {
-        // Sedikit feedback biar terasa responsif
-        Swal.fire({
-          icon:'success',
-          title:'Keluar dari Dine-in',
-          text:'Mode diubah. Lanjut belanja sebagai Delivery/Takeaway. 🙌',
-          timer: 900,
-          showConfirmButton: false
-        });
-        setTimeout(()=>{ window.location.href = url; }, 300);
-      }
-    });
-  } else {
-    // Fallback kalau SweetAlert belum tersedia
-    if (confirm('Keluar dari mode Dine-in? Kalau masih mau makan di tempat, scan ulang barcode di meja ya.')) {
-      window.location.href = url;
-    }
-  }
-});
-$('#modalProduk').off('click', '#btn-add-cart-modal').on('click', '#btn-add-cart-modal', function(e){
-  e.preventDefault();
-  const $btn = $(this);
-  const id   = $btn.data('id');
-  const qty  = safeQty($('#qty-modal').val());
-  $btn.prop('disabled', true);
-
-  $.ajax({
-    url: "<?= site_url('produk/add_to_cart'); ?>",
-    type: "POST",
-    dataType: "json",
-    data: { id, qty },
-  }).done(function(r){
-    if (!r || !r.success){
-      notifyError(r?.title || 'Oops!', r?.pesan || 'Gagal menambahkan');
-      return;
-    }
-    var n = r.count || 0;
-    var fab = document.getElementById('fab-count'); if (fab) fab.textContent = n;
-    var top = document.getElementById('cart-count'); if (top) top.textContent = n;
-
-    $('#modalProduk').one('hidden.bs.modal', function(){
-      notifySuccess(r.title || 'Mantap!', r.pesan || 'Item masuk keranjang');
-    });
-    $('#modalProduk').modal('hide');
-  }).fail(function(){
-    notifyError('Error', 'Gagal terhubung ke server');
-  }).always(function(){
-    $btn.prop('disabled', false);
-  });
-});
+/* (opsional) killer masker lama EasyUI, dll */
+window.killMasks = function () {
+  $('.window-mask, .messager-mask, .datagrid-mask, .easyui-mask, .mm-wrapper__blocker')
+    .css('pointer-events','none')
+    .hide();
+};
 </script>
-

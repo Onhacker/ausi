@@ -29,14 +29,14 @@ class Hal extends MX_Controller {
 
 	}
 
-	function ongkir(){
+	function app(){
 		// $this->load->model('M_billiard','mbi');
 		$data["rec"] = $this->fm->web_me();
-		$data["title"] = "Ongkir";
+		$data["title"] = "Download Aplikasi";
 		$data["deskripsi"] = $data["rec"]->nama_website;
 		$data["prev"] = base_url("assets/images/nongki.webp");
 		// $data["mejas"]      = $this->mbi->get_all_mejas();
-		$this->load->view('ongkir',$data);
+		$this->load->view('app',$data);
 
 	}
 
