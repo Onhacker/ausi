@@ -267,6 +267,29 @@ $feeNet = (int)($r->delivery_fee_net ?? (($feeRaw===1 && ($k==='transfer'||$k===
         
         $pdf = new Pdf('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
 
+        $pdf->SetCreator('AusiApp');
+        $pdf->SetAuthor('AusiApp');
+        $pdf->SetTitle($title);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(TRUE, 10);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
+        // PAKSA landscape DI SINI
+        $pdf->AddPage('L', 'A4');
+
+        $pdf->SetFont('dejavusans','',9);
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $pdf->Output($filename, 'I');
+        exit;
+    }
+
+
+    private function _pdfx($title, $html, $filename='laporan.pdf'){
+        $this->load->library('pdf'); // TCPDF wrapper
+        
+        $pdf = new Pdf('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
+
         // $pdf = new pdf('L', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('AusiApp');
         $pdf->SetAuthor('AusiApp');
