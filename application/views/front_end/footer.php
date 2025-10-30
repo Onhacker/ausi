@@ -62,7 +62,7 @@
            
             <div class="text-center store-badges">
               <!-- Badge resmi Google Play -->
-              <a id="playstoreBadge"
+          <!--     <a id="playstoreBadge"
               href="<?= $playUrl ?>"
               onclick="return openPlayStore(event)"
               class="d-inline-block my-2"
@@ -70,15 +70,22 @@
               <img alt="Download di Google Play"
               src="<?php echo base_url('assets/images/gp.webp') ?>"
               style="height:56px;width:auto;">
-            </a>
-
+            </a> -->
+             <a id="installButton"
+            href="#"
+            class="d-inline-block my-2 ms-2 ml-2"
+            aria-label="Instal ke iOS (PWA)">
+            <img alt="Instal ke iOS (Tambahkan ke Layar Utama)"
+            src="<?= base_url('assets/images/ins_an.webp') ?>"
+            style="height:56px;width:auto;">
+          </a>
             <!-- Badge iOS / PWA -->
             <a id="installButton"
             href="#"
             class="d-inline-block my-2 ms-2 ml-2"
             aria-label="Instal ke iOS (PWA)">
             <img alt="Instal ke iOS (Tambahkan ke Layar Utama)"
-            src="<?= base_url('assets/images/ios.webp') ?>"
+            src="<?= base_url('assets/images/ip_ann.webp') ?>"
             style="height:56px;width:auto;">
           </a>
         </div>
