@@ -502,7 +502,7 @@ if (!empty($kategoris)) {
   }
 
   function fetchAndRenderSubcats(kategoriId){
-    $subWrap.html('<span class="text-muted small">Memuat subkategori…</span>').show();
+    $subWrap.html('<span class="text-danger small">Memuat subkategori…</span>').show();
     $.getJSON(SUB_API + String(kategoriId))
       .done(function(r){
         const currentSelected = $('#sub_kategori').val() || '';
