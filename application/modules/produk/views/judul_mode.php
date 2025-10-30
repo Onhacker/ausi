@@ -135,8 +135,9 @@ $is_delivery = ($mode_norm === 'delivery');
       </div>
       <div class="mode-info">
         <h3 class="mode-title">Delivery</h3>
-        <p class="mode-sub">Pesanan <strong>Dikirim</strong></p>
+        <p class="mode-sub">Pesanan <strong>kami antar ke alamat Anda</strong></p>
       </div>
+
     </div>
   </div>
 

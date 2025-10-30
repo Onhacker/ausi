@@ -345,6 +345,39 @@ window.__applyOngkirFromMap = function () {
         var infoEl   = document.getElementById('mapInfo');
         var btnUse   = document.getElementById('btnUseOngkir');
         var btnMyLoc = document.getElementById('btnUseMyLoc');
+        // var btnMyLoc = document.getElementById('btnUseMyLoc');
+
+			// helper loading state utk tombol "Posisi Saya"
+			function startLocLoading(){
+			  if (!btnMyLoc) return;
+			  btnMyLoc.setAttribute('aria-busy','true');
+			  btnMyLoc.disabled = true;
+
+			  var spin = btnMyLoc.querySelector('.spin');
+			  if (spin) spin.classList.remove('d-none');
+
+			  var ico = btnMyLoc.querySelector('.icon');
+			  if (ico) ico.classList.add('d-none');
+
+			  var txt = btnMyLoc.querySelector('.txt');
+			  if (txt) txt.textContent = 'Mencari lokasi...';
+			}
+
+			function stopLocLoading(){
+			  if (!btnMyLoc) return;
+			  btnMyLoc.setAttribute('aria-busy','false');
+			  btnMyLoc.disabled = false;
+
+			  var spin = btnMyLoc.querySelector('.spin');
+			  if (spin) spin.classList.add('d-none');
+
+			  var ico = btnMyLoc.querySelector('.icon');
+			  if (ico) ico.classList.remove('d-none');
+
+			  var txt = btnMyLoc.querySelector('.txt');
+			  if (txt) txt.textContent = 'Posisi Saya';
+			}
+
 
         var radius = <?= json_encode((int)($rec->max_radius_m ?? 0)) ?>;
         var MAX_RADIUS_KM = radius /1000;
@@ -613,6 +646,7 @@ window.__applyOngkirFromMap = function () {
                   updateInfo(true);
                   refreshDestIcon();
                   scheduleReverseGeocode(lat, lng);
+                  stopLocLoading();
                 })
                 .catch(function(err){
 				  // TIDAK ADA fallback ke haversine
@@ -637,6 +671,7 @@ window.__applyOngkirFromMap = function () {
 				  } else {
 				    alert('Rute jalan tidak ditemukan. Coba geser pin lalu ulangi.');
 				  }
+				    stopLocLoading();
 				});
 
             }, 250);
@@ -661,6 +696,7 @@ window.__applyOngkirFromMap = function () {
 
           if (btnMyLoc && navigator.geolocation){
             btnMyLoc.addEventListener('click', function(){
+            	startLocLoading();
               navigator.geolocation.getCurrentPosition(
                 function(pos){
                   var lat = pos.coords.latitude, lng = pos.coords.longitude;
@@ -668,6 +704,7 @@ window.__applyOngkirFromMap = function () {
                   m.flyTo([lat, lng], 16, { duration: 0.5 });
                 },
                 function(err){
+                	stopLocLoading();
                   const geoErr = {1:'izin lokasi ditolak', 2:'lokasi nggak ketemu', 3:'timeout'};
                   const detail  = geoErr[err.code] || err.message || ('error ' + err.code);
                   const httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')

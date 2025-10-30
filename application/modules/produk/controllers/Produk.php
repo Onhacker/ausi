@@ -1806,19 +1806,26 @@ public function load_map()
 
   <div id="mapInfo" class="border-top small"></div>
 
- <style>.map-footer-bar{display:flex;justify-content:space-between;align-items:center;padding:.75rem .75rem;border-top:1px solid rgb(0 0 0 / .08);background:rgb(255 255 255 / .6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);gap:.5rem}.map-footer-btn{flex:1 1 calc(50% - .5rem);min-width:calc(50% - .5rem);display:flex;align-items:center;justify-content:center;border:0;border-radius:.7rem;font-size:.9rem;font-weight:600;padding:.6rem .75rem;line-height:1.2;white-space:nowrap;box-shadow:0 .5rem 1rem rgb(0 0 0 / .15);text-shadow:0 1px 2px rgb(0 0 0 / .35)}.btn-loc{background-image:linear-gradient(135deg,#6b7280 0%,#4b5563 50%,#1f2937 100%);color:#fff}.btn-loc .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply{background-image:linear-gradient(135deg,#2563eb 0%,#4f46e5 40%,#312e81 100%);color:#fff}.btn-apply .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply[disabled]{opacity:.45;cursor:not-allowed;box-shadow:0 .5rem 1rem rgb(0 0 0 / .08);text-shadow:none}@media(max-width:360px){.map-footer-btn{flex:1 1 100%;min-width:100%}.map-footer-bar{flex-wrap:wrap}}</style>
+ <style>.map-footer-bar{display:flex;justify-content:space-between;align-items:center;padding:.75rem .75rem;border-top:1px solid rgb(0 0 0 / .08);background:rgb(255 255 255 / .6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);gap:.5rem}.map-footer-btn{flex:1 1 calc(50% - .5rem);min-width:calc(50% - .5rem);display:flex;align-items:center;justify-content:center;border:0;border-radius:.7rem;font-size:.9rem;font-weight:600;padding:.6rem .75rem;line-height:1.2;white-space:nowrap;box-shadow:0 .5rem 1rem rgb(0 0 0 / .15);text-shadow:0 1px 2px rgb(0 0 0 / .35)}.btn-loc{background-image:linear-gradient(135deg,#6b7280 0%,#4b5563 50%,#1f2937 100%);color:#fff}.btn-loc .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply{background-image:linear-gradient(135deg,#2563eb 0%,#4f46e5 40%,#312e81 100%);color:#fff}.btn-apply .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply[disabled]{opacity:.45;cursor:not-allowed;box-shadow:0 .5rem 1rem rgb(0 0 0 / .08);text-shadow:none}@media(max-width:360px){.map-footer-btn{flex:1 1 100%;min-width:100%}.map-footer-bar{flex-wrap:wrap}}.map-footer-btn.btn-loc[aria-busy="true"] {
+  opacity: .7;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.map-footer-btn.btn-loc .spin {
+  margin-right: .4rem;
+  vertical-align: -0.125em;
+}
+
+.map-footer-btn.btn-loc .icon {
+  margin-right: .4rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+</style>
 
 <div class="map-footer-bar">
-  <button
-    type="button"
-    class="map-footer-btn btn-loc"
-    id="btnUseMyLoc"
-  >
-    <span class="icon" aria-hidden="true">📍</span>
-    <span>Lokasi Saya</span>
-  </button>
-
-  <button
+<button
     type="button"
     class="map-footer-btn btn-apply"
     id="btnUseOngkir"
@@ -1827,6 +1834,19 @@ public function load_map()
     <span class="icon" aria-hidden="true">✅</span>
     <span>Gunakan Posisi Ini</span>
   </button>
+ <button
+  type="button"
+  class="map-footer-btn btn-loc"
+  id="btnUseMyLoc"
+  aria-busy="false"
+>
+  <span class="spinner-border spinner-border-sm spin d-none" role="status" aria-hidden="true"></span>
+  <span class="icon" aria-hidden="true">📍</span>
+  <span class="txt">Posisi Saya</span>
+</button>
+
+
+  
 </div>
 
 
