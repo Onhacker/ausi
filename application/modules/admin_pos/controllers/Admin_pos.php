@@ -426,40 +426,6 @@ public function get_dataa(){
                 $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnCancel.$btnDelete.'</div>';
             }
 
-            // Row
-            // $row = [];
-            // $row['id']      = (int)$r->id;
-            // // $row['cek']     = '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id.'"><label></label></div>';
-            // $row['no']      = '';
-            // // $row['mode']    = '<span class="badge badge-pill '.$mode_badge.'">'.htmlspecialchars($mode_label,ENT_QUOTES,'UTF-8').'</span>';
-            // $row['mode'] = 
-            // '<div class="d-inline-block text-left">'
-            // .   '<span class="badge badge-pill '.$mode_badge.'">'
-            // .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
-            // .   '</span>'
-            //   .   $kurirInfoHtml   // <- kosong kecuali mode=delivery
-            //   . '</div>';
-
-            // $row['meja']    = $meja_html;
-            // $row['waktu']   = htmlspecialchars(date('d-m-Y H:i', $createdTs), ENT_QUOTES, 'UTF-8');
-            // $row['lama']    = $lamaHtml;
-            // if ($isKitchen || $isBar) {
-            //     $row['pesanan'] = $pesananHtml;
-            // }
-            // // Jumlah/Metode: kosongkan bila kitchen/bar, tampilkan normal bila kasir/admin
-            // if ($isKitchen || $isBar) {
-            //     $row['jumlah']  = '';
-            //     $row['status']  = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($status_label,ENT_QUOTES,'UTF-8').'</span>';
-            //     $row['metode']  = '';
-            // } else {
-            //     $row['jumlah']  = 'Rp '.number_format($jumlah,0,',','.');
-            //     $row['status']  = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($status_label,ENT_QUOTES,'UTF-8').'</span>';
-            //     $row['metode']  = htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
-            //     $row['aksi']    = $actionsHtml; // <— tambahkan di kasir/admin
-            // }
-
-
-            // $data[] = $row;
             $row = [];
 
             // WAJIB: simpan id untuk click-row
@@ -470,12 +436,16 @@ public function get_dataa(){
 
             // 2. mode
             $row['mode']  =
-                '<div class="d-inline-block text-left">'
-              .   '<span class="badge badge-pill '.$mode_badge.'">'
-              .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
-              .   '</span>'
-              .   $kurirInfoHtml
-              . '</div>';
+    // SISIPKAN ID TERSEMBUNYI DI SINI:
+            '<span class="d-none meta-rowid" data-rowid="'.$rowId.'"></span>' .
+
+    // lalu konten mode yg lama:
+            '<div class="d-inline-block text-left">'
+            .   '<span class="badge badge-pill '.$mode_badge.'">'
+            .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+            .   '</span>'
+            .   $kurirInfoHtml
+            . '</div>';
 
             // 3. meja
             $row['meja']  = $meja_html;
