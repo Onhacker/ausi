@@ -80,7 +80,7 @@ $slides = [
    <div class="quickmenu-item">
     <a href="<?= site_url('produk/scan_qr') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#007bff;"><span class="emoji-icon">🍽️</span></div>
-      <small class="menu-label">Makan Sini</small>
+      <small class="menu-label">Makan Disini</small>
     </a>
   </div>
   <div class="quickmenu-item">
@@ -136,7 +136,7 @@ $slides = [
 
             <div class="mb-2 chip-row">
               <span class="badge-chip mr-2">
-                <i class="mdi mdi-cash-multiple mr-1"></i> Min. belanja <b><?= $fmtBelanja ?></b>
+                <i class="mdi mdi-cash-multiple mr-1"></i> Min. order <b><?= $fmtBelanja ?></b>
               </span>
               <span class="badge-chip">
                 <i class="mdi mdi-radar mr-1"></i> Radius <b><?= $fmtRadiusKm ?> km</b>

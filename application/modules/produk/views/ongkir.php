@@ -560,7 +560,7 @@ window.__applyOngkirFromMap = function () {
   // belum ada titik tujuan sama sekali
   if (current.lat == null){
     infoEl.innerHTML =
-      '<div class="p-2">Klik peta untuk pilih tujuan. Gunakan 📍 untuk deteksi otomatis.</div>';
+      '<div class="p-2">Klik peta untuk pilih titik anda. Klik 📍 Posisi saya untuk deteksi otomatis lokasi anda.</div>';
     btnUse && (btnUse.disabled = true);
     return;
   }
@@ -568,14 +568,14 @@ window.__applyOngkirFromMap = function () {
   var km   = (current.dist/1000).toFixed(2);
   var fee  = Math.ceil(current.ongkir/1000)*1000;
   var label = current.isRoad
-    ? ('Jarak jalan' + (current.roadProvider ? ' · ' + current.roadProvider : ''))
+    ? ('Jarak jalanan' + (current.roadProvider ? ' · ' + current.roadProvider : ''))
     : 'Jarak lurus';
 
   var tujuanText = current.addressShort
     ? esc(current.addressShort)
     : (
         pendingAddr
-        ? 'Mencari alamat… ('+current.lat.toFixed(6)+', '+current.lng.toFixed(6)+')'
+        ? 'Menunggu respon satelite onhacker… ('+current.lat.toFixed(6)+', '+current.lng.toFixed(6)+')'
         : current.lat.toFixed(6)+', '+current.lng.toFixed(6)
       );
 
@@ -628,7 +628,7 @@ window.__applyOngkirFromMap = function () {
           function calcRoute(lat, lng){
             var myToken = ++routeToken;
             if (infoEl){
-              infoEl.innerHTML = '<div class="p-2">Menghitung jarak <b>via jalan</b>…</div>';
+              infoEl.innerHTML = '<div class="p-2">Sedangan Mengukur jarak Posisi anda <b>via jalanan</b>…</div>';
               btnUse && (btnUse.disabled = true);
             }
             if (routeTimer) clearTimeout(routeTimer);

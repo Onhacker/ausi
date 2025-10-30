@@ -11,7 +11,7 @@ const HTML_CACHE_WHITELIST = new Set([
    '/hal/kontak',
    '/hal/privacy_policy',
    '/hal/jadwal',
-   '/billiard',
+  
    '/produk',
    '/hal/pengumuman'
 ])
@@ -26,7 +26,7 @@ const urlsToCache = [
     '/hal/kontak',
     '/hal/privacy_policy',
     '/hal/jadwal',
-  '/billiard',
+
    '/hal/pengumuman',
    '/produk',
 

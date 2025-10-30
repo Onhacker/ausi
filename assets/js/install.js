@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('appinstalled', () => {
   console.log('✅ App installed');
   whenSwalReady((fallback)=>{
-    if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal.','success');
+    if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal. Icon akan tampil di menu Hp Anda','success');
   });
 });
 

@@ -1896,15 +1896,7 @@ public function load_map()
 </style>
 
 <div class="map-footer-bar">
-<button
-    type="button"
-    class="map-footer-btn btn-apply"
-    id="btnUseOngkir"
-    disabled
-  >
-    <span class="icon" aria-hidden="true">✅</span>
-    <span>Gunakan Posisi Ini</span>
-  </button>
+
  <button
   type="button"
   class="map-footer-btn btn-loc"
@@ -1915,7 +1907,15 @@ public function load_map()
   <span class="icon" aria-hidden="true">📍</span>
   <span class="txt">Posisi Saya</span>
 </button>
-
+<button
+    type="button"
+    class="map-footer-btn btn-apply"
+    id="btnUseOngkir"
+    disabled
+  >
+    <span class="icon" aria-hidden="true">✅</span>
+    <span>Set Posisi</span>
+  </button>
 
   
 </div>
