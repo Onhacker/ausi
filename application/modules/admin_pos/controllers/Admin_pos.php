@@ -427,52 +427,91 @@ public function get_dataa(){
             }
 
             // Row
+            // $row = [];
+            // $row['id']      = (int)$r->id;
+            // // $row['cek']     = '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id.'"><label></label></div>';
+            // $row['no']      = '';
+            // // $row['mode']    = '<span class="badge badge-pill '.$mode_badge.'">'.htmlspecialchars($mode_label,ENT_QUOTES,'UTF-8').'</span>';
+            // $row['mode'] = 
+            // '<div class="d-inline-block text-left">'
+            // .   '<span class="badge badge-pill '.$mode_badge.'">'
+            // .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+            // .   '</span>'
+            //   .   $kurirInfoHtml   // <- kosong kecuali mode=delivery
+            //   . '</div>';
+
+            // $row['meja']    = $meja_html;
+            // $row['waktu']   = htmlspecialchars(date('d-m-Y H:i', $createdTs), ENT_QUOTES, 'UTF-8');
+            // $row['lama']    = $lamaHtml;
+            // if ($isKitchen || $isBar) {
+            //     $row['pesanan'] = $pesananHtml;
+            // }
+            // // Jumlah/Metode: kosongkan bila kitchen/bar, tampilkan normal bila kasir/admin
+            // if ($isKitchen || $isBar) {
+            //     $row['jumlah']  = '';
+            //     $row['status']  = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($status_label,ENT_QUOTES,'UTF-8').'</span>';
+            //     $row['metode']  = '';
+            // } else {
+            //     $row['jumlah']  = 'Rp '.number_format($jumlah,0,',','.');
+            //     $row['status']  = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($status_label,ENT_QUOTES,'UTF-8').'</span>';
+            //     $row['metode']  = htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
+            //     $row['aksi']    = $actionsHtml; // <— tambahkan di kasir/admin
+            // }
+
+
+            // $data[] = $row;
             $row = [];
 
-                // 1. no
-                $row['no']    = '';
+// WAJIB: simpan id untuk click-row
+$row['id'] = (int)$r->id;  // <-- ini penting, jangan dihapus
 
-                // 2. mode (sudah termasuk badge + kurir)
-                $row['mode']  = 
-                    '<div class="d-inline-block text-left">'
-                  .   '<span class="badge badge-pill '.$mode_badge.'">'
-                  .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
-                  .   '</span>'
-                  .   $kurirInfoHtml
-                  . '</div>';
+// 1. no
+$row['no']    = '';
 
-                // 3. meja
-                $row['meja']  = $meja_html;
+// 2. mode
+$row['mode']  =
+    '<div class="d-inline-block text-left">'
+  .   '<span class="badge badge-pill '.$mode_badge.'">'
+  .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+  .   '</span>'
+  .   $kurirInfoHtml
+  . '</div>';
 
-                // 4. pesanan (HANYA di kitchen/bar, tapi kita tetap define key 'pesanan' supaya konsisten)
-                if ($isKitchen || $isBar) {
-                    $row['pesanan'] = $pesananHtml;
-                }
+// 3. meja
+$row['meja']  = $meja_html;
 
-                // 5. waktu
-                $row['waktu'] = htmlspecialchars(date('d-m-Y H:i', $createdTs), ENT_QUOTES, 'UTF-8');
+// 4. pesanan (kalau kitchen/bar). kalau bukan kitchen/bar tetap boleh kirim '' biar key-nya konsisten aman.
+if ($isKitchen || $isBar) {
+    $row['pesanan'] = $pesananHtml;
+} else {
+    // supaya DataTables gak error pas kolom "pesanan" ga ada di kasir? 
+    // nggak wajib kalau kolom "pesanan" memang nggak diminta di mode kasir.
+}
 
-                // 6. lama  <-- penting: setelah waktu
-                $row['lama']  = $lamaHtml;
+// 5. waktu
+$row['waktu'] = htmlspecialchars(date('d-m-Y H:i', $createdTs), ENT_QUOTES, 'UTF-8');
 
-                // 7. jumlah
-                $row['jumlah'] = ($isKitchen || $isBar) ? '' : ('Rp '.number_format($jumlah,0,',','.'));
+// 6. lama
+$row['lama']  = $lamaHtml;
 
+// 7. jumlah
+$row['jumlah'] = ($isKitchen || $isBar) ? '' : ('Rp '.number_format($jumlah,0,',','.'));
 
-                // 8. status
-                $row['status'] = '<span class="badge badge-pill badge-'.$badge.'">'
-                               . htmlspecialchars($status_label,ENT_QUOTES,'UTF-8')
-                               . '</span>';
+// 8. status
+$row['status'] =
+    '<span class="badge badge-pill badge-'.$badge.'">'
+  . htmlspecialchars($status_label,ENT_QUOTES,'UTF-8')
+  . '</span>';
 
-                // 9. metode
-                $row['metode'] = ($isKitchen || $isBar) ? '' : htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
+// 9. metode
+$row['metode'] = ($isKitchen || $isBar) ? '' : htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
 
-                // 10. aksi
-                if (!$isKitchen && !$isBar) {
-                    $row['aksi'] = $actionsHtml;
-                }
+// 10. aksi (hanya kasir/admin)
+if (!$isKitchen && !$isBar) {
+    $row['aksi'] = $actionsHtml;
+}
 
-                $data[] = $row;
+$data[] = $row;
 
         }
 
