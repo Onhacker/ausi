@@ -3,61 +3,94 @@
 
 <?php
 $rec = $this->fm->web_me();
-    $store_lat = $rec->store_lat;
-    $store_lng = $rec->store_lng;
-    $base_km   = $rec->base_km;
-    $base_fee  = $rec->base_fee;
-    $per_km    = $rec->per_km;
-    $max_radius_m = $rec->max_radius_m;
-    $batas_free = (int)($rec->batas_free_ongkir ?? 0);
+$store_lat     = $rec->store_lat;
+$store_lng     = $rec->store_lng;
+$base_km       = $rec->base_km;
+$base_fee      = $rec->base_fee;
+$per_km        = $rec->per_km;
+$max_radius_m  = $rec->max_radius_m;
+$batas_free    = (int)($rec->batas_free_ongkir ?? 0);
 ?>
+
 <?php if ((int)$total >= $batas_free): ?>
-  <?php $this->load->view("free_ongkir") ?>
-<?php else: ?>
+  <!-- MODE: GRATIS ONGKIR -->
+  <input type="hidden" name="free_ongkir" value="1">
+<?php endif; ?>
 
-  <!-- =========================
-       CABANG: NORMAL (KODE KAMU — TIDAK DIUBAH)
-       ========================= -->
+<!-- Hidden input yang dipakai JS -->
+<input type="hidden" name="ongkir"        id="ongkirInput">
+<input type="hidden" name="dest_lat"      id="dest_lat">
+<input type="hidden" name="dest_lng"      id="dest_lng">
+<input type="hidden" name="distance_m"    id="distance_m">
+<input type="hidden" name="ongkir_token"  id="ongkir_token">
 
-  <!-- ====== FORM FIELD ONGKIR + TOMBOL MODAL ====== -->
-  <div class="form-group col-md-6">
-    <label for="alamatKirim" class="mb-1">
-      Alamat Antar <span class="text-muted">(lengkap ya!)</span>
-    </label>
+<!-- =========================
+     FORM ALAMAT + TOMBOL MAP/GPS
+     ========================= -->
+<div class="form-group col-md-6">
+  <label for="alamatKirim" class="mb-1">
+    Alamat Antar <span class="text-muted">(lengkap ya!)</span>
+  </label>
 
-    <textarea
-      id="alamatKirim"
-      class="form-control shadow-sm"
-      name="alamat"
-      rows="3"
-      required
-      minlength="15"
-      maxlength="300"
-      aria-describedby="alamatTips alamatCount"></textarea>
+  <textarea
+    id="alamatKirim"
+    class="form-control shadow-sm"
+    name="alamat"
+    rows="3"
+    required
+    minlength="15"
+    maxlength="300"
+    aria-describedby="alamatTips alamatCount"></textarea>
 
-    <small id="alamatTips" class="form-text text-muted mt-1 d-flex">
-      <i class="mdi mdi-lightbulb-on-outline mr-1" aria-hidden="true"></i>
-      Tulis: jalan/no, gang, patokan (masjid/sekolah), akses (lewat sungai), dan shareloc.
-    </small>
+  <small id="alamatTips" class="form-text text-muted mt-1 d-flex">
+    <i class="mdi mdi-lightbulb-on-outline mr-1" aria-hidden="true"></i>
+    Tulis: jalan/no, gang, patokan (masjid/sekolah), akses (lewat sungai), dan shareloc.
+  </small>
 
-    <div class="d-flex flex-wrap align-items-center mt-2">
-      <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center mr-1" id="btnMapOngkir">
-        <i class="mdi mdi-map-marker-outline mr-1" aria-hidden="true"></i> Pilih Lokasi
-      </button>
-
-      <button type="button" class="btn btn-warning btn-sm d-inline-flex align-items-center" id="btnUseMyLocation">
-        <i class="mdi mdi-crosshairs-gps mr-1" aria-hidden="true"></i> Gunakan Lokasi Saya
-      </button>
+  <?php if ((int)$total >= $batas_free): ?>
+    <!-- Banner info gratis ongkir -->
+    <div class="mt-2">
+      <div class="alert alert-success d-flex align-items-start mb-2" role="alert">
+        <i class="mdi mdi-truck-fast mr-2" aria-hidden="true"></i>
+        <div>
+          <strong>Gratis Ongkir!</strong><br>
+          Belanja Anda sudah mencapai minimal
+          Rp<?= number_format($batas_free, 0, ',', '.') ?>.<br>
+          Silakan pilih titik pengantaran.
+        </div>
+      </div>
     </div>
-  </div>
-  <small id="ongkirHint" class="text-dark  mb-2" ></small>
+  <?php endif; ?>
 
-  <!-- (opsional) simpan koordinat & jarak -->
-  <input type="hidden" name="ongkir"   id="ongkirInput">
-  <input type="hidden" name="dest_lat"   id="dest_lat">
-  <input type="hidden" name="dest_lng"   id="dest_lng">
-  <input type="hidden" name="distance_m" id="distance_m">
-  <input type="hidden" name="ongkir_token" id="ongkir_token">
+  <style>.delivery-actions{display:flex;flex-wrap:wrap;margin-top:.75rem;gap:.5rem}.delivery-btn{flex:1 1 calc(50% - .5rem);min-width:calc(50% - .5rem);display:flex;align-items:center;justify-content:center;font-weight:600;border:0;border-radius:.75rem;color:#fff;padding:.6rem .75rem;line-height:1.2;box-shadow:0 .5rem 1rem rgb(0 0 0 / .15);text-shadow:0 1px 2px rgb(0 0 0 / .4)}.delivery-btn .icon{font-size:1rem;margin-right:.5rem;line-height:0;display:inline-flex;align-items:center;justify-content:center}.btn-map-grad{background-image:linear-gradient(135deg,#2563eb 0%,#1d4ed8 50%,#0f2e8a 100%)}.btn-gps-grad{background-image:linear-gradient(135deg,#facc15 0%,#eab308 40%,#b45309 100%);color:#1f1f1f;text-shadow:0 1px 2px rgb(255 255 255 / .4);box-shadow:0 .5rem 1rem rgb(180 83 9 / .25)}@media (max-width:360px){.delivery-btn{flex:1 1 100%;min-width:100%}}</style>
+
+	<div class="delivery-actions">
+	  <button
+	    type="button"
+	    id="btnMapOngkir"
+	    class="delivery-btn btn-map-grad"
+	  >
+	    <span class="icon">
+	      <i class="mdi mdi-map-marker-outline" aria-hidden="true"></i>
+	    </span>
+	    <span>Pilih Lokasi</span>
+	  </button>
+
+	  <button
+	    type="button"
+	    id="btnUseMyLocation"
+	    class="delivery-btn btn-gps-grad"
+	  >
+	    <span class="icon">
+	      <i class="mdi mdi-crosshairs-gps" aria-hidden="true"></i>
+	    </span>
+	    <span>Posisi saya</span>
+	  </button>
+	</div>
+
+</div>
+
+<span id="ongkirHint" class="text-dark mb-2"></span>
 
   <!-- ====== MODAL (HANYA SATU — WAJIB ADA .modal-dialog & .modal-content) ====== -->
   <div class="modal fade " id="modalOngkirMap"
@@ -233,16 +266,16 @@ window.__applyOngkirFromMap = function () {
     $hint.innerHTML = isFree
       ? (
         '<div class="p-2">'
-        + 'Tujuan: <b>'+ tujuanText +'</b><br>'
-        + 'Jarak: <b>'+ km +' km</b><br>'
+        + 'Posisi Anda : <b>'+ tujuanText +'</b><br>'
+        + 'Jarak : <b>'+ km +' km</b><br>'
         + '<span class="text-success">🎉 Gratis ongkir diterapkan.</span>'
         + '</div>'
       )
       : (
         '<div class="p-2">'
-        + 'Tujuan: <b>'+ tujuanText +'</b><br>'
-        + 'Esti<span style="letter-spacing:.02em">masi</span> Ongkir: <b>Rp'+ finalFeeDisplay.toLocaleString('id-ID') +'</b>'
-        + ' · Jarak: <b>'+ km +' km</b>'
+        + 'Tujuan Anda : <b>'+ tujuanText +'</b><br>'
+        + 'Ongkir: <b>Rp'+ finalFeeDisplay.toLocaleString('id-ID') +'</b>'
+        + '<br>Jarak: <b>'+ km +' km</b>'
         + '</div>'
       );
   }
@@ -477,54 +510,84 @@ window.__applyOngkirFromMap = function () {
           }
 
           function updateInfo(pendingAddr){
-            if (!infoEl) return;
-            if (ROAD_ONLY && current.lat != null && !current.isRoad){
-			  infoEl.innerHTML = '<div class="p-2 text-danger">Menunggu jarak <b>via jalan</b>. Rute belum tersedia.</div>';
-			  if (btnUse) btnUse.disabled = true;
-			  return;
-			}
+  if (!infoEl) return;
 
-            if (current.lat == null){
-              infoEl.innerHTML = '<div class="p-2">Klik peta untuk pilih tujuan. Gunakan 📍 untuk deteksi otomatis.</div>';
-              btnUse && (btnUse.disabled = true);
-              return;
-            }
-            var km  = (current.dist/1000).toFixed(2);
-            var fee = Math.ceil(current.ongkir/1000)*1000;
-            var label = current.isRoad 
-              ? ('Jarak jalan' + (current.roadProvider ? ' · ' + current.roadProvider : ''))
-              : 'Jarak lurus';
+  // cek apakah ini mode GRATIS ONGKIR
+  // (akan true kalau di form ada <input name="free_ongkir" ...>)
+  var IS_FREE = !!document.querySelector('input[name="free_ongkir"]');
 
-            var tujuanText = current.addressShort
-              ? esc(current.addressShort)
-              : (pendingAddr ? 'Mencari alamat… ('+current.lat.toFixed(6)+', '+current.lng.toFixed(6)+')'
-                             : current.lat.toFixed(6)+', '+current.lng.toFixed(6));
+  // kalau kita wajib pakai jarak via jalan tapi rute jalan belum tersedia
+  if (ROAD_ONLY && current.lat != null && !current.isRoad){
+    infoEl.innerHTML =
+      '<div class="p-2 text-danger">Menunggu jarak <b>via jalan</b>. Rute belum tersedia.</div>';
+    if (btnUse) btnUse.disabled = true;
+    return;
+  }
 
-            var warn = '';
-            if (!current.allowed) {
-              if (!window.__lastRadiusWarnAt || Date.now() - window.__lastRadiusWarnAt > 4000) {
-                window.__lastRadiusWarnAt = Date.now();
-                if (window.Swal && Swal.fire) {
-                  Swal.fire({
-                    icon: 'warning',
-                    title: 'Di luar jangkauan',
-                    html: `Jarak kamu <b>${km} km</b> (maks ${MAX_RADIUS_KM} km).<br>Lokasinya kejauhan.`,
-                    confirmButtonText: 'Oke'
-                  });
-                } else {
-                  alert('Di luar jangkauan — jarak kamu ' + km + ' km (maks ' + MAX_RADIUS_KM + ' km).');
-                }
-              }
-            }
+  // belum ada titik tujuan sama sekali
+  if (current.lat == null){
+    infoEl.innerHTML =
+      '<div class="p-2">Klik peta untuk pilih tujuan. Gunakan 📍 untuk deteksi otomatis.</div>';
+    btnUse && (btnUse.disabled = true);
+    return;
+  }
 
-            infoEl.innerHTML =
-              '<div class="p-2">Tujuan: <b>'+ tujuanText +
-              '</b><br>'+label+': <b>'+km+' km</b> · Estimasi Ongkir: <b>Rp'+
-              fee.toLocaleString('id-ID') + '</b></div>' + warn;
+  var km   = (current.dist/1000).toFixed(2);
+  var fee  = Math.ceil(current.ongkir/1000)*1000;
+  var label = current.isRoad
+    ? ('Jarak jalan' + (current.roadProvider ? ' · ' + current.roadProvider : ''))
+    : 'Jarak lurus';
 
-            var isPending = !!pendingAddr || !!current.addrPending;
-            if (btnUse) btnUse.disabled = (!current.allowed || isPending);
-          }
+  var tujuanText = current.addressShort
+    ? esc(current.addressShort)
+    : (
+        pendingAddr
+        ? 'Mencari alamat… ('+current.lat.toFixed(6)+', '+current.lng.toFixed(6)+')'
+        : current.lat.toFixed(6)+', '+current.lng.toFixed(6)
+      );
+
+  var warn = '';
+  if (!current.allowed) {
+    if (!window.__lastRadiusWarnAt || Date.now() - window.__lastRadiusWarnAt > 4000) {
+      window.__lastRadiusWarnAt = Date.now();
+      if (window.Swal && Swal.fire) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Di luar jangkauan',
+          html: `Jarak kamu <b>${km} km</b> (maks ${MAX_RADIUS_KM} km).<br>Lokasinya kejauhan.`,
+          confirmButtonText: 'Oke'
+        });
+      } else {
+        alert('Di luar jangkauan — jarak kamu ' + km + ' km (maks ' + MAX_RADIUS_KM + ' km).');
+      }
+    }
+  }
+
+  // RENDER INFO:
+  // - jika free ongkir: JANGAN tampilkan "Estimasi Ongkir"
+  // - jika normal: tampilkan estimasi ongkir
+  if (IS_FREE){
+    infoEl.innerHTML =
+      '<div class="p-2">'
+      + 'Tujuan: <b>' + tujuanText + '</b><br>'
+      + label + ': <b>' + km + ' km</b><br>'
+      + '<span class="text-success">🎉 Gratis ongkir berlaku.</span>'
+      + '</div>'
+      + warn;
+  } else {
+    infoEl.innerHTML =
+      '<div class="p-2">'
+      + 'Tujuan: <b>' + tujuanText + '</b><br>'
+      + label + ': <b>' + km + ' km</b>'
+      + ' · Estimasi Ongkir: <b>Rp' + fee.toLocaleString('id-ID') + '</b>'
+      + '</div>'
+      + warn;
+  }
+
+  var isPending = !!pendingAddr || !!current.addrPending;
+  if (btnUse) btnUse.disabled = (!current.allowed || isPending);
+}
+
 
           var routeToken = 0;
           var routeTimer = null;
@@ -1037,4 +1100,4 @@ window.__applyOngkirFromMap = function () {
   })();
   </script>
 
-<?php endif; ?>
+

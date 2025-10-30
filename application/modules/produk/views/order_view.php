@@ -180,14 +180,14 @@
         </div>
       </form>
 
-      <div class="d-flex justify-content-between align-items-center actions-wrap">
-       <!--  <a href="<?= site_url('produk/cart') ?>" class="btn btn-outline-secondary">
-          <i class="mdi mdi-arrow-left"></i> Kembali
-        </a> -->
-        <button id="btn-order" class="btn btn-blue btn-block">
-          Buat Pesanan <i class="mdi mdi-check-bold"></i>
-        </button>
-      </div>
+    <style>.actions-wrap{background:rgb(15 23 42 / .04);border:1px solid rgb(0 0 0 / .06);border-radius:.9rem;padding:.75rem 1rem;box-shadow:0 .75rem 2rem rgb(0 0 0 / .08)}.btn-blue{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:.75rem;font-size:1rem;font-weight:600;line-height:1.2;padding:.75rem 1rem;color:#fff;background-image:linear-gradient(135deg,#2563eb 0%,#4f46e5 40%,#312e81 100%);box-shadow:0 .5rem 1.25rem rgb(37 99 235 / .45),0 0 20px rgb(99 102 241 / .45) inset;text-shadow:0 1px 2px rgb(0 0 0 / .4);transition:all .12s ease}.btn-blue i{margin-left:.5rem;font-size:1.1rem;line-height:0}.btn-blue:hover,.btn-blue:focus{filter:brightness(1.07);box-shadow:0 .75rem 1.5rem rgb(37 99 235 / .55),0 0 28px rgb(99 102 241 / .6) inset;outline:none}.btn-blue:active{transform:scale(.98);box-shadow:0 .4rem 1rem rgb(0 0 0 / .4),0 0 18px rgb(99 102 241 / .4) inset}@media (max-width:400px){.btn-blue{font-size:.95rem;padding:.7rem .9rem}.btn-blue i{font-size:1rem}}</style>
+
+<div class="d-flex justify-content-between align-items-center actions-wrap mt-1">
+  <button id="btn-order" class="btn btn-blue btn-block">
+    Buat Pesanan <i class="mdi mdi-check-bold" aria-hidden="true"></i>
+  </button>
+</div>
+
 
     <?php endif; ?>
   </div>
