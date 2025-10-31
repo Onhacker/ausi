@@ -1165,7 +1165,7 @@ public function pay_qris($token = null){
   // updated_at hanya saat promosi dari draft → verifikasi
   if ($status_now === 'draft') {
     $upd['status']     = 'verifikasi';
-    // $upd['updated_at'] = date('Y-m-d H:i:s');
+    $upd['updated_at'] = date('Y-m-d H:i:s');
   }
 
   $this->db->where('id_pesanan', $id_pesanan)->update('pesanan_billiard', $upd);

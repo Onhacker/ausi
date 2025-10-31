@@ -142,7 +142,7 @@ class M_admin_billiard extends CI_Model {
     /* =========================
      * Bulk actions
      * ========================= */
-   public function bulk_mark_confirmed(array $ids){
+  public function bulk_mark_confirmed(array $ids){
     $ids = array_values(array_unique(array_map('intval', $ids)));
     if (!$ids) return ["ok_count"=>0];
 
@@ -159,24 +159,36 @@ class M_admin_billiard extends CI_Model {
     $this->db->trans_begin();
     foreach ($ids as $id){
         $row = $this->db->get_where('pesanan_billiard', ['id_pesanan'=>$id])->row();
-        if (!$row){ $notfound[]=$id; continue; }
+        if (!$row){
+            $notfound[] = $id;
+            continue;
+        }
 
         $st = strtolower((string)$row->status);
         if (in_array($st, ['terkonfirmasi','batal'], true)){
             $already[] = $id;
+
             // walau sudah terkonfirmasi, tetap coba salin snapshot bila belum ada
-            if ($st==='terkonfirmasi' && !$this->_paid_exists($id)){
+            if ($st === 'terkonfirmasi' && !$this->_paid_exists($id)){
                 $okIns = $this->db->insert($this->table_paid, $this->_paid_payload($row,'admin'));
-                if ($okIns) $copied_count++; else $errors[]=$id;
+                if ($okIns){
+                    $copied_count++;
+                } else {
+                    $errors[] = $id;
+                }
             } else {
                 $copied_skipped[] = $id;
             }
+
+            // penting: JANGAN push ke $ok_ids di sini,
+            // karena statusnya bukan baru dikonfirmasi sekarang
             continue;
         }
 
         $method = trim((string)$row->metode_bayar);
         if ($method === '' || $method === null){
-            $blocked[] = $id; continue;
+            $blocked[] = $id;
+            continue;
         }
 
         // Update status → terkonfirmasi
@@ -185,26 +197,40 @@ class M_admin_billiard extends CI_Model {
             'status'     => 'terkonfirmasi',
             'updated_at' => $now,
         ]);
+
         if ($ok){
             $ok_count++;
+            $ok_ids[] = $id; // <=== INI YANG WAJIB, SUPAYA WA KE-TRIGGER
+
             // Salin snapshot ke tabel paid (idempotent)
             if (!$this->_paid_exists($id)){
-                $okIns = $this->db->insert($this->table_paid, $this->_paid_payload($row,'admin'));
-                if ($okIns) $copied_count++; else $errors[]=$id;
+                $okIns = $this->db->insert(
+                    $this->table_paid,
+                    $this->_paid_payload($row,'admin')
+                );
+                if ($okIns){
+                    $copied_count++;
+                } else {
+                    $errors[] = $id;
+                }
             } else {
                 $copied_skipped[] = $id;
             }
         } else {
-            $errors[]=$id;
+            $errors[] = $id;
         }
     }
 
-    if ($this->db->trans_status() === FALSE) $this->db->trans_rollback(); else $this->db->trans_commit();
+    if ($this->db->trans_status() === FALSE){
+        $this->db->trans_rollback();
+    } else {
+        $this->db->trans_commit();
+    }
 
     return [
         "ok_count"       => $ok_count,
         "blocked_ids"    => $blocked,
-        "ok_ids"         => $ok_ids,  
+        "ok_ids"         => $ok_ids,     // <-- sekarang terisi
         "already_ids"    => $already,
         "notfound_ids"   => $notfound,
         "errors"         => $errors,
@@ -212,6 +238,7 @@ class M_admin_billiard extends CI_Model {
         "copied_skipped" => $copied_skipped,
     ];
 }
+
 
 
     public function bulk_mark_canceled(array $ids){
