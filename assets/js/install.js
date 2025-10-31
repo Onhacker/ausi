@@ -1,8 +1,18 @@
 let deferredPrompt = null;
 
 function isAppInstalled() {
-  return window.matchMedia('(display-mode: standalone)').matches
-      || window.navigator.standalone === true; // iOS Safari
+  // Chrome PWA bisa pakai standalone / fullscreen / minimal-ui / window-controls-overlay
+  const mm = (m) => window.matchMedia(m).matches;
+  const displayInstalled =
+    mm('(display-mode: standalone)') ||
+    mm('(display-mode: fullscreen)') ||
+    mm('(display-mode: minimal-ui)') ||
+    mm('(display-mode: window-controls-overlay)');
+
+  // iOS Safari A2HS expose navigator.standalone === true
+  const iosStandalone = window.navigator.standalone === true;
+
+  return displayInstalled || iosStandalone;
 }
 
 function isIOSUA() {
@@ -10,103 +20,12 @@ function isIOSUA() {
   return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
 }
 
-/* Pastikan panduan iOS tersedia */
-(function ensureIOSGuide(){
-  if (typeof window.showIOSInstallGuide === 'function') return;
-  window.showIOSInstallGuide = function(e){
-    if (e) e.preventDefault();
+/* SweetAlert helper, dll (biarkan punyamu yg lama) ... */
 
-    const ua = navigator.userAgent || navigator.vendor || '';
-    const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
-
-    const htmlSafari =
-      '<ol style="text-align:left;max-width:520px;margin:0 auto">' +
-      '<li>Ketuk ikon <b>Bagikan</b> (kotak dengan panah ke atas).</li>' +
-      '<li>Pilih <b>Tambahkan ke Layar Utama</b>.</li>' +
-      '<li>Ketuk <b>Tambahkan</b>.</li>' +
-      '</ol>';
-
-    if (!window.Swal) {
-      alert('Buka menu Bagikan → Tambahkan ke Layar Utama');
-      return false;
-    }
-
-    if (!isSafari) {
-      Swal.fire({
-        title:'Buka di Safari',
-        html:'Buka halaman ini di <b>Safari</b> untuk menginstal PWA.<br><br>'+htmlSafari,
-        icon:'info'
-      });
-      return false;
-    }
-
-    Swal.fire({
-      title:'Instal ke iOS',
-      html:htmlSafari,
-      icon:'info'
-    });
-    return false;
-  };
-})();
-
-/* Tunggu SweetAlert siap sebelum menampilkan popup (maks 3 detik) */
-function whenSwalReady(run, timeout=3000){
-  const t0 = Date.now();
-  (function tick(){
-    if (window.Swal && typeof Swal.fire === 'function') return run(false);
-    if (Date.now()-t0 > timeout) return run(true); // fallback
-    setTimeout(tick, 50);
-  })();
-}
-
-/* Opsional: kasih info 1x bahwa user sudah buka sebagai app mandiri */
-function showStandaloneNoticeOnce(){
-  if (!isAppInstalled()) return;
-
-  const KEY = 'shownStandaloneNotice'; // pakai localStorage biar persist lintas sesi
-
-  try {
-    if (localStorage.getItem(KEY)) return;
-  } catch (e) {
-    if (window.__shownStandaloneNotice) return;
-    window.__shownStandaloneNotice = true;
-  }
-
-  whenSwalReady((fallback)=>{
-    const markDone = () => {
-      try { localStorage.setItem(KEY, '1'); } catch (e) {}
-    };
-
-    if (!fallback && window.Swal?.fire) {
-      Swal.fire(
-        'Aplikasi Sudah Terinstal',
-        'Anda menjalankan aplikasi dalam mode mandiri (standalone).',
-        'info'
-      ).then(markDone, markDone);
-    } else {
-      alert('Aplikasi berjalan dalam mode mandiri (standalone).');
-      markDone();
-    }
-  });
-}
-
-/* Tangkap PWA prompt — JANGAN auto-show */
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  console.log('✅ beforeinstallprompt siap.');
-});
-
-/* Jalankan setelah semua resource termuat (lebih aman di Android PWA) */
-window.addEventListener('load', showStandaloneNoticeOnce);
-
-
-/* ===== ICON SVG ===== */
-
+// --- ICONS tetap sama punyamu ---
 const ICON_ANDROID = `
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <g fill="#fff">
-    <!-- body + head + legs + antenna -->
     <path d="
       M6 18
       c0 1.1.9 2 2 2h1v3h2v-3h2v3h2v-3h1
@@ -126,8 +45,6 @@ const ICON_ANDROID = `
       c-.55 0-1 .45-1 1s.45 1 1 1
       1-.45 1-1-.45-1-1-1z
     "/>
-
-    <!-- arms -->
     <rect x="3" y="10" width="2" height="7" rx="1" ry="1"/>
     <rect x="19" y="10" width="2" height="7" rx="1" ry="1"/>
   </g>
@@ -158,44 +75,37 @@ const ICON_IOS = `
   "/>
 </svg>`;
 
-/* fallback generic kalau suatu saat mau dipakai lagi */
-const ICON_APP = `
-<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path fill="#fff" d="M4 3h16c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1zm1 2v14h14V5H5zm3 2h8c.6 0 1 .4 1 1v8c0 .6-.4 1-1 1H8c-.6 0-1-.4-1-1V8c0-.6.4-1 1-1z"/>
-</svg>`;
-
-/* Update tampilan tombol sesuai device */
+/* ini yang ngatur tampilan dan HIDE tombol */
 function setupInstallButtonUI(){
   const btn    = document.getElementById('installButton');
   if (!btn) return;
 
-  const iconEl = btn.querySelector('.install-icon');
-  const textEl = btn.querySelector('.install-text');
-
-  // sudah terinstal? langsung hide tombol
+  // kalau udah jadi app → sembunyiin tombol
   if (isAppInstalled()){
     btn.style.display = 'none';
     return;
   }
 
-  // iOS
+  // belum app → pastikan tombol visible (kalau sebelumnya disembunyikan)
+  btn.style.display = 'inline-flex';
+
+  const iconEl = btn.querySelector('.install-icon');
+  const textEl = btn.querySelector('.install-text');
+
   if (isIOSUA()){
     if (iconEl) iconEl.innerHTML = ICON_IOS;
     if (textEl) textEl.textContent = 'Install on iOS';
     btn.setAttribute('aria-label','Install on iOS');
-    return;
+  } else {
+    if (iconEl) iconEl.innerHTML = ICON_ANDROID;
+    if (textEl) textEl.textContent = 'Install on Android';
+    btn.setAttribute('aria-label','Install on Android');
   }
-
-  // default = Android / Chrome
-  if (iconEl) iconEl.innerHTML = ICON_ANDROID;
-  if (textEl) textEl.textContent = 'Install on Android';
-  btn.setAttribute('aria-label','Install on Android');
 }
 
-
-/* Klik badge → jalanin panduan / prompt */
+/* --- listener klik install --- */
 document.addEventListener('DOMContentLoaded', () => {
-  setupInstallButtonUI();
+  setupInstallButtonUI(); // pertama kali
 
   const installButton = document.getElementById('installButton');
   if (!installButton) return;
@@ -203,12 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
   installButton.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // iOS → tampilkan instruksi Add to Home Screen
+    // iOS → tunjukin langkah Add to Home Screen
     if (isIOSUA()) {
       return window.showIOSInstallGuide(e);
     }
 
-    // Android / Chrome → panggil beforeinstallprompt
+    // Android/Chrome → pakai deferredPrompt
     if (!deferredPrompt) {
       return whenSwalReady((fallback)=>{
         if (!fallback) {
@@ -252,14 +162,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* Setelah sukses install (Android/Chrome biasanya trigger ini) */
+/* kita tangkap beforeinstallprompt -> simpan event */
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('✅ beforeinstallprompt siap.');
+});
+
+/* setelah semua resource selesai load
+   -> cek lagi status (kadang baru ketauan standalone di sini) */
+window.addEventListener('load', () => {
+  setupInstallButtonUI(); // re-check
+  showStandaloneNoticeOnce(); // popup info sekali aja (kode lama kamu)
+});
+
+/* kalau user pasang PWA (Android) */
 window.addEventListener('appinstalled', () => {
   console.log('✅ App installed');
-
-  const btn = document.getElementById('installButton');
-  if (btn) {
-    btn.style.display = 'none';
-  }
+  setupInstallButtonUI(); // ini bakal hide tombol
 
   whenSwalReady((fallback)=>{
     if (!fallback) {
@@ -272,5 +192,10 @@ window.addEventListener('appinstalled', () => {
   });
 });
 
-/* dummy biar onclick="openPlayStore(event)" ga error di tempat lain */
-function openPlayStore(e){ return true; }
+/* bonus: kalau pindah fokus / balik lagi ke app,
+   kadang browser update media query → kita cek lagi */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    setupInstallButtonUI();
+  }
+});
