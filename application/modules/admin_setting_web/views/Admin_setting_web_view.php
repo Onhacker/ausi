@@ -295,10 +295,18 @@
               </div>
 
               <div class="form-group col-md-4">
-                <label class="text-primary" for="late_min">Jumlah Jam Free Billiard</label>
+                <label class="text-primary" for="late_min">Batas pembayaran billiar (jam)</label>
                 <input type="number" class="form-control" id="late_min" name="late_min"
                 min="0" max="1440" step="1"
                 value="<?= (int) v($record,'late_min',60)/60 ?>">
+                <small class="text-danger">Batas booking billiard jika belum bayar.</small>
+              </div>
+              <div class="form-group col-md-4">
+                <label class="text-primary" for="jam_voucher_default">Jumlah Jam (voucher) Free Billiard</label>
+                <input type="number" class="form-control" id="jam_voucher_default" name="jam_voucher_default"
+                min="0" max="1440" step="1"
+                value="<?= (int) v($record,'jam_voucher_default',2) ?>">
+                
                 <small class="text-danger">Waktu free bermain billiard (jam).</small>
               </div>
             </div>

@@ -47,6 +47,7 @@ public function update()
     $this->form_validation->set_rules('base_fee','Base Fee','trim|integer|greater_than_equal_to[0]');
     $this->form_validation->set_rules('per_km','Per KM','trim|integer|greater_than_equal_to[0]');
     $this->form_validation->set_rules('max_radius_m','Maks Radius Layanan (meter)','trim|integer|greater_than_equal_to[0]');
+    $this->form_validation->set_rules('jam_voucher_default','Jumlah jam voucher Billiard','trim|integer|greater_than_equal_to[0]');
     $this->form_validation->set_rules('batas_free_ongkir','Batas Free Ongkir','trim|integer|greater_than_equal_to[0]');
     // delivery_cutoff divalidasi manual (format HH.MM / HH:MM)
 
@@ -108,7 +109,8 @@ public function update()
     $per_km    = isset($post['per_km'])    && $post['per_km']    !== '' ? (int)$post['per_km']      : 0;
     $max_rad   = isset($post['max_radius_m']) && $post['max_radius_m'] !== '' ? (int)$post['max_radius_m'] : 0;
     $batas_free= isset($post['batas_free_ongkir']) && $post['batas_free_ongkir'] !== '' ? (int)$post['batas_free_ongkir'] : 0;
-
+    $jam_voucher_default= isset($post['jam_voucher_default']) && $post['jam_voucher_default'] !== '' ? (int)$post['jam_voucher_default'] : 0;
+    
     // ===== SIAPKAN DATA UPDATE (tanpa token/secret dulu) =====
     $row = [
         'nama_website'        => $post['nama_website'] ?? '',
@@ -146,6 +148,7 @@ public function update()
         'per_km'              => $per_km,
         'max_radius_m'        => $max_rad,
         'batas_free_ongkir'   => $batas_free,
+        'jam_voucher_default'   => $jam_voucher_default,
     ];
 
     // ===== SMTP =====

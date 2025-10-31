@@ -27,12 +27,7 @@ $MENU_DEF = [
         'icon'    => 'mdi mdi-chart-areaspline',
         'require' => ['Statistik','dashboard','admin_laporan/chart'],
     ],
-    // [
-    //     'label'   => 'Monitoring',
-    //     'url'     => site_url('admin_dashboard/monitor'),
-    //     'icon'    => 'mdi mdi-monitor-eye',
-    //     'require' => ['Monitoring','admin_dashboard/monitor','admin_monitor'],
-    // ],
+  
     [
         'label'   => 'Produk',
         'url'     => site_url('admin_produk'),
@@ -228,159 +223,113 @@ public function get_menu_mobile()
         return;
     }
 
-    // Definisi quick actions (mobile)
+    // HANYA menu yang benar-benar ada di modal frontend
+    // Urutkan juga sesuai tampilan modal biar konsisten
     $ACTIONS_DEF = [
-    // ===== Dashboard =====
-    [
-        'id'      => 'admin_dashboard',
-        'label'   => 'Statistik',
-        'url'     => site_url('admin_dashboard'),
-        'icon'    => 'mdi mdi-chart-areaspline',
-        'require' => ['admin_dashboard'],
-    ],
-    [
-        'id'      => 'admin_dashboard/monitor',
-        'label'   => 'Monitoring',
-        'url'     => site_url('admin_dashboard/monitor'),
-        'icon'    => 'mdi mdi-monitor-eye',
-        'require' => ['admin_dashboard/monitor'],
-    ],
 
-    // ===== Produk =====
-    [
-        'id'      => 'admin_produk',
-        'label'   => 'Produk',
-        'url'     => site_url('admin_produk'),
-        'icon'    => 'mdi mdi-package-variant-closed',
-        'require' => ['admin_produk'],
-    ],
+        // ===== Produk / Master barang =====
+        [
+            'id'      => 'admin_produk',
+            'label'   => 'Produk',
+            'url'     => site_url('admin_produk'),
+            'icon'    => 'mdi mdi-package-variant-closed',
+            'require' => ['admin_produk'],
+        ],
+        [
+            'id'      => 'admin_kategori_produk',
+            'label'   => 'Kategori Produk',
+            'url'     => site_url('admin_kategori_produk'),
+            'icon'    => 'mdi mdi-tag-multiple-outline',
+            'require' => ['admin_kategori_produk'],
+        ],
 
-    // ===== POS =====
-    [
-        'id'      => 'admin_pos',
-        'label'   => 'POS Caffe',
-        'url'     => site_url('admin_pos'),
-        'icon'    => 'mdi mdi-coffee-outline',
-        'require' => ['admin_pos'],
-    ],
-    [
-        'id'      => 'admin_billiard',
-        'label'   => 'POS Billiard',
-        'url'     => site_url('admin_billiard'),
-        'icon'    => 'mdi mdi-billiards',
-        'require' => ['admin_billiard'],
-    ],
-    [
-        'id'      => 'admin_pengeluaran',
-        'label'   => 'Pengeluaran',
-        'url'     => site_url('admin_pengeluaran'),
-        'icon'    => 'mdi mdi-cash-minus',
-        'require' => ['admin_pengeluaran'],
-    ],
+        // ===== POS & Transaksi jalan =====
+        [
+            'id'      => 'admin_pos',
+            'label'   => 'POS Caffe',
+            'url'     => site_url('admin_pos'),
+            'icon'    => 'mdi mdi-coffee-outline',
+            'require' => ['admin_pos'],
+        ],
+        [
+            'id'      => 'admin_billiard',
+            'label'   => 'POS Billiard',
+            'url'     => site_url('admin_billiard'),
+            'icon'    => 'mdi mdi-billiards',
+            'require' => ['admin_billiard'],
+        ],
+        [
+            'id'      => 'admin_pengeluaran',
+            'label'   => 'Pengeluaran',
+            'url'     => site_url('admin_pengeluaran'),
+            'icon'    => 'mdi mdi-cash-minus',
+            'require' => ['admin_pengeluaran'],
+        ],
 
-    // ===== Riwayat =====
-    [
-        'id'      => 'admin_pos_riwayat',
-        'label'   => 'Riwayat Caffe',
-        'url'     => site_url('admin_pos_riwayat'),
-        'icon'    => 'mdi mdi-history',
-        'require' => ['admin_pos_riwayat'],
-    ],
-    [
-        'id'      => 'admin_riwayat_billiard',
-        'label'   => 'Riwayat Billiard',
-        'url'     => site_url('admin_riwayat_billiard'),
-        'icon'    => 'mdi mdi-history',
-        'require' => ['admin_riwayat_billiard'],
-    ],
+        // ===== Riwayat =====
+        [
+            'id'      => 'admin_pos_riwayat',
+            'label'   => 'Riwayat Caffe',
+            'url'     => site_url('admin_pos_riwayat'),
+            'icon'    => 'mdi mdi-history',
+            'require' => ['admin_pos_riwayat'],
+        ],
+        [
+            'id'      => 'admin_riwayat_billiard',
+            'label'   => 'Riwayat Billiard',
+            'url'     => site_url('admin_riwayat_billiard'),
+            'icon'    => 'mdi mdi-history',
+            'require' => ['admin_riwayat_billiard'],
+        ],
 
-    // ===== Laporan =====
-    [
-        'id'      => 'admin_laporan',
-        'label'   => 'Laporan',
-        'url'     => site_url('admin_laporan'),
-        'icon'    => 'mdi mdi-file-chart',
-        'require' => ['admin_laporan','admin_laporan/index'],
-    ],
+        // ===== Laporan =====
+        [
+            'id'      => 'admin_laporan',
+            'label'   => 'Laporan',
+            'url'     => site_url('admin_laporan'),
+            'icon'    => 'mdi mdi-file-chart',
+            'require' => ['admin_laporan','admin_laporan/index'],
+        ],
 
-    // ===== Master / Pengaturan =====
-    [
-        'id'      => 'admin_user',
-        'label'   => 'Manajemen User',
-        'url'     => site_url('admin_user'),
-        'icon'    => 'mdi mdi-account-cog',
-        'require' => ['admin_user'],
-    ],
-    [
-        'id'      => 'admin_setting_web',
-        'label'   => 'Pengaturan Sistem',
-        'url'     => site_url('admin_setting_web'),
-        'icon'    => 'mdi mdi-cog-outline',
-        'require' => ['admin_setting_web'],
-    ],
-    [
-        'id'      => 'admin_kategori_produk',
-        'label'   => 'Kategori',
-        'url'     => site_url('admin_kategori_produk'),
-        'icon'    => 'mdi mdi-tag-multiple-outline',
-        'require' => ['admin_kategori_produk'],
-    ],
-    [
-        'id'      => 'admin_unit_tujuan',
-        'label'   => 'Unit Tujuan',
-        'url'     => site_url('admin_unit_tujuan'),
-        'icon'    => 'mdi mdi-domain',
-        'require' => ['admin_unit_tujuan'],
-    ],
-    [
-        'id'      => 'admin_unit_lain',
-        'label'   => 'Unit Lain',
-        'url'     => site_url('admin_unit_lain'),
-        'icon'    => 'mdi mdi-domain-plus',
-        'require' => ['admin_unit_lain'],
-    ],
-    [
-        'id'      => 'admin_instansi_ref',
-        'label'   => 'Instansi Asal',
-        'url'     => site_url('admin_instansi_ref'),
-        'icon'    => 'mdi mdi-domain',
-        'require' => ['admin_instansi_ref'],
-    ],
-    [
-        'id'      => 'admin_pengumuman',
-        'label'   => 'Pengumuman',
-        'url'     => site_url('admin_pengumuman'),
-        'icon'    => 'mdi mdi-bullhorn-outline',
-        'require' => ['admin_pengumuman'],
-    ],
-    [
-        'id'      => 'admin_meja',
-        'label'   => 'Meja',
-        'url'     => site_url('admin_meja'),
-        'icon'    => 'mdi mdi-table-chair',
-        'require' => ['admin_meja'],
-    ],
+        // ===== Master / Pengaturan =====
+        [
+            'id'      => 'admin_user',
+            'label'   => 'Manajemen User',
+            'url'     => site_url('admin_user'),
+            'icon'    => 'mdi mdi-account-cog',
+            'require' => ['admin_user'],
+        ],
+        [
+            'id'      => 'admin_setting_web',
+            'label'   => 'Pengaturan Sistem',
+            'url'     => site_url('admin_setting_web'),
+            'icon'    => 'mdi mdi-cog-outline',
+            'require' => ['admin_setting_web'],
+        ],
+        [
+            'id'      => 'admin_unit_lain',
+            'label'   => 'Unit Lain',
+            'url'     => site_url('admin_unit_lain'),
+            'icon'    => 'mdi mdi-domain-plus',
+            'require' => ['admin_unit_lain'],
+        ],
+        [
+            'id'      => 'admin_pengumuman',
+            'label'   => 'Pengumuman',
+            'url'     => site_url('admin_pengumuman'),
+            'icon'    => 'mdi mdi-bullhorn-outline',
+            'require' => ['admin_pengumuman'],
+        ],
+        [
+            'id'      => 'admin_meja',
+            'label'   => 'Meja',
+            'url'     => site_url('admin_meja'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['admin_meja'],
+        ],
+    ];
 
-    // ===== Modul tambahan yang sudah ada di actions awal =====
-    [
-        'id'      => 'admin_scan',
-        'label'   => 'Checkin/Checkout',
-        'url'     => site_url('admin_scan'),
-        'icon'    => 'mdi mdi-qrcode-scan',
-        'require' => ['admin_scan'],
-    ],
-    [
-        'id'      => 'admin_permohonan',
-        'label'   => 'Data',
-        'url'     => site_url('admin_permohonan'),
-        'icon'    => 'mdi mdi-file-document-outline',
-        'require' => ['admin_permohonan'],
-    ],
-];
-
-
-
-    // Filter berdasarkan hak akses
+    // Filter berdasarkan hak akses aktual user
     $allowed_actions = [];
     foreach ($ACTIONS_DEF as $a) {
         if (!isset($a['require']) || user_can_mod($a['require'])) {
@@ -393,14 +342,20 @@ public function get_menu_mobile()
         }
     }
 
-    // ETag sensitif user & izin
+    // Bangun ETag supaya client bisa pakai 304 Not Modified
     $allowed = allowed_module_slugs();
-    $allowed_sig = is_array($allowed) ? md5(json_encode(array_keys($allowed))) : (string)$allowed;
+    $allowed_sig = is_array($allowed)
+        ? md5(json_encode(array_keys($allowed)))
+        : (string)$allowed;
+
     $payload_sig = md5(json_encode($allowed_actions));
     $signature   = $username.'|'.$level.'|'.$allowed_sig.'|'.$payload_sig;
     $etag = 'W/"mobile-'.substr(sha1($signature), 0, 20).'"';
 
-    $ifNoneMatch = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? trim($_SERVER['HTTP_IF_NONE_MATCH']) : '';
+    $ifNoneMatch = isset($_SERVER['HTTP_IF_NONE_MATCH'])
+        ? trim($_SERVER['HTTP_IF_NONE_MATCH'])
+        : '';
+
     if ($ifNoneMatch === $etag) {
         $this->output
             ->set_status_header(304)

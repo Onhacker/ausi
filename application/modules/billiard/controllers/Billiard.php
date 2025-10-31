@@ -447,53 +447,52 @@ $harga = (int)$rateInfo['rate']; // tarif efektif untuk subtotal & penyimpanan
   $hp_norm62    = $this->_normalize_msisdn($no_hp); // 628xx…
 
   if ($voucher_code !== '') {
-    // Cocokkan berdasarkan KODE + owner nomor HP
-    $vsql = "SELECT * FROM voucher_billiard
-             WHERE kode_voucher = ?
-               AND jenis = 'FREE_MAIN'
-               AND status = 'baru'
-               AND is_claimed = 0
-               AND no_hp_norm = ?
-             LIMIT 1 FOR UPDATE";
-    $voucher_row = $this->db->query($vsql, [$voucher_code, $hp_norm62])->row();
-    if (!$voucher_row) {
-      $this->db->trans_rollback();
-      return $this->_json([
-        "success"=>false,
-        "title"=>"Voucher Invalid",
-        "pesan"=>"Kode voucher nggak ketemu / udah dipakai / bukan milik nomor ini."
-      ]);
-    }
-    $use_voucher = true;
+      $vsql = "SELECT * FROM voucher_billiard
+               WHERE kode_voucher = ?
+                 AND jenis = 'FREE_MAIN'
+                 AND status = 'baru'
+                 AND is_claimed = 0
+                 AND no_hp_norm = ?
+               LIMIT 1 FOR UPDATE";
+      $voucher_row = $this->db->query($vsql, [$voucher_code, $hp_norm62])->row();
+      if (!$voucher_row) {
+        $this->db->trans_rollback();
+        return $this->_json([
+          "success"=>false,
+          "title"=>"Voucher Invalid",
+          "pesan"=>"Kode voucher nggak ketemu / udah dipakai / bukan milik nomor ini."
+        ]);
+      }
+      $use_voucher = true;
 
-    // ====== FORCE DURASI MENGIKUTI VOUCHER (late_min -> jam) ======
-    $voucher_hours = max(1, (int)ceil(($late_min > 0 ? $late_min : 60) / 60));
-    $durasi        = $voucher_hours;
-    $jam_selesai   = $this->_add_hours($jam_mulai, $durasi);
-    // Re-check tarif setelah durasi voucher diterapkan
-// $rateInfo = $this->_rate_for_slot_cfg($date, $jam_mulai, $jam_selesai, $meja);
-    // $rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
-    $rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
+      // ====== FORCE DURASI MENGIKUTI VOUCHER ======
+      $voucher_hours = (int)($voucher_row->jam_voucher ?? 1);
+      if ($voucher_hours < 1) { $voucher_hours = 1; }
+      $durasi        = $voucher_hours;
 
-if (!$rateInfo['ok']) {
-  $this->db->trans_rollback();
-  return $this->_json([
-    "success"=>false,
-    "title"=>"Di Luar Aturan Jam",
-    "pesan"=>$rateInfo['msg']
-  ]);
-}
-$harga = (int)$rateInfo['rate'];
+      $jam_selesai   = $this->_add_hours($jam_mulai, $durasi);
 
-    // Re-check operasional dgn durasi voucher
-    if (!$this->_within_open_hours($jam_mulai, $jam_selesai, $meja->jam_buka, $meja->jam_tutup, $tanggal)){
-      $this->db->trans_rollback();
-      return $this->_json([
-        "success"=>false,
-        "title"=>"Di Luar Operasional",
-        "pesan"=>"Dengan durasi voucher {$voucher_hours} jam, slot melewati jam tutup. Coba majuin jam mulai ya."
-      ]);
-    }
+      // re-check tarif pake slot baru:
+      $rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
+      if (!$rateInfo['ok']) {
+        $this->db->trans_rollback();
+        return $this->_json([
+          "success"=>false,
+          "title"=>"Di Luar Aturan Jam",
+          "pesan"=>$rateInfo['msg']
+        ]);
+      }
+      $harga = (int)$rateInfo['rate'];
+
+      // Cek jam operasional untuk durasi voucher
+      if (!$this->_within_open_hours($jam_mulai, $jam_selesai, $meja->jam_buka, $meja->jam_tutup, $tanggal)){
+        $this->db->trans_rollback();
+        return $this->_json([
+          "success"=>false,
+          "title"=>"Di Luar Operasional",
+          "pesan"=>"Dengan durasi voucher {$voucher_hours} jam, slot melewati jam tutup. Coba majuin jam mulai ya."
+        ]);
+      }
 
     // Re-check overlap dgn durasi voucher
     $aEnd = $mk($date, $jam_selesai);
@@ -1716,7 +1715,8 @@ private function _ensure_voucher_table(): void {
     `jenis` VARCHAR(32) NOT NULL DEFAULT 'FREE_MAIN',
     `status` VARCHAR(20) NOT NULL DEFAULT 'baru',    -- baru | terpakai | batal
     `is_claimed` TINYINT(1) NOT NULL DEFAULT 0,
-    `issued_from_count` INT NOT NULL DEFAULT 0,      -- jumlah konfirmasi saat voucher dikeluarkan
+    `issued_from_count` INT NOT NULL DEFAULT 0,
+    `jam_voucher` INT NOT NULL DEFAULT 1,                  -- jumlah konfirmasi saat voucher dikeluarkan
     `created_at` DATETIME NOT NULL,
     `claimed_at` DATETIME NULL,
     `notes` VARCHAR(255) NULL,
@@ -1881,6 +1881,7 @@ public function voucher_issue_job() {
     $codes = [];
     for ($i = 0; $i < $to_make; $i++) {
       $kode = $this->_make_voucher_code(8);
+      $jamVoucherDefault = $web->jam_voucher_default;
       $this->db->insert('voucher_billiard', [
         'no_hp'             => $hp_norm,                // simpan normalized
         'no_hp_norm'        => $hp_norm,
@@ -1890,6 +1891,7 @@ public function voucher_issue_job() {
         'status'            => 'baru',
         'is_claimed'        => 0,
         'issued_from_count' => $stats['confirmed'],
+        'jam_voucher'       => $jamVoucherDefault,
         'created_at'        => $now->format('Y-m-d H:i:s'),
         'claimed_at'        => null,
         'notes'             => 'Auto issue by job (batas_edit=' . $stats['batas'] . ')',
@@ -1933,6 +1935,9 @@ public function voucher_issue_job() {
     $lines[] = "";
     $lines[] = "Cek daftar voucher kamu di sini:";
     $lines[] = site_url('billiard/daftar_voucher');
+    $lines[] = "Jika link tidak dapat diklik, simpan kontak ini.";
+    $lines[] = "";
+    $lines[] = "Pesan ini dikirim otomtis oleh sistem ".$web->nama_website;
 
     $pesan = implode("\n", $lines);
 

@@ -222,29 +222,6 @@ if (!function_exists('nav_class')) {
     <i class="mdi mdi-account-circle-outline"></i><span>Profil</span>
   </a>
 
-  <!-- Booking (public) -->
-  <a href="<?= base_url('booking') ?>" class="menu-item">
-    <i class="mdi mdi-calendar-check"></i><span>Booking</span>
-  </a>
-
-  <!-- Alur Kunjungan (public) -->
-  <a href="<?= base_url('hal/alur') ?>" class="menu-item">
-    <i class="mdi mdi-transit-connection-variant"></i><span>Alur Kunjungan</span>
-  </a>
-
-  <!-- Statistik (dashboard) -->
-  <?php if (user_can_mod(['admin_dashboard'])): ?>
-    <a id="quick-dashboard-link" href="<?= site_url('admin_dashboard') ?>" class="menu-item">
-      <i class="mdi mdi-chart-areaspline"></i><span>Statistik</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Monitoring -->
-  <?php if (user_can_mod(['admin_dashboard/monitor'])): ?>
-    <a id="quick-dashboard-monitor-link" href="<?= site_url('admin_dashboard/monitor') ?>" class="menu-item">
-      <i class="mdi mdi-monitor-eye"></i><span>Monitoring</span>
-    </a>
-  <?php endif; ?>
 
   <!-- Produk -->
   <?php if (user_can_mod(['admin_produk'])): ?>
@@ -312,16 +289,10 @@ if (!function_exists('nav_class')) {
   <!-- Kategori Produk -->
   <?php if (user_can_mod(['admin_kategori_produk'])): ?>
     <a id="quick-kategori-link" href="<?= site_url('admin_kategori_produk') ?>" class="menu-item">
-      <i class="mdi mdi-tag-multiple-outline"></i><span>Kategori</span>
+      <i class="mdi mdi-tag-multiple-outline"></i><span>Kategori Produk</span>
     </a>
   <?php endif; ?>
 
-  <!-- Unit Tujuan -->
-  <?php if (user_can_mod(['admin_unit_tujuan'])): ?>
-    <a id="quick-unit-tujuan-link" href="<?= site_url('admin_unit_tujuan') ?>" class="menu-item">
-      <i class="mdi mdi-domain"></i><span>Unit Tujuan</span>
-    </a>
-  <?php endif; ?>
 
   <!-- Unit Lain -->
   <?php if (user_can_mod(['admin_unit_lain'])): ?>
@@ -330,12 +301,7 @@ if (!function_exists('nav_class')) {
     </a>
   <?php endif; ?>
 
-  <!-- Instansi Asal -->
-  <?php if (user_can_mod(['admin_instansi_ref'])): ?>
-    <a id="quick-instansi-ref-link" href="<?= site_url('admin_instansi_ref') ?>" class="menu-item" title="Instansi Asal">
-      <i class="mdi mdi-domain"></i><span>Instansi Asal</span>
-    </a>
-  <?php endif; ?>
+ 
 
   <!-- Pengumuman -->
   <?php if (user_can_mod(['admin_pengumuman'])): ?>
@@ -350,11 +316,6 @@ if (!function_exists('nav_class')) {
       <i class="mdi mdi-table-chair"></i><span>Meja</span>
     </a>
   <?php endif; ?>
-
-  <!-- Kontak (public) -->
-  <a href<?= "=\"".base_url('hal/kontak')."\"" ?> class="menu-item">
-    <i class="mdi mdi-book-account-outline"></i><span>Kontak</span>
-  </a>
 
 </div>
 
@@ -396,59 +357,87 @@ if (!function_exists('nav_class')) {
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const QUICK = {
-      admin_user:       { a: document.getElementById("quick-user-link") },
-      admin_permohonan: { a: document.getElementById("quick-data-link") },
-      admin_scan:       { a: document.getElementById("quick-scan-link") },
-      admin_dashboard:       { a: document.getElementById("quick-dashboard-link") },
-      admin_dashboard_monitor:       { a: document.getElementById("quick-dashboard-monitor-link") },
-      admin_setting_web:       { a: document.getElementById("quick-setting-link") },
-      admin_unit_tujuan:       { a: document.getElementById("quick-unit-link") },
-      admin_unit_lain:       { a: document.getElementById("quick-unit-lain-link") },
-      admin_instansi_ref:       { a: document.getElementById("quick-instansi-ref-link") },
-      admin_pengumuman:       { a: document.getElementById("quick-pengumuman-ref-link") }
-    };
 
-    const setVis = (id, show) => {
-      const q = QUICK[id];
-      if (!q || !q.a) return;
-      q.a.style.display = show ? "" : "none";
-    };
+  // Peta id menu (DOM <a>) <-> slug izin/module
+  const QUICK = {
+    // ===== Master Data / Operasional =====
+    admin_produk:          { a: document.getElementById("quick-produk-link") },
+    admin_kategori_produk: { a: document.getElementById("quick-kategori-link") },
+    admin_meja:            { a: document.getElementById("quick-meja-link") },
 
-  // Catatan: JANGAN hideAll di awal. Biarkan tampilan server-side dulu.
-  // Hanya sinkronkan jika kita menerima data baru (HTTP 200, success=true).
+    // ===== POS / Transaksi =====
+    admin_pos:             { a: document.getElementById("quick-pos-link") },
+    admin_billiard:        { a: document.getElementById("quick-billiard-link") },
+    admin_pengeluaran:     { a: document.getElementById("quick-pengeluaran-link") },
 
-  fetch("<?= site_url('api/get_menu_mobile') ?>?v=1") // pakai versi kecil agar ETag berfungsi; jangan pakai Date.now()
+    // ===== Riwayat & Laporan =====
+    admin_pos_riwayat:       { a: document.getElementById("quick-riwayat-caffe-link") },
+    admin_riwayat_billiard:  { a: document.getElementById("quick-riwayat-billiard-link") },
+    admin_laporan:           { a: document.getElementById("quick-laporan-link") },
+
+    // ===== Manajemen & Pengaturan =====
+    admin_user:          { a: document.getElementById("quick-user-link") },
+    admin_setting_web:   { a: document.getElementById("quick-setting-link") },
+    admin_unit_lain:     { a: document.getElementById("quick-unit-lain-link") },
+    admin_pengumuman:    { a: document.getElementById("quick-pengumuman-link") }
+
+    // (opsional, kalau nanti mau ditambah ke modal)
+    // admin_unit_tujuan:   { a: document.getElementById("quick-unit-tujuan-link") },
+    // admin_instansi_ref:  { a: document.getElementById("quick-instansi-ref-link") },
+    // admin_permohonan:    { a: document.getElementById("quick-data-link") },
+    // admin_scan:          { a: document.getElementById("quick-scan-link") },
+    // 'admin_dashboard': { a: document.getElementById("quick-dashboard-link") },
+    // 'admin_dashboard/monitor': { a: document.getElementById("quick-dashboard-monitor-link") },
+  };
+
+  // helper untuk show/hide 1 item
+  function setVis(moduleId, show){
+    const q = QUICK[moduleId];
+    if (!q || !q.a) return; // kalau gak ada tombolnya di modal, skip aja
+    q.a.style.display = show ? "" : "none";
+  }
+
+  // fetch izin terbaru dari server
+  fetch("<?= site_url('api/get_menu_mobile') ?>?v=1", {
+    credentials: 'same-origin', // penting biar session kebawa
+    cache: 'no-store'
+  })
   .then(async (r) => {
+    // dukung ETag 304 → artinya "tidak berubah"
     if (r.status === 304) {
-        // Tidak ada perubahan → keep current DOM (server-side sudah benar)
-        return null;
-      }
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      const etag = r.headers.get("ETag");
-      const data = await r.json();
-      return { etag, data };
-    })
+      return null;
+    }
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const etag = r.headers.get("ETag"); // kalau mau disimpan di localStorage, bisa
+    const data = await r.json();
+    return { etag, data };
+  })
   .then((res) => {
     if (!res || !res.data || !res.data.success) return;
 
     const actions = res.data.actions || [];
     const allowed = new Set(actions.map(a => a.id));
 
-      // Sinkronkan visibilitas hanya jika kita punya data segar
-      ['admin_user','admin_permohonan'].forEach(id => setVis(id, allowed.has(id)));
-
-      // (Opsional) sinkronkan URL dari server
-      actions.forEach(a => {
-        const q = QUICK[a.id];
-        if (q && q.a && a.url) q.a.href = a.url;
-      });
-    })
-  .catch((err) => {
-      // Gagal fetch → biarkan tampilan server-side
-      console.warn("get_menu_mobile failed:", err);
+    // 1. Sync visibility semua menu di QUICK
+    Object.keys(QUICK).forEach(id => {
+      setVis(id, allowed.has(id));
     });
+
+    // 2. (opsional) Sync URL kalau server mau override link
+    actions.forEach(a => {
+      const q = QUICK[a.id];
+      if (q && q.a && a.url) {
+        q.a.href = a.url;
+      }
+    });
+  })
+  .catch((err) => {
+    console.warn("get_menu_mobile failed:", err);
+    // kalau gagal fetch, kita biarkan tampilan server-side aja
+  });
+
 });
+
 </script>
 
 

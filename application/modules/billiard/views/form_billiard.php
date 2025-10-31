@@ -307,8 +307,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
 window.AUSI_CFG = {
   MAX_DAYS: <?= (int)($rec->maks_hari_booking ?? 3) ?>,
-  LATE_MIN: <?= (int)($rec->late_min ?? 60) ?> // dalam menit
+  PAY_LIMIT_MIN: <?= (int)($rec->late_min ?? 60) ?> // menit tenggang pembayaran sebelum auto-cancel
 };
+
 
 
 
@@ -874,8 +875,9 @@ async function doPost(){
           await Swal.fire({
             title: isFree ? 'Voucher diterima 🎉' : 'Berhasil!',
             html: isFree
-              ? `Booking gratis aktif.<br>Durasi ditentukan sistem: <b>${getFreeHours()}</b> jam.`
-              : (j.pesan || 'Booking berhasil dibuat.'),
+  ? `Booking gratis aktif 🎉<br>Durasi main sesuai voucher kamu sudah dikunci di sistem.`
+  : (j.pesan || 'Booking berhasil dibuat.'),
+
             icon: 'success',
             confirmButtonText: 'Sip'
           });
@@ -1016,7 +1018,8 @@ const subtotal  = bandObj ? (bandObj.rate * parseInt(durVal,10)) : 0;
         <p><b>${htmlEscape(mejaName)}</b></p>
         <p><b>Tanggal</b>: ${htmlEscape(tglLabel)}</p>
         ${voucherCode ? `<p><b>Voucher</b>: <span class="badge badge-success">${htmlEscape(voucherCode)}</span></p>` : ''}
-        ${voucherCode ? `<p><b>Durasi voucher</b>: Ditentukan sistem: <b>${getFreeHours()}</b> jam</p>` : ''}
+        ${voucherCode ? `<p><b>Durasi voucher</b>: Mengikuti promo voucher kamu (akan dikunci otomatis waktu submit)</p>` : ''}
+
 
         <p><b>Estimasi bayar</b>: <span style="font-weight:800">${estimasi}</span></p>
       </div>
