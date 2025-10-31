@@ -1669,7 +1669,7 @@ private function _wa_ringkasan($rec, $metode, $status){
     $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
     $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
     $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
-    $lines[] = "🪑 *Meja:* " . $meja_nama . " _(ID " . (($rec->meja_id ?? '-') ) . ")_";
+    $lines[] = "🪑 *Meja:* " . $meja_nama;
     $lines[] = "📅 *Tanggal:* " . hari($rec->tanggal).", ".tgl_view($rec->tanggal);
     $lines[] = "⏰ *Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5));
     $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
@@ -1697,7 +1697,7 @@ private function _wa_ringkasan($rec, $metode, $status){
         $lines[] = "🎟 *Tiket Gratis Kamu:*";
         $lines[] = $link;
     } else {
-        $lines[] = "🔗 *Detail Booking / Pembayaran:*";
+        $lines[] = "🔗 *Lanjutkan Pembayaran disini:*";
         $lines[] = $link;
     }
 
@@ -1705,11 +1705,11 @@ private function _wa_ringkasan($rec, $metode, $status){
     $lines[] = "";
 
     // INSTRUKSI KASIR
-    $lines[] = "📣 Tunjukkan pesan ini ke kasir saat mulai main.";
-    $lines[] = "";
+    // $lines[] = "📣 Tunjukkan pesan ini ke kasir saat mulai main.";
+    // $lines[] = "";
 
     // FOOTER OTOMATIS
-    $lines[] = "_Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
+    $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
 
 
     $pesan = implode("\n", $lines);

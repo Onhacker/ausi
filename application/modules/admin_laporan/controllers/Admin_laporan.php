@@ -378,6 +378,16 @@ public function print_laba(){
         $this->render($data);
     }
 
+    public function wablas(){
+        // halaman HTML yg berisi filter + container chart
+        $data["web"] = $this->om->web_me();
+        $data["controller"] = get_class($this);
+        $data["title"]      = "Wa";
+        $data["subtitle"]   = "Wa";
+        $data["content"]    = $this->load->view('wablas',$data,true);
+        $this->render($data);
+    }
+
     /**
      * AJAX DATA UNTUK HIGHCHARTS
      * return json:
