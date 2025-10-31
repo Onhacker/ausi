@@ -199,7 +199,7 @@
                   inputmode="numeric"
                   minlength="10"
                   maxlength="13"
-                  pattern="0\d{9,12}"
+                 
                   title="Mulai 0, total 10–13 digit"
                   required
                 >
