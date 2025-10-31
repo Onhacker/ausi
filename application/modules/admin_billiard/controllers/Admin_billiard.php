@@ -254,7 +254,12 @@ class Admin_billiard extends Admin_Controller {
             "pesan"=>implode(' ', $msgs) ?: 'Tidak ada yang diproses.'
         ]);
     }
-
+private function _pretty_hp(string $hp): string {
+  $d = preg_replace('/\D+/', '', $hp);
+  if ($d === '') return '';
+  if (strpos($d, '62') === 0) return '0' . substr($d, 2);
+  return (strpos($d, '0') === 0) ? $d : $d;
+}
 
     private function _notify_paid_whatsapp($booking_id)
 {
