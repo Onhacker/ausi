@@ -1609,124 +1609,164 @@ function normalize_phone_for_wa($raw){
 
 
 private function _wa_ringkasan($rec, $metode, $status){
-    // Pastikan fungsi pengirim WA tersedia
-    if (!function_exists('send_wa_single')) {
-        log_message('error', 'WA: send_wa_single tidak ditemukan. Aborting WA send.');
-        return false;
-    }
+      // Pastikan fungsi pengirim WA tersedia
+      if (!function_exists('send_wa_single')) {
+          log_message('error', 'WA: send_wa_single tidak ditemukan. Aborting WA send.');
+          return false;
+      }
 
-    // Ambil & sanitasi nomor HP dari record
-    $raw = (string)($rec->no_hp ?? '');
-    $no  = preg_replace('/\D+/', '', $raw); // hilangkan semua non-digit
-    if ($no === '') {
-        log_message('error', 'WA: nomor HP kosong pada booking id=' . ($rec->id_pesanan ?? '[unknown]') . ' kode=' . ($rec->kode_booking ?? '[unknown]'));
-        return false;
-    }
+      // Ambil & sanitasi nomor HP dari record
+      $raw = (string)($rec->no_hp ?? '');
+      $no  = preg_replace('/\D+/', '', $raw); // hilangkan semua non-digit
+      if ($no === '') {
+          log_message('error', 'WA: nomor HP kosong pada booking id=' . ($rec->id_pesanan ?? '[unknown]') . ' kode=' . ($rec->kode_booking ?? '[unknown]'));
+          return false;
+      }
 
-    // Normalisasi ke format internasional tanpa plus (contoh: 0812... -> 62812...)
-    if (strpos($no, '0') === 0) {
-        $no_norm = '62' . substr($no, 1);
-    } elseif (strpos($no, '62') === 0) {
-        $no_norm = $no;
-    } elseif (strpos($no, '+62') === 0) {
-        $no_norm = substr($no, 1);
-    } else {
-        $no_norm = $no;
-    }
+      // Normalisasi ke format internasional tanpa plus (contoh: 0812... -> 62812...)
+      if (strpos($no, '0') === 0) {
+          $no_norm = '62' . substr($no, 1);
+      } elseif (strpos($no, '62') === 0) {
+          $no_norm = $no;
+      } elseif (strpos($no, '+62') === 0) {
+          $no_norm = substr($no, 1);
+      } else {
+          $no_norm = $no;
+      }
 
-    // Jika tabel punya kolom no_hp_normalized, simpan agar link lebih mudah dipakai nanti
-    try {
-        if ($this->db->field_exists('no_hp_normalized', 'pesanan_billiard')) {
-            $this->db->where('access_token', $rec->access_token)->update('pesanan_billiard', ['no_hp_normalized' => $no_norm]);
-        }
-    } catch(Throwable $e){
-        log_message('debug', 'WA: gagal simpan no_hp_normalized: '.$e->getMessage());
-    }
+      // Jika tabel punya kolom no_hp_normalized, simpan agar link WA lebih gampang dipakai nanti
+      try {
+          if ($this->db->field_exists('no_hp_normalized', 'pesanan_billiard')) {
+              $this->db
+                  ->where('access_token', $rec->access_token)
+                  ->update('pesanan_billiard', ['no_hp_normalized' => $no_norm]);
+          }
+      } catch(Throwable $e){
+          log_message('debug', 'WA: gagal simpan no_hp_normalized: '.$e->getMessage());
+      }
 
-    // Nama meja snapshot / fallback master
-    $meja_nama = $rec->nama_meja
-        ?? ($this->db->select('nama_meja')->get_where('meja_billiard', ['id_meja' => $rec->meja_id])->row('nama_meja') ?: ('MEJA #'.($rec->meja_id ?? '')));
+      // Nama meja snapshot / fallback master
+      $meja_nama = $rec->nama_meja
+          ?? ($this->db->select('nama_meja')->get_where('meja_billiard', ['id_meja' => $rec->meja_id])->row('nama_meja')
+              ?: ('MEJA #'.($rec->meja_id ?? '')));
 
-    $web   = $this->fm->web_me();
-    $site  = $web->nama_website ?? 'Sistem';
+      $web   = $this->fm->web_me();
+      $site  = $web->nama_website ?? 'Sistem';
 
-    // Deteksi booking free
-    $isFree   = (strtolower((string)$status) === 'free') || ((int)($rec->grand_total ?? 0) === 0);
-    $judul    = $isFree ? 'Booking Gratis Billiard' : 'Booking Billiard';
+      // Deteksi booking free
+      $isFree   = (strtolower((string)$status) === 'free') || ((int)($rec->grand_total ?? 0) === 0);
+      $judul    = $isFree ? 'Booking Gratis Billiard' : 'Booking Billiard';
 
-    $subtotal = (int)($rec->subtotal ?? 0);
-    $grand    = (int)($rec->grand_total ?? ($subtotal + (int)($rec->kode_unik ?? 0)));
+      $subtotal = (int)($rec->subtotal ?? 0);
+      $grand    = (int)($rec->grand_total ?? ($subtotal + (int)($rec->kode_unik ?? 0)));
 
-    // Build pesan
-   $lines = [];
+      // Apakah sudah lunas/confirmed?
+      $st_now   = strtolower((string)($rec->status ?? $status ?? ''));
+      $sudahKonfirm = in_array($st_now, ['terkonfirmasi','lunas','paid'], true);
 
-    // HEADER
-    $lines[] = "🎱 *{$judul} — {$site}*";
-    $lines[] = "--------------------------------";
-    $lines[] = "";
+      // Apakah metode bayar cash?
+      $metode_bayar = strtolower(trim((string)($rec->metode_bayar ?? $metode ?? '')));
+      $isCash = ($metode_bayar === 'cash' || $metode_bayar === 'tunai');
 
-    // DETAIL BOOKING
-    $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
-    $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
-    $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
-    $lines[] = "🪑 *Meja:* " . $meja_nama;
-    $lines[] = "📅 *Tanggal:* " . hari($rec->tanggal).", ".tgl_view($rec->tanggal);
-    $lines[] = "⏰ *Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5));
-    $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
-    $lines[] = "";
+      // Hitung deadline pembayaran (untuk ditulis di WA)
+      // - Basis waktu ambil updated_at kalau ada, kalau tidak ada fallback created_at
+      // - Tambah late_min (menit) dari konfigurasi global
+      $deadlineText = '';
+      if (!$isFree && !$sudahKonfirm && !$isCash) {
 
-    // TARIF & BIAYA
-    $lines[] = "💸 *Tarif / Jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
-    $lines[] = "🔢 *Kode Unik:* Rp" . number_format((int)($rec->kode_unik ?? 0),0,',','.');
-    $lines[] = "🧮 *Subtotal:* Rp"  . number_format($subtotal,0,',','.');
+          // ambil base timestamp
+          $baseRaw = $rec->updated_at ?? $rec->created_at ?? null;
+          $baseTs  = $baseRaw ? @strtotime((string)$baseRaw) : time();
 
-    if ($isFree) {
-        $lines[] = "✅ *Total Bayar:* Rp0";
-        $lines[] = "_(Promo voucher / free play)_";
-    } else {
-        $lines[] = "💳 *Total Bayar:* Rp" . number_format($grand,0,',','.');
-    }
-    $lines[] = "";
+          // grace period (menit) → fungsi global kamu
+          $lateMin = method_exists($this, '_late_min') ? $this->_late_min() : 60;
+          if ($lateMin <= 0) { $lateMin = 15; } // fallback aman
 
-    // LINK TIKET / PEMBAYARAN
-    $link = $isFree
-        ? (site_url('billiard/free') . '?t=' . urlencode($rec->access_token ?? ''))
-        : (site_url('billiard/cart') . '?t=' . urlencode($rec->access_token ?? ''));
+          $deadlineTs = $baseTs + ($lateMin * 60);
 
-    if ($isFree) {
-        $lines[] = "🎟 *Tiket Gratis Kamu:*";
-        $lines[] = $link;
-    } else {
-        $lines[] = "🔗 *Lanjutkan Pembayaran disini:*";
-        $lines[] = $link;
-    }
+          // format jadi Indonesia friendly
+          // contoh output: "01 Nov 2025 03:15 WITA"
+          // kalau mau WIB/WITA/WIT dinamis silakan, sekarang aku hardcode WITA sesuai timezone sistemmu
+          $deadlineTanggal = date('d M Y H:i', $deadlineTs) . ' WITA';
 
-    $lines[] = "💾 Simpan kontak ini supaya link bisa diklik.";
-    $lines[] = "";
+          $deadlineText =
+              "⏳ *Batas Pembayaran:* " . $deadlineTanggal . "\n" .
+              "❗ Jika belum dibayar sampai batas waktu tersebut, booking akan *otomatis dibatalkan* oleh sistem.";
+      }
 
-    // INSTRUKSI KASIR
-    // $lines[] = "📣 Tunjukkan pesan ini ke kasir saat mulai main.";
-    // $lines[] = "";
+      // Build pesan
+      $lines = [];
 
-    // FOOTER OTOMATIS
-    $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
+      // HEADER
+      $lines[] = "🎱 *{$judul} — {$site}*";
+      $lines[] = "--------------------------------";
+      $lines[] = "";
 
+      // DETAIL BOOKING
+      $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
+      $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
+      $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
+      $lines[] = "🪑 *Meja:* " . $meja_nama;
+      $lines[] = "📅 *Tanggal:* " . hari($rec->tanggal).", ".tgl_view($rec->tanggal);
+      $lines[] = "⏰ *Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5));
+      $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
+      $lines[] = "";
 
-    $pesan = implode("\n", $lines);
+      // TARIF & BIAYA
+      $lines[] = "💸 *Tarif / Jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
+      $lines[] = "🔢 *Kode Unik:* Rp" . number_format((int)($rec->kode_unik ?? 0),0,',','.');
+      $lines[] = "🧮 *Subtotal:* Rp"  . number_format($subtotal,0,',','.');
 
-    try {
-        $res = send_wa_single($no_norm, $pesan);
-        if (is_string($res)) {
-            log_message('debug', 'WA: kirim ke '.$no_norm.' hasil: '.$res);
-        } else {
-            log_message('debug', 'WA: kirim ke '.$no_norm.' hasil: '.json_encode($res));
-        }
-        return true;
-    } catch (Throwable $e) {
-        log_message('error', 'WA error: '.$e->getMessage().' trace: '.$e->getTraceAsString());
-        return false;
-    }
-}
+      if ($isFree) {
+          $lines[] = "✅ *Total Bayar:* Rp0";
+          $lines[] = "_(Promo voucher / free play)_";
+      } else {
+          $lines[] = "💳 *Total Bayar:* Rp" . number_format($grand,0,',','.');
+      }
+
+      // Masukkan batas pembayaran kalau ada
+      if ($deadlineText !== '') {
+          $lines[] = "";
+          $lines[] = $deadlineText;
+      }
+
+      $lines[] = "";
+
+      // LINK TIKET / PEMBAYARAN
+      $link = $isFree
+          ? (site_url('billiard/free') . '?t=' . urlencode($rec->access_token ?? ''))
+          : (site_url('billiard/cart') . '?t=' . urlencode($rec->access_token ?? ''));
+
+      if ($isFree) {
+          $lines[] = "🎟 *Tiket Gratis Kamu:*";
+          $lines[] = $link;
+      } else {
+          $lines[] = "🔗 *Lanjutkan Pembayaran disini:*";
+          $lines[] = $link;
+      }
+
+      $lines[] = "💾 Simpan kontak ini supaya link bisa diklik.";
+      $lines[] = "";
+
+      // FOOTER OTOMATIS
+      $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
+
+      $pesan = implode("\n", $lines);
+
+      try {
+          $res = send_wa_single($no_norm, $pesan);
+          if (is_string($res)) {
+              log_message('debug', 'WA: kirim ke '.$no_norm.' hasil: '.$res);
+          } else {
+              log_message('debug', 'WA: kirim ke '.$no_norm.' hasil: '.json_encode($res));
+          }
+          return true;
+      } catch (Throwable $e) {
+          log_message('error', 'WA error: '.$e->getMessage().' trace: '.$e->getTraceAsString());
+          return false;
+      }
+  }
+
 
 
 
