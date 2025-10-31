@@ -1666,7 +1666,8 @@ private function _wa_ringkasan($rec, $metode, $status){
     $lines[] = "*HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
     $lines[] = "*Meja:* " . $meja_nama . " (ID " . (($rec->meja_id ?? '-') ) . ")";
     $lines[] = "*Tanggal:* " . hari($rec->tanggal).", ".tgl_view($rec->tanggal);
-    $lines[] = "*Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5)) . " ({$rec->durasi_jam} jam)";
+    $lines[] = "*Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5));
+    $lines[] = "*Durasi* {$rec->durasi_jam} Jam";
     $lines[] = "*Tarif / jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
     $lines[] = "*Kode Unik:* Rp" . number_format((int)($rec->kode_unik ?? 0),0,',','.');
     $lines[] = "*Subtotal :* Rp" . number_format($subtotal,0,',','.');
