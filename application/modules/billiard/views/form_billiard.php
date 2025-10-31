@@ -586,7 +586,7 @@ function validateTimeRange(){
   const jamMulai = document.getElementById('jam_mulai');
   const durasi   = document.getElementById('durasi');
   const jamInfo  = document.getElementById('jam-info');
-
+  normalizeJamMulai();
   if (jamMulai){ jamMulai.setCustomValidity(''); }
   if (jamInfo)  { jamInfo.textContent=''; }
   if (!sel) return true;
@@ -951,6 +951,49 @@ async function doPost(){
       setLoading(false);
     }
   }
+
+  function normalizeJamMulai() {
+  const el = document.getElementById('jam_mulai');
+  if (!el) return;
+
+  // ganti titik ke colon
+  if (el.value && el.value.indexOf('.') !== -1) {
+    el.value = el.value.replace(/\./g, ':');
+  }
+
+  // cek pola HH:MM manual (00-23):(00-59)
+  const v = el.value.trim();
+  const ok = /^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(v);
+
+  // reset dulu
+  el.setCustomValidity('');
+
+  if (!ok) {
+    // kalau kosong biarkan required yg bicara
+    if (v !== '') {
+      el.setCustomValidity('Format jam harus HH:MM, contoh 14:40 (pakai titik dua).');
+    }
+  }
+}
+
+// pas user ngetik / blur / ganti jam, kita rapikan & kasih message custom
+document.addEventListener('DOMContentLoaded', function(){
+  const jamMulai = document.getElementById('jam_mulai');
+  if (!jamMulai) return;
+
+  ['input','change','blur'].forEach(ev=>{
+    jamMulai.addEventListener(ev, function(){
+      normalizeJamMulai();
+    });
+  });
+
+  // custom pesan default browser waktu field ini invalid
+  jamMulai.addEventListener('invalid', function(e){
+    // cegah pesan default "Enter a valid value"
+    e.preventDefault();
+    normalizeJamMulai(); // pastikan sudah bersih dulu
+  });
+});
   frm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
