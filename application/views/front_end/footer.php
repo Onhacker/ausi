@@ -347,7 +347,171 @@
 </nav>
 
 
+<style>
+  /* Layer global buat efek ripple sidik jari */
+  #navRippleLayer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* penting: jangan blok klik apa pun */
+    z-index: 9999;        /* di atas navbar */
+  }
 
+  /* burst lingkaran "cekrek" */
+  .nav-ripple-burst {
+    position: absolute;
+    width: var(--size);
+    height: var(--size);
+    left: calc(var(--x) - var(--size) / 2);
+    top:  calc(var(--y) - var(--size) / 2);
+    background: rgba(0,0,0,0.22); /* warna gelap transparan */
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 1;
+    transform: scale(0);
+    animation: nav-ripple-anim 400ms ease-out forwards;
+  }
+
+  @keyframes nav-ripple-anim {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+</style>
+
+<!-- taruh ini DI LUAR navbar, misal tepat setelah </nav> -->
+<div id="navRippleLayer"></div>
+
+<script>
+(function(){
+  // ====== RIPPLE SIDIK JARI TANPA NGUBAH NAVBAR ======
+  const layer = document.getElementById('navRippleLayer');
+
+  function spawnRipple(e){
+    // posisi tap relatif layar
+    const clientX = (e.clientX !== undefined) ? e.clientX
+                  : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clientY = (e.clientY !== undefined) ? e.clientY
+                  : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+    if (!clientX && !clientY) return;
+
+    // size ripple disesuaikan sama tombol yang ditekan
+    const rect = e.currentTarget.getBoundingClientRect();
+    const maxSide = Math.max(rect.width, rect.height) * 2; // gede dikit biar keliatan
+
+    // bikin elemen burst
+    const burst = document.createElement('span');
+    burst.className = 'nav-ripple-burst';
+    burst.style.setProperty('--x', clientX + 'px');
+    burst.style.setProperty('--y', clientY + 'px');
+    burst.style.setProperty('--size', maxSide + 'px');
+
+    layer.appendChild(burst);
+
+    // bersihin setelah animasi selesai
+    setTimeout(() => {
+      burst.remove();
+    }, 450);
+  }
+
+  // pasang ke semua link di navbar bawah
+  document.querySelectorAll('.navbar-bottom a').forEach(a => {
+    a.addEventListener('pointerdown', spawnRipple, {passive:true});
+  });
+
+
+  // ====== MENU BILLIARD SWEETALERT (tetap jalan) ======
+  document.addEventListener('click', function(e){
+    const link = e.target.closest('a[data-swaltarget="billiard-menu"]');
+    if (!link) return;
+
+    // allow buka tab baru dengan ctrl/meta/shift/middle
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
+
+    e.preventDefault();
+
+    // fallback kalau Swal belum ada
+    if (!window.Swal || !Swal.fire) {
+      window.location.href = link.getAttribute('href');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Mau Ngapain ??',
+      icon: 'info',
+      iconHtml: '🎱',
+      html: `
+        <div class="container-fluid px-0">
+          <div class="row no-gutters">
+            <div class="col-12 mb-2">
+              <button type="button" id="swalBtnBooking"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-calendar-plus me-2 mr-2" aria-hidden="true"></i>
+                <span>Booking Main</span>
+              </button>
+            </div>
+            <div class="col-12 mb-2">
+              <button type="button" id="swalBtnHistory"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="mdi mdi-billiards me-2 mr-2" aria-hidden="true"></i>
+                <span>Lihat Meja</span>
+              </button>
+            </div>
+            <div class="col-12 mb-2">
+              <button type="button" id="swalBtnList"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-clipboard-list me-2 mr-2" aria-hidden="true"></i>
+                <span>List Bookingan</span>
+              </button>
+            </div>
+            <div class="col-12">
+              <button type="button" id="swalBtnGratis"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-ticket-alt me-2 mr-2" aria-hidden="true"></i>
+                <span>Cek Voucher Gratis Main</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `,
+      showConfirmButton: false,
+      showDenyButton: false,
+      showCancelButton: false,
+      buttonsStyling: false,
+      showCloseButton: true,
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+      focusConfirm: false,
+      didOpen: () => {
+        const go = (u)=>{ if(u) window.location.href = u; };
+
+        const l = Swal.getPopup().closest('body')
+          .querySelector('a[data-swaltarget="billiard-menu"]'); // anchor asal
+
+        document.getElementById('swalBtnBooking')
+          ?.addEventListener('click', () => go(l?.dataset.booking || l?.getAttribute('href')));
+
+        document.getElementById('swalBtnList')
+          ?.addEventListener('click', () => go(l?.dataset.list || l?.getAttribute('href')));
+
+        document.getElementById('swalBtnGratis')
+          ?.addEventListener('click', () => go(l?.dataset.free || l?.getAttribute('href')));
+
+        document.getElementById('swalBtnHistory')
+          ?.addEventListener('click', () => go(l?.dataset.history || l?.dataset.list || l?.getAttribute('href')));
+      }
+    });
+
+  });
+})();
+</script>
+
+
+<!-- end of navabr -->
 
 
 
