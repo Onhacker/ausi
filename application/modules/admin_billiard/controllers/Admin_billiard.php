@@ -280,7 +280,7 @@ class Admin_billiard extends Admin_Controller {
                ?: ('MEJA #'.($rec->meja_id ?? '')));
 
         // 4. Info brand toko
-        $web  = $this->fm->web_me();
+        $web  = $this->om->web_me();
         $site = $web->nama_website ?? 'Sistem';
 
         // 5. Angka uang

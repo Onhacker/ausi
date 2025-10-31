@@ -148,6 +148,7 @@ class M_admin_billiard extends CI_Model {
 
     $ok_count = 0;
     $blocked  = [];
+    $ok_ids   = []; 
     $already  = [];
     $notfound = [];
     $errors   = [];
@@ -203,6 +204,7 @@ class M_admin_billiard extends CI_Model {
     return [
         "ok_count"       => $ok_count,
         "blocked_ids"    => $blocked,
+        "ok_ids"         => $ok_ids,  
         "already_ids"    => $already,
         "notfound_ids"   => $notfound,
         "errors"         => $errors,

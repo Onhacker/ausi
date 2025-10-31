@@ -727,14 +727,40 @@ async function playSound(kind){
   }
 
   // 🔄 Reload untuk perubahan apa pun (naik/turun/ubah timestamp)
+  // function isChanged(oldSnap, snap){
+  //   const tOld = Number(oldSnap.total), tNew = Number(snap.total);
+  //   const idOld = Number(oldSnap.max_id), idNew = Number(snap.max_id);
+  //   if (Number.isFinite(tOld) && Number.isFinite(tNew) && tNew !== tOld) return true;
+  //   if (Number.isFinite(idOld) && Number.isFinite(idNew) && idNew !== idOld) return true;
+  //   if (oldSnap.last_ts && snap.last_ts && String(snap.last_ts) !== String(oldSnap.last_ts)) return true;
+  //   return false;
+  // }
+
+
   function isChanged(oldSnap, snap){
-    const tOld = Number(oldSnap.total), tNew = Number(snap.total);
-    const idOld = Number(oldSnap.max_id), idNew = Number(snap.max_id);
-    if (Number.isFinite(tOld) && Number.isFinite(tNew) && tNew !== tOld) return true;
-    if (Number.isFinite(idOld) && Number.isFinite(idNew) && idNew !== idOld) return true;
-    if (oldSnap.last_ts && snap.last_ts && String(snap.last_ts) !== String(oldSnap.last_ts)) return true;
-    return false;
+    const tOld = Number(oldSnap.total),
+    tNew = Number(snap.total);
+    const idOld = Number(oldSnap.max_id),
+    idNew = Number(snap.max_id);
+
+  // jumlah order berubah (naik/turun)
+  if (Number.isFinite(tOld) && Number.isFinite(tNew) && tNew !== tOld) {
+    return true;
   }
+
+  // id terakhir berubah
+  if (Number.isFinite(idOld) && Number.isFinite(idNew) && idNew !== idOld) {
+    return true;
+  }
+
+  // timestamp versi data berubah (status / pembayaran berubah)
+  // perbandingan langsung, walau yg lama null dan yg baru ada isi → tetap dianggap berubah
+  if (String(oldSnap.last_ts) !== String(snap.last_ts)) {
+    return true;
+  }
+
+  return false;
+}
 
   async function safeFetch(url){
     const r = await fetch(url, { cache:'no-store', credentials:'same-origin' });
