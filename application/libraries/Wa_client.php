@@ -23,90 +23,21 @@ class Wa_client {
     }
 
     /** Normalisasi nomor ke format Indonesia: 62xxxxxxxxxxx */
-   public function normalize_msisdn($wa)
-        {
-            // 1. Ambil hanya digit
-            $n = preg_replace('/\D+/', '', (string)$wa);
-            if ($n === '') {
-                return [
-                    'msisdn'  => '',
-                    'country' => null,
-                ];
-            }
+    public function normalize_msisdn($wa)
+    {
+        $n = preg_replace('/\D+/', '', (string)$wa);
+        if ($n === '') return '';
 
-            $country = null;
+        if (strpos($n, '620') === 0) {         // 6208xxxx -> 62 + 8xxxx
+            $n = '62'.substr($n, 3);
+        } elseif ($n[0] === '0') {             // 08xxxx -> 62 + 8xxxx
+            $n = '62'.substr($n, 1);
+        } elseif ($n[0] === '8') {             // 8xxxx  -> 62 + 8xxxx
+            $n = '62'.$n;
+        } // jika sudah 62xxxx atau sudah internasional lain, biarkan
 
-            // =========================
-            // 1) HANDLE AUSTRALIA (+61...)
-            // =========================
-            //
-            // Pola WA Australia biasanya: +61 4xxxxxxxx
-            // Setelah preg_replace, "+61412..." jadi "61412..."
-            //
-            // Kita anggap:
-            // - Kalau mulai "61", itu Australia. Biarkan.
-            // - Ada kasus kadang orang ketik "0614xxxx". Kita rapikan jadi "614xxxx".
-            //
-            if (strpos($n, '61') === 0) {
-                $country = 'AU';
-
-                // "6104xxxx" -> "614xxxx"
-                if (strpos($n, '610') === 0) {
-                    // buang '0' setelah 61
-                    // "6104xxxx" => "61" . "4xxxx"
-                    $n = '61' . substr($n, 3);
-                }
-
-                // untuk AU kita gak ubah lagi
-                return [
-                    'msisdn'  => $n,
-                    'country' => $country,
-                ];
-            }
-
-            // =========================
-            // 2) HANDLE INDONESIA (+62...)
-            // =========================
-            //
-            // Kasus umum:
-            //   6208123456   -> 62 + 8123456
-            //   08123456789  -> 62 + 8123456789
-            //   8123456789   -> 62 + 8123456789
-            //   628123456789 -> sudah benar
-            //
-            if (strpos($n, '620') === 0) {
-                // "6208xxxx" -> "62" . "8xxxx"
-                $n = '62' . substr($n, 3);
-                $country = 'ID';
-
-            } elseif ($n[0] === '0') {
-                // "08xxxx" -> "62" . "8xxxx"
-                $n = '62' . substr($n, 1);
-                $country = 'ID';
-
-            } elseif ($n[0] === '8') {
-                // "8xxxx" -> "62" . "8xxxx"
-                $n = '62' . $n;
-                $country = 'ID';
-
-            } elseif (strpos($n, '62') === 0) {
-                // sudah format internasional indo
-                $country = 'ID';
-            }
-
-            // =========================
-            // 3) DEFAULT (NEGARA LAIN)
-            // =========================
-            if ($country === null) {
-                $country = 'INTL'; // kita gak kenal, biarkan asli
-            }
-
-            return [
-                'msisdn'  => $n,
-                'country' => $country,
-            ];
-        }
-
+        return $n;
+    }
 
     /** Kirim 1 pesan WA */
     public function send_single($wa, $pesan): array
