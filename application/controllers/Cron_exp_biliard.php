@@ -25,7 +25,7 @@ class Cron_exp_biliard extends Onhacker_Controller
       $setCanceledAt = $hasCanceledAt ? ", canceled_at = NOW()" : "";
 
       // OPTIONAL (hindari mismatch zona waktu MySQL vs PHP)
-      // $this->db->query("SET time_zone = '+08:00'");
+      $this->db->query("SET time_zone = '+08:00'");
 
       if ($hasExpiresAt) {
         $sql = "

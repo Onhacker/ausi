@@ -325,38 +325,37 @@ private function _pretty_hp(string $hp): string {
         $lines[] = "";
 
         // DETAIL BOOKING
-        $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
-        $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
-        $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
-        $lines[] = "🪑 *Meja:* " . $meja_nama;
-        $lines[] = "📅 *Tanggal:* " . $tgl_label;
-        $lines[] = "⏰ *Jam:* " . $jamMulai . "–" . $jamSelesai;
-        $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
-        $lines[] = "";
+        // $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
+        // $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
+        // $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
+        // $lines[] = "🪑 *Meja:* " . $meja_nama;
+        // $lines[] = "📅 *Tanggal:* " . $tgl_label;
+        // $lines[] = "⏰ *Jam:* " . $jamMulai . "–" . $jamSelesai;
+        // $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
+        // $lines[] = "";
 
-        // TARIF & BIAYA
-        $lines[] = "💸 *Tarif / Jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
-        $lines[] = "🔢 *Kode Unik:* Rp" . number_format($kode_unik,0,',','.');
-        $lines[] = "🧮 *Subtotal:* Rp"  . number_format($subtotal,0,',','.');
+        // // TARIF & BIAYA
+        // $lines[] = "💸 *Tarif / Jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
+        // $lines[] = "🔢 *Kode Unik:* Rp" . number_format($kode_unik,0,',','.');
+        // $lines[] = "🧮 *Subtotal:* Rp"  . number_format($subtotal,0,',','.');
 
-        if ($isFree) {
-            $lines[] = "✅ *Total Bayar:* Rp0";
-            $lines[] = "_(Voucher / free play)_";
-        } else {
-            $lines[] = "💳 *Total Bayar:* Rp" . number_format($grand,0,',','.');
-        }
-        $lines[] = "";
+        // if ($isFree) {
+        //     $lines[] = "✅ *Total Bayar:* Rp0";
+        //     $lines[] = "_(Voucher / free play)_";
+        // } else {
+        //     $lines[] = "💳 *Total Bayar:* Rp" . number_format($grand,0,',','.');
+        // }
+        // $lines[] = "";
 
         // LINK TIKET / DETAIL BOOKING
         $lines[] = "🎟 *Tiket / Detail Booking:*";
         $lines[] = $link;
+        $lines[] = "Saat datang, tunjukkan Tiket / Detail Booking ke kasir sebelum mulai main.";
+        $lines[] = "";
         $lines[] = "💾 Simpan kontak ini supaya link bisa diklik.";
         $lines[] = "";
 
         // INSTRUKSI KASIR
-        $lines[] = "📣 Saat datang, tunjukkan chat ini ke kasir sebelum mulai main.";
-        $lines[] = "";
-
         // FOOTER
         $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
 
