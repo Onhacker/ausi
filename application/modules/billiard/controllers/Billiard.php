@@ -1658,41 +1658,59 @@ private function _wa_ringkasan($rec, $metode, $status){
     $grand    = (int)($rec->grand_total ?? ($subtotal + (int)($rec->kode_unik ?? 0)));
 
     // Build pesan
-    $lines = [];
-    $lines[] = "*{$judul} — {$site}*";
+   $lines = [];
+
+    // HEADER
+    $lines[] = "🎱 *{$judul} — {$site}*";
+    $lines[] = "--------------------------------";
     $lines[] = "";
-    $lines[] = "*Kode:* " . ($rec->kode_booking ?? '-');
-    $lines[] = "*Nama:* " . ($rec->nama ?? '-');
-    $lines[] = "*HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
-    $lines[] = "*Meja:* " . $meja_nama . " (ID " . (($rec->meja_id ?? '-') ) . ")";
-    $lines[] = "*Tanggal:* " . hari($rec->tanggal).", ".tgl_view($rec->tanggal);
-    $lines[] = "*Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5));
-    $lines[] = "*Durasi* {$rec->durasi_jam} Jam";
-    $lines[] = "*Tarif / jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
-    $lines[] = "*Kode Unik:* Rp" . number_format((int)($rec->kode_unik ?? 0),0,',','.');
-    $lines[] = "*Subtotal :* Rp" . number_format($subtotal,0,',','.');
+
+    // DETAIL BOOKING
+    $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
+    $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
+    $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
+    $lines[] = "🪑 *Meja:* " . $meja_nama . " _(ID " . (($rec->meja_id ?? '-') ) . ")_";
+    $lines[] = "📅 *Tanggal:* " . hari($rec->tanggal).", ".tgl_view($rec->tanggal);
+    $lines[] = "⏰ *Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5));
+    $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
+    $lines[] = "";
+
+    // TARIF & BIAYA
+    $lines[] = "💸 *Tarif / Jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
+    $lines[] = "🔢 *Kode Unik:* Rp" . number_format((int)($rec->kode_unik ?? 0),0,',','.');
+    $lines[] = "🧮 *Subtotal:* Rp"  . number_format($subtotal,0,',','.');
 
     if ($isFree) {
-        $lines[] = "*Total Bayar:* Rp0 (Gratis, pakai voucher)";
-
+        $lines[] = "✅ *Total Bayar:* Rp0";
+        $lines[] = "_(Promo voucher / free play)_";
     } else {
-        $lines[] = "*Total Bayar:* Rp" . number_format($grand,0,',','.');
+        $lines[] = "💳 *Total Bayar:* Rp" . number_format($grand,0,',','.');
     }
-
     $lines[] = "";
 
-    // Link: free → halaman tiket gratis; selain itu → cart
+    // LINK TIKET / PEMBAYARAN
     $link = $isFree
         ? (site_url('billiard/free') . '?t=' . urlencode($rec->access_token ?? ''))
         : (site_url('billiard/cart') . '?t=' . urlencode($rec->access_token ?? ''));
 
-    $lines[] = $isFree ? ("Tiket Gratis: " . $link) : ("Detail Booking/ Lanjutkan Pembayaran : " . $link);
-    $lines[] = "Simpan kontak ini agar link bisa diklik";
-    $lines[] = "";
-    $lines[] = "Perlihatkan pesan ini ke kasir saat anda ingin memulai permainan.";
+    if ($isFree) {
+        $lines[] = "🎟 *Tiket Gratis Kamu:*";
+        $lines[] = $link;
+    } else {
+        $lines[] = "🔗 *Detail Booking / Pembayaran:*";
+        $lines[] = $link;
+    }
+
+    $lines[] = "💾 Simpan kontak ini supaya link bisa diklik.";
     $lines[] = "";
 
+    // INSTRUKSI KASIR
+    $lines[] = "📣 Tunjukkan pesan ini ke kasir saat mulai main.";
+    $lines[] = "";
+
+    // FOOTER OTOMATIS
     $lines[] = "_Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
+
 
     $pesan = implode("\n", $lines);
 
