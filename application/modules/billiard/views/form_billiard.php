@@ -195,7 +195,7 @@
                   id="no_hp"
                   name="no_hp"
                   class="form-control"
-                  placeholder="08xxxxxxxxxx"
+                  placeholder="08xxxxxxxxxx / 628xxxxx"
                   inputmode="numeric"
                   minlength="10"
                   maxlength="13"
