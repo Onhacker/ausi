@@ -24,7 +24,7 @@ class Developer extends MX_Controller {
             "id" => "/",
             "name" => "AUSI BILLIARD & CAFE",
             "short_name" => "AUSI BILLIARD & CAFE",
-            "start_url" => site_url("/home"),
+            "start_url" => site_url("/?pwa=1"),
             "scope"      => "/",
             "display" => "standalone",
             "background_color"=> "#ffffff",   

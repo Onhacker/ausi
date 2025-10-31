@@ -31,7 +31,7 @@
   <link rel="canonical" href="<?= htmlspecialchars($canon, ENT_QUOTES, 'UTF-8') ?>">
 
   <!-- ========== PWA / ICONS ========== -->
-  <link rel="manifest" href="<?= site_url('developer/manifest') ?>?v=8">
+  <link rel="manifest" href="<?= site_url('developer/manifest') ?>?v=1">
   <link rel="icon" href="<?= base_url('assets/images/favicon.ico') ?>" type="image/x-icon" />
   <link rel="shortcut icon" href="<?= base_url('assets/images/favicon.ico') ?>" type="image/x-icon" />
 

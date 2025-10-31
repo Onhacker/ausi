@@ -1,6 +1,6 @@
 /* ===== Service Worker ===== */
 
-const CACHE_NAME  = 'ausi-5';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-6';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 
 /* HTML publik yang boleh dicache (path tanpa query) */
@@ -30,7 +30,7 @@ const urlsToCache = [
    '/hal/pengumuman',
    '/produk',
 
-  '/developer/manifest?v=8',
+  '/developer/manifest?v=1',
   OFFLINE_URL,
 
   '/assets/admin/js/jquery-3.1.1.min.js',

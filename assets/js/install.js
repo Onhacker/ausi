@@ -14,8 +14,13 @@ function isRunningStandaloneNow() {
     mm('(display-mode: fullscreen)') ||
     mm('(display-mode: minimal-ui)') ||
     mm('(display-mode: window-controls-overlay)');
+
   const iosStandalone = (window.navigator.standalone === true);
-  return displayStandalone || iosStandalone;
+
+  // DETEKSI VIA PARAM URL (?pwa=1) → ini kunci fix
+  const urlStandalone = /[?&]pwa=1(?:&|$)/.test(window.location.search);
+
+  return displayStandalone || iosStandalone || urlStandalone;
 }
 
 // Pernah dibuka sebagai standalone sebelum ini? (→ berarti user SUDAH install di device ini)
@@ -94,6 +99,13 @@ function whenSwalReady(run, timeout=3000){
 function showStandaloneNoticeOnce(){
   if (!isRunningStandaloneNow()) return;
 
+  // SET FLAG INSTAL SUPAYA hadStandaloneBefore() = true KE DEPAN
+  try {
+    localStorage.setItem(INSTALL_FLAG_KEY, '1');
+  } catch(e){
+    window.__pwaInstalledFlag_v2 = true;
+  }
+
   // kalau sudah ditandai dengan key baru, jangan pop up lagi
   try {
     if (localStorage.getItem(INSTALL_FLAG_KEY)) return;
@@ -109,7 +121,6 @@ function showStandaloneNoticeOnce(){
     }
   };
 
-  // popup info sekali aja (opsional, boleh kamu buang kalau gak mau)
   whenSwalReady((fallback)=>{
     if (!fallback && window.Swal?.fire) {
       Swal.fire(
@@ -123,6 +134,7 @@ function showStandaloneNoticeOnce(){
     }
   });
 }
+
 
 
 
