@@ -1,3 +1,6 @@
+// ganti nama key di localStorage supaya "versi baru"
+const INSTALL_FLAG_KEY = 'pwaInstalled_v2';
+
 let deferredPrompt = null;
 let canInstallPrompt = false; // penting: true kalau browser siap install (belum terpasang)
 
@@ -17,12 +20,17 @@ function isRunningStandaloneNow() {
 
 // Pernah dibuka sebagai standalone sebelum ini? (→ berarti user SUDAH install di device ini)
 function hadStandaloneBefore() {
+  // true kalau sekarang benar2 standalone
+  if (isRunningStandaloneNow()) return true;
+
+  // atau kalau pernah tandai dengan key baru
   try {
-    return !!localStorage.getItem('shownStandaloneNotice');
+    return !!localStorage.getItem(INSTALL_FLAG_KEY);
   } catch (e) {
-    return !!window.__shownStandaloneNotice;
+    return !!window.__pwaInstalledFlag_v2; // fallback in-memory
   }
 }
+
 
 // iOS UA check
 function isIOSUA() {
@@ -86,20 +94,22 @@ function whenSwalReady(run, timeout=3000){
 function showStandaloneNoticeOnce(){
   if (!isRunningStandaloneNow()) return;
 
-  const KEY = 'shownStandaloneNotice';
-
-  // kalau sudah ditandai, jangan spam popup
+  // kalau sudah ditandai dengan key baru, jangan pop up lagi
   try {
-    if (localStorage.getItem(KEY)) return;
+    if (localStorage.getItem(INSTALL_FLAG_KEY)) return;
   } catch (e) {
-    if (window.__shownStandaloneNotice) return;
+    if (window.__pwaInstalledFlag_v2) return;
   }
 
   const markDone = () => {
-    try { localStorage.setItem(KEY, '1'); }
-    catch(e){ window.__shownStandaloneNotice = true; }
+    try {
+      localStorage.setItem(INSTALL_FLAG_KEY, '1');
+    } catch(e){
+      window.__pwaInstalledFlag_v2 = true;
+    }
   };
 
+  // popup info sekali aja (opsional, boleh kamu buang kalau gak mau)
   whenSwalReady((fallback)=>{
     if (!fallback && window.Swal?.fire) {
       Swal.fire(
@@ -113,6 +123,7 @@ function showStandaloneNoticeOnce(){
     }
   });
 }
+
 
 
 /* ========== SVG ICONS ========== */
@@ -194,23 +205,15 @@ function renderInstallButtonState(){
   const iconEl = btn.querySelector('.install-icon');
   const textEl = btn.querySelector('.install-text');
 
-  // 1. lagi jalan sebagai standalone → tombol ilang total
+  // CASE 1: Lagi jalan sebagai standalone → sembunyikan tombol
   if (isRunningStandaloneNow()){
     btn.style.display = 'none';
     btn.dataset.mode = '';
     return;
   }
 
-  // 2. lagi di browser biasa.
-  //    cek apakah sudah terpasang sebelumnya:
-  //    hadStandaloneBefore() = pernah launch sebagai app
-  //    canInstallPrompt = browser bilang "bisa install sekarang"
-  //
-  //    Kalau SUDAH terpasang dan browser TIDAK kasih prompt install,
-  //    itu berarti device-mu emang udah punya app -> tampil "Open App".
-  //
-  //    Kenapa pakai "!canInstallPrompt"? Supaya kasus awal (belum install
-  //    tapi localStorage keburu ke-set salah) tidak langsung dianggap 'Open App'.
+  // CASE 2: Browser normal & sudah terinstall → "Open App"
+  // syarat kita: hadStandaloneBefore() === true dan !canInstallPrompt
   if (hadStandaloneBefore() && !canInstallPrompt) {
     btn.style.display = 'inline-flex';
     btn.dataset.mode = 'open';
@@ -218,11 +221,10 @@ function renderInstallButtonState(){
     if (iconEl) iconEl.innerHTML = ICON_APP;
     if (textEl) textEl.textContent = 'Open App';
     btn.setAttribute('aria-label','Open App');
-
     return;
   }
 
-  // 3. fallback -> tawarkan install
+  // CASE 3: Browser normal & belum terinstall → "Install…"
   btn.style.display = 'inline-flex';
   btn.dataset.mode = 'install';
 
@@ -236,6 +238,7 @@ function renderInstallButtonState(){
     btn.setAttribute('aria-label','Install on Android');
   }
 }
+
 
 
 /* ========== EVENT LISTENERS ========== */
@@ -352,9 +355,12 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('appinstalled', () => {
   console.log('✅ App installed');
 
-  // tandai lokal biar "Open App" aktif di browser berikutnya
-  try { localStorage.setItem('shownStandaloneNotice','1'); }
-  catch(e){ window.__shownStandaloneNotice = true; }
+  // tandai dengan key baru
+  try {
+    localStorage.setItem(INSTALL_FLAG_KEY, '1');
+  } catch(e){
+    window.__pwaInstalledFlag_v2 = true;
+  }
 
   whenSwalReady((fallback)=>{
     if (!fallback) {
@@ -366,11 +372,12 @@ window.addEventListener('appinstalled', () => {
     }
   });
 
-  // begitu terpasang, Chrome biasanya tidak lagi kirim beforeinstallprompt
+  // Chrome: setelah terpasang biasanya gak kirim beforeinstallprompt lagi
   canInstallPrompt = false;
 
   renderInstallButtonState();
 });
+
 
 // kalau user balik fokus ke tab browser sesudah pasang app,
 // kita re-render lagi biar state tombol update

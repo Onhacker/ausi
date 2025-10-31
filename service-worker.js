@@ -1,6 +1,6 @@
 /* ===== Service Worker ===== */
 
-const CACHE_NAME  = 'ausi-4';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-5';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 
 /* HTML publik yang boleh dicache (path tanpa query) */
