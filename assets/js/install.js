@@ -4,6 +4,7 @@ function isAppInstalled() {
   return window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true; // iOS Safari
 }
+
 function isIOSUA() {
   const ua = navigator.userAgent || navigator.vendor || '';
   return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
@@ -14,20 +15,36 @@ function isIOSUA() {
   if (typeof window.showIOSInstallGuide === 'function') return;
   window.showIOSInstallGuide = function(e){
     if (e) e.preventDefault();
+
     const ua = navigator.userAgent || navigator.vendor || '';
     const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+
     const htmlSafari =
       '<ol style="text-align:left;max-width:520px;margin:0 auto">' +
       '<li>Ketuk ikon <b>Bagikan</b> (kotak dengan panah ke atas).</li>' +
       '<li>Pilih <b>Tambahkan ke Layar Utama</b>.</li>' +
       '<li>Ketuk <b>Tambahkan</b>.</li>' +
       '</ol>';
-    if (!window.Swal) { alert('Buka menu Bagikan → Tambahkan ke Layar Utama'); return false; }
-    if (!isSafari) {
-      Swal.fire({title:'Buka di Safari', html:'Buka halaman ini di <b>Safari</b> untuk menginstal PWA.<br><br>'+htmlSafari, icon:'info'});
+
+    if (!window.Swal) {
+      alert('Buka menu Bagikan → Tambahkan ke Layar Utama');
       return false;
     }
-    Swal.fire({title:'Instal ke iOS', html:htmlSafari, icon:'info'});
+
+    if (!isSafari) {
+      Swal.fire({
+        title:'Buka di Safari',
+        html:'Buka halaman ini di <b>Safari</b> untuk menginstal PWA.<br><br>'+htmlSafari,
+        icon:'info'
+      });
+      return false;
+    }
+
+    Swal.fire({
+      title:'Instal ke iOS',
+      html:htmlSafari,
+      icon:'info'
+    });
     return false;
   };
 })();
@@ -42,17 +59,15 @@ function whenSwalReady(run, timeout=3000){
   })();
 }
 
-/* Tampilkan info “sudah terinstal” sekali saja (persist lintas sesi) */
+/* Opsional: kasih info 1x bahwa user sudah buka sebagai app mandiri */
 function showStandaloneNoticeOnce(){
   if (!isAppInstalled()) return;
 
-  const KEY = 'shownStandaloneNotice'; // ganti dari sessionStorage -> localStorage
+  const KEY = 'shownStandaloneNotice'; // pakai localStorage biar persist lintas sesi
 
-  // Cek flag persist
   try {
     if (localStorage.getItem(KEY)) return;
   } catch (e) {
-    // Jika storage diblok/galat, pakai in-memory fallback biar tidak looping dalam 1 run
     if (window.__shownStandaloneNotice) return;
     window.__shownStandaloneNotice = true;
   }
@@ -75,7 +90,6 @@ function showStandaloneNoticeOnce(){
   });
 }
 
-
 /* Tangkap PWA prompt — JANGAN auto-show */
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -85,12 +99,14 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 /* Jalankan setelah semua resource termuat (lebih aman di Android PWA) */
 window.addEventListener('load', showStandaloneNoticeOnce);
-  // SVG icon putih untuk Android dan iOS
-// const ICON_ANDROID = '<svg viewBox="0 0 24 24"><path d="M17.6 9c-.3 0-.6.3-.6.6v5.8c0 .9-.7 1.6-1.6 1.6-.9 0-1.6-.7-1.6-1.6V9.6h-2.8v5.8c0 .9-.7 1.6-1.6 1.6-.9 0-1.6-.7-1.6-1.6V9.6c0-.3-.3-.6-.6-.6s-.6.3-.6.6v2.5c0 .3-.3.6-.6.6s-.6-.3-.6-.6V9.4c0-1.4 1.1-2.5 2.5-2.5h7.2c1.4 0 2.5 1.1 2.5 2.5v2.7c0 .3-.3.6-.6.6s-.6-.3-.6-.6V9.6c0-.3-.3-.6-.6-.6zM9.5 6.4l-.9-1.7c-.1-.3 0-.6.3-.7.3-.1.6 0 .7.3l1 1.9c.5-.2 1-.3 1.5-.3s1 .1 1.5.3l1-1.9c.1-.3.5-.4.7-.3.3.1.4.5.3.7l-.9 1.7c1 .5 1.7 1.5 1.7 2.6H7.8c0-1.2.7-2.1 1.7-2.6zM10 8.5c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm4 0c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6z"/></svg>';
+
+
+/* ===== ICON SVG ===== */
+
 const ICON_ANDROID = `
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <g fill="#fff">
-    <!-- badan + kepala + kaki + antena -->
+    <!-- body + head + legs + antenna -->
     <path d="
       M6 18
       c0 1.1.9 2 2 2h1v3h2v-3h2v3h2v-3h1
@@ -111,17 +127,14 @@ const ICON_ANDROID = `
       1-.45 1-1-.45-1-1-1z
     "/>
 
-    <!-- tangan kiri -->
+    <!-- arms -->
     <rect x="3" y="10" width="2" height="7" rx="1" ry="1"/>
-
-    <!-- tangan kanan -->
     <rect x="19" y="10" width="2" height="7" rx="1" ry="1"/>
   </g>
 </svg>`;
 
-
 const ICON_IOS = `
-<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <path fill="#fff" d="
     M19.67 16.34
     c-.41.94-.6 1.32-1.13 2.13
@@ -145,12 +158,13 @@ const ICON_IOS = `
   "/>
 </svg>`;
 
-// const ICON_IOS = '<svg viewBox="0 0 24 24"><path d="M16.4 1.5c0 1.2-.5 2.3-1.3 3.1-.8.8-2.1 1.5-3.2 1.4-.1-1.1.4-2.3 1.2-3.1.8-.9 2.2-1.5 3.2-1.6.1.1.1.2.1.2zM20.7 17.3c-.7 1.5-1 2.2-1.9 3.5-1.2 1.9-3 4.2-5.1 4.2-1.9 0-2.4-1.2-5-1.2s-3.1 1.2-5.1 1.2c-2.1 0-3.8-2.1-5-4C-2.2 17.6-.9 12.6.9 9.9 2.1 8.1 3.9 7 5.6 7c2 0 3.2 1.2 4.9 1.2S13.2 7 15.4 7c1.5 0 3.1.8 4.3 2.3-3.8 2.1-3.2 7.5-1 9z"/></svg>';
+/* fallback generic kalau suatu saat mau dipakai lagi */
+const ICON_APP = `
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path fill="#fff" d="M4 3h16c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1zm1 2v14h14V5H5zm3 2h8c.6 0 1 .4 1 1v8c0 .6-.4 1-1 1H8c-.6 0-1-.4-1-1V8c0-.6.4-1 1-1z"/>
+</svg>`;
 
-// fallback generic (misal desktop)
-const ICON_APP = '<svg viewBox="0 0 24 24"><path d="M4 3h16c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1zm1 2v14h14V5H5zm3 2h8c.6 0 1 .4 1 1v8c0 .6-.4 1-1 1H8c-.6 0-1-.4-1-1V8c0-.6.4-1 1-1z"/></svg>';
-
-// fungsi untuk update tampilan tombol sesuai device
+/* Update tampilan tombol sesuai device */
 function setupInstallButtonUI(){
   const btn    = document.getElementById('installButton');
   if (!btn) return;
@@ -158,13 +172,13 @@ function setupInstallButtonUI(){
   const iconEl = btn.querySelector('.install-icon');
   const textEl = btn.querySelector('.install-text');
 
-  // --- jika sudah terinstal, sembunyikan tombol sama sekali ---
+  // sudah terinstal? langsung hide tombol
   if (isAppInstalled()){
     btn.style.display = 'none';
     return;
   }
 
-  // deteksi iOS
+  // iOS
   if (isIOSUA()){
     if (iconEl) iconEl.innerHTML = ICON_IOS;
     if (textEl) textEl.textContent = 'Install on iOS';
@@ -172,14 +186,14 @@ function setupInstallButtonUI(){
     return;
   }
 
-  // default -> anggap Android/Chrome
+  // default = Android / Chrome
   if (iconEl) iconEl.innerHTML = ICON_ANDROID;
   if (textEl) textEl.textContent = 'Install on Android';
   btn.setAttribute('aria-label','Install on Android');
 }
 
 
-/* Klik badge iOS/Android → baru tampilkan prompt/panduan */
+/* Klik badge → jalanin panduan / prompt */
 document.addEventListener('DOMContentLoaded', () => {
   setupInstallButtonUI();
 
@@ -189,64 +203,59 @@ document.addEventListener('DOMContentLoaded', () => {
   installButton.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // Jika sudah standalone (mis. WebAPK) -> beri info (jangan sembunyikan tombol)
-    // if (isAppInstalled()) {
-    //   return whenSwalReady((fallback)=>{
-    //     if (!fallback) Swal.fire('Aplikasi Sudah Terinstal','Aplikasi sedang berjalan dalam mode mandiri.','info');
-    //     else alert('Aplikasi sudah terinstal (standalone).');
-    //   });
-    // }
-
-    // Jika sudah standalone (mis. WebAPK) -> beri info (jangan sembunyikan tombol)
-    if (isAppInstalled()) {
-      return whenSwalReady((fallback)=>{
-        if (!fallback) Swal.fire(
-          'Aplikasi Sudah Terinstal',
-          'Aplikasi sedang berjalan dalam mode mandiri.',
-          'info'
-        );
-        else alert('Aplikasi sudah terinstal (standalone).');
-      });
+    // iOS → tampilkan instruksi Add to Home Screen
+    if (isIOSUA()) {
+      return window.showIOSInstallGuide(e);
     }
 
-
-    // iOS: panduan A2HS
-    if (isIOSUA()) return window.showIOSInstallGuide(e);
-
-    // Android/Chrome: gunakan prompt jika ada
+    // Android / Chrome → panggil beforeinstallprompt
     if (!deferredPrompt) {
       return whenSwalReady((fallback)=>{
-        if (!fallback) Swal.fire('Belum Siap','Aplikasi belum memenuhi syarat PWA untuk ditawarkan instal.','warning');
-        else alert('Instal belum siap.');
+        if (!fallback) {
+          Swal.fire(
+            'Belum Siap',
+            'Aplikasi belum memenuhi syarat PWA untuk ditawarkan instal.',
+            'warning'
+          );
+        } else {
+          alert('Instal belum siap.');
+        }
       });
     }
 
     deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
+
     if (choice && choice.outcome === 'accepted') {
       whenSwalReady((fallback)=>{
-        if (!fallback) Swal.fire('Berhasil!','Aplikasi sedang diinstal.','success');
+        if (!fallback) {
+          Swal.fire(
+            'Berhasil!',
+            'Aplikasi sedang diinstal.',
+            'success'
+          );
+        }
       });
     } else {
       whenSwalReady((fallback)=>{
-        if (!fallback) Swal.fire('Dibatalkan','Anda membatalkan instalasi.','info');
+        if (!fallback) {
+          Swal.fire(
+            'Dibatalkan',
+            'Anda membatalkan instalasi.',
+            'info'
+          );
+        }
       });
     }
+
     deferredPrompt = null;
   });
 });
 
-/* Event sukses instal */
-// window.addEventListener('appinstalled', () => {
-//   console.log('✅ App installed');
-//   whenSwalReady((fallback)=>{
-//     if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal. Icon akan tampil di menu Hp Anda','success');
-//   });
-// });
+/* Setelah sukses install (Android/Chrome biasanya trigger ini) */
 window.addEventListener('appinstalled', () => {
   console.log('✅ App installed');
 
-  // sembunyikan tombol install setelah sukses
   const btn = document.getElementById('installButton');
   if (btn) {
     btn.style.display = 'none';
@@ -263,5 +272,5 @@ window.addEventListener('appinstalled', () => {
   });
 });
 
-/* Agar onclick="openPlayStore(event)" aman meski kamu override di tempat lain */
+/* dummy biar onclick="openPlayStore(event)" ga error di tempat lain */
 function openPlayStore(e){ return true; }
