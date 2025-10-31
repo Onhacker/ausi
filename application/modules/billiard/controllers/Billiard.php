@@ -1637,10 +1637,12 @@ private function _wa_ringkasan($rec, $metode, $status){
         ? (site_url('billiard/free') . '?t=' . urlencode($rec->access_token ?? ''))
         : (site_url('billiard/cart') . '?t=' . urlencode($rec->access_token ?? ''));
 
-    $lines[] = $isFree ? ("Tiket Gratis: " . $link) : ("Detail Booking : " . $link);
+    $lines[] = $isFree ? ("Tiket Gratis: " . $link) : ("Detail Booking/ Lanjutkan Pembayaran : " . $link);
     $lines[] = "Simpan kontak ini agar link bisa diklik";
     $lines[] = "";
     $lines[] = "Perlihatkan pesan ini ke kasir saat anda ingin memulai permainan.";
+    $lines[] = "";
+
     $lines[] = "_Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
 
     $pesan = implode("\n", $lines);
