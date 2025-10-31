@@ -307,8 +307,7 @@ $slides = [
   <blockquote class="t-quote">
     <div class="font-weight-bold mb-1">Gratis Main Billiard 🎟️</div>
             <!-- <div class="mb-0"> -->
-             Main <b><?= (int)$rec->batas_edit ?></b>x langsung dapet <b>1 voucher Free Main Billiard selama <?php echo $rec->jam_voucher_default." jam" ?></b>.
-             Voucher berlaku <b><?= (int)$rec->batas_hari ?></b> hari sejak dibuat. Gaskeun — rajin main, kumpulin poinnya! 🔥 Sistem bakal ngitung otomatis jumlah main kamu dan langsung ngasih tau.
+             Main <b><?= (int)$rec->batas_edit ?></b>x dapet <b>1 voucher Free Main Billiard selama <?php echo $rec->jam_voucher_default." jam" ?></b>. Gaskeun — rajin main, kumpulin poinnya! 🔥 Sistem bakal ngitung otomatis jumlah main kamu dan langsung ngasih tau.
             <!-- </div> -->
    <!--  Booking billiard sekarang makin cepet, praktis, dan transparan. 
     Cukup beberapa langkah dari HP—semua kebutuhan main ada di satu tempat. 

@@ -90,52 +90,52 @@
           </a> -->
           <style type="text/css">
             .install-badge{
-              display:inline-flex;
-              align-items:center;
-              background:#000;
-              color:#fff;
-              font-size:16px;
-              line-height:1.2;
-              font-weight:600;
-              font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-              border-radius:2px;
-              padding:10px 14px;
-              text-decoration:none;
-              border:1px solid #000;
-              cursor:pointer;
-            }
-            .install-badge:hover,
-            .install-badge:focus{
-              text-decoration:none;
-              background:#111;
-              color:#fff;
-            }
+  display:inline-flex;
+  align-items:center;
+  background:#000;
+  color:#fff;
+  font-size:16px;
+  line-height:1.2;
+  font-weight:600;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  border-radius:999px; /* <- ini diubah */
+  padding:10px 14px;
+  text-decoration:none;
+  border:1px solid #000;
+  cursor:pointer;
+}
+.install-badge:hover,
+.install-badge:focus{
+  text-decoration:none;
+  background:#111;
+  color:#fff;
+}
 
-            .install-badge .install-icon{
-              display:block;
-              flex-shrink:0;
-              width:24px;
-              height:24px;
-              margin-right:10px;
-            }
-            .install-badge .install-icon svg{
-              width:100%;
-              height:100%;
-              fill:#fff;
-              display:block;
-            }
+.install-badge .install-icon{
+  display:block;
+  flex-shrink:0;
+  width:24px;
+  height:24px;
+  margin-right:10px;
+}
+.install-badge .install-icon svg{
+  width:100%;
+  height:100%;
+  fill:#fff;
+  display:block;
+}
 
-            @media (max-width:380px){
-              .install-badge{
-                font-size:14px;
-                padding:8px 12px;
-              }
-              .install-badge .install-icon{
-                width:20px;
-                height:20px;
-                margin-right:8px;
-              }
-            }
+@media (max-width:380px){
+  .install-badge{
+    font-size:14px;
+    padding:8px 12px;
+  }
+  .install-badge .install-icon{
+    width:20px;
+    height:20px;
+    margin-right:8px;
+  }
+}
 
           </style>
           <a id="installButton"

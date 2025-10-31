@@ -405,6 +405,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- ====== ATURAN JAM & DURASI (support overnight) ====== -->
 <script>
+  let __isSubmitting = false;
+
 (function(){
   const jamMulai=document.getElementById('jam_mulai');
   const durasi=document.getElementById('durasi');
@@ -673,31 +675,26 @@ function validateTimeRange(){
   //   }
   // }
 
-  function setLoading(state){
-    const btn = document.getElementById('btnSubmit');
-    if (!btn) return;
+function setLoading(state){
+  const btn = document.getElementById('btnSubmit');
+  if (!btn) return;
 
-    const labelEl   = btn.querySelector('.btn-label');
-    const spinEl    = btn.querySelector('.spinner-border');
+  const labelEl = btn.querySelector('.btn-label');
+  const spinEl  = btn.querySelector('.spinner-border');
 
-    if (state) {
-      // KUNCI tombol
-      btn.disabled = true;
-      btn.setAttribute('aria-disabled','true');
-
-      // Ubah tampilan jadi loading
-      if (labelEl) labelEl.textContent = 'Memproses…';
-      if (spinEl)  spinEl.classList.remove('d-none');
-    } else {
-      // LEPAS kunci tombol
-      btn.disabled = false;
-      btn.removeAttribute('aria-disabled');
-
-      // Balikkan tampilan normal
-      if (labelEl) labelEl.textContent = 'Booking';
-      if (spinEl)  spinEl.classList.add('d-none');
-    }
+  if (state) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled','true');
+    if (labelEl) labelEl.textContent = 'Memproses…';
+    if (spinEl)  spinEl.classList.remove('d-none');
+  } else {
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+    if (labelEl) labelEl.textContent = 'Booking';
+    if (spinEl)  spinEl.classList.add('d-none');
   }
+}
+
 
 
   // async function doPost(){
@@ -868,141 +865,147 @@ function stopBookingLoader(){
 }
 
 async function doPost(){
-    setLoading(true);
+  // kunci tombol & tandai sedang submit
+  __isSubmitting = true;
+  setLoading(true);
 
-    // daftar step yang nongol bertingkat
-    const steps = [
-      'Cek data form kamu dulu… 😎',
-      'Cek jam & durasi, bentrok nggak… ⏰',
-      'Kunci slot mejanya… 🎱',
-      'Bikin kode booking kamu… 🧾',
-      'Simpan ke sistem kasir… 💾',
-      'Ngabarin balik ke kamu… 📲'
-    ];
+  // tampilkan loader bertahap
+  const steps = [
+    'Cek data form kamu dulu… 😎',
+    'Cek jam & durasi, bentrok nggak… ⏰',
+    'Kunci slot mejanya… 🎱',
+    'Bikin kode booking kamu… 🧾',
+    'Simpan ke sistem kasir… 💾',
+    'Ngabarin balik ke kamu… 📲'
+  ];
+  startBookingLoader(steps, 900);
 
-    // buka loader progres bertahap
-    startBookingLoader(steps, 900);
+  try {
+    const fd = new FormData(frm);
+    const r  = await fetch(frm.action, { method:'POST', body: fd });
 
-    try {
-      const fd = new FormData(frm);
+    stopBookingLoader();
 
-      // (opsional nanti: fd.append(CSRF_NAME, CSRF_HASH); kalau server pake CSRF)
+    let j = null;
+    try { j = await r.json(); } catch(e){}
 
-      const r  = await fetch(frm.action, {
-        method: 'POST',
-        body: fd
-      });
-
-      // begitu server udah jawab, tutup loader step
-      stopBookingLoader();
-
-      // coba parse JSON
-      let j;
-      try {
-        j = await r.json();
-      } catch(e) {
-        j = null;
-      }
-
-      // kalau gak dapet JSON sama sekali / HTTP bukan 200-an
-      if (!r.ok || !j){
-        if (window.Swal){
-          await Swal.fire({
-            title: 'Waduh',
-            text: 'Server nggak jawab normal. Coba lagi bentar ya 🙏',
-            icon: 'error',
-            confirmButtonText: 'Oke'
-          });
-        } else {
-          alert('Server error / response bukan JSON');
-        }
-        return;
-      }
-
-      // ===== SUCCESS HANDLING =====
-      if (j.success){
-        const isFree = j.redirect_url && j.redirect_url.indexOf('/billiard/free') !== -1;
-
-        if (window.Swal) {
-          await Swal.fire({
-            title: isFree ? 'Voucher diterima 🎉' : 'Berhasil!',
-            html: isFree
-  ? `Booking gratis aktif 🎉<br>Durasi main sesuai voucher kamu sudah dikunci di sistem.`
-  : (j.pesan || 'Booking berhasil dibuat.'),
-
-            icon: 'success',
-            confirmButtonText: 'Sip'
-          });
-        } else {
-          alert('Booking berhasil dibuat.');
-        }
-
-        if (j.redirect_url){
-          setTimeout(()=>{
-            window.location.href = j.redirect_url;
-          }, 250);
-        }
-        return;
-      }
-
-      // ===== ERROR HANDLING: VOUCHER SALAH =====
-      const titleLow   = (j.title||'').toLowerCase();
-      const pesan      = (j.pesan||'');
-      const voucherInp = document.getElementById('voucher');
-      const voucherFilled = !!(voucherInp && voucherInp.value.trim() !== '');
-
-      if (voucherFilled && (titleLow.includes('voucher') || /voucher/i.test(pesan))){
-        const res = await Swal.fire({
-          title: 'Kode vouchernya belum match 😅',
-          html: pesan + '<br><br>Mau lanjut tanpa voucher aja?',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Lanjut tanpa voucher',
-          cancelButtonText: 'Cek/ubah kode'
-        });
-
-        if (res.isConfirmed){
-          // kosongkan voucher & kirim ulang
-          voucherInp.value = '';
-          return doPost();
-        } else {
-          voucherInp.focus();
-          return;
-        }
-      }
-
-      // ===== ERROR UMUM =====
-      if (window.Swal){
-        await Swal.fire({
-          title: j.title || 'Gagal',
-          html: j.pesan || 'Gagal membuat booking.',
-          icon: 'error',
-          confirmButtonText: 'Oke'
-        });
-      } else {
-        alert(j.title || 'Gagal membuat booking');
-      }
-
-    } catch (err) {
-      // kalau fetch() sendiri error (timeout / network / CORS dsb)
-      stopBookingLoader();
-
+    // kalau server nggak jawab normal
+    if (!r.ok || !j){
+      // ERROR → boleh coba lagi
       if (window.Swal){
         await Swal.fire({
           title: 'Waduh',
-          text: 'Koneksi error. Coba lagi yaa.',
+          text: 'Server nggak jawab normal. Coba lagi ya 🙏',
           icon: 'error',
           confirmButtonText: 'Oke'
         });
       } else {
-        alert('Koneksi error. Coba lagi.');
+        alert('Server error / response bukan JSON');
       }
 
-      console.error('Booking fetch error:', err);
-    } finally {
+      // buka kunci lagi biar bisa retry
+      __isSubmitting = false;
       setLoading(false);
+      return;
     }
+
+    // ======== SUCCESS CASE DARI SERVER ========
+    if (j.success){
+      const isFree = j.redirect_url && j.redirect_url.indexOf('/billiard/free') !== -1;
+
+      if (window.Swal){
+        await Swal.fire({
+          title: isFree ? 'Voucher diterima 🎉' : 'Berhasil!',
+          html: isFree
+            ? 'Booking gratis aktif 🎉<br>Durasi main sesuai voucher kamu sudah dikunci di sistem.'
+            : (j.pesan || 'Booking berhasil dibuat.'),
+          icon: 'success',
+          confirmButtonText: 'Sip'
+        });
+      } else {
+        alert('Booking berhasil dibuat.');
+      }
+
+      // >>> PENTING: jangan setLoading(false) lagi di sini <<<
+      // >>> biarin tombol tetap disabled supaya gak bisa spam <<<
+
+      if (j.redirect_url){
+        setTimeout(()=>{
+          window.location.href = j.redirect_url;
+        }, 250);
+      }
+      return;
+    }
+
+    // ======== GAK SUCCESS, tapi masih respon normal ========
+    const titleLow   = (j.title||'').toLowerCase();
+    const pesan      = (j.pesan||'');
+    const voucherInp = document.getElementById('voucher');
+    const voucherFilled = !!(voucherInp && voucherInp.value.trim() !== '');
+
+    // kasus voucher salah
+    if (voucherFilled && (titleLow.includes('voucher') || /voucher/i.test(pesan))){
+      const res = await Swal.fire({
+        title: 'Kode vouchernya belum match 😅',
+        html: pesan + '<br><br>Mau lanjut tanpa voucher aja?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Lanjut tanpa voucher',
+        cancelButtonText: 'Cek/ubah kode'
+      });
+
+      if (res.isConfirmed){
+        voucherInp.value = '';
+        // coba submit ulang
+        return doPost();
+      } else {
+        voucherInp.focus();
+        // gagal tapi user mau koreksi → unlock tombol
+        __isSubmitting = false;
+        setLoading(false);
+        return;
+      }
+    }
+
+    // error umum (bukan voucher)
+    if (window.Swal){
+      await Swal.fire({
+        title: j.title || 'Gagal',
+        html: j.pesan || 'Gagal membuat booking.',
+        icon: 'error',
+        confirmButtonText: 'Oke'
+      });
+    } else {
+      alert(j.title || 'Gagal membuat booking');
+    }
+
+    // gagal → boleh retry
+    __isSubmitting = false;
+    setLoading(false);
+
+  } catch (err) {
+    // fetch() error
+    stopBookingLoader();
+
+    if (window.Swal){
+      await Swal.fire({
+        title: 'Waduh',
+        text: 'Koneksi error. Coba lagi yaa.',
+        icon: 'error',
+        confirmButtonText: 'Oke'
+      });
+    } else {
+      alert('Koneksi error. Coba lagi.');
+    }
+
+    console.error('Booking fetch error:', err);
+
+    // error jaringan → boleh retry
+    __isSubmitting = false;
+    setLoading(false);
   }
+}
+
 
   function normalizeJamMulai() {
   const el = document.getElementById('jam_mulai');
@@ -1046,145 +1049,158 @@ document.addEventListener('DOMContentLoaded', function(){
     normalizeJamMulai(); // pastikan sudah bersih dulu
   });
 });
+
   frm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
 
-    // Validasi tanggal (termasuk batas MAX_DAYS)
-    const { today, maxDateObj } = window.__BOOKING_DATES;
+  // anti double click VERY EARLY
+  if (__isSubmitting) {
+    return; // sudah proses, abaikan spam
+  }
 
-    if (!tanggalIso.value) {
-      if (window.Swal) await Swal.fire({ title: 'Tanggal kosong', text: 'Pilih tanggal mainnya dulu ya.', icon: 'warning' });
-      else alert('Tanggal kosong. Pilih tanggal dulu.');
-       setLoading(false);
-      return;
+  setLoading(true);
+  __isSubmitting = true;
+
+  // ===== VALIDASI TANGGAL =====
+  const { today, maxDateObj } = window.__BOOKING_DATES;
+
+  if (!tanggalIso.value) {
+    if (window.Swal) {
+      await Swal.fire({
+        title: 'Tanggal kosong',
+        text: 'Pilih tanggal mainnya dulu ya.',
+        icon: 'warning'
+      });
     } else {
-      const picked = new Date(tanggalIso.value + 'T00:00:00');
-      if (picked < today) {
-        if (window.Swal) await Swal.fire({ title: 'Tanggal lewat', text: 'Pilih tanggal yang belum lewat dong.', icon: 'warning' });
-        else alert('Tanggal sudah lewat.');
-        setLoading(false);
-        return;
-      }
-      if (picked > maxDateObj) {
-        const ymdMax = window.__BOOKING_DATES.ymdMax;
-        if (window.Swal) await Swal.fire({ title: 'Tanggal terlalu jauh', text: `Tanggal booking maksimal sampai ${ymdMax}.`, icon: 'warning' });
-        else alert(`Tanggal maksimal: ${ymdMax}`);
-        setLoading(false);
-        return;
-      }
+      alert('Tanggal kosong. Pilih tanggal dulu.');
     }
-
-    const timeOk = validateTimeRange();
-    const allOk  = frm.checkValidity();
-    if (!allOk || !timeOk) {
-      const listHtml = buildInvalidList() || '<p>Periksa kembali isian kamu ya.</p>';
+    setLoading(false);
+    __isSubmitting = false;
+    return;
+  } else {
+    const picked = new Date(tanggalIso.value + 'T00:00:00');
+    if (picked < today) {
       if (window.Swal) {
-        await Swal.fire({ title: 'Cek dulu', html: listHtml, icon: 'warning', confirmButtonText: 'Oke' });
+        await Swal.fire({
+          title: 'Tanggal lewat',
+          text: 'Pilih tanggal yang belum lewat dong.',
+          icon: 'warning'
+        });
       } else {
-        alert('Periksa kembali isian kamu.');
+        alert('Tanggal sudah lewat.');
       }
-      const firstInvalid = frm.querySelector(':invalid') || (!timeOk ? jamMulai : null);
-      if (firstInvalid) firstInvalid.focus();
       setLoading(false);
+      __isSubmitting = false;
       return;
     }
-
-    // Ringkasan
-    const sel       = getSelectedMeja();
-    const mejaName = getMejaName(sel);
-    const namaVal   = (frm.querySelector('#nama')  || {}).value || '';
-    const noHpVal   = (frm.querySelector('#no_hp') || {}).value || '';
-    const mejaLabel = getMejaLabel(sel);
-    const tglLabel  = (document.getElementById('tanggal_view')||{}).value || tanggalIso.value || '—';
-    const durVal    = (durasi.value || '1');
-    const jamLabel  = (jamMulai.value || '00:00') + ' / Durasi: ' + durVal + ' jam';
-    const bandObj   = slotBandFor(sel, (jamMulai.value||'00:00'), parseInt(durVal,10), (getSelectedDate()||new Date()));
-const subtotal  = bandObj ? (bandObj.rate * parseInt(durVal,10)) : 0;
-
-    const voucherCode = (voucherInp && voucherInp.value.trim()) ? voucherInp.value.trim().toUpperCase() : '';
-    // const estimasi = voucherCode ? 'Rp 0 (kalau kode valid)' : ('Rp ' + subtotal.toLocaleString('id-ID'));
-    const estimasi = voucherCode
-  ? 'Rp 0 (kalau kode valid)'
-  : (bandObj
-      ? `Rp ${subtotal.toLocaleString('id-ID')} (${bandObj.label})`
-      : '— (pilih jam agar masuk window)');
-
-
-    const html = `
-      <div style="text-align:left;">
-        <p><b>Nama</b>: ${htmlEscape(namaVal)}</p>
-        <p><b>HP (WA)</b>: ${htmlEscape(noHpVal)}</p>
-        <p><b>${htmlEscape(mejaName)}</b></p>
-        <p><b>Tanggal</b>: ${htmlEscape(tglLabel)}</p>
-        ${voucherCode ? `<p><b>Voucher</b>: <span class="badge badge-success">${htmlEscape(voucherCode)}</span></p>` : ''}
-        ${voucherCode ? `<p><b>Durasi voucher</b>: Mengikuti promo voucher kamu (akan dikunci otomatis waktu submit)</p>` : ''}
-
-
-        <p><b>Estimasi bayar</b>: <span style="font-weight:800">${estimasi}</span></p>
-      </div>
-    `;
-
-        // Tampilkan konfirmasi
-      let proceed = true;
+    if (picked > maxDateObj) {
+      const ymdMax = window.__BOOKING_DATES.ymdMax;
       if (window.Swal) {
-        const conf = await Swal.fire({
-          title: voucherCode ? 'Pakai voucher, ya?' : 'Yakin booking nih?',
-          html,
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonText: voucherCode ? 'Gas, pakai voucher' : 'Yoi, Booking!',
-          cancelButtonText: 'Nanti dulu',
-          reverseButtons: true,
-          focusCancel: true,
-          width: '560px'
+        await Swal.fire({
+          title: 'Tanggal terlalu jauh',
+          text: `Tanggal booking maksimal sampai ${ymdMax}.`,
+          icon: 'warning'
         });
-        proceed = conf.isConfirmed;
       } else {
-        proceed = confirm('Yakin booking?');
+        alert(`Tanggal maksimal: ${ymdMax}`);
       }
+      setLoading(false);
+      __isSubmitting = false;
+      return;
+    }
+  }
 
-      if (!proceed) {
-        // User batal di popup → tombol balik normal
-        setLoading(false);
+  const timeOk = validateTimeRange();
+  const allOk  = frm.checkValidity();
+  if (!allOk || !timeOk) {
+    const listHtml = buildInvalidList() || '<p>Periksa kembali isian kamu ya.</p>';
+    if (window.Swal) {
+      await Swal.fire({
+        title: 'Cek dulu',
+        html: listHtml,
+        icon: 'warning',
+        confirmButtonText: 'Oke'
+      });
+    } else {
+      alert('Periksa kembali isian kamu.');
+    }
+    const firstInvalid = frm.querySelector(':invalid') || (!timeOk ? jamMulai : null);
+    if (firstInvalid) firstInvalid.focus();
 
-        if (window.Swal) {
-          await Swal.fire({
-            title: 'Santuy 😎',
-            text: 'Booking nggak jadi — kamu bisa ubah dulu.',
-            icon: 'info',
-            timer: 1200,
-            showConfirmButton: false
-          });
-        } else {
-          // no-op
-        }
-        return;
-      }
+    setLoading(false);
+    __isSubmitting = false;
+    return;
+  }
 
-    // if (window.Swal) {
-    //   const conf = await Swal.fire({
-    //     title: voucherCode ? 'Pakai voucher, ya?' : 'Yakin booking nih?',
-    //     html,
-    //     icon: 'question',
-    //     showCancelButton: true,
-    //     confirmButtonText: voucherCode ? 'Gas, pakai voucher' : 'Yoi, Booking!',
-    //     cancelButtonText: 'Nanti dulu',
-    //     reverseButtons: true,
-    //     focusCancel: true,
-    //     width: '560px'
-    //   });
-    //   if (!conf.isConfirmed) {
-    //     await Swal.fire({ title: 'Santuy 😎', text: 'Booking nggak jadi — kamu bisa ubah dulu.', icon: 'info', timer: 1200, showConfirmButton: false });
-    //     return;
-    //   }
-    // } else if (!confirm('Yakin booking?')) {
-    //   return;
-    // }
+  // ===== KONFIRMASI RINGKAS =====
+  const sel        = getSelectedMeja();
+  const mejaName   = getMejaName(sel);
+  const namaVal    = (frm.querySelector('#nama')  || {}).value || '';
+  const noHpVal    = (frm.querySelector('#no_hp') || {}).value || '';
+  const tglLabel   = (document.getElementById('tanggal_view')||{}).value || tanggalIso.value || '—';
+  const durVal     = (durasi.value || '1');
+  const jamLabel   = (jamMulai.value || '00:00') + ' / Durasi: ' + durVal + ' jam';
+  const bandObj    = slotBandFor(sel, (jamMulai.value||'00:00'), parseInt(durVal,10), (getSelectedDate()||new Date()));
+  const subtotal   = bandObj ? (bandObj.rate * parseInt(durVal,10)) : 0;
+  const voucherCode = (voucherInp && voucherInp.value.trim()) ? voucherInp.value.trim().toUpperCase() : '';
+  const estimasi = voucherCode
+    ? 'Rp 0 (kalau kode valid)'
+    : (bandObj
+        ? `Rp ${subtotal.toLocaleString('id-ID')} (${bandObj.label})`
+        : '— (pilih jam agar masuk window)');
 
-    // Submit
-    await doPost();
-  });
+  const html = `
+    <div style="text-align:left;">
+      <p><b>Nama</b>: ${htmlEscape(namaVal)}</p>
+      <p><b>HP (WA)</b>: ${htmlEscape(noHpVal)}</p>
+      <p><b>${htmlEscape(mejaName)}</b></p>
+      <p><b>Tanggal</b>: ${htmlEscape(tglLabel)}</p>
+      ${voucherCode ? `<p><b>Voucher</b>: <span class="badge badge-success">${htmlEscape(voucherCode)}</span></p>` : ''}
+      ${voucherCode ? `<p><b>Durasi voucher</b>: Mengikuti promo voucher kamu (akan dikunci otomatis waktu submit)</p>` : ''}
+      <p><b>Estimasi bayar</b>: <span style="font-weight:800">${estimasi}</span></p>
+    </div>
+  `;
+
+  let proceed = true;
+  if (window.Swal) {
+    const conf = await Swal.fire({
+      title: voucherCode ? 'Pakai voucher, ya?' : 'Yakin booking nih?',
+      html,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: voucherCode ? 'Gas, pakai voucher' : 'Yoi, Booking!',
+      cancelButtonText: 'Nanti dulu',
+      reverseButtons: true,
+      focusCancel: true,
+      width: '560px'
+    });
+    proceed = conf.isConfirmed;
+  } else {
+    proceed = confirm('Yakin booking?');
+  }
+
+  if (!proceed) {
+    // user batal → lepas kunci
+    setLoading(false);
+    __isSubmitting = false;
+
+    if (window.Swal) {
+      await Swal.fire({
+        title: 'Santuy 😎',
+        text: 'Booking nggak jadi — kamu bisa ubah dulu.',
+        icon: 'info',
+        timer: 1200,
+        showConfirmButton: false
+      });
+    }
+    return;
+  }
+
+  // Lanjut benar-benar submit ke server
+  // (JANGAN setLoading(false) di sini, biar tetap disable)
+  await doPost();
+});
+
 })();
 </script>
 
