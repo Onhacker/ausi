@@ -144,7 +144,7 @@ const ICON_IOS = `
 </svg>`;
 
 // fallback generic (misal desktop)
-const ICON_APP = '<svg viewBox="0 0 24 24"><path d="M4 3h16c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1zm1 2v14h14V5H5zm3 2h8c.6 0 1 .4 1 1v8c0 .6-.4 1-1 1H8c-.6 0-1-.4-1-1V8c0-.6.4-1 1-1z"/></svg>';
+const ICON_APP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h9a3 3 0 0 1 3 3v1a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-1a3 3 0 0 1 3-3z"/><path d="M17 11h1a2 2 0 0 1 0 4h-1"/><path d="M4 20h14"/><path d="M9 4c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/><path d="M12 4c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/><path d="M15 5c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/></svg>';
 
 // fungsi untuk update tampilan tombol sesuai device
 function setupInstallButtonUI(){
@@ -153,11 +153,11 @@ function setupInstallButtonUI(){
   const iconEl  = btn.querySelector('.install-icon');
   const textEl  = btn.querySelector('.install-text');
 
-  // kalau sudah terpasang → kamu boleh ubah text jadi "Open App" biar gak misleading
+  // kalau sudah terpasang → kamu boleh ubah text jadi "Ngopi Yuk" biar gak misleading
   if (isAppInstalled()){
     if (iconEl) iconEl.innerHTML = ICON_APP;
-    if (textEl) textEl.textContent = 'Open App';
-    btn.setAttribute('aria-label','Open App');
+    if (textEl) textEl.textContent = 'Ngopi Yuk';
+    btn.setAttribute('aria-label','Ngopi Yuk');
     return;
   }
 
@@ -190,11 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isAppInstalled()) {
       return whenSwalReady((fallback)=>{
         if (!fallback) Swal.fire(
-          'Aplikasi Sudah Terinstal',
-          'Aplikasi sedang berjalan dalam mode mandiri.',
+          // 'Aplikasi Sudah Terinstal',
+          // 'Aplikasi sedang berjalan dalam mode mandiri.',
+          'Yuk',
+          'Kesini aja ngopi bareng.',
           'info'
         );
-        else alert('Aplikasi sudah terinstal (standalone).');
+        else alert('Kesini aja ngopi bareng');
+        // else alert('Aplikasi sudah terinstal (standalone).');
       });
     }
 
@@ -207,8 +210,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!deferredPrompt) {
       return whenSwalReady((fallback)=>{
         if (!fallback) Swal.fire(
-          'Belum Siap',
-          'Aplikasi belum memenuhi syarat PWA untuk ditawarkan instal.',
+          // 'Belum Siap',
+          // 'Aplikasi belum memenuhi syarat PWA untuk ditawarkan instal.',
+          // 'warning'
+          'Installed',
+          'Aplikasi Aplikasi sudah terinstal, cek di home HP anda.',
           'warning'
         );
         else alert('Instal belum siap.');
