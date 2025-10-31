@@ -152,16 +152,15 @@ const ICON_APP = '<svg viewBox="0 0 24 24"><path d="M4 3h16c.6 0 1 .4 1 1v16c0 .
 
 // fungsi untuk update tampilan tombol sesuai device
 function setupInstallButtonUI(){
-  const btn   = document.getElementById('installButton');
+  const btn    = document.getElementById('installButton');
   if (!btn) return;
-  const iconEl  = btn.querySelector('.install-icon');
-  const textEl  = btn.querySelector('.install-text');
 
-  // kalau sudah terpasang → kamu boleh ubah text jadi "Open App" biar gak misleading
+  const iconEl = btn.querySelector('.install-icon');
+  const textEl = btn.querySelector('.install-text');
+
+  // --- jika sudah terinstal, sembunyikan tombol sama sekali ---
   if (isAppInstalled()){
-    if (iconEl) iconEl.innerHTML = ICON_APP;
-    if (textEl) textEl.textContent = 'Open App';
-    btn.setAttribute('aria-label','Open App');
+    btn.style.display = 'none';
     return;
   }
 
@@ -173,11 +172,12 @@ function setupInstallButtonUI(){
     return;
   }
 
-  // default anggap Android / Chrome / PWA capable
+  // default -> anggap Android/Chrome
   if (iconEl) iconEl.innerHTML = ICON_ANDROID;
   if (textEl) textEl.textContent = 'Install on Android';
   btn.setAttribute('aria-label','Install on Android');
 }
+
 
 /* Klik badge iOS/Android → baru tampilkan prompt/panduan */
 document.addEventListener('DOMContentLoaded', () => {
@@ -190,12 +190,25 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
 
     // Jika sudah standalone (mis. WebAPK) -> beri info (jangan sembunyikan tombol)
+    // if (isAppInstalled()) {
+    //   return whenSwalReady((fallback)=>{
+    //     if (!fallback) Swal.fire('Aplikasi Sudah Terinstal','Aplikasi sedang berjalan dalam mode mandiri.','info');
+    //     else alert('Aplikasi sudah terinstal (standalone).');
+    //   });
+    // }
+
+    // Jika sudah standalone (mis. WebAPK) -> beri info (jangan sembunyikan tombol)
     if (isAppInstalled()) {
       return whenSwalReady((fallback)=>{
-        if (!fallback) Swal.fire('Aplikasi Sudah Terinstal','Aplikasi sedang berjalan dalam mode mandiri.','info');
+        if (!fallback) Swal.fire(
+          'Aplikasi Sudah Terinstal',
+          'Aplikasi sedang berjalan dalam mode mandiri.',
+          'info'
+        );
         else alert('Aplikasi sudah terinstal (standalone).');
       });
     }
+
 
     // iOS: panduan A2HS
     if (isIOSUA()) return window.showIOSInstallGuide(e);
@@ -224,10 +237,29 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Event sukses instal */
+// window.addEventListener('appinstalled', () => {
+//   console.log('✅ App installed');
+//   whenSwalReady((fallback)=>{
+//     if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal. Icon akan tampil di menu Hp Anda','success');
+//   });
+// });
 window.addEventListener('appinstalled', () => {
   console.log('✅ App installed');
+
+  // sembunyikan tombol install setelah sukses
+  const btn = document.getElementById('installButton');
+  if (btn) {
+    btn.style.display = 'none';
+  }
+
   whenSwalReady((fallback)=>{
-    if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal. Icon akan tampil di menu Hp Anda','success');
+    if (!fallback) {
+      Swal.fire(
+        'Terpasang',
+        'Aplikasi berhasil diinstal. Icon akan tampil di menu HP Anda.',
+        'success'
+      );
+    }
   });
 });
 
