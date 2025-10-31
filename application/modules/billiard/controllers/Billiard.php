@@ -444,7 +444,7 @@ $harga = (int)$rateInfo['rate']; // tarif efektif untuk subtotal & penyimpanan
   // ====== VOUCHER BLOCK (lock dengan FOR UPDATE agar anti-race) ======
   $use_voucher  = false;
   $voucher_row  = null;
-  $hp_norm62    = $this->_normalize_msisdn($no_hp); // 628xx…
+  $hp_norm62    = $this->normalize_phone_for_wa($no_hp); // 628xx…
 
   if ($voucher_code !== '') {
       $vsql = "SELECT * FROM voucher_billiard
@@ -1561,6 +1561,53 @@ $subtotal = $effRate * $durasi;
     return $s;
   }
 
+function normalize_phone_for_wa($raw){
+    // 1. bersihkan karakter selain angka dan plus
+    $num = preg_replace('/[^0-9+]/', '', $raw ?? '');
+
+    // 2. trim spasi di kiri/kanan
+    $num = trim($num);
+
+    // 3. Kalau kosong, balikin kosong aja
+    if ($num === '') {
+        return '';
+    }
+
+    // 4. Kalau ada plus di depan, hapus plusnya
+    if (strpos($num, '+') === 0) {
+        $num = substr($num, 1); // "+62812..." -> "62812..."
+    }
+
+    // 5. Cek pola Indonesia
+    //    - "08xxxx"   -> "628xxxx"
+    //    - "62xxxx"   -> sudah oke
+    //
+    //    NOTE:
+    //    kita sengaja TARUH cek "62" sebelum cek "0"
+    //    supaya nomor yg memang sudah 62 tidak diapa2in lagi.
+    if (strpos($num, '62') === 0) {
+        // Sudah format internasional Indonesia tanpa plus.
+        return $num;
+    }
+
+    if (strpos($num, '0') === 0) {
+        // diasumsikan nomor lokal Indonesia yg nulis 08...
+        // contoh: "08123456789" -> "628123456789"
+        return '62' . substr($num, 1);
+    }
+
+    // 6. BUKAN diawali 0, BUKAN diawali 62:
+    //    berarti kemungkinan user sudah kasih kode negara lain
+    //    contoh:
+    //      "61424..."  -> nomor Australia (+61...)
+    //      "6598..."   -> nomor Singapura (+65...)
+    //      "1xxx..."   -> US/Canada (+1...) tapi kita ga sentuh
+    //
+    //    Jadi jangan diubah
+    return $num;
+}
+
+
 private function _wa_ringkasan($rec, $metode, $status){
     // Pastikan fungsi pengirim WA tersedia
     if (!function_exists('send_wa_single')) {
@@ -1621,7 +1668,7 @@ private function _wa_ringkasan($rec, $metode, $status){
     $lines[] = "*Tanggal:* " . ($rec->tanggal ?? '-');
     $lines[] = "*Jam:* " . (substr($rec->jam_mulai ?? '00:00:00',0,5)) . "–" . (substr($rec->jam_selesai ?? '00:00:00',0,5)) . " ({$rec->durasi_jam} jam)";
     $lines[] = "*Tarif / jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
-    $lines[] = "*Subtotal Asli:* Rp" . number_format($subtotal,0,',','.');
+    $lines[] = "*Subtotal :* Rp" . number_format($subtotal,0,',','.');
 
     if ($isFree) {
         $lines[] = "*Total Bayar:* Rp0 (Gratis, pakai voucher)";
