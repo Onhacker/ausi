@@ -581,23 +581,42 @@ function slotBandFor(r, startHM, hours, dateObj){
     return `<ul style="text-align:left; margin:0; padding-left:1.1rem;">${items}${invalids.length>10?'<li>dst…</li>':''}</ul>`;
   }
 
+function roundUpTo5Min(hhmm){
+  // input "14:02" -> output "14:05"
+  const [H,M] = hhmm.split(':').map(Number);
+  let total = H*60 + M;
+
+  const mod = total % 5;
+  if (mod !== 0) {
+    total += (5 - mod); // naik ke kelipatan 5
+  }
+
+  const HH = String(Math.floor(total/60) % 24).padStart(2,'0');
+  const MM = String(total % 60).padStart(2,'0');
+  return `${HH}:${MM}`;
+}
+
 function validateTimeRange(){
   const sel      = document.querySelector('input[name="meja_id"]:checked');
   const jamMulai = document.getElementById('jam_mulai');
   const durasi   = document.getElementById('durasi');
   const jamInfo  = document.getElementById('jam-info');
-  normalizeJamMulai();
+
   if (jamMulai){ jamMulai.setCustomValidity(''); }
   if (jamInfo)  { jamInfo.textContent=''; }
   if (!sel) return true;
 
   const dObj    = getSelectedDate() || new Date();
   const isToday = sameYMD(dObj, new Date());
+
   if (isToday){
-    const minNow = hmNow();
-    jamMulai.min = minNow;
-    if (jamMulai.value && toMin(jamMulai.value) < toMin(minNow)){
-      const msg = `Jam mulai tidak boleh di masa lalu (≥ ${minNow}).`;
+    const nowRaw   = hmNow();            // mis. "13:58"
+    const nowRound = roundUpTo5Min(nowRaw); // "14:00"
+
+    jamMulai.min = nowRound; // pakai yg sudah dibuletin 5 menit
+
+    if (jamMulai.value && toMin(jamMulai.value) < toMin(nowRound)){
+      const msg = `Jam mulai tidak boleh di masa lalu (≥ ${nowRound}).`;
       jamMulai.setCustomValidity(msg);
       if (jamInfo) jamInfo.textContent = msg;
       return false;
@@ -618,6 +637,7 @@ function validateTimeRange(){
   }
   return true;
 }
+
 
 
 
