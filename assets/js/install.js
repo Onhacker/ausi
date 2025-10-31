@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // 'Aplikasi belum memenuhi syarat PWA untuk ditawarkan instal.',
           // 'warning'
           'Installed',
-          'Aplikasi Aplikasi sudah terinstal, cek di home HP anda.',
+          'Aplikasi sudah terinstal, cek di home HP anda.',
           'warning'
         );
         else alert('Instal belum siap.');

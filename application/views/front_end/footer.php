@@ -27,9 +27,9 @@
         <p class="boxed-text-l text-center mb-1">
           <?php echo $rec->meta_deskripsi ?>
         </p>
-        <p class="boxed-text-l text-center mb-1">
+       <!--  <p class="boxed-text-l text-center mb-1">
           <?php echo strtoupper($rec->type) ?>
-        </p>
+        </p> -->
         <div class="text-center">
           Bagikan:
           <div class="share-buttons">
