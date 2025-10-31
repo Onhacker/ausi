@@ -80,14 +80,72 @@
             style="height:56px;width:auto;">
           </a> -->
             <!-- Badge iOS / PWA -->
-            <a id="installButton"
+         <!--    <a id="installButton"
             href="#"
             class="d-inline-block my-2 ms-2 ml-2"
             aria-label="Instal ke iOS (PWA)">
             <img alt="Instal ke iOS (Tambahkan ke Layar Utama)"
             src="<?= base_url('assets/images/app.webp') ?>"
             style="height:56px;width:auto;">
-          </a>
+          </a> -->
+          <style type="text/css">
+            .install-badge{
+              display:inline-flex;
+              align-items:center;
+              background:#000;
+              color:#fff;
+              font-size:16px;
+              line-height:1.2;
+              font-weight:600;
+              font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+              border-radius:2px;
+              padding:10px 14px;
+              text-decoration:none;
+              border:1px solid #000;
+              cursor:pointer;
+            }
+            .install-badge:hover,
+            .install-badge:focus{
+              text-decoration:none;
+              background:#111;
+              color:#fff;
+            }
+
+            .install-badge .install-icon{
+              display:block;
+              flex-shrink:0;
+              width:24px;
+              height:24px;
+              margin-right:10px;
+            }
+            .install-badge .install-icon svg{
+              width:100%;
+              height:100%;
+              fill:#fff;
+              display:block;
+            }
+
+            @media (max-width:380px){
+              .install-badge{
+                font-size:14px;
+                padding:8px 12px;
+              }
+              .install-badge .install-icon{
+                width:20px;
+                height:20px;
+                margin-right:8px;
+              }
+            }
+
+          </style>
+          <a id="installButton"
+          href="#"
+          class="install-badge d-inline-flex my-2 ms-2 ml-2"
+          aria-label="Install App">
+          <span class="install-icon" aria-hidden="true"></span>
+          <span class="install-text">Install App</span>
+        </a>
+
         </div>
 
 
@@ -212,7 +270,7 @@
         <div class="col-12 ">
           <button type="button" id="swalBtnGratis"
             class="btn btn-blue  btn-rounded btn-block d-flex align-items-center justify-content-center">
-            <i class="fas fa-ticket-alt me-2 mr-2" aria-hidden="true"></i><span>Gratis Main</span>
+            <i class="fas fa-ticket-alt me-2 mr-2" aria-hidden="true"></i><span>Cek Voucher Gratis Main</span>
           </button>
         </div>
         

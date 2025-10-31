@@ -244,8 +244,13 @@
               </div>
 
               <div class="col-12 text-center">
-                <button class="btn btn-blue px-4" id="btnSubmit" type="submit">Booking</button>
+                <button class="btn btn-blue px-4" id="btnSubmit" type="submit">
+                  <span class="btn-label">Booking</span>
+                  <span class="spinner-border spinner-border-sm align-middle d-none" role="status" aria-hidden="true"></span>
+                </button>
               </div>
+
+
             </div>
           <?= form_close() ?>
         </div>
@@ -656,17 +661,44 @@ function validateTimeRange(){
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
     });
   }
+  // function setLoading(state){
+  //   if (!btn) return;
+  //   if (state){
+  //     btn.disabled = true;
+  //     btn.__original = btn.__original || btn.innerHTML;
+  //     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses…';
+  //   } else {
+  //     btn.disabled = false;
+  //     if (btn.__original) btn.innerHTML = btn.__original;
+  //   }
+  // }
+
   function setLoading(state){
+    const btn = document.getElementById('btnSubmit');
     if (!btn) return;
-    if (state){
+
+    const labelEl   = btn.querySelector('.btn-label');
+    const spinEl    = btn.querySelector('.spinner-border');
+
+    if (state) {
+      // KUNCI tombol
       btn.disabled = true;
-      btn.__original = btn.__original || btn.innerHTML;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses…';
+      btn.setAttribute('aria-disabled','true');
+
+      // Ubah tampilan jadi loading
+      if (labelEl) labelEl.textContent = 'Memproses…';
+      if (spinEl)  spinEl.classList.remove('d-none');
     } else {
+      // LEPAS kunci tombol
       btn.disabled = false;
-      if (btn.__original) btn.innerHTML = btn.__original;
+      btn.removeAttribute('aria-disabled');
+
+      // Balikkan tampilan normal
+      if (labelEl) labelEl.textContent = 'Booking';
+      if (spinEl)  spinEl.classList.add('d-none');
     }
   }
+
 
   // async function doPost(){
   //   setLoading(true);
@@ -1016,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
   frm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     // Validasi tanggal (termasuk batas MAX_DAYS)
     const { today, maxDateObj } = window.__BOOKING_DATES;
@@ -1023,18 +1056,21 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!tanggalIso.value) {
       if (window.Swal) await Swal.fire({ title: 'Tanggal kosong', text: 'Pilih tanggal mainnya dulu ya.', icon: 'warning' });
       else alert('Tanggal kosong. Pilih tanggal dulu.');
+       setLoading(false);
       return;
     } else {
       const picked = new Date(tanggalIso.value + 'T00:00:00');
       if (picked < today) {
         if (window.Swal) await Swal.fire({ title: 'Tanggal lewat', text: 'Pilih tanggal yang belum lewat dong.', icon: 'warning' });
         else alert('Tanggal sudah lewat.');
+        setLoading(false);
         return;
       }
       if (picked > maxDateObj) {
         const ymdMax = window.__BOOKING_DATES.ymdMax;
         if (window.Swal) await Swal.fire({ title: 'Tanggal terlalu jauh', text: `Tanggal booking maksimal sampai ${ymdMax}.`, icon: 'warning' });
         else alert(`Tanggal maksimal: ${ymdMax}`);
+        setLoading(false);
         return;
       }
     }
@@ -1050,6 +1086,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       const firstInvalid = frm.querySelector(':invalid') || (!timeOk ? jamMulai : null);
       if (firstInvalid) firstInvalid.focus();
+      setLoading(false);
       return;
     }
 
@@ -1088,25 +1125,62 @@ const subtotal  = bandObj ? (bandObj.rate * parseInt(durVal,10)) : 0;
       </div>
     `;
 
-    if (window.Swal) {
-      const conf = await Swal.fire({
-        title: voucherCode ? 'Pakai voucher, ya?' : 'Yakin booking nih?',
-        html,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: voucherCode ? 'Gas, pakai voucher' : 'Yoi, Booking!',
-        cancelButtonText: 'Nanti dulu',
-        reverseButtons: true,
-        focusCancel: true,
-        width: '560px'
-      });
-      if (!conf.isConfirmed) {
-        await Swal.fire({ title: 'Santuy 😎', text: 'Booking nggak jadi — kamu bisa ubah dulu.', icon: 'info', timer: 1200, showConfirmButton: false });
+        // Tampilkan konfirmasi
+      let proceed = true;
+      if (window.Swal) {
+        const conf = await Swal.fire({
+          title: voucherCode ? 'Pakai voucher, ya?' : 'Yakin booking nih?',
+          html,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: voucherCode ? 'Gas, pakai voucher' : 'Yoi, Booking!',
+          cancelButtonText: 'Nanti dulu',
+          reverseButtons: true,
+          focusCancel: true,
+          width: '560px'
+        });
+        proceed = conf.isConfirmed;
+      } else {
+        proceed = confirm('Yakin booking?');
+      }
+
+      if (!proceed) {
+        // User batal di popup → tombol balik normal
+        setLoading(false);
+
+        if (window.Swal) {
+          await Swal.fire({
+            title: 'Santuy 😎',
+            text: 'Booking nggak jadi — kamu bisa ubah dulu.',
+            icon: 'info',
+            timer: 1200,
+            showConfirmButton: false
+          });
+        } else {
+          // no-op
+        }
         return;
       }
-    } else if (!confirm('Yakin booking?')) {
-      return;
-    }
+
+    // if (window.Swal) {
+    //   const conf = await Swal.fire({
+    //     title: voucherCode ? 'Pakai voucher, ya?' : 'Yakin booking nih?',
+    //     html,
+    //     icon: 'question',
+    //     showCancelButton: true,
+    //     confirmButtonText: voucherCode ? 'Gas, pakai voucher' : 'Yoi, Booking!',
+    //     cancelButtonText: 'Nanti dulu',
+    //     reverseButtons: true,
+    //     focusCancel: true,
+    //     width: '560px'
+    //   });
+    //   if (!conf.isConfirmed) {
+    //     await Swal.fire({ title: 'Santuy 😎', text: 'Booking nggak jadi — kamu bisa ubah dulu.', icon: 'info', timer: 1200, showConfirmButton: false });
+    //     return;
+    //   }
+    // } else if (!confirm('Yakin booking?')) {
+    //   return;
+    // }
 
     // Submit
     await doPost();
@@ -1147,11 +1221,13 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 <script>
 function getFreeHours(){
-  var m = (window.AUSI_CFG && window.AUSI_CFG.LATE_MIN) ? Number(window.AUSI_CFG.LATE_MIN) : 60;
+  var m = (window.AUSI_CFG && window.AUSI_CFG.PAY_LIMIT_MIN)
+            ? Number(window.AUSI_CFG.PAY_LIMIT_MIN)
+            : 60;
   if (isNaN(m) || m <= 0) m = 60;
-  // dibulatkan ke atas biar nggak “kepotong” (misal 61 menit => 2 jam)
   return Math.max(1, Math.ceil(m/60));
 }
+
 </script>
 
 <script>
