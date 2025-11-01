@@ -70,7 +70,7 @@ $is_delivery = ($mode_norm === 'delivery');
           <?= !empty($meja_info) ? ' '.html_escape($meja_info) : 'Mode Dine-in' ?>
         </h3>
         <p class="mode-sub">
-          Pesanan Area <strong><?= !empty($meja_info) ? html_escape($meja_info) : 'ditempat' ?></strong>
+          Order Area <strong><?= !empty($meja_info) ? html_escape($meja_info) : 'ditempat' ?></strong>
         </p>
       </div>
     </div>

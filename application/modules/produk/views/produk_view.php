@@ -939,7 +939,7 @@ if (!empty($kategoris)) {
     let modeNice = '';
     if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
       modeNice = (mejaLabel !== '' ?
-        'Dine-in di Meja '+mejaLabel :
+        'Dine-in di '+mejaLabel :
         'Dine-in');
     } else if (curModeRaw === 'delivery'){
       modeNice = 'Delivery';
