@@ -190,9 +190,8 @@
          class="center-button <?= ($uri == 'produk') ? 'text-white' : '' ?>"
          style="text-align:center; <?= ($uri == 'produk') ? 'background-color:#28a745;' : '' ?>"
          data-navloading="1">
-        <img src="<?= base_url('assets/images/logo.png') ?>"
-             alt="Permohonan"
-             class="nav-center-logo"
+         <img src="<?= base_url('assets/images/logo.png') . '?v=' . filemtime(FCPATH . 'assets/images/logo.png'); ?>" alt="Logo" 
+         class="nav-center-logo"
              style="width:40px; height:40px; object-fit:contain; margin-top:0px;">
         <span class="sr-only d-none">Produk</span>
       </a>

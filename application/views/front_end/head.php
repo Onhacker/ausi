@@ -202,7 +202,21 @@
 
 <?php $this->load->view("global") ?> 
 <body class="menubar-gradient gradient-topbar topbar-dark">
-   
+<?php
+// siapkan dulu variabelnya
+$gambar    = isset($rec->gambar) ? (string)$rec->gambar : '';
+$img_url   = base_url('assets/images/' . $gambar);
+$img_path  = FCPATH . 'assets/images/' . $gambar;
+
+// versi cache-buster = last modified time file
+if (is_file($img_path)) {
+    $ver = filemtime($img_path);
+} else {
+    // fallback supaya nggak notice/warning kalau file hilang
+    $ver = time();
+}
+?>
+
 <header id="topnav">
 
   <div class="navbar-custom">
@@ -211,7 +225,9 @@
      
         <div class="logo-desktop d-flex align-items-center mb-3">
             <div class="me-3">
-                <img src="<?php echo base_url('assets/images/').$rec->gambar ?>" alt="Logo <?php echo $rec->nama_website ?>" height="50px">
+                <img src="<?= $img_url . '?v=' . $ver; ?>"
+     alt="Logo <?= htmlspecialchars($rec->nama_website, ENT_QUOTES, 'UTF-8'); ?>"
+     height="50px">
 
             </div>
             <div class="kepala">
@@ -227,7 +243,9 @@
     <div class="logo-boxx d-block d-md-none">
         <div class="logox">
             <div class="logo-smx">
-                <img src="<?php echo base_url('assets/images/') . $rec->gambar ?>" alt="Logo <?php echo $rec->nama_website ?>">
+               <img src="<?= $img_url . '?v=' . $ver; ?>"
+     alt="Logo <?= htmlspecialchars($rec->nama_website, ENT_QUOTES, 'UTF-8'); ?>">
+
 
             </div>
             <div class="logo-text">
