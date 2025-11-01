@@ -578,6 +578,19 @@
             </div>
 
             <div class="quickmobilem-item">
+              <a href="<?= site_url('pijat') ?>"
+               class="qcard d-block text-decoration-none"
+               aria-label="Kursi Pijat"
+               data-menuloading="1">
+               <div class="menu-circle" style="background:#9a6a38;">
+                <span class="emoji-icon" aria-hidden="true">💆‍♂️</span>
+              </div>
+              <small class="menu-label">Kursi Pijat</small>
+            </a>
+          </div>
+
+
+            <div class="quickmobilem-item">
               <a href="<?= site_url('hal/kontak') ?>" class="qcard d-block text-decoration-none" aria-label="Kontak" data-menuloading="1">
                 <div class="menu-circle" style="background:#25D366;"><span class="emoji-icon" aria-hidden="true">☎️</span></div>
                 <small class="menu-label">Kontak</small>

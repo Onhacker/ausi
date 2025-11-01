@@ -69,6 +69,20 @@ class Hal extends MX_Controller {
         $this->load->view('pengumuman', $data);
     }
 
+
+	 public function pijat()
+    {
+        $rec = $this->fm->web_me();
+
+        $data["rec"]       = $rec;
+		$data["title"]     = "Kursi Pijat Elektrik";
+		$data["deskripsi"] = "Nikmati kursi pijat elektrik di " . $rec->nama_website . " — rileks dan nyaman untuk tubuhmu.";
+        $data["prev"]      = base_url("assets/images/pijat_icon.webp");
+
+        $this->load->view('pijat', $data);
+    }
+
+
     /** Endpoint JSON untuk listing (AJAX) */
     public function pengumuman_data()
     {

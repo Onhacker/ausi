@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function () {
   </section>
 
 
-
+<?php $this->load->view("banner_pijat") ?>
 
 
 
