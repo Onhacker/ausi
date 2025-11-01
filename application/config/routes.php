@@ -74,6 +74,8 @@ $route['produk/receipt/(:any)']       = 'produk/receipt/$1';
 $route['produk/qris_png/(:any)']      = 'produk/qris_png/$1';
 
 
+$route['scan'] = 'produk/scan_qr';
+
 // $route['rss'] = 'rss.xml';
 // $route['sitemap'] = "kmzwa8awaa/index";
 // $route['sitemap\.xml'] = "kmzwa8awaa/index";
