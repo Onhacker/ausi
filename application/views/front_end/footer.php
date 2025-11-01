@@ -427,7 +427,7 @@
               <button type="button" id="swalBtnHistory"
                 class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
                 <i class="mdi mdi-billiards me-2 mr-2" aria-hidden="true"></i>
-                <span>Lihat Meja</span>
+                <span>Tarif Meja Billiard</span>
               </button>
             </div>
             <div class="col-12 mb-2">
@@ -552,7 +552,7 @@
             <div class="quickmobilem-item">
               <a href="<?= site_url('meja_billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Lihat Meja Billiard" data-menuloading="1">
                 <div class="menu-circle" style="background:#1abc9c;"><span class="emoji-icon" aria-hidden="true">👀</span></div>
-                <small class="menu-label">Lihat Meja</small>
+                <small class="menu-label">Tarif Meja Billiard</small>
               </a>
             </div>
 

@@ -21,8 +21,9 @@ class Hal extends MX_Controller {
 	function jadwal(){
 		$this->load->model('M_billiard','mbi');
 		$data["rec"] = $this->fm->web_me();
-		$data["title"] = "Waktu Nongki";
-		$data["deskripsi"] = $data["rec"]->nama_website;
+		$data["title"] = "Cafe " . $data["rec"]->nama_website;
+		$data["deskripsi"] = "Nikmati suasana santai dan berbagai menu terbaik di Cafe " . $data["rec"]->nama_website . ". Tempat nongkrong asik dengan cita rasa istimewa!";
+
 		$data["prev"] = base_url("assets/images/nongki.webp");
 		$data["mejas"]      = $this->mbi->get_all_mejas();
 		$this->load->view('jadwal',$data);
@@ -46,9 +47,10 @@ class Hal extends MX_Controller {
 	function jadwal_billiard(){
 		$this->load->model('M_billiard','mbi');
 		$data["rec"] = $this->fm->web_me();
-		$data["title"] = "Waktu Main";
-		$data["deskripsi"] = $data["rec"]->nama_website;
-		$data["prev"] = base_url("assets/images/nongki.webp");
+		$data["title"] = "Meja Billiard & Tarif";
+		$data["deskripsi"] = "Daftar meja billiard dan tarif lengkap di " . $data["rec"]->nama_website . ". Pilih meja favoritmu dan nikmati permainan seru bersama teman!";
+
+		$data["prev"] = base_url("assets/images/billiard.webp");
 		$data["mejas"]      = $this->mbi->get_all_mejas();
 		$this->load->view('jadwal_billiard',$data);
 
@@ -61,7 +63,7 @@ class Hal extends MX_Controller {
 
         $data["rec"]       = $rec;
         $data["title"]     = "Pengumuman";
-        $data["deskripsi"] = "Pengumuman Pengunjung Tamu. ".$rec->type.".";
+        $data["deskripsi"] = "Pengumuman ".$rec->nama_website.".";
         $data["prev"]      = base_url("assets/images/pengumuman.webp");
 
         $this->load->view('pengumuman', $data);
@@ -197,7 +199,7 @@ class Hal extends MX_Controller {
 	function privacy_policy(){
 		$data["title"] = "Privacy Policy";
 		$data["deskripsi"] = "Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi data pribadi pengguna";
-		$data["prev"] = base_url("assets/images/icon_app.jpg");
+		$data["prev"] = base_url("assets/images/icon_app.png");
 		$data["rec"] = $this->fm->web_me();
 		$this->load->view('privacy',$data);
 	}

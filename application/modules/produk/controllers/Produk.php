@@ -78,9 +78,10 @@ public function scan_qr(){
     $rec = $this->fm->web_me();
     $data = [
         'rec'        => $rec,
-        'title'      => 'Scan QR / Barcode',
-        'deskripsi'  => 'Silakan scan barcode/QR di meja pakai kamera di bawah.',
-        'prev'       => base_url('assets/images/icon_app.png'),
+        'title'      => 'Dine - In. Scan Barcode Meja',
+        'deskripsi'  => 'Scan QR atau barcode di meja menggunakan kamera di bawah untuk mulai pesan makanan & minuman dine-in.',
+
+        'prev'       => base_url('assets/images/nongki.webp'),
         // base URL untuk redirect kalau hasil bukan URL (anggap kode meja)
         'tag_base'   => site_url('produk/tag/'),
     ];
@@ -142,8 +143,9 @@ public function scan_qr(){
     $this->_ensure_default_delivery_mode();   // pastikan cart__mode = 'delivery' kalau belum ada
 
     $data["rec"]       = $rec;
-    $data["title"]     = "Semua Produk";
-    $data["deskripsi"] = "Daftar produk di ".$rec->nama_website;
+    $data["title"]     = "Produk Terbaik dari " . $rec->nama_website;
+    $data["deskripsi"] = "Temukan berbagai produk unggulan dari " . $rec->nama_website . " dengan kualitas terbaik dan harga bersahabat.";
+
     $data["prev"]      = base_url("assets/images/produk.webp");
 
     $data["kategoris"] = $this->pm->get_categories();

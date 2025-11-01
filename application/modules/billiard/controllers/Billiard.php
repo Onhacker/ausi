@@ -23,8 +23,9 @@ class Billiard extends MX_Controller {
     $pre = (int)$this->input->get('meja_id');
     $data = [
       "controller" => get_class($this),
-      "title"      => "Booking Billiard",
-      "deskripsi"  => "Pilih meja, tanggal & jam, lalu konfirmasi Bookingan.",
+      "title"      => "Booking Billiard Online",
+      "deskripsi"  => "Pesan meja billiard favoritmu dengan mudah — pilih meja, tentukan tanggal & jam, lalu konfirmasi booking langsung di sini.",
+
       "prev"       => base_url("assets/images/billiard.webp"),
       "mejas"      => $this->mbi->get_mejas_aktif(),
       "rec"        => $this->fm->web_me(),
@@ -279,7 +280,8 @@ public function daftar_booking(){
   $data = [
     "controller" => get_class($this),
     "title"      => "Daftar Bookingan Billiard",
-    "deskripsi"  => "Booking mendatang per-meja, dikelompok per tanggal.",
+    "deskripsi"  => "Lihat daftar booking billiard mendatang berdasarkan meja dan tanggal. Pantau jadwalmu biar nggak ketinggalan main!",
+
     "prev"       => base_url("assets/images/billiard.webp"),
     "rec"        => $web,
     "cards"      => $cards,
@@ -2280,7 +2282,8 @@ $rows = $this->db->select('id_voucher,nama,no_hp,no_hp_norm,kode_voucher,created
   $data = [
     "controller" => get_class($this),
     "title"      => "Gratis Main Billiard",
-    "deskripsi"  => "Voucher Free Main (belum diklaim)",
+    "deskripsi"  => "Klaim voucher Free Main Billiard kamu di sini — nikmati permainan seru tanpa bayar!",
+
     "prev"       => base_url("assets/images/billiard.webp"),
     "rec"        => $web,
     "batas_hari" => $batasHari,

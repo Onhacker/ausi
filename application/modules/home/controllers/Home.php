@@ -18,7 +18,8 @@ class Home extends MX_Controller
     {
         $data['rec']       = $this->fm->web_me();
         $data['title']     = 'Home';
-        $data['deskripsi'] = $data["rec"]->nama_website." adalah aplikasi pemesanan makanan & minuman untuk dine-in (scan barcode meja), delivery, take away, serta booking meja billiard — dilengkapi pembayaran digital, notifikasi status, dan riwayat transaksi.';";
+        $data['deskripsi'] = $data["rec"]->nama_website . " — aplikasi pesan makanan & minuman untuk dine-in, delivery, take away, dan booking meja billiard.";
+
         $data['prev']      = base_url('assets/images/home.webp');
         $this->load->view('home_view', $data);
     }
