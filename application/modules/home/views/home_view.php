@@ -107,43 +107,24 @@ $slides = [
 }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function () {
 
-  // cegah double init
   if (window.__QUICKMENU_SPINNER_INIT__) return;
   window.__QUICKMENU_SPINNER_INIT__ = true;
 
   var cards = document.querySelectorAll('#quickmenu .qcard');
 
   cards.forEach(function(card){
-    card.addEventListener('click', function(e){
+    card.addEventListener('click', function(){
       var circle = this.querySelector('.menu-circle');
       if (!circle) return;
 
-      // aktifkan spinner
+      // kasih spinner di bulatan yg ditekan
       if (!circle.classList.contains('loading')) {
         circle.classList.add('loading');
       }
-
-      // matikan klik menu lain biar ga spam
-      cards.forEach(function(c){
-        c.style.pointerEvents = 'none';
-        c.style.opacity = '0.6';
-      });
-
-      // --- kasih waktu 150ms biar browser sempat repaint spinner ---
-      // tapi cuma untuk link normal yg pindah halaman
-      var href = this.getAttribute('href');
-      var isModalTrigger = this.getAttribute('data-toggle') === 'modal';
-
-      if (href && href !== '#' && !isModalTrigger){
-        e.preventDefault(); // tahan dulu
-        setTimeout(function(){
-          window.location = href;
-        }, 150);
-      }
-      // kalau modal (data-toggle="modal"), biarin Bootstrap jalan normal
-    }, {passive:false});
+      // TIDAK ada opacity, TIDAK disable menu lain, TIDAK delay redirect
+    }, {passive:true});
   });
 
 });
