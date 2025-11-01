@@ -249,6 +249,21 @@
                   <span class="spinner-border spinner-border-sm align-middle d-none" role="status" aria-hidden="true"></span>
                 </button>
               </div>
+              <style type="text/css">
+               /* tombol utama biru */
+               .btn-blue{
+                background:linear-gradient(90deg,#005bea,#00c6fb);
+                color:#fff;
+                border:0;
+                font-weight:600;
+                border-radius:10px;
+              }
+              .btn-blue:hover,
+              .btn-blue:focus{
+                color:#fff;
+                filter:brightness(.9);
+              }
+              </style>
 
 
             </div>

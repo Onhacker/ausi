@@ -32,6 +32,7 @@
               <li><a href="#takeaway">Take Away (Ambil Sendiri)</a></li>
               <li><a href="#billiard">Booking Billiard</a></li>
               <li><a href="#pembayaran">Pembayaran, Biaya &amp; Promo</a></li>
+              <li><a href="#voucher">Voucher &amp; Promo Main Gratis</a></li>
               <li><a href="#kebijakan-produk">Kebijakan Produk &amp; Kualitas</a></li>
               <li><a href="#larangan">Ketertiban, Keamanan &amp; Larangan</a></li>
               <li><a href="#privasi">Privasi &amp; Perlindungan Data</a></li>
@@ -162,10 +163,61 @@
           </div>
         </section>
 
+        <!-- Voucher -->
+        <section id="voucher" class="card mb-3">
+          <div class="card-body">
+            <h2 class="h4">9) Voucher &amp; Promo Main Gratis</h2>
+            <ol class="mb-0">
+              <li>
+                Voucher atau promo “main gratis” billiard hanya berlaku pada
+                <strong>meja kategori reguler</strong>. Tidak berlaku untuk meja bertipe VIP
+                kecuali dinyatakan tertulis oleh Pengelola.
+              </li>
+              <li>
+                Setiap voucher memiliki <strong>durasi main tertentu</strong>
+                (misal 1 jam). Saat melakukan booking dengan voucher,
+                durasi booking akan mengikuti durasi voucher tersebut
+                dan tidak dapat diperpanjang secara gratis.
+              </li>
+              <li>
+                Voucher hanya berlaku dalam <strong>jam operasional promo</strong>
+                yang ditetapkan Pengelola. Jika jadwal bermain melewati batas jam promo,
+                booking dapat ditolak atau diminta digeser.
+              </li>
+              <li>
+                Voucher terikat pada <strong>nomor HP yang terdaftar</strong>
+                saat klaim, tidak dapat dipindahtangankan, dijual, atau dipakai
+                oleh nomor lain tanpa persetujuan Pengelola.
+              </li>
+              <li>
+                Satu voucher hanya berlaku untuk <strong>satu booking</strong>.
+                Setelah sistem menerbitkan kode booking dengan status “free/gratis”,
+                voucher dianggap digunakan dan tidak dapat dipakai ulang.
+              </li>
+              <li>
+                Keterlambatan hadir melewati toleransi yang berlaku atau tidak hadir (“no show”)
+                dapat menyebabkan voucher dianggap hangus.
+              </li>
+              <li>
+                Voucher tidak memiliki nilai tunai, <strong>tidak dapat diuangkan</strong>,
+                dan tidak dapat digabungkan dengan promo lain kecuali diizinkan Pengelola.
+              </li>
+              <li>
+                Pengelola berhak menolak, membatalkan, atau menarik voucher
+                jika terindikasi penyalahgunaan, manipulasi data, atau pelanggaran S&amp;K.
+              </li>
+              <li>
+                Ketersediaan voucher bersifat terbatas. Program voucher dapat dihentikan,
+                diubah jam berlakunya, atau dibatasi kuotanya kapan saja tanpa pemberitahuan sebelumnya.
+              </li>
+            </ol>
+          </div>
+        </section>
+
         <!-- Kebijakan Produk -->
         <section id="kebijakan-produk" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">9) Kebijakan Produk &amp; Kualitas</h2>
+            <h2 class="h4">10) Kebijakan Produk &amp; Kualitas</h2>
             <ul class="mb-0">
               <li>Kami menjaga standar kebersihan dan kualitas; perbedaan tampilan/penyajian dapat terjadi karena ketersediaan bahan musiman.</li>
               <li>Informasi <strong>alergen</strong> dapat diminta kepada staf; pelanggan bertanggung jawab memberi tahu pantangan/kondisi alergi.</li>
@@ -177,7 +229,7 @@
         <!-- Ketertiban & Larangan -->
         <section id="larangan" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">10) Ketertiban, Keamanan &amp; Larangan</h2>
+            <h2 class="h4">11) Ketertiban, Keamanan &amp; Larangan</h2>
             <ol class="mb-0">
               <li>Dilarang merokok di area non-smoking dan dilarang membawa minuman keras/obat terlarang ke area terlarang.</li>
               <li>Dilarang membawa makanan/minuman dari luar tanpa izin Pengelola.</li>
@@ -190,7 +242,7 @@
         <!-- Privasi -->
         <section id="privasi" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">11) Privasi &amp; Perlindungan Data</h2>
+            <h2 class="h4">12) Privasi &amp; Perlindungan Data</h2>
             <p class="mb-2">
               Pemrosesan data pribadi mengikuti <a href="<?php echo site_url('hal/privacy_policy') ?>">Kebijakan Privasi</a>.
               Pengelola mematuhi ketentuan perundang-undangan, termasuk <strong>UU PDP No. 27/2022</strong>.
@@ -206,7 +258,7 @@
         <!-- Ketersediaan -->
         <section id="ketersediaan" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">12) Ketersediaan &amp; Perubahan Layanan</h2>
+            <h2 class="h4">13) Ketersediaan &amp; Perubahan Layanan</h2>
             <ol class="mb-0">
               <li>Layanan disediakan “sebagaimana adanya”; potensi gangguan dapat terjadi karena pemeliharaan/jaringan/pihak ketiga.</li>
               <li>Menu, harga, jam operasional, dan kebijakan dapat disesuaikan untuk peningkatan layanan.</li>
@@ -217,7 +269,7 @@
         <!-- Tanggung Jawab -->
         <section id="tanggung-jawab" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">13) Tanggung Jawab &amp; Batasan</h2>
+            <h2 class="h4">14) Tanggung Jawab &amp; Batasan</h2>
             <ol class="mb-0">
               <li>Pengelola tidak bertanggung jawab atas keterlambatan kurir, gangguan pihak ketiga, atau kesalahan alamat dari pelanggan.</li>
               <li>Kerugian akibat pelanggaran S&amp;K oleh pelanggan menjadi tanggung jawab pelanggan.</li>
@@ -229,7 +281,7 @@
         <!-- KI -->
         <section id="ki" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">14) Kekayaan Intelektual</h2>
+            <h2 class="h4">15) Kekayaan Intelektual</h2>
             <p class="mb-0">
               Seluruh logo, nama, konten, foto, tampilan antarmuka, dan kode pada sistem dilindungi hukum.
               Dilarang menyalin, memodifikasi, atau mendistribusikan tanpa izin tertulis Pengelola.
@@ -240,7 +292,7 @@
         <!-- Force Majeure -->
         <section id="force-majeure" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">15) Force Majeure</h2>
+            <h2 class="h4">16) Force Majeure</h2>
             <p class="mb-0">
               Pengelola dibebaskan dari tuntutan atas kejadian di luar kendali (bencana, listrik/jaringan, kebijakan pemerintah, dsb.)
               yang mengakibatkan layanan terganggu.
@@ -251,7 +303,7 @@
         <!-- Perubahan S&K -->
         <section id="perubahan" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">16) Perubahan Syarat &amp; Ketentuan</h2>
+            <h2 class="h4">17) Perubahan Syarat &amp; Ketentuan</h2>
             <p class="mb-0">
               Pengelola dapat memperbarui dokumen ini sewaktu-waktu. Versi terbaru akan ditampilkan pada situs/aplikasi.
               Penggunaan berkelanjutan setelah perubahan dianggap sebagai persetujuan pelanggan.
@@ -262,7 +314,7 @@
         <!-- Hukum -->
         <section id="hukum" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">17) Hukum &amp; Penyelesaian Sengketa</h2>
+            <h2 class="h4">18) Hukum &amp; Penyelesaian Sengketa</h2>
             <p class="mb-0">
               S&amp;K ini tunduk pada hukum Republik Indonesia. Sengketa diselesaikan terlebih dahulu melalui musyawarah;
               jika tidak tercapai, mengikuti mekanisme yang berlaku di wilayah <?php echo isset($rec->kabupaten) ? '<strong>'.$rec->kabupaten.'</strong>' : '<strong>Kota Makassar</strong>'; ?>.
@@ -273,7 +325,7 @@
         <!-- Kontak -->
         <section id="kontak" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">18) Kontak</h2>
+            <h2 class="h4">19) Kontak</h2>
             <p class="mb-2">Pertanyaan terkait S&amp;K dapat dikirim ke:</p>
             <address class="mb-0">
               <strong>Pengelola <?php echo $rec->nama_website ?? 'Ausi Cafe & Billiard'; ?></strong><br>

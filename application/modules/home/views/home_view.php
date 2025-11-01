@@ -80,13 +80,13 @@ $slides = [
    <div class="quickmenu-item">
     <a href="<?= site_url('produk/scan_qr') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#007bff;"><span class="emoji-icon">🍽️</span></div>
-      <small class="menu-label">Makan Disini</small>
+      <small class="menu-label">Makan Dicafe</small>
     </a>
   </div>
   <div class="quickmenu-item">
     <a href="<?= site_url('produk/delivery') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon">🚚</span></div>
-      <small class="menu-label">Antarin</small>
+      <small class="menu-label">Pesan Antar</small>
     </a>
   </div>
 
@@ -303,19 +303,8 @@ $slides = [
 
 
 
-<div class="t-card mb-3" style="--bg:url('<?= base_url('assets/images/billiard.webp') ?>')">
-  <blockquote class="t-quote">
-    <div class="font-weight-bold mb-1">Gratis Main Billiard 🎟️</div>
-            <!-- <div class="mb-0"> -->
-             Main <b><?= (int)$rec->batas_edit ?></b>x dapet <b>1 voucher Free Main Billiard selama <?php echo $rec->jam_voucher_default." jam" ?></b>. Gaskeun — rajin main, kumpulin poinnya! 🔥 Sistem bakal ngitung otomatis jumlah main kamu dan langsung ngasih tau.
-            <!-- </div> -->
-   <!--  Booking billiard sekarang makin cepet, praktis, dan transparan. 
-    Cukup beberapa langkah dari HP—semua kebutuhan main ada di satu tempat. 
-    Bonus: ada voucher gratis main juga! -->
-  </blockquote>
-  <div class="t-author"><?= htmlspecialchars($rec->type ?? '', ENT_QUOTES, 'UTF-8') ?></div>
-  <a class="t-btn" href="<?= site_url('billiard') ?>">Gas Booking</a>
-</div>
+<?php $this->load->view("front_end/banner_billiard") ?>
+
 
 
 </div>
