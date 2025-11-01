@@ -244,9 +244,43 @@ $valid_days = (int)($batas_hari ?? 30);        // masa berlaku voucher dari crea
                 <!-- CTA per voucher -->
                 <div class="text-center">
                   <?php if (!$v->is_expired): ?>
-                    <a href="<?= site_url('billiard') ?>" class="btn btn-blue btn-block" style="width:100%;">
-                      Klaim Voucher
+                    <style>
+                      /* State loading khusus tombol klaim */
+                      .btn-claim.loading {
+                        opacity: .7;
+                        pointer-events: none; /* cegah spam klik */
+                        cursor: wait;
+                      }
+                    </style>
+
+                    <a href="<?= site_url('billiard') ?>"
+                       class="btn btn-blue btn-block btn-claim"
+                       style="width:100%;">
+                      <span class="btn-text">Klaim Voucher</span>
                     </a>
+
+                    <script>
+                    (function(){
+                      // Delegasi klik supaya jalan walau tombol dibuat dinamis
+                      document.addEventListener('click', function(e){
+                        var btn = e.target.closest('a.btn-claim');
+                        if (!btn) return;
+
+                        // kalau sudah pernah loading, jangan proses 2x
+                        if (btn.classList.contains('loading')) return;
+
+                        // Tambah class loading (efek visual & lock)
+                        btn.classList.add('loading');
+
+                        // Ganti isi tombol jadi spinner + teks
+                        btn.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i> <span>Memproses...</span>';
+
+                        // biarkan default jalan → browser tetap redirect ke href
+                        // jadi tidak pakai preventDefault()
+                      }, true); // capture=true biar kejadian sebelum nav lanjut
+                    })();
+                    </script>
+
                   <?php else: ?>
                     <button class="btn btn-secondary btn-block" style="width:100%;border-radius:10px;font-weight:600;" disabled>
                       Tidak dapat diklaim

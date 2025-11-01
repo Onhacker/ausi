@@ -212,9 +212,59 @@ document.addEventListener('DOMContentLoaded', function () {
               di area <b>±<?= $fmtRadiusKm ?> km</b> dari <?php echo $rec->nama_website ?>. Gas checkout, ya! 😉
             </p>
 
-            <a href="<?= site_url('produk/delivery') ?>" class="btn btn-blue waves-effect waves-light mt-2">
-              <i class="mdi mdi-truck-delivery"></i> Pesan Antar Sekarang
+            <!-- ==== STYLE KECIL UNTUK STATE LOADING ==== -->
+            <style>
+              .btn-loading {
+                opacity: .7;
+                pointer-events: none; /* gak bisa diklik ulang */
+                cursor: wait;
+              }
+            </style>
+
+            <!-- ==== TOMBOLNYA ==== -->
+            <a id="btnDelivery"
+               href="<?= site_url('produk/delivery') ?>"
+               class="btn btn-blue waves-effect waves-light mt-2 d-inline-flex align-items-center"
+               style="gap:.4rem;">
+              <i class="mdi mdi-truck-delivery"></i>
+              <span>Pesan Antar Sekarang</span>
             </a>
+
+            <!-- ==== SCRIPT HANDLER LOADING ==== -->
+            <script>
+            (function(){
+              var btn = document.getElementById('btnDelivery');
+              if (!btn) return;
+
+              var originalHTML = btn.innerHTML;
+
+              btn.addEventListener('click', function(e){
+                // jangan lakukan apa-apa kalau sudah loading
+                if (btn.classList.contains('btn-loading')) return;
+
+                // ubah tampilan jadi loading
+                btn.classList.add('btn-loading');
+                btn.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i>' +
+                                '<span>Memproses...</span>';
+
+                // OPTIONAL:
+                // kalau kamu mau tetap langsung pindah halaman (normal)
+                // biarkan saja, browser akan load href.
+
+                // kalau kamu MAU tahan dulu (misal AJAX),
+                // uncomment baris di bawah:
+                // e.preventDefault();
+                // ... lanjutkan AJAX-mu di sini
+              });
+
+              // (opsional) kalau kamu pengen bisa balikin tombol ke normal via JS:
+              window.resetDeliveryBtn = function(){
+                btn.classList.remove('btn-loading');
+                btn.innerHTML = originalHTML;
+              };
+            })();
+            </script>
+
 
            
           </div>
@@ -271,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 
-
+<?php $this->load->view("front_end/banner_billiard") ?>
 
     <div class="feature-slider" id="featureSlider">
       <button class="fs-nav prev" type="button" aria-label="Sebelumnya">‹</button>
@@ -366,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-<?php $this->load->view("front_end/banner_billiard") ?>
+
 
 
 

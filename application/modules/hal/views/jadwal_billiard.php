@@ -693,13 +693,45 @@ $bandDescGenericWithRate = function($startHHMM,$endHHMM,$rate,$abbrTZ) use ($ban
 
           </div><!-- /.op-body -->
 
-          <div class="ribbon-cta mt-3">
-            <a class="cta-btn"
-               href="<?= site_url('billiard?meja_id='.(int)$m->id_meja) ?>"
-               title="Buka halaman booking billiard">
-              <i>Booking Yuk !!</i>
-            </a>
-          </div>
+          <style>
+  /* State loading untuk tombol booking */
+  .cta-btn.loading {
+    opacity: .7;
+    pointer-events: none; /* cegah spam klik */
+    cursor: wait;
+  }
+</style>
+
+<div class="ribbon-cta mt-3">
+  <a class="cta-btn d-inline-flex align-items-center"
+     style="gap:.4rem;"
+     href="<?= site_url('billiard?meja_id='.(int)$m->id_meja) ?>"
+     title="Buka halaman booking billiard">
+    <i>Booking Yuk !!</i>
+  </a>
+</div>
+
+<script>
+(function(){
+  // pakai event delegation biar aman walau banyak .cta-btn di halaman
+  document.addEventListener('click', function(e){
+    // cari anchor terdekat dengan class .cta-btn
+    var a = e.target.closest('a.cta-btn');
+    if (!a) return;
+
+    // kalau sudah loading, jangan proses dua kali
+    if (a.classList.contains('loading')) return;
+
+    // ubah tampilan jadi loading
+    a.classList.add('loading');
+    a.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i><span>Memproses...</span>';
+
+    // biarkan browser tetap follow href normal (navigate)
+    // jadi TIDAK e.preventDefault()
+  }, true); // capture=true supaya kena duluan sebelum nav jalan
+})();
+</script>
+
 
         </div><!-- /.op-tablecard -->
       </div><!-- /.col -->
