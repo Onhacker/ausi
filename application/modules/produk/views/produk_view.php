@@ -943,8 +943,8 @@ if (!empty($kategoris)) {
         'Dine-in');
     } else if (curModeRaw === 'delivery'){
       modeNice = 'Delivery';
-    } else if (curModeRaw === 'takeaway' || curModeRaw === 'take-away' || curModeRaw === 'pickup'){
-      modeNice = 'Takeaway';
+    } else if (curModeRaw === 'walkin'){
+      modeNice = 'Takeaway/Bungkus';
     } else {
       modeNice = 'Belanja biasa';
     }
@@ -972,10 +972,10 @@ if (!empty($kategoris)) {
         Kamu saat ini mode <b>${modeNice}</b> 🚚<br>
         Kami bisa antar pesananmu ke alamat kamu.
       `;
-    } else if (curModeRaw === 'takeaway' || curModeRaw === 'take-away' || curModeRaw === 'pickup'){
+    } else if (curModeRaw === 'walkin'){
       htmlMsg = `
         Kamu saat ini mode <b>${modeNice}</b> 👜<br>
-        Pesananmu akan disiapkan untuk diambil.
+        Pesananmu akan dibungkus untuk diambil.
       `;
     } else {
       htmlMsg = `
@@ -998,7 +998,7 @@ if (!empty($kategoris)) {
     // === END ALERT MODE ===
 
 
-    
+
   });
 
   // Restore state saat user pakai tombol Back/Forward browser
