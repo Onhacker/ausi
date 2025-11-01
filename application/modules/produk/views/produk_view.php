@@ -929,7 +929,7 @@ if (!empty($kategoris)) {
 
     const firstPage = parseInt(url.searchParams.get('page') || '1', 10);
     loadProducts(firstPage, false);
-     // === ALERT MODE ===
+        // === ALERT MODE ===
     // baca data-mode & data-meja dari #mode-info
     const $modeInfo   = $('#mode-info');
     const curModeRaw  = ($modeInfo.data('mode') || '').toString().toLowerCase();
@@ -946,41 +946,44 @@ if (!empty($kategoris)) {
     } else if (curModeRaw === 'takeaway' || curModeRaw === 'take-away' || curModeRaw === 'pickup'){
       modeNice = 'Takeaway';
     } else {
-      // fallback kalau kosong / unknown
       modeNice = 'Belanja biasa';
     }
 
-    // cuma tampilkan kalau ada Swal dan belum pernah ditampilkan di sesi ini
-    // biar ga ganggu saat user balik-balik via pushState/popstate
-    if (window.Swal && !sessionStorage.getItem('modeAlertShown')) {
-      sessionStorage.setItem('modeAlertShown', '1');
+    // ambil mode terakhir dari sessionStorage
+    const prevMode = sessionStorage.getItem('lastMode') || '';
 
-      // pesan untuk dine-in kita kasih sedikit konteks
-      let htmlMsg = '';
-      if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
-        htmlMsg = `
-          Kamu saat ini <b>${modeNice}</b> 👋<br>
-          Pesanan akan dicatat ke meja kamu.<br><br>
-          <small style="color:#6b7280;display:inline-block;margin-top:.25rem;">
-            Mau pindah jadi Delivery / Takeaway? Pakai tombol keluar di atas (ikon keluar meja).
-          </small>
-        `;
-      } else if (curModeRaw === 'delivery'){
-        htmlMsg = `
-          Kamu saat ini mode <b>${modeNice}</b> 🚚<br>
-          Kami bisa antar pesananmu ke alamat kamu.
-        `;
-      } else if (curModeRaw === 'takeaway' || curModeRaw === 'take-away' || curModeRaw === 'pickup'){
-        htmlMsg = `
-          Kamu saat ini mode <b>${modeNice}</b> 👜<br>
-          Pesananmu akan disiapkan untuk diambil.
-        `;
-      } else {
-        htmlMsg = `
-          Kamu belanja sebagai <b>${modeNice}</b> 🛍️
-        `;
-      }
+    // kita tentukan apakah perlu tampil alert:
+    // - kalau belum pernah diset (first load) => tampilkan
+    // - atau kalau mode sekarang beda dengan prevMode => tampilkan
+    const shouldShowAlert = (prevMode === '' || prevMode !== curModeRaw);
 
+    // siapkan HTML pesan buat Swal
+    let htmlMsg = '';
+    if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
+      htmlMsg = `
+        Kamu saat ini <b>${modeNice}</b> 👋<br>
+        Pesanan akan dicatat ke meja kamu.<br><br>
+        <small style="color:#6b7280;display:inline-block;margin-top:.25rem;">
+          Mau pindah jadi Delivery / Takeaway? Pakai tombol keluar di atas (ikon keluar meja).
+        </small>
+      `;
+    } else if (curModeRaw === 'delivery'){
+      htmlMsg = `
+        Kamu saat ini mode <b>${modeNice}</b> 🚚<br>
+        Kami bisa antar pesananmu ke alamat kamu.
+      `;
+    } else if (curModeRaw === 'takeaway' || curModeRaw === 'take-away' || curModeRaw === 'pickup'){
+      htmlMsg = `
+        Kamu saat ini mode <b>${modeNice}</b> 👜<br>
+        Pesananmu akan disiapkan untuk diambil.
+      `;
+    } else {
+      htmlMsg = `
+        Kamu belanja sebagai <b>${modeNice}</b> 🛍️
+      `;
+    }
+
+    if (window.Swal && shouldShowAlert){
       Swal.fire({
         icon: 'info',
         title: modeNice,
@@ -989,7 +992,11 @@ if (!empty($kategoris)) {
         width: 320
       });
     }
+
+    // simpan mode yg sekarang jadi "lastMode"
+    sessionStorage.setItem('lastMode', curModeRaw);
     // === END ALERT MODE ===
+
 
     
   });
