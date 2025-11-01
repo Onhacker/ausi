@@ -114,9 +114,9 @@ if (!$isClosedDay) {
 
   <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul halaman">
     <?php $this->load->view("front_end/back") ?>
-    <h1 class="text"><?= htmlspecialchars($rec->title ?? ($title ?? 'Jadwal Kunjungan'), ENT_QUOTES, 'UTF-8') ?></h1>
+    <h1 class="text">Cafe</h1>
     <?php if (!empty($deskripsi)): ?>
-      <div class="text-white"><?= htmlspecialchars($deskripsi, ENT_QUOTES, 'UTF-8') ?></div>
+      <!-- <div class="text-white"><?= htmlspecialchars($deskripsi, ENT_QUOTES, 'UTF-8') ?></div> -->
     <?php endif; ?>
     <span class="accent" aria-hidden="true"></span>
   </div>
