@@ -682,6 +682,15 @@
             </div>
 
             <div class="quickmobilem-item">
+              <a href="<?= site_url('hal/review') ?>" class="qcard d-block text-decoration-none" aria-label="Pengumuman" data-menuloading="1">
+                <div class="menu-circle" style="background:#00BFFF;">
+                  <span class="emoji-icon" aria-hidden="true">⭐</span>
+                </div>
+                <small class="menu-label">Google Review</small>
+              </a>
+            </div>
+
+            <div class="quickmobilem-item">
               <a href="<?= site_url('hal/privacy_policy') ?>" class="qcard d-block text-decoration-none" aria-label="Kebijakan Privasi" data-menuloading="1">
                 <div class="menu-circle" style="background:#16a085;">
                   <span class="emoji-icon" aria-hidden="true">🔒</span>

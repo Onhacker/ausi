@@ -82,6 +82,20 @@ class Hal extends MX_Controller {
         $this->load->view('pijat', $data);
     }
 
+     public function review()
+    {
+        $rec = $this->fm->web_me();
+
+        $data["rec"]       = $rec;
+        $data["title"]      = "Google Review";
+        $data["deskripsi"]  = "Review " . $rec->nama_website . " di Google.";
+        $data["prev"]      = base_url("assets/images/mark.webp");
+        $data["rating_avg"]    = 4.9;   // float
+	    $data["rating_total"]  = 120;   // int, total ulasan
+	    $data["gmaps_url"]     = $rec->maps;
+        $this->load->view('review', $data);
+    }
+
 
     /** Endpoint JSON untuk listing (AJAX) */
     public function pengumuman_data()

@@ -1,6 +1,6 @@
 /* ===== Service Worker ===== */
 
-const CACHE_NAME  = 'ausi-20';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-21';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 
 /* HTML publik yang boleh dicache (path tanpa query) */
@@ -14,6 +14,7 @@ const HTML_CACHE_WHITELIST = new Set([
   '/scan',
   '/produk',
   '/pijat',
+  '/review',
   '/hal/pengumuman'
   ])
 
@@ -30,6 +31,8 @@ const urlsToCache = [
 '/scan',
 '/hal/pengumuman',
 '/produk',
+  '/review',
+
 '/pijat',
 
 

@@ -274,45 +274,130 @@ if (is_file($img_path)) {
 
       <?php $uri = $this->uri->uri_string(); ?>
       <div id="navigation">
-        <ul class="navigation-menu">
-          <li class="has-submenu <?= ($uri === '' || $uri === 'home') ? 'active-menu' : '' ?>">
-            <a href="<?= site_url('home'); ?>">
-              &nbsp;&nbsp;&nbsp;<i class="fe-home"></i> Home
-            </a>
-          </li>
+          <ul class="navigation-menu">
 
-          <li class="has-submenu <?= ($uri === 'produk') ? 'active-menu' : '' ?>">
-            <a href="<?= site_url('produk'); ?>">
-              <i class="fas fa-dumpster-fire"></i> Produk
-            </a>
-          </li>
+            <!-- HOME -->
+            <li class="<?= ($uri === '' || $uri === 'home') ? 'active-menu' : '' ?>">
+              <a href="<?= site_url('home'); ?>">
+                &nbsp;&nbsp;&nbsp;<i class="fe-home"></i> Home
+              </a>
+            </li>
 
-          <li class="has-submenu <?= ($uri === 'billiard') ? 'active-menu' : '' ?>">
-            <a href="<?= site_url('billiard'); ?>">
-              <i class="fe-calendar"></i> Booking Billiard
-            </a>
-          </li>
+            <!-- MAKAN & ORDER -->
+            <li class="has-submenu <?= in_array($uri, ['scan','produk','produk/delivery','produk/walkin']) ? 'active-menu' : '' ?>">
+              <a href="javascript:void(0);">
+                <i class="fas fa-utensils"></i> Makan &amp; Order
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="submenu">
+                <li class="<?= ($uri === 'scan') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('scan') ?>">
+                    🍽️ Makan di Sini (Scan QR)
+                  </a>
+                </li>
+                <li class="<?= ($uri === 'produk/delivery' || $uri === 'delivery') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('produk/delivery') ?>">
+                    🚚 Antar / Delivery
+                  </a>
+                </li>
+                <li class="<?= ($uri === 'produk/walkin' || $uri === 'walkin') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('produk/walkin') ?>">
+                    🛍️ Bungkus (Walk-in)
+                  </a>
+                </li>
+              </ul>
+            </li>
 
-          <li class="has-submenu <?= ($uri === 'hal/jadwal') ? 'active-menu' : '' ?>">
-            <a href="<?= site_url('hal/jadwal'); ?>">
-              <i class="fas fa-mug-hot"></i> Nongki
-            </a>
-          </li>
+            <!-- BILLIARD -->
+            <li class="has-submenu <?= in_array($uri, ['billiard','meja_billiard','billiard/daftar_booking','billiard/daftar_voucher']) ? 'active-menu' : '' ?>">
+              <a href="javascript:void(0);">
+                <i class="fe-calendar"></i> Billiard
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="submenu">
+                <li class="<?= ($uri === 'billiard') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('billiard'); ?>">
+                    🎱 Booking Billiard
+                  </a>
+                </li>
+                <li class="<?= ($uri === 'meja_billiard') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('meja_billiard'); ?>">
+                    👀 Tarif Meja Billiard
+                  </a>
+                </li>
+                <li class="<?= ($uri === 'billiard/daftar_booking') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('billiard/daftar_booking'); ?>">
+                    📋 List Bookingan
+                  </a>
+                </li>
+                <li class="<?= ($uri === 'billiard/daftar_voucher') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('billiard/daftar_voucher'); ?>">
+                    🎁 Gratis Main
+                  </a>
+                </li>
+              </ul>
+            </li>
 
-          <li class="has-submenu <?= ($uri === 'hal/pengumuman') ? 'active-menu' : '' ?>">
-            <a href="<?= site_url('hal/pengumuman'); ?>">
-              <i class="fe-bell"></i> Pengumuman
-            </a>
-          </li>
+            <!-- JADWAL -->
+            <li class="<?= in_array($uri, ['cafe','hal/jadwal']) ? 'active-menu' : '' ?>">
+              <a href="<?= site_url('cafe'); ?>">
+                <i class="fe-clock"></i> Cafe
+              </a>
+            </li>
 
-          <li class="has-submenu <?= ($uri === 'hal/kontak') ? 'active-menu' : '' ?>">
-            <a href="<?= site_url('hal/kontak'); ?>">
-              <i class="fe-phone-call"></i> Kontak
-            </a>
-          </li>
-        </ul>
-        <div class="clearfix"></div>
-      </div>
+            <!-- KURSI PIJAT -->
+            <li class="<?= ($uri === 'pijat') ? 'active-menu' : '' ?>">
+              <a href="<?= site_url('pijat'); ?>">
+                <i class="fas fa-spa"></i> Kursi Pijat
+              </a>
+            </li>
+
+            <!-- KONTAK -->
+            <li class="<?= ($uri === 'hal/kontak') ? 'active-menu' : '' ?>">
+              <a href="<?= site_url('hal/kontak'); ?>">
+                <i class="fe-phone-call"></i> Kontak
+              </a>
+            </li>
+
+            <!-- INFO -->
+            <li class="has-submenu <?= in_array($uri, ['hal/pengumuman','hal/review','hal/privacy_policy','hal']) ? 'active-menu' : '' ?>">
+              <a href="javascript:void(0);">
+                <i class="fe-info"></i> Info
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="submenu">
+
+                <li class="<?= ($uri === 'hal/pengumuman') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('hal/pengumuman'); ?>">
+                    📣 Pengumuman
+                  </a>
+                </li>
+
+                <li class="<?= ($uri === 'hal/review') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('hal/review'); ?>">
+                    ⭐ Google Review
+                  </a>
+                </li>
+
+                <li class="<?= ($uri === 'hal/privacy_policy') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('hal/privacy_policy'); ?>">
+                    🔒 Kebijakan Privasi
+                  </a>
+                </li>
+
+                <li class="<?= ($uri === 'hal') ? 'active-menu' : '' ?>">
+                  <a href="<?= site_url('hal'); ?>">
+                    📜 S&amp;K
+                  </a>
+                </li>
+
+              </ul>
+            </li>
+
+          </ul>
+          <div class="clearfix"></div>
+        </div>
+
 
     </div><!-- /.container-fluid -->
   </div><!-- /.topbar-menu -->
