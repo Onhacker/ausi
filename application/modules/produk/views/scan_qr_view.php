@@ -139,15 +139,43 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
 }
 
 /* ===========================================
-   FULLSCREEN STYLE
+   FULLSCREEN STYLE / iPHONE FIX
    =========================================== */
 
-body.scan-lock { overflow:hidden; }
+/* Catatan:
+   - Saat fullscreen custom aktif, JS akan:
+     1. pindahkan #cameraWrap jadi child langsung <body>
+     2. tambahkan class body.scan-lock
+   - Rule di bawah sembunyikan SEMUA anak body
+     KECUALI #cameraWrap.
+   - Jadi header, footer, modal share lain, dsb AUT0-HIDE.
+*/
 
+body.scan-lock {
+  overflow:hidden;
+}
+
+/* SEMUA anak body hilang saat scan-lock, kecuali kamera */
+body.scan-lock > *:not(#cameraWrap){
+  display:none !important;
+}
+
+/* backup tambahan kalau ada element global masih paksa fixed */
+body.scan-lock .navbar-bottom,
+body.scan-lock .navbar.fixed-bottom,
+body.scan-lock .navbar.fixed-top,
+body.scan-lock header,
+body.scan-lock .hero-title,
+body.scan-lock .site-header,
+body.scan-lock .site-footer {
+  display:none !important;
+}
+
+/* wrapper fullscreen custom */
 #cameraWrap.fullscreen-scan{
   position: fixed !important;
   inset: 0 !important;
-  z-index:1060 !important;
+  z-index:2147483647 !important;
   background:#000;
   margin:0 !important;
   border-radius:0 !important;
@@ -158,28 +186,8 @@ body.scan-lock { overflow:hidden; }
     env(safe-area-inset-left);
 }
 
+/* video di fullscreen harus cover layar penuh */
 #cameraWrap.fullscreen-scan video{
-  position:absolute; inset:0;
-  width:100vw !important;
-  height:100svh !important;
-  height:100dvh !important;
-  height:100vh !important;
-  object-fit:cover !important;
-  border-radius:0 !important;
-  aspect-ratio:auto !important;
-  background:#000;
-}
-
-/* Native Fullscreen API */
-#cameraWrap:fullscreen,
-#cameraWrap:-webkit-full-screen {
-  background:#000;
-}
-#cameraWrap:fullscreen video,
-#cameraWrap:-webkit-full-screen video,
-#cameraWrap.is-fs video,
-video:fullscreen,
-video:-webkit-full-screen{
   position:absolute; inset:0;
   width:100vw !important;
   height:100svh !important;
@@ -196,7 +204,7 @@ video:-webkit-full-screen{
   position:absolute;
   top:10px;
   right:10px;
-  z-index:1070;
+  z-index:2147483648;
   width:42px;
   height:42px;
   border:0;
@@ -223,7 +231,7 @@ video:-webkit-full-screen{
   top:calc(env(safe-area-inset-top) + 56px);
   max-width:90%;
   margin:0 auto;
-  z-index:1080;
+  z-index:2147483648;
   display:none;
 
   text-align:center;
@@ -238,18 +246,17 @@ video:-webkit-full-screen{
   padding:6px 10px;
   box-shadow:0 8px 24px rgba(0,0,0,.7);
 }
-/* tampilkan hint kalau fullscreen aktif + kamera aktif */
 #cameraWrap.is-fs.scan-active .fs-hint{
   display:block;
 }
 
-/* tombol torch besar di fullscreen (🔦) */
+/* tombol torch fullscreen besar */
 .fs-torch-btn{
   position:absolute;
   left:50%;
   transform:translateX(-50%);
   bottom:calc(env(safe-area-inset-bottom) + 20px);
-  z-index:1080;
+  z-index:2147483648;
 
   min-width:64px;
   min-height:64px;
@@ -270,7 +277,6 @@ video:-webkit-full-screen{
 
   box-shadow:0 8px 24px rgba(0,0,0,.7);
 
-  /* default: HILANG total kalau bukan fullscreen */
   display:none;
   opacity:.4;
   pointer-events:none;
@@ -288,12 +294,12 @@ video:-webkit-full-screen{
   text-shadow:0 1px 2px rgba(0,0,0,.9);
 }
 
-/* fullscreen aktif + kamera aktif → tampilkan tombol torch (tapi masih "mati") */
+/* tampilkan torch di fullscreen aktif */
 #cameraWrap.is-fs.scan-active .fs-torch-btn{
   display:flex;
 }
 
-/* device support torch → aktifkan pointer + terang */
+/* aktifkan interaksi torch kalau device support */
 #cameraWrap.is-fs.scan-active.torch-ready .fs-torch-btn{
   opacity:1;
   pointer-events:auto;
@@ -301,7 +307,7 @@ video:-webkit-full-screen{
   background:rgba(0,0,0,.7);
 }
 
-/* Tombol Senter kecil (bawah kamera, mode normal) */
+/* Tombol Senter kecil (mode normal) */
 #btnTorch{
   visibility:hidden; /* default hidden sampai device support torch */
 }
@@ -495,15 +501,8 @@ video:-webkit-full-screen{
   const btnTorch     = document.getElementById('btnTorch');
   const cameraSelect = document.getElementById('cameraSelect');
 
-  // fallback TAG_BASE kalau variabel view tidak ada
+  // fallback TAG_BASE
   const TAG_BASE = <?php echo json_encode(isset($tag_base) ? $tag_base : site_url('produk/tag/')); ?>;
-
-  /* =========================
-     HELPER PLATFORM
-  ========================== */
-  function isIOS(){
-    return /iP(hone|od|ad)/i.test(navigator.userAgent);
-  }
 
   /* =========================
      STATE
@@ -514,6 +513,10 @@ video:-webkit-full-screen{
   let currentStream  = null;
   let torchTrack     = null;
   let facing         = 'environment'; // prefer kamera belakang
+
+  // untuk restore DOM setelah fullscreen
+  let __origParent   = null;
+  let __placeholder  = null;
 
   /* =========================
      HELPERS
@@ -585,14 +588,14 @@ video:-webkit-full-screen{
       btnTorch.disabled = false;
       btnTorch.style.visibility = 'visible';
 
-      // tombol fullscreen (akan kelihatan hanya saat fullscreen)
+      // tombol fullscreen
       btnTorchFS.style.opacity = '1';
       btnTorchFS.style.pointerEvents = 'auto';
     } else {
       disableTorchUI();
     }
 
-    // coba autofocus continuous (beberapa Samsung nurut)
+    // autofocus continuous kalau device mau
     try {
       track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
     } catch(e){
@@ -614,7 +617,7 @@ video:-webkit-full-screen{
      CAMERA ENUM & CONSTRAINTS
   ========================== */
   async function ensureLabels(){
-    // minta izin sekali supaya label kamera kebuka di Android/iOS
+    // minta izin sekali supaya label kamera kebuka
     try {
       await navigator.mediaDevices.getUserMedia({video:true, audio:false});
     } catch(e){}
@@ -630,23 +633,20 @@ video:-webkit-full-screen{
       devices = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
     }
 
-    // --- kita coba tentukan mana kemungkinan kamera belakang
-    // prioritas:
-    // 1. label mengandung "back" / "rear" / "environment"
-    // 2. kalau gak ada label jelas, pakai device terakhir (kebanyakan Android urutannya: front dulu, belakang belakangan)
+    // coba tebak mana belakang
     let backGuess = null;
 
-    // 1. cari via nama
+    // 1. via nama
     backGuess = devices.find(d =>
       /back|rear|environment/i.test(d.label || '')
     );
 
-    // 2. kalau masih null dan ada lebih dari 1 kamera, ambil kamera terakhir
+    // 2. fallback: terakhir (biasa belakang)
     if (!backGuess && devices.length > 1){
       backGuess = devices[devices.length - 1];
     }
 
-    // sekarang render <select>
+    // render dropdown
     cameraSelect.innerHTML = '';
     devices.forEach((d,i)=>{
       const opt = document.createElement('option');
@@ -655,11 +655,10 @@ video:-webkit-full-screen{
       cameraSelect.appendChild(opt);
     });
 
-    // pilih default: kamera belakang kalau ada
+    // auto-select default
     if (backGuess){
       cameraSelect.value = backGuess.deviceId || '';
     } else if (devices[0]) {
-      // fallback aman: pilih index 0 biar gak kosong
       cameraSelect.value = devices[0].deviceId || '';
     }
 
@@ -667,7 +666,7 @@ video:-webkit-full-screen{
   }
 
   function buildBaseConstraints({ deviceId, prefFacing } = {}){
-    // high-res attempt 1080p
+    // target high-res
     const highRes = {
       audio:false,
       video:{
@@ -687,11 +686,11 @@ video:-webkit-full-screen{
   }
 
   async function startWithConstraints(cons){
-    // Jalankan decoding pakai constraints kita (bukan default ZXing 480p)
+    // ZXing decode dengan constraints custom
     controlsObj = await reader.decodeFromConstraints(cons, video, (res, err)=>{
       if (res && res.text){
         const codeText = (res.text || '').trim();
-        stopScan();        // stop supaya ga spam scan
+        stopScan();        // stop supaya ga spam
         handleDecoded(codeText);
       }
     });
@@ -720,15 +719,15 @@ video:-webkit-full-screen{
   async function startScan(deviceId){
     running = true;
 
-    // beberapa browser nolak resolusi tinggi → kita coba bertahap
+    // multi-try constraint dari paling bagus → fallback
     const tries = [];
 
-    // 1. high-res dengan kamera yg dipilih user
+    // 1. high-res kamera pilihan user
     if (deviceId){
       tries.push(buildBaseConstraints({ deviceId }));
     }
 
-    // 2. high-res pakai 'environment'
+    // 2. high-res 'environment'
     tries.push(buildBaseConstraints({ prefFacing:'environment' }));
 
     // 3. fallback 1280x720
@@ -752,7 +751,7 @@ video:-webkit-full-screen{
       }
     });
 
-    // 5. ultimate true
+    // 5. ultimate fallback
     tries.push({ audio:false, video:true });
 
     let lastErr = null;
@@ -779,13 +778,13 @@ video:-webkit-full-screen{
         ? 'Akses kamera ditolak. Cek izin situs di address bar ya.'
         : (name==='NotFoundError')
           ? 'Kamera nggak ketemu di perangkat ini.'
-          : (name==='NotReadableError')
-            ? 'Kamera lagi dipakai aplikasi lain. Tutup dulu aplikasi kamera/meeting-nya.'
-            : (name==='OverconstrainedError')
-              ? 'Kamera yang diminta nggak tersedia. Coba pilih kamera lain.'
-              : (name==='SecurityError')
-                ? 'Butuh HTTPS atau halaman tidak dibatasi iframe/policy.'
-                : ('Gagal buka kamera: ' + (msg || name || 'tidak diketahui'))
+        : (name==='NotReadableError')
+          ? 'Kamera lagi dipakai aplikasi lain. Tutup dulu aplikasi kamera/meeting-nya.'
+        : (name==='OverconstrainedError')
+          ? 'Kamera yang diminta nggak tersedia. Coba pilih kamera lain.'
+        : (name==='SecurityError')
+          ? 'Butuh HTTPS atau halaman tidak dibatasi iframe/policy.'
+        : ('Gagal buka kamera: ' + (msg || name || 'tidak diketahui'))
     );
   }
 
@@ -823,62 +822,57 @@ video:-webkit-full-screen{
   }
 
   /* =========================
-     FULLSCREEN HANDLING
+     FULLSCREEN HANDLING (iPhone-safe)
+     - Kita TIDAK pakai requestFullscreen / webkitEnterFullscreen.
+     - Kita PINDAHKAN #cameraWrap langsung jadi child <body>.
+     - <body> dikasih class scan-lock.
+     - CSS body.scan-lock > *:not(#cameraWrap) {display:none!important;}
+       => semua elemen lain (header/footer/modal/bottomsheet) ilang.
   ========================== */
-  async function enterFullscreen(){
-    // iOS Safari: jangan pakai webkitEnterFullscreen() karena stream camera jadi hitam.
-    // Pakai overlay CSS fullscreen-scan.
-    if (isIOS()){
-      wrap.classList.add('fullscreen-scan','is-fs');
-      document.body.classList.add('scan-lock');
-      btnExitFs.classList.remove('d-none');
-      return;
+
+  function enterFullscreen(){
+    // simpan posisi asli
+    if (!__placeholder){
+      __placeholder = document.createElement('div');
+      __placeholder.id = 'cameraWrapPlaceholderTmp';
+    }
+    if (!__origParent){
+      __origParent = wrap.parentNode;
     }
 
-    // Non-iOS: coba Fullscreen API standar dulu.
-    try{
-      if (wrap && wrap.requestFullscreen) {
-        await wrap.requestFullscreen();
-        wrap.classList.add('is-fs');
-        btnExitFs.classList.remove('d-none');
-        return;
-      }
-    }catch(e){
-      console.warn('requestFullscreen gagal, fallback overlay:', e);
+    // selipkan placeholder di DOM lama (biar kita bisa balik)
+    if (__origParent && wrap.parentNode === __origParent){
+      __origParent.insertBefore(__placeholder, wrap);
     }
 
-    // Fallback manual (Android lama / browser aneh)
+    // pindahkan kamera jadi child body paling akhir
+    document.body.appendChild(wrap);
+
+    // apply kelas fullscreen
     wrap.classList.add('fullscreen-scan','is-fs');
     document.body.classList.add('scan-lock');
     btnExitFs.classList.remove('d-none');
   }
 
   function exitFullscreen(){
-    // Kalau browser lagi pakai Fullscreen API → keluarin
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen();
+    // balikin kamera ke posisi semula
+    if (__placeholder && __origParent){
+      try{
+        __origParent.replaceChild(wrap, __placeholder);
+      }catch(e){
+        // fallback kalau replace gagal -> append saja
+        __origParent.appendChild(wrap);
+        __placeholder.remove();
+      }
     }
 
-    // Selalu matikan kelas overlay fallback
     wrap.classList.remove('fullscreen-scan','is-fs');
     document.body.classList.remove('scan-lock');
     btnExitFs.classList.add('d-none');
   }
 
-  // sync kalau user tekan ESC native fullscreen
-  document.addEventListener('fullscreenchange', ()=>{
-    if (!document.fullscreenElement){
-      wrap.classList.remove('fullscreen-scan','is-fs');
-      document.body.classList.remove('scan-lock');
-      btnExitFs.classList.add('d-none');
-    } else {
-      wrap.classList.add('is-fs');
-      btnExitFs.classList.remove('d-none');
-    }
-  });
-
   function toggleFullscreen(){
-    if (document.fullscreenElement || wrap.classList.contains('fullscreen-scan')){
+    if (wrap.classList.contains('fullscreen-scan')){
       exitFullscreen();
     } else {
       enterFullscreen();
@@ -904,7 +898,7 @@ video:-webkit-full-screen{
       return;
     }
 
-    await listCameras(); // refresh list & pilih kamera belakang kalau ada
+    await listCameras(); // refresh list & pilih kamera belakang
     const devId = cameraSelect.value || null;
 
     stopScan(); // bersihkan sesi lama kalau ada
