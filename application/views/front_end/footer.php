@@ -171,12 +171,12 @@
     <div class="nav-item">
       <a
         href="<?= base_url('billiard') ?>"
-        class="<?= ($uri == 'billiard' || $uri == 'billiard/daftar_booking' || $uri == 'hal/jadwal_billiard' || $uri == 'billiard/daftar_voucher') ? 'text-active' : 'text-dark' ?>"
+        class="<?= ($uri == 'billiard' || $uri == 'billiard/daftar_booking' || $uri == 'meja_billiard' || $uri == 'billiard/daftar_voucher') ? 'text-active' : 'text-dark' ?>"
         data-swaltarget="billiard-menu"
         data-booking="<?= base_url('billiard') ?>"
         data-list="<?= base_url('billiard/daftar_booking') ?>"       
         data-free="<?= base_url('billiard/daftar_voucher') ?>"
-        data-history="<?= base_url('hal/jadwal_billiard') ?>"
+        data-history="<?= base_url('meja_billiard') ?>"
       >
         <i class="fas fa-golf-ball d-block mb-1"></i>
         <span class="small">Billiard</span>
@@ -200,8 +200,8 @@
 
     <!-- NONGKI -->
     <div class="nav-item">
-      <a href="<?= base_url('hal/jadwal') ?>"
-         class="<?= ($uri == 'hal/jadwal') ? 'text-active' : 'text-dark' ?>"
+      <a href="<?= base_url('cafe') ?>"
+         class="<?= ($uri == 'cafe') ? 'text-active' : 'text-dark' ?>"
          data-navloading="1">
         <i class="fas fa-mug-hot d-block mb-1"></i>
         <span class="small">Nongki</span>
@@ -522,7 +522,7 @@
           <div id="quickmobilem" class="quickmobilem-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
 
             <div class="quickmobilem-item">
-              <a href="<?= site_url('produk/scan_qr') ?>" class="qcard d-block text-decoration-none" aria-label="Makan di Sini (Scan QR)" data-menuloading="1">
+              <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none" aria-label="Makan di Sini (Scan QR)" data-menuloading="1">
                 <div class="menu-circle" style="background:#2ecc71;"><span class="emoji-icon" aria-hidden="true">🍽️</span></div>
                 <small class="menu-label">Makan di Sini</small>
               </a>
@@ -550,7 +550,7 @@
             </div>
 
             <div class="quickmobilem-item">
-              <a href="<?= site_url('hal/jadwal_billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Lihat Meja Billiard" data-menuloading="1">
+              <a href="<?= site_url('meja_billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Lihat Meja Billiard" data-menuloading="1">
                 <div class="menu-circle" style="background:#1abc9c;"><span class="emoji-icon" aria-hidden="true">👀</span></div>
                 <small class="menu-label">Lihat Meja</small>
               </a>
@@ -571,7 +571,7 @@
             </div>
 
             <div class="quickmobilem-item">
-              <a href="<?= site_url('hal/jadwal') ?>" class="qcard d-block text-decoration-none" aria-label="Jadwal / Nongki" data-menuloading="1">
+              <a href="<?= site_url('cafe') ?>" class="qcard d-block text-decoration-none" aria-label="Jadwal / Nongki" data-menuloading="1">
                 <div class="menu-circle" style="background:#dc7633;"><span class="emoji-icon" aria-hidden="true">📅</span></div>
                 <small class="menu-label">Nongki</small>
               </a>
