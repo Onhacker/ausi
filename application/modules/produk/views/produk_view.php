@@ -929,81 +929,74 @@ if (!empty($kategoris)) {
 
     const firstPage = parseInt(url.searchParams.get('page') || '1', 10);
     loadProducts(firstPage, false);
-      // === ALERT MODE (tanpa sessionStorage, anti spam) ===
-const $modeInfo   = $('#mode-info');
-const curModeRaw  = ($modeInfo.data('mode') || '').toString().toLowerCase();
-const mejaLabel   = ($modeInfo.data('meja') || '').toString();
+        // === ALERT MODE ===
+    // baca data-mode & data-meja dari #mode-info
+    const $modeInfo   = $('#mode-info');
+    const curModeRaw  = ($modeInfo.data('mode') || '').toString().toLowerCase();
+    const mejaLabel   = ($modeInfo.data('meja') || '').toString();
 
-// bikin teks human friendly
-let modeNice = '';
-if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
-  modeNice = (mejaLabel !== '' ?
-    'Dine-in di '+mejaLabel :
-    'Dine-in');
-} else if (curModeRaw === 'delivery'){
-  modeNice = 'Delivery';
-} else if (curModeRaw === 'walkin'){
-  modeNice = 'Takeaway/Bungkus';
-} else {
-  modeNice = 'Belanja biasa';
-}
+    // bikin teks human friendly
+    let modeNice = '';
+    if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
+      modeNice = (mejaLabel !== '' ?
+        'Dine-in di '+mejaLabel :
+        'Dine-in');
+    } else if (curModeRaw === 'delivery'){
+      modeNice = 'Delivery';
+    } else if (curModeRaw === 'walkin'){
+      modeNice = 'Takeaway/Bungkus';
+    } else {
+      modeNice = 'Belanja biasa';
+    }
 
-// isi konten HTML buat Swal sesuai mode
-let htmlMsg = '';
-if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
-  htmlMsg = `
-    Kamu saat ini <b>${modeNice}</b> 👋<br>
-    Pesanan akan dicatat ke meja kamu.<br><br>
-    <small style="color:#6b7280;display:inline-block;margin-top:.25rem;">
-      Mau pindah jadi Delivery / Takeaway? Pakai tombol keluar di atas (ikon keluar meja).
-    </small>
-  `;
-} else if (curModeRaw === 'delivery'){
-  htmlMsg = `
-    Kamu saat ini mode <b>${modeNice}</b> 🚚<br>
-    Kami bisa antar pesananmu ke alamat kamu.
-  `;
-} else if (curModeRaw === 'walkin'){
-  htmlMsg = `
-    Kamu saat ini mode <b>${modeNice}</b> 👜<br>
-    Pesananmu akan dibungkus untuk diambil.
-  `;
-} else {
-  htmlMsg = `
-    Kamu belanja sebagai <b>${modeNice}</b> 🛍️
-  `;
-}
+    // ambil mode terakhir dari sessionStorage
+    const prevMode = sessionStorage.getItem('lastMode') || '';
 
-/*
-  Sekarang kita pakai variabel global di window
-  supaya alertnya tidak tampil berulang-ulang
-  untuk mode yang sama di runtime halaman ini.
+    // kita tentukan apakah perlu tampil alert:
+    // - kalau belum pernah diset (first load) => tampilkan
+    // - atau kalau mode sekarang beda dengan prevMode => tampilkan
+    const shouldShowAlert = (prevMode === '' || prevMode !== curModeRaw);
 
-  - Pertama kali halaman jalan, window.__LAST_MODE_SHOWN mungkin undefined -> alert muncul.
-  - Kalau script ini dipanggil lagi (misal view inject ulang, ajax re-init, dsb)
-    tapi mode-nya SAMA, dia tidak akan muncul lagi.
-  - Kalau mode berubah (misal user ganti dari dinein ke delivery lalu reload partial),
-    baru muncul lagi.
-*/
-if (typeof window.__LAST_MODE_SHOWN === 'undefined') {
-  window.__LAST_MODE_SHOWN = '';
-}
+    // siapkan HTML pesan buat Swal
+    let htmlMsg = '';
+    if (curModeRaw === 'dinein' || curModeRaw === 'dine-in'){
+      htmlMsg = `
+        Kamu saat ini <b>${modeNice}</b> 👋<br>
+        Pesanan akan dicatat ke meja kamu.<br><br>
+        <small style="color:#6b7280;display:inline-block;margin-top:.25rem;">
+          Mau pindah jadi Delivery / Takeaway? Pakai tombol keluar di atas (ikon keluar meja).
+        </small>
+      `;
+    } else if (curModeRaw === 'delivery'){
+      htmlMsg = `
+        Kamu saat ini mode <b>${modeNice}</b> 🚚<br>
+        Kami bisa antar pesananmu ke alamat kamu.
+      `;
+    } else if (curModeRaw === 'walkin'){
+      htmlMsg = `
+        Kamu saat ini mode <b>${modeNice}</b> 👜<br>
+        Pesananmu akan dibungkus untuk diambil.
+      `;
+    } else {
+      htmlMsg = `
+        Kamu belanja sebagai <b>${modeNice}</b> 🛍️
+      `;
+    }
 
-const shouldShowAlert = (window.__LAST_MODE_SHOWN !== curModeRaw);
+    if (window.Swal && shouldShowAlert){
+      Swal.fire({
+        icon: 'info',
+        title: modeNice,
+        html: htmlMsg,
+        confirmButtonText: 'Oke',
+        width: 320
+      });
+    }
 
-if (window.Swal && shouldShowAlert){
-  Swal.fire({
-    icon: 'info',
-    title: modeNice,
-    html: htmlMsg,
-    confirmButtonText: 'Oke',
-    width: 320
-  });
+    // simpan mode yg sekarang jadi "lastMode"
+    sessionStorage.setItem('lastMode', curModeRaw);
+    // === END ALERT MODE ===
 
-  // catat mode yg sudah ditampilkan, biar gak spam
-  window.__LAST_MODE_SHOWN = curModeRaw;
-}
-// === END ALERT MODE ===
 
 
   });
