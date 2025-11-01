@@ -3,6 +3,22 @@
 <!-- custom style untuk halaman menu -->
 <link rel="stylesheet"
       href="<?= base_url('assets/front/produk.min.css') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.css'); ?>">
+<?php
+// Cari ID kategori "Makanan" & "Minuman"
+$kat_makanan_id = '';
+$kat_minuman_id = '';
+if (!empty($kategoris)) {
+  foreach ($kategoris as $k) {
+    $nm = strtolower(trim($k->nama));
+    if ($kat_makanan_id === '' && strpos($nm, 'makanan') !== false) {
+      $kat_makanan_id = (string)$k->id;
+    }
+    if ($kat_minuman_id === '' && strpos($nm, 'minuman') !== false) {
+      $kat_minuman_id = (string)$k->id;
+    }
+  }
+}
+?>
 
 <div class="container-fluid">
   <div class="mt-2">
