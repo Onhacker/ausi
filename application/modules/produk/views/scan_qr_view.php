@@ -476,9 +476,6 @@ video:-webkit-full-screen{
     console.error('ZXingBrowser tidak ditemukan');
     return;
   }
-  function isIOS(){
-    return /iP(hone|od|ad)/i.test(navigator.userAgent);
-  }
 
   /* =========================
      ELEMEN DOM
@@ -500,6 +497,13 @@ video:-webkit-full-screen{
 
   // fallback TAG_BASE kalau variabel view tidak ada
   const TAG_BASE = <?php echo json_encode(isset($tag_base) ? $tag_base : site_url('produk/tag/')); ?>;
+
+  /* =========================
+     HELPER PLATFORM
+  ========================== */
+  function isIOS(){
+    return /iP(hone|od|ad)/i.test(navigator.userAgent);
+  }
 
   /* =========================
      STATE
@@ -610,7 +614,7 @@ video:-webkit-full-screen{
      CAMERA ENUM & CONSTRAINTS
   ========================== */
   async function ensureLabels(){
-    // minta izin sekali supaya label kamera kebuka di Android
+    // minta izin sekali supaya label kamera kebuka di Android/iOS
     try {
       await navigator.mediaDevices.getUserMedia({video:true, audio:false});
     } catch(e){}
@@ -660,8 +664,7 @@ video:-webkit-full-screen{
     }
 
     return devices;
-}
-
+  }
 
   function buildBaseConstraints({ deviceId, prefFacing } = {}){
     // high-res attempt 1080p
@@ -823,8 +826,8 @@ video:-webkit-full-screen{
      FULLSCREEN HANDLING
   ========================== */
   async function enterFullscreen(){
-    // iOS Safari pakai overlay CSS saja,
-    // jangan pakai webkitEnterFullscreen karena bakal hitam.
+    // iOS Safari: jangan pakai webkitEnterFullscreen() karena stream camera jadi hitam.
+    // Pakai overlay CSS fullscreen-scan.
     if (isIOS()){
       wrap.classList.add('fullscreen-scan','is-fs');
       document.body.classList.add('scan-lock');
@@ -832,7 +835,7 @@ video:-webkit-full-screen{
       return;
     }
 
-    // Non-iOS: coba Fullscreen API biasa lebih dulu
+    // Non-iOS: coba Fullscreen API standar dulu.
     try{
       if (wrap && wrap.requestFullscreen) {
         await wrap.requestFullscreen();
@@ -841,7 +844,6 @@ video:-webkit-full-screen{
         return;
       }
     }catch(e){
-      // kalau gagal, lanjut ke fallback manual di bawah
       console.warn('requestFullscreen gagal, fallback overlay:', e);
     }
 
@@ -851,19 +853,17 @@ video:-webkit-full-screen{
     btnExitFs.classList.remove('d-none');
   }
 
-
-    function exitFullscreen(){
-    // Keluar dari Fullscreen API kalau lagi aktif (Android / desktop)
+  function exitFullscreen(){
+    // Kalau browser lagi pakai Fullscreen API → keluarin
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen();
     }
 
-    // Selalu matikan kelas fallback overlay
+    // Selalu matikan kelas overlay fallback
     wrap.classList.remove('fullscreen-scan','is-fs');
     document.body.classList.remove('scan-lock');
     btnExitFs.classList.add('d-none');
   }
-
 
   // sync kalau user tekan ESC native fullscreen
   document.addEventListener('fullscreenchange', ()=>{
