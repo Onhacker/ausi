@@ -242,7 +242,7 @@
           </div>
           <!-- /ticketArea -->
 
-          <div class="mt-3">
+          <div class="mt-1 no-shot">
             <button type="button" class="btn btn-blue" id="btnScreenshot">
               <i class="mdi mdi-camera"></i> Screenshot
             </button>
@@ -250,6 +250,7 @@
               Simpan ringkasan ini sebagai bukti booking.
             </div>
           </div>
+
 
         </div><!-- /card-body -->
       </div><!-- /card-box -->
@@ -718,14 +719,17 @@
 })();
 
 // ================== SCREENSHOT RINGKASAN BOOKING ==================
+// ================== SCREENSHOT RINGKASAN BOOKING ==================
 (function(){
   var btn = document.getElementById('btnScreenshot');
   if (!btn) return;
 
+  // optional aja: flag tombol sendiri juga
   btn.setAttribute('data-html2canvas-ignore', 'true');
 
   btn.addEventListener('click', function(){
-    var area = document.getElementById('ticketArea');
+    // PENTING: target tetap ticketAreac (biar ada padding cantik)
+    var area = document.getElementById('ticketAreac');
     if (!area){
       alert('Ringkasan tidak ditemukan.');
       return;
@@ -734,7 +738,12 @@
     html2canvas(area, {
       scale: Math.min(2, window.devicePixelRatio || 2),
       useCORS: true,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+
+      // <-- inilah kuncinya: skip elemen dengan class .no-shot
+      ignoreElements: function(node){
+        return node.classList && node.classList.contains('no-shot');
+      }
     }).then(function(canvas){
       var kodeEl = document.getElementById('kodeBooking');
       var kode = (kodeEl?.textContent || 'booking').trim() || 'booking';
@@ -760,4 +769,5 @@
     });
   });
 })();
+
 </script>
