@@ -125,7 +125,7 @@
           </style>
 
           <div class="divider mb-3"></div>
-          <div class="row text-center  mb-3">
+          <div class="row text-center mb-3">
             <a class="col-5 text-nowrap text-blue" href="<?php echo site_url('hal/privacy_policy') ?>">
               Kebijakan Privasi
             </a>
@@ -190,7 +190,9 @@
          class="center-button <?= ($uri == 'produk') ? 'text-white' : '' ?>"
          style="text-align:center; <?= ($uri == 'produk') ? 'background-color:#28a745;' : '' ?>"
          data-navloading="1">
-        <img src="<?= base_url('assets/images/logo.png') ?>" alt="Permohonan"
+        <img src="<?= base_url('assets/images/logo.png') ?>"
+             alt="Permohonan"
+             class="nav-center-logo"
              style="width:40px; height:40px; object-fit:contain; margin-top:0px;">
         <span class="sr-only d-none">Produk</span>
       </a>
@@ -233,7 +235,8 @@
     margin: 0 auto .25rem auto;
   }
 
-  /* agar tombol tengah (yang awalnya pakai <img>) tidak geser saat diganti spinner */
+  /* saat sebelumnya kita ganti <img> dengan spinner,
+     wrapper ini jaga ukuran biar gak loncat layout */
   .nav-loading-center-fix {
     width:40px;
     height:40px;
@@ -243,7 +246,7 @@
     margin-top:0px;
   }
 
-  /* spinner di dalam tombol SweetAlert */
+  /* spinner kecil untuk tombol swal & item modal */
   .swal-mini-spinner.spinner-border,
   .modal-mini-spinner.spinner-border {
     width:1rem;
@@ -284,13 +287,22 @@
       opacity: 0;
     }
   }
+
+  /* ===== animasi mutar untuk logo tombol tengah ===== */
+  .nav-center-rotating {
+    animation: navCenterSpin .8s linear infinite;
+    transform-origin: center center;
+  }
+  @keyframes navCenterSpin {
+    to { transform: rotate(360deg); }
+  }
 </style>
 
 <script>
 (function(){
 
   /* ==========================================================
-   * RIPPLE SIDIK JARI (tanpa ubah posisi navbar)
+   * 1. RIPPLE SIDIK JARI NAVBAR (efek "cekrek")
    * ========================================================== */
   (function initRipple(){
     const layer = document.getElementById('navRippleLayer');
@@ -325,16 +337,29 @@
 
 
   /* ==========================================================
-   * GANTI ICON NAVBAR -> SPINNER (data-navloading="1")
+   * 2. GANTI ICON NAVBAR -> LOADING (data-navloading="1")
+   *    - Home / Nongki: ganti <i> jadi spinner
+   *    - Tombol tengah Produk: logo PNG mutar
    * ========================================================== */
   function swapIconToSpinner(anchor){
     if (anchor.__navLoadingApplied) return;
     anchor.__navLoadingApplied = true;
 
-    // Cari <i> icon biasa
+    // tombol tengah punya class center-button
+    if (anchor.classList.contains('center-button')) {
+      const logoImg = anchor.querySelector('.nav-center-logo');
+      if (logoImg){
+        // tambahkan class animasi rotate
+        logoImg.classList.add('nav-center-rotating');
+      }
+      // tombol tengah tidak diganti spinner bootstrap, cukup mutar
+      return;
+    }
+
+    // selain tombol tengah → cari icon <i>
     let iconEl = anchor.querySelector('i');
 
-    // Kalau gak ada <i>, kemungkinan tombol tengah pakai <img>
+    // fallback kalau tidak ada <i> tapi ada <img> (kasus langka)
     if (!iconEl){
       const imgEl = anchor.querySelector('img');
       if (imgEl){
@@ -342,43 +367,44 @@
         wrap.className = 'nav-loading-center-fix';
         wrap.innerHTML = '<div class="spinner-border spinner-border-sm nav-mini-spinner" role="status" aria-hidden="true"></div>';
         imgEl.replaceWith(wrap);
-        return;
       }
+      return;
     }
 
-    if (iconEl){
-      iconEl.setAttribute('data-icon-backup-class', iconEl.className);
-      iconEl.setAttribute('data-icon-backup-html', iconEl.innerHTML);
+    // simpan class lama icon (optional)
+    iconEl.setAttribute('data-icon-backup-class', iconEl.className);
+    iconEl.setAttribute('data-icon-backup-html', iconEl.innerHTML);
 
-      iconEl.className = 'spinner-border spinner-border-sm nav-mini-spinner';
-      iconEl.innerHTML = '';
-    }
+    // ubah jadi spinner
+    iconEl.className = 'spinner-border spinner-border-sm nav-mini-spinner';
+    iconEl.innerHTML = '';
   }
 
   document.querySelectorAll('.navbar-bottom a[data-navloading]').forEach(a=>{
     a.addEventListener('click', function(e){
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return; // tab baru
+      // ctrl / cmd / shift / middle click -> biarkan buka tab baru
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
       swapIconToSpinner(this);
-      // biarkan browser lanjut ke href normal
+      // tidak preventDefault -> langsung lanjut ke href normal
     });
   });
 
 
   /* ==========================================================
-   * SWEETALERT MENU BILLIARD
-   * - tampilkan SweetAlert
-   * - tombol di dalam SweetAlert dapat spinner sebelum redirect
+   * 3. SWEETALERT MENU BILLIARD
+   *    - munculin popup
+   *    - tombol di popup dapat spinner "Loading..." sebelum redirect
    * ========================================================== */
   document.addEventListener('click', function(e){
     const link = e.target.closest('a[data-swaltarget="billiard-menu"]');
     if (!link) return;
 
-    // allow ctrl/shift/meta/middle click utk tab baru
+    // allow buka tab baru (ctrl/cmd/shift/middle)
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
 
     e.preventDefault();
 
-    // fallback kalau Swal gak ada -> langsung ke href
+    // fallback kalau Swal belum ada
     if (!window.Swal || !Swal.fire) {
       window.location.href = link.getAttribute('href');
       return;
@@ -438,8 +464,7 @@
 
         // helper kasih spinner ke tombol swal
         function makeBtnLoading(btn){
-          if (!btn) return;
-          if (btn.__loadingApplied) return;
+          if (!btn || btn.__loadingApplied) return;
           btn.__loadingApplied = true;
           btn.disabled = true;
           btn.innerHTML = `
@@ -478,15 +503,15 @@
 
 
   /* ==========================================================
-   * MENU MODAL (ikon grid "Menu")
-   * - buka modal tanpa pindah halaman
-   * - semua menu di dalam modal juga dapat spinner
+   * 4. MENU MODAL (ikon grid "Menu" -> #kontakModalfront)
+   *    - buka modal tanpa pindah halaman
+   *    - item di dalam modal (#quickmobilem) dapat spinner sebelum redirect
    * ========================================================== */
 
   const btnMenu   = document.getElementById('btnOpenMenu');
   const modalEl   = document.getElementById('kontakModalfront');
 
-  // pastikan modal ditempatkan langsung di <body>, bukan nested
+  // pastikan modal dipindah ke <body> (biar z-index/bootstrap aman)
   document.addEventListener('DOMContentLoaded', () => {
     if (modalEl && modalEl.parentNode !== document.body){
       document.body.appendChild(modalEl);
@@ -500,26 +525,28 @@
     });
   }
 
-  // === spinner untuk link di dalam modal quickmenu ===
+  // helper spinner item modal
   function makeModalItemLoading(anchor){
     if (!anchor || anchor.__loadingApplied) return;
     anchor.__loadingApplied = true;
 
-    // kita replace isi <a> jadi spinner + teks "Loading..."
     anchor.innerHTML = `
-      <div class="menu-circle" style="background:#999;display:flex;align-items:center;justify-content:center;">
-        <div class="spinner-border spinner-border-sm modal-mini-spinner" role="status" aria-hidden="true"></div>
+      <div class="menu-circle"
+           style="background:#999;display:flex;align-items:center;justify-content:center;">
+        <div class="spinner-border spinner-border-sm modal-mini-spinner"
+             role="status"
+             aria-hidden="true"></div>
       </div>
       <small class="menu-label">Loading...</small>
     `;
   }
 
-  // delegation untuk semua <a data-menuloading> di dalam modal
+  // delegation untuk item di dalam modal dengan data-menuloading="1"
   document.addEventListener('click', function(e){
     const menuAnchor = e.target.closest('#kontakModalfront a[data-menuloading]');
     if (!menuAnchor) return;
 
-    // ctrl/cmd/shift click? biarkan normal (tab baru dsb)
+    // ctrl/meta/shift/middle click? biar buka tab baru normal
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
 
     e.preventDefault();
@@ -528,8 +555,6 @@
     if (!href) return;
 
     makeModalItemLoading(menuAnchor);
-
-    // arahkan setelah spinner muncul
     window.location.href = href;
   });
 
@@ -551,7 +576,6 @@
 
       <div class="modal-body p-0">
         <div class="menu-list">
-
           <div id="quickmobilem" class="quickmobilem-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
 
             <div class="quickmobilem-item">
@@ -655,15 +679,6 @@
     </div>
   </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const m = document.getElementById('kontakModalfront');
-  if (m && m.parentNode !== document.body) {
-    document.body.appendChild(m);
-  }
-});
-</script>
 
 <?php $this->load->view("front_end/app") ?>
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>

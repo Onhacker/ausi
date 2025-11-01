@@ -68,6 +68,88 @@ $slides = [
       </section>
     </div>
 
+<style>
+  /* --- dasar bulatan menu --- */
+.menu-circle{
+  position:relative;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:24px;
+  font-weight:600;
+  flex-shrink:0;
+}
+
+/* pas loading: sembunyikan emoji */
+.menu-circle.loading .emoji-icon{
+  opacity:0;
+}
+
+/* pas loading: munculkan spinner mutar */
+.menu-circle.loading::after{
+  content:"";
+  position:absolute;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,.6);
+  border-right-color:transparent;
+  animation:quick-spin .6s linear infinite;
+}
+
+@keyframes quick-spin{
+  from { transform:rotate(0deg); }
+  to   { transform:rotate(360deg); }
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // cegah double init
+  if (window.__QUICKMENU_SPINNER_INIT__) return;
+  window.__QUICKMENU_SPINNER_INIT__ = true;
+
+  var cards = document.querySelectorAll('#quickmenu .qcard');
+
+  cards.forEach(function(card){
+    card.addEventListener('click', function(e){
+      var circle = this.querySelector('.menu-circle');
+      if (!circle) return;
+
+      // aktifkan spinner
+      if (!circle.classList.contains('loading')) {
+        circle.classList.add('loading');
+      }
+
+      // matikan klik menu lain biar ga spam
+      cards.forEach(function(c){
+        c.style.pointerEvents = 'none';
+        c.style.opacity = '0.6';
+      });
+
+      // --- kasih waktu 150ms biar browser sempat repaint spinner ---
+      // tapi cuma untuk link normal yg pindah halaman
+      var href = this.getAttribute('href');
+      var isModalTrigger = this.getAttribute('data-toggle') === 'modal';
+
+      if (href && href !== '#' && !isModalTrigger){
+        e.preventDefault(); // tahan dulu
+        setTimeout(function(){
+          window.location = href;
+        }, 150);
+      }
+      // kalau modal (data-toggle="modal"), biarin Bootstrap jalan normal
+    }, {passive:false});
+  });
+
+});
+</script>
+
+
     <!-- RIGHT: RIBBON + QUICK MENU -->
     <div class="col-xl-8">
       <div class="quickmenu-wrap position-relative">
