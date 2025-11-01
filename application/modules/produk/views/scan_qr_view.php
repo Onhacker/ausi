@@ -62,7 +62,7 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
   color:#cbd5e1;
   text-align:center;
   padding:16px;
-  z-index:20; /* di atas video hitam awal */
+  z-index:20;
 }
 .video-placeholder .bubble{
   backdrop-filter: blur(6px);
@@ -78,7 +78,7 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
   opacity:.9;
 }
 
-/* garis laser merah animasi (area scan) */
+/* garis laser merah animasi */
 .scan-laser{
   position:absolute;
   left:16%;
@@ -89,7 +89,7 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
   animation:scan 2s linear infinite;
   box-shadow:0 0 12px rgba(255,0,0,.7);
   pointer-events:none;
-  z-index:30; /* di atas video */
+  z-index:30;
 }
 @keyframes scan{
   0%   { transform:translateY(0); }
@@ -100,8 +100,7 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
 /* kotak tengah (guide box) */
 .scan-box{
   position:absolute;
-  left:50%;
-  top:50%;
+  left:50%; top:50%;
   transform:translate(-50%,-50%);
   width:60vw;
   max-width:320px;
@@ -121,7 +120,7 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
 }
 
 /* ===========================================
-   FULLSCREEN STYLE (nyamain pola admin)
+   FULLSCREEN STYLE
    =========================================== */
 
 body.scan-lock { overflow:hidden; }
@@ -129,7 +128,7 @@ body.scan-lock { overflow:hidden; }
 #cameraWrap.fullscreen-scan{
   position: fixed !important;
   inset: 0 !important;
-  z-index:1060 !important; /* di atas navbar/menu dsb */
+  z-index:1060 !important;
   background:#000;
   margin:0 !important;
   border-radius:0 !important;
@@ -202,7 +201,6 @@ video:-webkit-full-screen{
   position:absolute;
   left:0;
   right:0;
-  /* turun dikit biar aman dari kamera depan S24U dsb */
   top:calc(env(safe-area-inset-top) + 56px);
   max-width:90%;
   margin:0 auto;
@@ -264,7 +262,7 @@ video:-webkit-full-screen{
   text-shadow:0 1px 2px rgba(0,0,0,.9);
 }
 
-/* fullscreen aktif + kamera aktif → tombol torch selalu kelihatan */
+/* fullscreen aktif + kamera aktif → tombol torch kelihatan */
 #cameraWrap.is-fs.scan-active .fs-torch-btn{
   display:flex;
 }
@@ -277,12 +275,9 @@ video:-webkit-full-screen{
   background:rgba(0,0,0,.7);
 }
 
-/* Tombol Senter kecil di layout normal (bawah tombol fullscreen)
-   default: invisible
-   kalau torch-ready → visible
-*/
+/* Tombol Senter kecil di layout normal  */
 #btnTorch{
-  visibility:hidden;
+  visibility:hidden; /* default disembunyikan */
 }
 #cameraWrap.torch-ready ~ div #btnTorch{
   visibility:visible;
@@ -440,6 +435,15 @@ video:-webkit-full-screen{
 <script>
 (function(){
 
+  const { BrowserMultiFormatReader, BrowserCodeReader } = window.ZXingBrowser || {};
+  if (!BrowserMultiFormatReader) {
+    console.error('ZXingBrowser tidak ditemukan');
+    return;
+  }
+
+  /* =========================
+     ELEMEN DOM
+  ========================== */
   const video        = document.getElementById('video');
   const wrap         = document.getElementById('cameraWrap');
   const btnExitFs    = document.getElementById('btnExitFs');
@@ -458,17 +462,18 @@ video:-webkit-full-screen{
   // fallback TAG_BASE kalau variabel view tidak ada
   const TAG_BASE = <?php echo json_encode(isset($tag_base) ? $tag_base : site_url('produk/tag/')); ?>;
 
-  // state
-  let codeReader      = null;
-  let currentDeviceId = null;
-  let running         = false;
-  let warmedStream    = null;   // stream awal buat izin
-  let controlsObj     = null;   // handler ZXing (buat stop)
-  let currentStream   = null;   // simpan active stream
-  let torchTrack      = null;   // track yg support torch
+  /* =========================
+     STATE
+  ========================== */
+  const reader       = new BrowserMultiFormatReader();
+  let running        = false;
+  let controlsObj    = null;
+  let currentStream  = null;
+  let torchTrack     = null;
+  let facing         = 'environment'; // kita mau kamera belakang by default
 
   /* =========================
-     HELPER UI
+     HELPERS
   ========================== */
   function showResult(s){
     resultText.textContent = s;
@@ -476,74 +481,35 @@ video:-webkit-full-screen{
   }
 
   function isUrl(s){
-    try {
-      const u = new URL(s);
-      return /^https?:$/.test(u.protocol);
-    } catch(e){
-      return false;
-    }
+    try { const u = new URL(s); return /^https?:$/.test(u.protocol); }
+    catch(e){ return false; }
   }
 
   function handleDecoded(text){
     showResult(text);
 
     if (isUrl(text)) {
-      window.location.href = text;
-      return;
+        window.location.href = text;
+        return;
     }
 
     const code = text.replace(/^MEJA[:\- ]/i,'').trim();
     window.location.href = TAG_BASE + encodeURIComponent(code);
   }
 
-  async function listCameras(){
-    cameraSelect.innerHTML = '';
-
-    const devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
-
-    devices.forEach((d,i)=>{
-      const opt = document.createElement('option');
-      opt.value = d.deviceId;
-      opt.textContent = d.label || ('Kamera ' + (i+1));
-      cameraSelect.appendChild(opt);
-    });
-
-    // pilih kamera belakang kalau ada
-    const back = devices.find(d => /back|rear|environment/i.test(d.label));
-    currentDeviceId = back ? back.deviceId : (devices[0] ? devices[0].deviceId : null);
-
-    if (currentDeviceId){
-      cameraSelect.value = currentDeviceId;
-    }
-
-    return devices;
+  function setMirror(isFront){
+    // kalau depan, mirror biar natural selfie; kalau belakang jangan mirror
+    video.style.transform = isFront ? 'scaleX(-1)' : 'none';
   }
-
-  // minta izin kamera buat munculkan prompt
-  async function warmPermission(){
-    const constraints = {
-      video: currentDeviceId
-        ? { deviceId: { exact: currentDeviceId } }
-        : { facingMode: { ideal: 'environment' } },
-      audio: false
-    };
-    const s = await navigator.mediaDevices.getUserMedia(constraints);
-    return s;
-  }
-
-  /* =========================
-     TORCH SUPPORT
-  ========================== */
 
   function disableTorchUI(){
-    // tandai tidak ready torch
     wrap.classList.remove('torch-ready');
 
-    // kecil (layout normal)
+    // tombol kecil
     btnTorch.disabled = true;
     btnTorch.style.visibility = 'hidden';
 
-    // fullscreen
+    // tombol fullscreen
     btnTorchFS.style.opacity = '0.4';
     btnTorchFS.style.pointerEvents = 'none';
 
@@ -552,37 +518,42 @@ video:-webkit-full-screen{
 
   function setupTorchUI(){
     const stream = video.srcObject;
-    if (!stream) { disableTorchUI(); return; }
+    if (!stream){ disableTorchUI(); return; }
 
     const track = stream.getVideoTracks()[0];
-    if (!track) { disableTorchUI(); return; }
+    if (!track){ disableTorchUI(); return; }
 
     const caps = (track.getCapabilities && track.getCapabilities()) || {};
     let supported = false;
 
-    if (caps.torch) {
+    if (caps.torch){
       supported = true;
-    } else if (caps.fillLightMode && Array.isArray(caps.fillLightMode)) {
-      if (caps.fillLightMode.includes('flash') || caps.fillLightMode.includes('torch')) {
+    } else if (caps.fillLightMode && Array.isArray(caps.fillLightMode)){
+      if (caps.fillLightMode.includes('flash') || caps.fillLightMode.includes('torch')){
         supported = true;
       }
     }
 
     if (supported){
       torchTrack = track;
-
-      // tandai wrap bahwa torch siap
       wrap.classList.add('torch-ready');
 
-      // kecil (layout normal) → aktifkan
+      // tombol kecil (mode normal)
       btnTorch.disabled = false;
       btnTorch.style.visibility = 'visible';
 
-      // fullscreen → aktifkan
+      // tombol fullscreen
       btnTorchFS.style.opacity = '1';
       btnTorchFS.style.pointerEvents = 'auto';
     } else {
       disableTorchUI();
+    }
+
+    // coba minta autofocus continue (beberapa device Samsung nurut)
+    try {
+      track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+    } catch(e){
+      // santai aja kalau gak support
     }
   }
 
@@ -596,47 +567,204 @@ video:-webkit-full-screen{
     }
   }
 
-  async function startZXing(){
-    codeReader = new ZXingBrowser.BrowserMultiFormatReader();
-    running = true;
-    btnStart.disabled = true;
-    btnStop.disabled  = false;
+  /* =========================
+     CAMERA ENUM & CONSTRAINTS
+  ========================== */
+  async function ensureLabels(){
+    // minta izin sekali supaya label kamera kebuka (Android butuh ini)
+    try {
+      await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+    } catch(e){}
+  }
 
-    controlsObj = await codeReader.decodeFromVideoDevice(
-      currentDeviceId || undefined,
-      video,
-      (result, err, controls) => {
-        if (result && running){
-          running = false;
-          try{ controls.stop(); }catch(_){}
-          try{ codeReader.reset(); }catch(_){}
-          handleDecoded(result.getText());
-        }
+  async function listCameras(){
+    await ensureLabels();
+
+    let devices = [];
+    if (BrowserCodeReader?.listVideoInputDevices){
+      devices = await BrowserCodeReader.listVideoInputDevices();
+    } else if (navigator.mediaDevices?.enumerateDevices){
+      devices = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
+    }
+
+    cameraSelect.innerHTML = '';
+    devices.forEach((d,i)=>{
+      const opt = document.createElement('option');
+      opt.value = d.deviceId || '';
+      opt.textContent = d.label || `Kamera ${i+1}`;
+      cameraSelect.appendChild(opt);
+    });
+
+    // pilih kamera belakang dulu kalau ada indikasi "back" / "environment"
+    const back = devices.find(d => /back|rear|environment/i.test(d.label||''));
+    if (back){
+      cameraSelect.value = back.deviceId || '';
+    }
+
+    return devices;
+  }
+
+  function buildBaseConstraints({ deviceId, prefFacing } = {}){
+    // high-res attempt (1080p)
+    const highRes = {
+      audio:false,
+      video:{
+        width:{ ideal:1920 },
+        height:{ ideal:1080 },
+        frameRate:{ ideal:30, max:60 }
       }
-    );
+    };
 
-    // simpan stream aktif
+    if (deviceId){
+      highRes.video.deviceId = { exact: deviceId };
+    } else {
+      highRes.video.facingMode = { ideal: (prefFacing || facing) };
+    }
+
+    return highRes;
+  }
+
+  async function startWithConstraints(cons){
+    // catatan:
+    // - kita panggil decodeFromConstraints biar ZXing pakai stream kita (jadi resolusi kita yg dipakai)
+    // - callback dipanggil setiap frame decode → saat dapet hasil kita stop
+    controlsObj = await reader.decodeFromConstraints(cons, video, (res, err)=>{
+      if (res && res.text){
+        const codeText = (res.text || '').trim();
+        stopScan();        // hentikan biar ga spam
+        handleDecoded(codeText);
+      }
+    });
+
     currentStream = video.srcObject || null;
 
-    // kamera nyala → sembunyikan placeholder
     wrap.classList.add('live');
-    // tandai aktif scanning (buat fs-hint dan tombol torch fullscreen)
     wrap.classList.add('scan-active');
 
-    // munculkan tombol fullscreen (mode normal)
-    btnFull.classList.remove('d-none');
+    btnStop.disabled  = false;
+    btnStart.disabled = true;
 
-    // tombol keluar fullscreen disembunyiin dulu (muncul pas fullscreen aktif)
+    btnFull.classList.remove('d-none');
     btnExitFs.classList.add('d-none');
 
-    // cek torch
+    // pasang orientasi mirror kalau front cam
+    const isFrontNow =
+      (cons.video && cons.video.facingMode && /user/i.test(cons.video.facingMode.ideal||'')) ||
+      (facing === 'user');
+    setMirror(isFrontNow);
+
+    // torch & autofocus setup
     setupTorchUI();
+  }
+
+  async function startScan(deviceId){
+    running = true;
+
+    // beberapa browser bakal nolak constraint tertentu → kita coba beberapa opsi fallback
+    const tries = [];
+
+    // 1. high-res ke kamera yg dipilih user
+    if (deviceId){
+      tries.push(buildBaseConstraints({ deviceId }));
+    }
+
+    // 2. high-res pakai "environment" / belakang
+    tries.push(buildBaseConstraints({ prefFacing:'environment' }));
+
+    // 3. medium-res fallback 1280x720
+    tries.push({
+      audio:false,
+      video:{
+        width:{ ideal:1280 },
+        height:{ ideal:720 },
+        frameRate:{ ideal:30, max:60 },
+        facingMode:{ ideal:'environment' }
+      }
+    });
+
+    // 4. basic fallback 640x480
+    tries.push({
+      audio:false,
+      video:{
+        width:{ ideal:640 },
+        height:{ ideal:480 },
+        facingMode:{ ideal:'environment' }
+      }
+    });
+
+    // 5. ultimate fallback "any camera true"
+    tries.push({ audio:false, video:true });
+
+    let lastErr = null;
+    for (let i=0;i<tries.length;i++){
+      try {
+        await startWithConstraints(tries[i]);
+        return;
+      } catch(err){
+        console.warn('getUserMedia/decode gagal:', err.name, err.message, 'constraint:', err.constraint, tries[i]);
+        lastErr = err;
+      }
+    }
+
+    // kalau semua gagal
+    running = false;
+    btnStart.disabled = false;
+    btnStop.disabled  = true;
+    exitFullscreen();
+
+    const name = lastErr && lastErr.name;
+    const msg  = lastErr && lastErr.message;
+    showResult(
+      (name==='NotAllowedError')
+        ? 'Akses kamera ditolak. Cek izin situs di address bar ya.'
+        : (name==='NotFoundError')
+          ? 'Kamera nggak ketemu di perangkat ini.'
+          : (name==='NotReadableError')
+            ? 'Kamera lagi dipakai aplikasi lain. Tutup dulu aplikasi kamera/meeting-nya.'
+            : (name==='OverconstrainedError')
+              ? 'Kamera yang diminta nggak tersedia. Coba pilih kamera lain.'
+              : (name==='SecurityError')
+                ? 'Butuh HTTPS atau halaman tidak dibatasi iframe/policy.'
+                : ('Gagal buka kamera: ' + (msg || name || 'tidak diketahui'))
+    );
+  }
+
+  function stopScan(){
+    btnStop.disabled  = true;
+    btnStart.disabled = false;
+
+    running = false;
+
+    if (controlsObj && controlsObj.stop){
+      try { controlsObj.stop(); } catch(_){}
+    }
+    controlsObj = null;
+
+    // matikan semua track
+    try{
+      const s = video.srcObject;
+      if (s && s.getTracks){
+        s.getTracks().forEach(t => t.stop());
+      }
+    }catch(_){}
+    video.srcObject = null;
+
+    if (currentStream && currentStream.getTracks){
+      currentStream.getTracks().forEach(t=>t.stop());
+    }
+    currentStream = null;
+
+    wrap.classList.remove('live','scan-active','torch-ready');
+
+    btnFull.classList.add('d-none');
+    disableTorchUI();
+
+    exitFullscreen();
   }
 
   /* =========================
      FULLSCREEN HANDLING
   ========================== */
-
   async function enterFullscreen(){
     try{
       if (wrap && wrap.requestFullscreen) {
@@ -652,10 +780,9 @@ video:-webkit-full-screen{
         return;
       }
     }catch(e){
-      // fallback css
+      // fallback if native fullscreen gagal
     }
 
-    // fallback CSS manual
     wrap.classList.add('fullscreen-scan','is-fs');
     document.body.classList.add('scan-lock');
     btnExitFs.classList.remove('d-none');
@@ -665,13 +792,12 @@ video:-webkit-full-screen{
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen();
     }
-
     wrap.classList.remove('fullscreen-scan','is-fs');
     document.body.classList.remove('scan-lock');
     btnExitFs.classList.add('d-none');
   }
 
-  // sync kalau user ESC fullscreen native
+  // sync ESC native
   document.addEventListener('fullscreenchange', ()=>{
     if (!document.fullscreenElement){
       wrap.classList.remove('fullscreen-scan','is-fs');
@@ -695,140 +821,44 @@ video:-webkit-full-screen{
   btnExitFs.addEventListener('click', exitFullscreen);
 
   document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape'){
-      exitFullscreen();
-    }
-    if (e.key && e.key.toLowerCase() === 'f'){
-      toggleFullscreen();
-    }
+    if (e.key === 'Escape'){ exitFullscreen(); }
+    if (e.key && e.key.toLowerCase() === 'f'){ toggleFullscreen(); }
   });
-
-  /* =========================
-     START / STOP CAMERA
-  ========================== */
-
-  async function start(){
-    if (running) return;
-
-    // kalau halaman di-embed iframe strict
-    if (window.top !== window.self){
-      showResult('Halaman dibuka di dalam iframe; akses kamera bisa keblok. Coba buka langsung halaman ini ya 🙏');
-      return;
-    }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      showResult('Browser kamu belum dukung kamera. Coba Chrome/Safari versi terbaru ya.');
-      return;
-    }
-
-    try{
-      // isi dropdown awal
-      try { await listCameras(); } catch(_){}
-
-      // warm-up → munculkan prompt izin kamera
-      warmedStream = await warmPermission();
-      video.srcObject = warmedStream;
-      await video.play();
-
-      // setelah izin → refresh list (biar label kamera kebaca)
-      try {
-        await listCameras();
-        if (warmedStream){
-          warmedStream.getTracks().forEach(t=>t.stop());
-          warmedStream=null;
-        }
-      } catch(_){}
-
-      // mulai ZXing realtime
-      await startZXing();
-
-    }catch(e){
-      running = false;
-      btnStart.disabled = false;
-      btnStop.disabled  = true;
-
-      // keluar fullscreen kalau kebetulan aktif
-      exitFullscreen();
-
-      const name = e && e.name;
-      const map = {
-        NotAllowedError:     'Akses kamera ditolak. Cek izin situs di address bar ya.',
-        NotFoundError:       'Kamera nggak ketemu di perangkat ini.',
-        NotReadableError:    'Kamera lagi dipakai aplikasi lain. Tutup dulu aplikasi kamera/meeting-nya.',
-        OverconstrainedError:'Kamera yang diminta nggak tersedia. Coba pilih kamera lain.',
-        SecurityError:       'Butuh HTTPS atau halaman tidak dibatasi iframe/policy.',
-      };
-      showResult(map[name] || ('Gagal buka kamera: ' + (e && e.message ? e.message : e)));
-    }
-  }
-
-  function hardStopStream(){
-    try{
-      const s = video.srcObject;
-      if (s && s.getTracks){
-        s.getTracks().forEach(t => t.stop());
-      }
-    }catch(_){}
-    video.srcObject = null;
-
-    if (currentStream && currentStream.getTracks){
-      currentStream.getTracks().forEach(t=>t.stop());
-    }
-    currentStream = null;
-  }
-
-  function stop(){
-    running = false;
-    btnStart.disabled = false;
-    btnStop.disabled  = true;
-
-    // matikan ZXing
-    try{
-      if (codeReader) codeReader.reset();
-    }catch(_){}
-    if (controlsObj && controlsObj.stop){
-      try{ controlsObj.stop(); }catch(_){}
-    }
-    controlsObj = null;
-
-    hardStopStream();
-
-    // balikin placeholder
-    wrap.classList.remove('live');
-    wrap.classList.remove('scan-active');
-    wrap.classList.remove('torch-ready');
-
-    // sembunyikan tombol fullscreen
-    btnFull.classList.add('d-none');
-
-    // matiin torch UI state
-    disableTorchUI();
-
-    // pastikan keluar fullscreen
-    exitFullscreen();
-  }
 
   /* =========================
      EVENTS
   ========================== */
 
-  btnStart.addEventListener('click', start);
-  btnStop .addEventListener('click', stop);
-  btnFull .addEventListener('click', toggleFullscreen);
+  btnStart.addEventListener('click', async ()=>{
+    // keamanan basic: browser minta HTTPS / localhost untuk kamera belakang high-res
+    if (!(window.isSecureContext || ['localhost','127.0.0.1'].includes(location.hostname))){
+      showResult('Akses kamera butuh HTTPS atau localhost.');
+      return;
+    }
+
+    await listCameras(); // refresh list & pilih kamera belakang kalau ada
+    const devId = cameraSelect.value || null;
+
+    stopScan(); // make sure clean
+    await startScan(devId);
+  });
+
+  btnStop.addEventListener('click', stopScan);
+  btnFull.addEventListener('click', toggleFullscreen);
 
   btnTorch.addEventListener('click', toggleTorch);
   btnTorchFS.addEventListener('click', toggleTorch);
 
   cameraSelect.addEventListener('change', ()=>{
-    currentDeviceId = cameraSelect.value || null;
+    // user ganti kamera → kalau lagi jalan kita restart dengan kamera itu
     if (running){
-      // restart scanning dgn kamera baru
-      stop();
-      start();
+      const devId = cameraSelect.value || null;
+      stopScan();
+      startScan(devId);
     }
   });
 
-  // init awal: isi dropdown kamera biar ga kosong
+  // init awal biar dropdown gak kosong
   (async ()=>{
     try { await listCameras(); } catch(_){}
   })();
