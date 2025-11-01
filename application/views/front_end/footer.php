@@ -675,6 +675,9 @@
     // cari <a class="qcard ..."> di dalam #quickmenu
     var card = e.target.closest('#quickmenu .qcard');
     if (!card) return;
+    if (document.getElementById('grandong')) {
+      return;
+    }
 
     // kasih efek muter di bulatan
     activateCircleSpinnerFrom(card);
