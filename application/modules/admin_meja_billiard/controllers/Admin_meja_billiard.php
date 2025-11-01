@@ -7,7 +7,6 @@ class Admin_meja_billiard extends Admin_Controller {
         parent::__construct();
         $this->load->model('M_admin_meja_billiard','dm');
         cek_session_akses(get_class($this), $this->session->userdata('admin_session')); // jika dipakai
-        
     }
 
     public function index(){
@@ -30,10 +29,19 @@ class Admin_meja_billiard extends Admin_Controller {
                 ? '<span class="badge badge-success">Aktif</span>'
                 : '<span class="badge badge-danger">Nonaktif</span>';
 
+            $kat_badge = '';
+            $kat_lower = strtolower((string)$r->kategori);
+            if ($kat_lower === 'vip'){
+                $kat_badge = '<span class="badge badge-dark">VIP</span>';
+            } else {
+                $kat_badge = '<span class="badge badge-primary">Reguler</span>';
+            }
+
             $row = [];
             $row['cek']            = '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.$r->id_meja.'"><label></label></div>';
             $row['no']             = '';
             $row['nama_meja']      = htmlspecialchars($r->nama_meja, ENT_QUOTES, 'UTF-8');
+            $row['kategori']       = $kat_badge;
             $row['harga_per_jam']  = 'Rp '.number_format((int)$r->harga_per_jam,0,',','.').'/jam';
             $row['aktif']          = $aktif_badge;
             $row['updated_at']     = $r->updated_at ? htmlspecialchars($r->updated_at, ENT_QUOTES, 'UTF-8') : '-';
@@ -67,10 +75,12 @@ class Admin_meja_billiard extends Admin_Controller {
         $this->load->library('form_validation');
 
         $this->form_validation->set_rules('nama_meja','Nama Meja','trim|required|min_length[1]|max_length[100]');
+        $this->form_validation->set_rules('kategori','Kategori','trim|required|in_list[reguler,vip]');
         $this->form_validation->set_rules('harga_per_jam','Harga/Jam Default','trim|integer');
 
         $this->form_validation->set_rules('jam_buka','Jam Buka','trim|required');
         $this->form_validation->set_rules('jam_tutup','Jam Tutup','trim|required');
+        $this->form_validation->set_rules('jam_tutup_voucer','Jam Tutup Voucher','trim|required');
 
         $this->form_validation->set_rules('wk_day_start','Weekday Day Start','trim|required');
         $this->form_validation->set_rules('wk_day_end','Weekday Day End','trim|required');
@@ -89,8 +99,7 @@ class Admin_meja_billiard extends Admin_Controller {
         $this->form_validation->set_rules('we_night_rate','Weekend Night Rate','trim|integer');
 
         $this->form_validation->set_rules('aktif','Status Aktif','trim|required|in_list[0,1]');
-
-        // catatan boleh kosong, jadi no strict rule
+        // catatan boleh kosong
 
         if ($this->form_validation->run() !== TRUE) {
             echo json_encode([
@@ -102,30 +111,32 @@ class Admin_meja_billiard extends Admin_Controller {
         }
 
         $data_ins = [
-            'nama_meja'      => $this->input->post('nama_meja', true),
-            'harga_per_jam'  => (int)$this->input->post('harga_per_jam', true),
+            'nama_meja'          => $this->input->post('nama_meja', true),
+            'kategori'           => $this->input->post('kategori', true),
+            'harga_per_jam'      => (int)$this->input->post('harga_per_jam', true),
 
-            'wk_day_start'   => $this->input->post('wk_day_start', true),
-            'wk_day_end'     => $this->input->post('wk_day_end', true),
-            'wk_day_rate'    => (int)$this->input->post('wk_day_rate', true),
+            'wk_day_start'       => $this->input->post('wk_day_start', true),
+            'wk_day_end'         => $this->input->post('wk_day_end', true),
+            'wk_day_rate'        => (int)$this->input->post('wk_day_rate', true),
 
-            'wk_night_start' => $this->input->post('wk_night_start', true),
-            'wk_night_end'   => $this->input->post('wk_night_end', true),
-            'wk_night_rate'  => (int)$this->input->post('wk_night_rate', true),
+            'wk_night_start'     => $this->input->post('wk_night_start', true),
+            'wk_night_end'       => $this->input->post('wk_night_end', true),
+            'wk_night_rate'      => (int)$this->input->post('wk_night_rate', true),
 
-            'we_day_start'   => $this->input->post('we_day_start', true),
-            'we_day_end'     => $this->input->post('we_day_end', true),
-            'we_day_rate'    => (int)$this->input->post('we_day_rate', true),
+            'we_day_start'       => $this->input->post('we_day_start', true),
+            'we_day_end'         => $this->input->post('we_day_end', true),
+            'we_day_rate'        => (int)$this->input->post('we_day_rate', true),
 
-            'we_night_start' => $this->input->post('we_night_start', true),
-            'we_night_end'   => $this->input->post('we_night_end', true),
-            'we_night_rate'  => (int)$this->input->post('we_night_rate', true),
+            'we_night_start'     => $this->input->post('we_night_start', true),
+            'we_night_end'       => $this->input->post('we_night_end', true),
+            'we_night_rate'      => (int)$this->input->post('we_night_rate', true),
 
-            'jam_buka'       => $this->input->post('jam_buka', true),
-            'jam_tutup'      => $this->input->post('jam_tutup', true),
+            'jam_buka'           => $this->input->post('jam_buka', true),
+            'jam_tutup'          => $this->input->post('jam_tutup', true),
+            'jam_tutup_voucer'   => $this->input->post('jam_tutup_voucer', true),
 
-            'aktif'          => (int)$this->input->post('aktif', true),
-            'catatan'        => $this->input->post('catatan', true),
+            'aktif'              => (int)$this->input->post('aktif', true),
+            'catatan'            => $this->input->post('catatan', true),
         ];
 
         $ok = $this->db->insert('meja_billiard', $data_ins);
@@ -144,10 +155,12 @@ class Admin_meja_billiard extends Admin_Controller {
         $this->form_validation->set_rules('id_meja','ID','required|integer');
 
         $this->form_validation->set_rules('nama_meja','Nama Meja','trim|required|min_length[1]|max_length[100]');
+        $this->form_validation->set_rules('kategori','Kategori','trim|required|in_list[reguler,vip]');
         $this->form_validation->set_rules('harga_per_jam','Harga/Jam Default','trim|integer');
 
         $this->form_validation->set_rules('jam_buka','Jam Buka','trim|required');
         $this->form_validation->set_rules('jam_tutup','Jam Tutup','trim|required');
+        $this->form_validation->set_rules('jam_tutup_voucer','Jam Tutup Voucher','trim|required');
 
         $this->form_validation->set_rules('wk_day_start','Weekday Day Start','trim|required');
         $this->form_validation->set_rules('wk_day_end','Weekday Day End','trim|required');
@@ -180,30 +193,32 @@ class Admin_meja_billiard extends Admin_Controller {
         }
 
         $data_upd = [
-            'nama_meja'      => $this->input->post('nama_meja', true),
-            'harga_per_jam'  => (int)$this->input->post('harga_per_jam', true),
+            'nama_meja'          => $this->input->post('nama_meja', true),
+            'kategori'           => $this->input->post('kategori', true),
+            'harga_per_jam'      => (int)$this->input->post('harga_per_jam', true),
 
-            'wk_day_start'   => $this->input->post('wk_day_start', true),
-            'wk_day_end'     => $this->input->post('wk_day_end', true),
-            'wk_day_rate'    => (int)$this->input->post('wk_day_rate', true),
+            'wk_day_start'       => $this->input->post('wk_day_start', true),
+            'wk_day_end'         => $this->input->post('wk_day_end', true),
+            'wk_day_rate'        => (int)$this->input->post('wk_day_rate', true),
 
-            'wk_night_start' => $this->input->post('wk_night_start', true),
-            'wk_night_end'   => $this->input->post('wk_night_end', true),
-            'wk_night_rate'  => (int)$this->input->post('wk_night_rate', true),
+            'wk_night_start'     => $this->input->post('wk_night_start', true),
+            'wk_night_end'       => $this->input->post('wk_night_end', true),
+            'wk_night_rate'      => (int)$this->input->post('wk_night_rate', true),
 
-            'we_day_start'   => $this->input->post('we_day_start', true),
-            'we_day_end'     => $this->input->post('we_day_end', true),
-            'we_day_rate'    => (int)$this->input->post('we_day_rate', true),
+            'we_day_start'       => $this->input->post('we_day_start', true),
+            'we_day_end'         => $this->input->post('we_day_end', true),
+            'we_day_rate'        => (int)$this->input->post('we_day_rate', true),
 
-            'we_night_start' => $this->input->post('we_night_start', true),
-            'we_night_end'   => $this->input->post('we_night_end', true),
-            'we_night_rate'  => (int)$this->input->post('we_night_rate', true),
+            'we_night_start'     => $this->input->post('we_night_start', true),
+            'we_night_end'       => $this->input->post('we_night_end', true),
+            'we_night_rate'      => (int)$this->input->post('we_night_rate', true),
 
-            'jam_buka'       => $this->input->post('jam_buka', true),
-            'jam_tutup'      => $this->input->post('jam_tutup', true),
+            'jam_buka'           => $this->input->post('jam_buka', true),
+            'jam_tutup'          => $this->input->post('jam_tutup', true),
+            'jam_tutup_voucer'   => $this->input->post('jam_tutup_voucer', true),
 
-            'aktif'          => (int)$this->input->post('aktif', true),
-            'catatan'        => $this->input->post('catatan', true),
+            'aktif'              => (int)$this->input->post('aktif', true),
+            'catatan'            => $this->input->post('catatan', true),
         ];
 
         $ok = $this->db->where('id_meja',$id_meja)->update('meja_billiard',$data_upd);
@@ -227,7 +242,6 @@ class Admin_meja_billiard extends Admin_Controller {
         foreach ($ids as $id_meja) {
             $id_meja = (int)$id_meja;
             if ($id_meja <= 0) continue;
-
             $ok = $ok && $this->db->delete('meja_billiard', ['id_meja'=>$id_meja]);
         }
 

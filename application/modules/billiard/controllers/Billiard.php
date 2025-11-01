@@ -290,213 +290,137 @@ public function daftar_booking(){
 
 
   public function add(){
-  // ambil input & normalisasi
-  $in = $this->input->post(NULL, TRUE) ?: [];
+    // ambil input & normalisasi
+    $in = $this->input->post(NULL, TRUE) ?: [];
 
-  // ==== ambil voucher dari form (nama field fleksibel: voucher / voucher_code) ====
-  $voucher_code_raw = strtoupper(trim((string)($in['voucher'] ?? $in['voucher_code'] ?? '')));
-  // sanitasi ringan: hanya A-Z, 0-9, dash & underscore
-  $voucher_code = preg_replace('/[^A-Z0-9\-\_]/', '', $voucher_code_raw);
+    // ==== ambil voucher dari form (nama field fleksibel: voucher / voucher_code) ====
+    $voucher_code_raw = strtoupper(trim((string)($in['voucher'] ?? $in['voucher_code'] ?? '')));
+    // sanitasi ringan: hanya A-Z, 0-9, dash & underscore
+    $voucher_code = preg_replace('/[^A-Z0-9\-\_]/', '', $voucher_code_raw);
 
-  $norm = $this->_normalize_hhmm($in['jam_mulai'] ?? '');
-  if ($norm !== null) $in['jam_mulai'] = $norm;
+    $norm = $this->_normalize_hhmm($in['jam_mulai'] ?? '');
+    if ($norm !== null) $in['jam_mulai'] = $norm;
 
-  // injeksikan ke form_validation untuk cek dasar
-  $this->form_validation->set_data($in);
-  $this->_rules();
-  if ($this->form_validation->run() === FALSE){
-    return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>validation_errors()]);
-  }
-
-  // validasi manual tanggal + batas hari booking
-  $tanggal = trim((string)($in['tanggal'] ?? ''));
-  if (!$this->_valid_ymd($tanggal)){
-    return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"<br> Tanggal harus format YYYY-MM-DD. "]);
-  }
-  $web     = $this->fm->web_me();
-  $maxDays = (int)($web->maks_hari_booking ?? 30);
-  if ($maxDays < 0) $maxDays = 0;
-  $tzId = $web->timezone ?? 'Asia/Makassar';
-  try { $tz = new DateTimeZone($tzId); } catch (\Throwable $e) { $tz = new DateTimeZone('Asia/Makassar'); $tzId='Asia/Makassar'; }
-  $today   = new DateTime('today', $tz);
-  $maxDate = (clone $today)->modify("+{$maxDays} days")->setTime(23,59,59);
-  $reqDate = DateTime::createFromFormat('Y-m-d', $tanggal, $tz);
-  if (!$reqDate) {
-    return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"Tanggal tidak valid."]);
-  }
-  $reqDate->setTime(0,0,0);
-  if ($reqDate < $today){
-    return $this->_json(["success"=>false,"title"=>"Batas Waktu Booking","pesan"=>"Tanggal booking tidak boleh sebelum hari ini (".$today->format('Y-m-d')." ".$tzId.")."]);
-  }
-  if ($reqDate > $maxDate){
-    $msg = "Tanggal booking maksimal {$maxDays} hari dari sekarang (s/d ".$maxDate->format('Y-m-d')." ".$tzId.").";
-    return $this->_json(["success"=>false,"title"=>"Batas Waktu Booking","pesan"=>$msg]);
-  }
-
-  // validasi no_hp & jam
-  $no_hp = preg_replace('/\D+/', '', (string)($in['no_hp'] ?? ''));
-  if (!preg_match('/^\d{10,13}$/', $no_hp)){
-    return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"<br> Nomor HP harus 10–13 digit. "]);
-  }
-  $jam_hm = (string)($in['jam_mulai'] ?? '');
-  if (!preg_match('/^(?:[01]?\d|2[0-3]):[0-5]\d$/', $jam_hm)){
-    return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"<br> Jam Mulai harus format HH:MM (24 jam). "]);
-  }
-
-  // siap pakai
-  $meja_id    = (int)$in['meja_id'];
-  $nama       = trim((string)$in['nama']);
-  $durasi     = max(1, min(12, (int)$in['durasi_jam'])); // default dari user
-  $jam_mulai  = $jam_hm . ':00';
-  $jam_selesai= $this->_add_hours($jam_mulai, $durasi);
-
-  $meja = $this->mbi->get_meja($meja_id);
-  if (!$meja) return $this->_json(["success"=>false,"title"=>"Tidak Valid","pesan"=>"Meja tidak ditemukan."]);
-
-  // cek operasional (support overnight) — pakai tanggal booking sebagai anchor
-  if (!$this->_within_open_hours($jam_mulai, $jam_selesai, $meja->jam_buka, $meja->jam_tutup, $tanggal)){
-    return $this->_json(["success"=>false,"title"=>"Di Luar Operasional","pesan"=>"Jam operasional meja: ".substr($meja->jam_buka,0,5)."–".substr($meja->jam_tutup,0,5)."." ]);
-  }
-  // === VALIDASI & TARIF MENGIKUTI KONFIG MEJA (weekday/weekend) ===
-$rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
-if (!$rateInfo['ok']) {
-  return $this->_json([
-    "success"=>false,
-    "title"=>"Di Luar Aturan Jam",
-    "pesan"=>$rateInfo['msg']
-  ]);
-}
-$harga = (int)$rateInfo['rate']; // tarif efektif untuk subtotal & penyimpanan
-
-
-  // --- cek overlap dengan transaksi + auto-expire draft non-cash ---
-  $date = $tanggal;
-  $prev_date = (new DateTime($date))->modify('-1 day')->format('Y-m-d');
-  $next_date = (new DateTime($date))->modify('+1 day')->format('Y-m-d');
-
-  $mk = function(string $d, string $t){
-    $dt = DateTime::createFromFormat('Y-m-d H:i:s', $d.' '.$t);
-    if ($dt !== false) return $dt;
-    return DateTime::createFromFormat('Y-m-d H:i', $d.' '.substr($t,0,5));
-  };
-  $aStart = $mk($date, $jam_mulai);
-  $aEnd   = $mk($date, $jam_selesai);
-  if (!$aStart || !$aEnd) return $this->_json(["success"=>false,"title"=>"Error","pesan"=>"Waktu tidak valid."]);
-  if ($aEnd <= $aStart) $aEnd->modify('+1 day');
-
-  // === TRANSACTION START ===
-  $this->db->trans_begin();
-
-  // lock slot aktif
-  $active = ['draft','verifikasi','terkonfirmasi','free'];
-  $sql = "SELECT id_pesanan, tanggal, jam_mulai, jam_selesai, nama, status, updated_at, metode_bayar
-          FROM pesanan_billiard
-          WHERE meja_id = ?
-            AND (tanggal IN (?, ?, ?))
-            AND status IN (".str_repeat('?,', count($active)-1)."?)
-          FOR UPDATE";
-  $params = array_merge([$meja_id, $prev_date, $date, $next_date], $active);
-  $rows = $this->db->query($sql, $params)->result();
-
-  // bersihkan draft non-cash yang expired
-  $late_min = $this->_late_min();
-  $now      = time();
-  $others   = [];
-  foreach ($rows as $o) {
-    $st = strtolower((string)$o->status);
-    $mb = strtolower((string)($o->metode_bayar ?? ''));
-    if (in_array($st, ['draft'], true) && $mb !== 'cash') {
-      $upd = is_numeric($o->updated_at) ? (int)$o->updated_at : (@strtotime((string)$o->updated_at) ?: $now);
-      $deadline = $upd + $late_min * 60;
-      if ($deadline <= $now) {
-        $this->db->where('id_pesanan', (int)$o->id_pesanan)->update('pesanan_billiard', [
-          'status'     => 'batal',
-          'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-        continue;
-      }
+    // injeksikan ke form_validation untuk cek dasar
+    $this->form_validation->set_data($in);
+    $this->_rules();
+    if ($this->form_validation->run() === FALSE){
+      return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>validation_errors()]);
     }
-    $others[] = $o;
-  }
 
-  // cek konflik (untuk durasi awal dari user)
-  foreach($others as $o){
-    $bStart = $mk($o->tanggal, $o->jam_mulai);
-    $bEnd   = $mk($o->tanggal, $o->jam_selesai);
-    if (!$bStart || !$bEnd) continue;
-    if ($bEnd <= $bStart) $bEnd->modify('+1 day');
-    $overlapStart = ($aStart > $bStart) ? $aStart : $bStart;
-    $overlapEnd   = ($aEnd < $bEnd) ? $aEnd : $bEnd;
-    if ($overlapEnd > $overlapStart){
-      $this->db->trans_rollback();
-      $jam = substr($o->jam_mulai,0,5).'–'.substr($o->jam_selesai,0,5);
+    // validasi manual tanggal + batas hari booking
+    $tanggal = trim((string)($in['tanggal'] ?? ''));
+    if (!$this->_valid_ymd($tanggal)){
+      return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"<br> Tanggal harus format YYYY-MM-DD. "]);
+    }
+    $web     = $this->fm->web_me();
+    $maxDays = (int)($web->maks_hari_booking ?? 30);
+    if ($maxDays < 0) $maxDays = 0;
+    $tzId = $web->timezone ?? 'Asia/Makassar';
+    try { $tz = new DateTimeZone($tzId); } catch (\Throwable $e) { $tz = new DateTimeZone('Asia/Makassar'); $tzId='Asia/Makassar'; }
+    $today   = new DateTime('today', $tz);
+    $maxDate = (clone $today)->modify("+{$maxDays} days")->setTime(23,59,59);
+    $reqDate = DateTime::createFromFormat('Y-m-d', $tanggal, $tz);
+    if (!$reqDate) {
+      return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"Tanggal tidak valid."]);
+    }
+    $reqDate->setTime(0,0,0);
+    if ($reqDate < $today){
+      return $this->_json(["success"=>false,"title"=>"Batas Waktu Booking","pesan"=>"Tanggal booking tidak boleh sebelum hari ini (".$today->format('Y-m-d')." ".$tzId.")."]);
+    }
+    if ($reqDate > $maxDate){
+      $msg = "Tanggal booking maksimal {$maxDays} hari dari sekarang (s/d ".$maxDate->format('Y-m-d')." ".$tzId.").";
+      return $this->_json(["success"=>false,"title"=>"Batas Waktu Booking","pesan"=>$msg]);
+    }
+
+    // validasi no_hp & jam
+    $no_hp = preg_replace('/\D+/', '', (string)($in['no_hp'] ?? ''));
+    if (!preg_match('/^\d{10,13}$/', $no_hp)){
+      return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"<br> Nomor HP harus 10–13 digit. "]);
+    }
+    $jam_hm = (string)($in['jam_mulai'] ?? '');
+    if (!preg_match('/^(?:[01]?\d|2[0-3]):[0-5]\d$/', $jam_hm)){
+      return $this->_json(["success"=>false,"title"=>"Validasi Gagal","pesan"=>"<br> Jam Mulai harus format HH:MM (24 jam). "]);
+    }
+
+    // siap pakai
+    $meja_id    = (int)$in['meja_id'];
+    $nama       = trim((string)$in['nama']);
+    $durasi     = max(1, min(12, (int)$in['durasi_jam'])); // default dari user
+    $jam_mulai  = $jam_hm . ':00';
+    $jam_selesai= $this->_add_hours($jam_mulai, $durasi);
+
+    $meja = $this->mbi->get_meja($meja_id);
+    if (!$meja) return $this->_json(["success"=>false,"title"=>"Tidak Valid","pesan"=>"Meja tidak ditemukan."]);
+
+    // cek operasional (support overnight) — pakai tanggal booking sebagai anchor
+    if (!$this->_within_open_hours($jam_mulai, $jam_selesai, $meja->jam_buka, $meja->jam_tutup, $tanggal)){
+      return $this->_json(["success"=>false,"title"=>"Di Luar Operasional","pesan"=>"Jam operasional meja: ".substr($meja->jam_buka,0,5)."–".substr($meja->jam_tutup,0,5)."." ]);
+    }
+
+    // === VALIDASI & TARIF MENGIKUTI KONFIG MEJA (weekday/weekend) ===
+    $rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
+    if (!$rateInfo['ok']) {
       return $this->_json([
         "success"=>false,
-        "title"=>"Slot Bentrok",
-        "pesan"=>"Waktunya udah kebooking jam {$jam} sama orang — pilih slot lain dong 😅"
+        "title"=>"Di Luar Aturan Jam",
+        "pesan"=>$rateInfo['msg']
       ]);
     }
-  }
+    $harga = (int)$rateInfo['rate']; // tarif efektif untuk subtotal & penyimpanan
 
-  // ====== HARGA PER JAM ======
-  // $harga = (int)$meja->harga_per_jam;
 
-  // ====== VOUCHER BLOCK (lock dengan FOR UPDATE agar anti-race) ======
-  $use_voucher  = false;
-  $voucher_row  = null;
-  $hp_norm62    = $this->normalize_phone_for_wa($no_hp); // 628xx…
+    // --- cek overlap dengan transaksi + auto-expire draft non-cash ---
+    $date = $tanggal;
+    $prev_date = (new DateTime($date))->modify('-1 day')->format('Y-m-d');
+    $next_date = (new DateTime($date))->modify('+1 day')->format('Y-m-d');
 
-  if ($voucher_code !== '') {
-      $vsql = "SELECT * FROM voucher_billiard
-               WHERE kode_voucher = ?
-                 AND jenis = 'FREE_MAIN'
-                 AND status = 'baru'
-                 AND is_claimed = 0
-                 AND no_hp_norm = ?
-               LIMIT 1 FOR UPDATE";
-      $voucher_row = $this->db->query($vsql, [$voucher_code, $hp_norm62])->row();
-      if (!$voucher_row) {
-        $this->db->trans_rollback();
-        return $this->_json([
-          "success"=>false,
-          "title"=>"Voucher Invalid",
-          "pesan"=>"Kode voucher nggak ketemu / udah dipakai / bukan milik nomor ini."
-        ]);
-      }
-      $use_voucher = true;
-
-      // ====== FORCE DURASI MENGIKUTI VOUCHER ======
-      $voucher_hours = (int)($voucher_row->jam_voucher ?? 1);
-      if ($voucher_hours < 1) { $voucher_hours = 1; }
-      $durasi        = $voucher_hours;
-
-      $jam_selesai   = $this->_add_hours($jam_mulai, $durasi);
-
-      // re-check tarif pake slot baru:
-      $rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
-      if (!$rateInfo['ok']) {
-        $this->db->trans_rollback();
-        return $this->_json([
-          "success"=>false,
-          "title"=>"Di Luar Aturan Jam",
-          "pesan"=>$rateInfo['msg']
-        ]);
-      }
-      $harga = (int)$rateInfo['rate'];
-
-      // Cek jam operasional untuk durasi voucher
-      if (!$this->_within_open_hours($jam_mulai, $jam_selesai, $meja->jam_buka, $meja->jam_tutup, $tanggal)){
-        $this->db->trans_rollback();
-        return $this->_json([
-          "success"=>false,
-          "title"=>"Di Luar Operasional",
-          "pesan"=>"Dengan durasi voucher {$voucher_hours} jam, slot melewati jam tutup. Coba majuin jam mulai ya."
-        ]);
-      }
-
-    // Re-check overlap dgn durasi voucher
-    $aEnd = $mk($date, $jam_selesai);
+    $mk = function(string $d, string $t){
+      $dt = DateTime::createFromFormat('Y-m-d H:i:s', $d.' '.$t);
+      if ($dt !== false) return $dt;
+      return DateTime::createFromFormat('Y-m-d H:i', $d.' '.substr($t,0,5));
+    };
+    $aStart = $mk($date, $jam_mulai);
+    $aEnd   = $mk($date, $jam_selesai);
+    if (!$aStart || !$aEnd) return $this->_json(["success"=>false,"title"=>"Error","pesan"=>"Waktu tidak valid."]);
     if ($aEnd <= $aStart) $aEnd->modify('+1 day');
+
+    // === TRANSACTION START ===
+    $this->db->trans_begin();
+
+    // lock slot aktif
+    $active = ['draft','verifikasi','terkonfirmasi','free'];
+    $sql = "SELECT id_pesanan, tanggal, jam_mulai, jam_selesai, nama, status, updated_at, metode_bayar
+            FROM pesanan_billiard
+            WHERE meja_id = ?
+              AND (tanggal IN (?, ?, ?))
+              AND status IN (".str_repeat('?,', count($active)-1)."?)
+            FOR UPDATE";
+    $params = array_merge([$meja_id, $prev_date, $date, $next_date], $active);
+    $rows = $this->db->query($sql, $params)->result();
+
+    // bersihkan draft non-cash yang expired
+    $late_min = $this->_late_min();
+    $now      = time();
+    $others   = [];
+    foreach ($rows as $o) {
+      $st = strtolower((string)$o->status);
+      $mb = strtolower((string)($o->metode_bayar ?? ''));
+      if (in_array($st, ['draft'], true) && $mb !== 'cash') {
+        $upd = is_numeric($o->updated_at) ? (int)$o->updated_at : (@strtotime((string)$o->updated_at) ?: $now);
+        $deadline = $upd + $late_min * 60;
+        if ($deadline <= $now) {
+          $this->db->where('id_pesanan', (int)$o->id_pesanan)->update('pesanan_billiard', [
+            'status'     => 'batal',
+            'updated_at' => date('Y-m-d H:i:s'),
+          ]);
+          continue;
+        }
+      }
+      $others[] = $o;
+    }
+
+    // cek konflik (untuk durasi awal dari user)
     foreach($others as $o){
       $bStart = $mk($o->tanggal, $o->jam_mulai);
       $bEnd   = $mk($o->tanggal, $o->jam_selesai);
@@ -510,94 +434,216 @@ $harga = (int)$rateInfo['rate']; // tarif efektif untuk subtotal & penyimpanan
         return $this->_json([
           "success"=>false,
           "title"=>"Slot Bentrok",
-          "pesan"=>"Durasi voucher {$voucher_hours} jam mentok ke slot lain ({$jam}). Majukan jam mulai atau pilih slot lainnya ya."
+          "pesan"=>"Waktunya udah kebooking jam {$jam} sama orang — pilih slot lain dong 😅"
         ]);
       }
     }
-  }
 
-  // subtotal pakai durasi final (kalau voucher, pakai durasi voucher)
-  $subtotal = $harga * $durasi;
+    // ====== HARGA PER JAM ======
+    // $harga = (int)$meja->harga_per_jam;
 
-  // ====== PERSIAPAN INSERT ======
-  // kode unik hanya untuk transfer/QRIS; untuk voucher → 0
-  if ($use_voucher) {
-    $kode_unik   = 0;
-    $grand_total = 0; // total bayar nol
-  } else {
-    if ($this->session->userdata("admin_username") == 'kasir' ) {
-      $kode_unik = 0;
-    } else {
-      $kode_unik = random_int(1, 499);
+    // ====== VOUCHER BLOCK (lock dengan FOR UPDATE agar anti-race) ======
+    $use_voucher  = false;
+    $voucher_row  = null;
+    $hp_norm62    = $this->normalize_phone_for_wa($no_hp); // 628xx…
+
+    if ($voucher_code !== '') {
+        $vsql = "SELECT * FROM voucher_billiard
+                 WHERE kode_voucher = ?
+                   AND jenis = 'FREE_MAIN'
+                   AND status = 'baru'
+                   AND is_claimed = 0
+                   AND no_hp_norm = ?
+                 LIMIT 1 FOR UPDATE";
+        $voucher_row = $this->db->query($vsql, [$voucher_code, $hp_norm62])->row();
+        if (!$voucher_row) {
+          $this->db->trans_rollback();
+          return $this->_json([
+            "success"=>false,
+            "title"=>"Voucher Invalid",
+            "pesan"=>"Kode voucher nggak ketemu / udah dipakai / bukan milik nomor ini."
+          ]);
+        }
+        $use_voucher = true;
+
+        // [VOUCHER RULE] hanya meja reguler
+        $kat = strtolower((string)($meja->kategori ?? ''));
+        if ($kat !== 'reguler'){
+          $this->db->trans_rollback();
+          return $this->_json([
+            "success"=>false,
+            "title"=>"Voucher Tidak Berlaku",
+            "pesan"=>"Voucher cuma bisa dipakai di meja REGULER, bukan VIP."
+          ]);
+        }
+
+        // ====== FORCE DURASI MENGIKUTI VOUCHER ======
+        $voucher_hours = (int)($voucher_row->jam_voucher ?? 1);
+        if ($voucher_hours < 1) { $voucher_hours = 1; }
+        $durasi        = $voucher_hours;
+
+        $jam_selesai   = $this->_add_hours($jam_mulai, $durasi);
+
+        // re-check tarif pake slot baru:
+        $rateInfo = $this->_rate_for_slot_cfg($tanggal, $jam_mulai, $jam_selesai, $meja);
+        if (!$rateInfo['ok']) {
+          $this->db->trans_rollback();
+          return $this->_json([
+            "success"=>false,
+            "title"=>"Di Luar Aturan Jam",
+            "pesan"=>$rateInfo['msg']
+          ]);
+        }
+        $harga = (int)$rateInfo['rate'];
+
+        // Cek jam operasional normal (jam_buka / jam_tutup)
+        if (!$this->_within_open_hours($jam_mulai, $jam_selesai, $meja->jam_buka, $meja->jam_tutup, $tanggal)){
+          $this->db->trans_rollback();
+          return $this->_json([
+            "success"=>false,
+            "title"=>"Di Luar Operasional",
+            "pesan"=>"Dengan durasi voucher {$voucher_hours} jam, slot melewati jam tutup reguler ("
+                     .substr($meja->jam_tutup,0,5)."). Coba majuin jam mulai ya."
+          ]);
+        }
+
+        // [VOUCHER RULE] cek batas jam voucher (jam_tutup_voucer)
+        // fallback: kalau kolom kosong, pakai jam_tutup biasa
+        $jamTutupVRaw = (string)($meja->jam_tutup_voucer ?? '');
+        if ($jamTutupVRaw === '') {
+          $jamTutupVRaw = (string)($meja->jam_tutup ?? '23:59:59');
+        }
+        // pastikan format HH:MM:SS
+        if (preg_match('/^\d{1,2}:\d{2}$/', $jamTutupVRaw)){
+          $jamTutupVRaw .= ':00';
+        }
+
+        $aStart = $mk($date, $jam_mulai);      // refresh aStart/aEnd sesuai durasi voucher
+        $aEnd   = $mk($date, $jam_selesai);
+        if ($aEnd <= $aStart) $aEnd->modify('+1 day');
+
+        $vLimit = $mk($date, $jamTutupVRaw);
+        if ($vLimit){
+          // kalau batas voucher (vLimit) secara jam <= jam_mulai, artinya lewat tengah malam → geser +1 hari
+          if ($vLimit <= $aStart) {
+            $vLimit->modify('+1 day');
+          }
+
+          // kalau selesai main melewati batas voucher → tolak
+          if ($aEnd > $vLimit){
+            $this->db->trans_rollback();
+            return $this->_json([
+              "success"=>false,
+              "title"=>"Melebihi Batas Voucher",
+              "pesan"=>"Voucher cuma berlaku sampai ".
+                       substr($jamTutupVRaw,0,5).
+                       ". Coba majukan jam mulai biar masih masuk jam voucher ya."
+            ]);
+          }
+        }
+
+        // Re-check overlap dgn durasi voucher
+        foreach($others as $o){
+          $bStart = $mk($o->tanggal, $o->jam_mulai);
+          $bEnd   = $mk($o->tanggal, $o->jam_selesai);
+          if (!$bStart || !$bEnd) continue;
+          if ($bEnd <= $bStart) $bEnd->modify('+1 day');
+          $overlapStart = ($aStart > $bStart) ? $aStart : $bStart;
+          $overlapEnd   = ($aEnd < $bEnd) ? $aEnd : $bEnd;
+          if ($overlapEnd > $overlapStart){
+            $this->db->trans_rollback();
+            $jam = substr($o->jam_mulai,0,5).'–'.substr($o->jam_selesai,0,5);
+            return $this->_json([
+              "success"=>false,
+              "title"=>"Slot Bentrok",
+              "pesan"=>"Durasi voucher {$voucher_hours} jam mentok ke slot lain ({$jam}). Majukan jam mulai atau pilih slot lainnya ya."
+            ]);
+          }
+        }
     }
-    $grand_total = $subtotal + $kode_unik;
+
+    // subtotal pakai durasi final (kalau voucher, pakai durasi voucher)
+    $subtotal = $harga * $durasi;
+
+    // ====== PERSIAPAN INSERT ======
+    // kode unik hanya untuk transfer/QRIS; untuk voucher → 0
+    if ($use_voucher) {
+      $kode_unik   = 0;
+      $grand_total = 0; // total bayar nol
+    } else {
+      if ($this->session->userdata("admin_username") == 'kasir' ) {
+        $kode_unik = 0;
+      } else {
+        $kode_unik = random_int(1, 499);
+      }
+      $grand_total = $subtotal + $kode_unik;
+    }
+
+    $kode  = $this->_make_kode(8);
+    $token = bin2hex(random_bytes(24));
+
+    // status pesanan (TIDAK menyetel metode_bayar sama sekali)
+    $status_pesanan = $use_voucher ? 'free' : 'draft';
+
+    $insert = [
+      'kode_booking'  => $kode,
+      'access_token'  => $token,
+      'status'        => $status_pesanan,
+      'nama'          => $nama,
+      'no_hp'         => $no_hp,
+      'meja_id'       => $meja_id,
+      'nama_meja'     => isset($meja->nama_meja) ? $meja->nama_meja : ('MEJA #'.$meja_id),
+      'tanggal'       => $tanggal,
+      'jam_mulai'     => $jam_mulai,
+      'jam_selesai'   => $jam_selesai,   // sudah menyesuaikan voucher kalau ada
+      'durasi_jam'    => $durasi,        // sudah menyesuaikan voucher kalau ada
+      'harga_per_jam' => $harga,
+      'subtotal'      => $subtotal,       // harga asli utk laporan, ikut durasi final
+      'kode_unik'     => $kode_unik,
+      'grand_total'   => $grand_total,
+      'created_at'    => date('Y-m-d H:i:s'),
+      'updated_at'    => date('Y-m-d H:i:s')
+    ];
+
+    $ok = $this->db->insert('pesanan_billiard', $insert);
+    if (!$ok){
+      $this->db->trans_rollback();
+      return $this->_json(["success"=>false,"title"=>"Gagal","pesan"=>"Tidak dapat menyimpan pesanan."]);
+    }
+    $new_id = (int)$this->db->insert_id();
+
+    // Jika voucher dipakai → tandai accept + claimed (masih 1 transaksi)
+    if ($use_voucher) {
+      $this->db->where('id_voucher', (int)$voucher_row->id_voucher)
+               ->update('voucher_billiard', [
+                 'status'     => 'accept',
+                 'is_claimed' => 1,
+                 'claimed_at' => date('Y-m-d H:i:s'),
+                 'notes'      => 'Dipakai untuk booking ID '.$new_id,
+               ]);
+    }
+
+    $this->db->trans_commit();
+    // === TRANSACTION END ===
+
+    // WA ringkasan (param kedua hanya label; DB tidak dipakai)
+    $newRec = $this->mbi->get_by_token($token);
+    if ($newRec) {
+      $this->_wa_ringkasan($newRec, $use_voucher ? 'FREE' : 'DRAFT', $status_pesanan);
+    }
+
+    // redirect: jika voucher → ke halaman free; jika bukan → ke cart seperti biasa
+    return $this->_json([
+      "success"      => true,
+      "title"        => $use_voucher ? "Booking Gratis" : "Berhasil",
+      "pesan"        => $use_voucher
+                          ? "Voucher diterima. Mainnya gratis yaa 🎉"
+                          : "Booking dibuat. Kode: <b>{$kode}</b>",
+      "redirect_url" => $use_voucher
+                        ? site_url('billiard/free').'?t='.urlencode($token)
+                        : site_url('billiard/cart').'?t='.urlencode($token)
+    ]);
   }
-
-  $kode  = $this->_make_kode(8);
-  $token = bin2hex(random_bytes(24));
-
-  // status pesanan (TIDAK menyetel metode_bayar sama sekali)
-  $status_pesanan = $use_voucher ? 'free' : 'draft';
-
-  $insert = [
-    'kode_booking'  => $kode,
-    'access_token'  => $token,
-    'status'        => $status_pesanan,
-    'nama'          => $nama,
-    'no_hp'         => $no_hp,
-    'meja_id'       => $meja_id,
-    'nama_meja'     => isset($meja->nama_meja) ? $meja->nama_meja : ('MEJA #'.$meja_id),
-    'tanggal'       => $tanggal,
-    'jam_mulai'     => $jam_mulai,
-    'jam_selesai'   => $jam_selesai,   // sudah menyesuaikan voucher kalau ada
-    'durasi_jam'    => $durasi,        // sudah menyesuaikan voucher kalau ada
-    'harga_per_jam' => $harga,
-    'subtotal'      => $subtotal,       // harga asli utk laporan, ikut durasi final
-    'kode_unik'     => $kode_unik,
-    'grand_total'   => $grand_total,
-    'created_at'    => date('Y-m-d H:i:s'),
-    'updated_at'    => date('Y-m-d H:i:s')
-  ];
-
-  $ok = $this->db->insert('pesanan_billiard', $insert);
-  if (!$ok){
-    $this->db->trans_rollback();
-    return $this->_json(["success"=>false,"title"=>"Gagal","pesan"=>"Tidak dapat menyimpan pesanan."]);
-  }
-  $new_id = (int)$this->db->insert_id();
-
-  // Jika voucher dipakai → tandai accept + claimed (masih 1 transaksi)
-  if ($use_voucher) {
-    $this->db->where('id_voucher', (int)$voucher_row->id_voucher)
-             ->update('voucher_billiard', [
-               'status'     => 'accept',
-               'is_claimed' => 1,
-               'claimed_at' => date('Y-m-d H:i:s'),
-               'notes'      => 'Dipakai untuk booking ID '.$new_id,
-             ]);
-  }
-
-  $this->db->trans_commit();
-  // === TRANSACTION END ===
-
-  // WA ringkasan (param kedua hanya label; DB tidak dipakai)
-  $newRec = $this->mbi->get_by_token($token);
-  if ($newRec) {
-    $this->_wa_ringkasan($newRec, $use_voucher ? 'FREE' : 'DRAFT', $status_pesanan);
-  }
-
-  // redirect: jika voucher → ke halaman free; jika bukan → ke cart seperti biasa
-  return $this->_json([
-    "success"      => true,
-    "title"        => $use_voucher ? "Booking Gratis" : "Berhasil",
-    "pesan"        => $use_voucher
-                        ? "Voucher diterima. Mainnya gratis yaa 🎉"
-                        : "Booking dibuat. Kode: <b>{$kode}</b>",
-    "redirect_url" => $use_voucher
-                      ? site_url('billiard/free').'?t='.urlencode($token)
-                      : site_url('billiard/cart').'?t='.urlencode($token)
-  ]);
-}
 
 
 public function free(){

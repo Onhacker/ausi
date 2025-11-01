@@ -5,8 +5,18 @@ class M_admin_meja_billiard extends CI_Model {
 
     private $table         = 'meja_billiard b';
     // index kolom harus sinkron dengan DataTables columns[] di view
-    private $column_order  = [null, null, 'b.nama_meja','b.harga_per_jam','b.aktif','b.updated_at', null];
-    private $column_search = ['b.nama_meja','b.catatan'];
+    // 0 cek, 1 no, 2 nama_meja, 3 kategori, 4 harga_per_jam, 5 aktif, 6 updated_at, 7 aksi
+    private $column_order  = [
+        null,
+        null,
+        'b.nama_meja',
+        'b.kategori',
+        'b.harga_per_jam',
+        'b.aktif',
+        'b.updated_at',
+        null
+    ];
+    private $column_search = ['b.nama_meja','b.catatan','b.kategori'];
     private $order         = ['b.id_meja' => 'DESC'];
 
     public function __construct(){

@@ -35,6 +35,7 @@
           </th>
           <th width="5%">No.</th>
           <th>Nama Meja</th>
+          <th width="10%">Kategori</th>
           <th width="15%">Harga Default</th>
           <th width="10%">Status</th>
           <th width="18%">Update Terakhir</th>
@@ -69,12 +70,24 @@
 
               <div class="col-md-3">
                 <div class="form-group mb-2">
+                  <label class="text-primary">Kategori</label>
+                  <select class="custom-select" name="kategori" id="kategori" required>
+                    <option value="reguler">Reguler</option>
+                    <option value="vip">VIP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-group mb-2">
                   <label class="text-primary">Harga/Jam Default</label>
                   <input type="number" class="form-control" name="harga_per_jam" id="harga_per_jam" min="0" step="1000" placeholder="35000">
                   <small class="text-muted">Dipakai sebagai fallback</small>
                 </div>
               </div>
+            </div><!-- row 1 -->
 
+            <div class="row">
               <div class="col-md-3">
                 <div class="form-group mb-2">
                   <label class="text-primary">Status</label>
@@ -84,21 +97,28 @@
                   </select>
                 </div>
               </div>
-            </div><!-- row 1 -->
+            </div>
 
             <hr class="my-3">
             <h5 class="text-primary mb-2">Jam Operasional</h5>
             <div class="row">
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <div class="form-group mb-2">
                   <label>Jam Buka</label>
                   <input type="time" class="form-control" name="jam_buka" id="jam_buka" required>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <div class="form-group mb-2">
                   <label>Jam Tutup</label>
                   <input type="time" class="form-control" name="jam_tutup" id="jam_tutup" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group mb-2">
+                  <label>Jam Tutup Voucher</label>
+                  <input type="time" class="form-control" name="jam_tutup_voucer" id="jam_tutup_voucer" required>
+                  <small class="text-muted d-block">Set sampai jam berapa voucher masih bisa dipakai</small>
                 </div>
               </div>
             </div>
@@ -267,6 +287,7 @@ $(document).ready(function(){
       {data:"cek", orderable:false},
       {data:"no",  orderable:false},
       {data:"nama_meja"},
+      {data:"kategori"},
       {data:"harga_per_jam"},
       {data:"aktif"},
       {data:"updated_at"},
@@ -292,6 +313,7 @@ function add(){
   $('#form_app')[0].reset();
   $('#id_meja').val('');
   $('#aktif').val('1');
+  $('#kategori').val('reguler');
 
   $('.mymodal-title').text('Tambah Meja Billiard');
   $('#full-width-modal').modal('show');
@@ -324,10 +346,12 @@ function edit(id_meja=null){
       const d = r.data;
       $('#id_meja').val(d.id_meja);
       $('#nama_meja').val(d.nama_meja);
+      $('#kategori').val(d.kategori); // NEW
       $('#harga_per_jam').val(d.harga_per_jam);
 
       $('#jam_buka').val(d.jam_buka);
       $('#jam_tutup').val(d.jam_tutup);
+      $('#jam_tutup_voucer').val(d.jam_tutup_voucer); // NEW
 
       $('#wk_day_start').val(d.wk_day_start);
       $('#wk_day_end').val(d.wk_day_end);
@@ -372,8 +396,8 @@ function simpan(){
     close_loader();
 
     if (!r.success){
-      Swal.fire(r.title||'Gagal', r.pesan||'Terjadi kesalahan', 'error');
-      return;
+        Swal.fire(r.title||'Gagal', r.pesan||'Terjadi kesalahan', 'error');
+        return;
     }
 
     Swal.fire(r.title, r.pesan, 'success');
