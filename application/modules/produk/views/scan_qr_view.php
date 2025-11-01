@@ -32,6 +32,24 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
 
 <style>
 /* ===========================================
+   BASE / HELPERS
+   =========================================== */
+.ctrl-btn-inner{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-weight:600;
+  line-height:1.2;
+  font-size:15px;
+}
+.ctrl-btn-inner .ico{
+  font-size:16px;
+  line-height:1;
+  display:inline-block;
+}
+
+/* ===========================================
    FRAME KAMERA NORMAL
    =========================================== */
 
@@ -70,6 +88,7 @@ $__mode_emoji = $emojis[$__mode] ?? '🛍️';
   border:1px solid rgba(255,255,255,.12);
   border-radius:12px;
   padding:14px 16px;
+  text-align:center;
 }
 .video-placeholder .qr{
   width:42px;
@@ -217,13 +236,14 @@ video:-webkit-full-screen{
   background:rgba(0,0,0,.35);
   border-radius:8px;
   padding:6px 10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.7);
 }
 /* tampilkan hint kalau fullscreen aktif + kamera aktif */
 #cameraWrap.is-fs.scan-active .fs-hint{
   display:block;
 }
 
-/* tombol torch besar di bawah layar saat fullscreen */
+/* tombol torch besar di fullscreen (🔦) */
 .fs-torch-btn{
   position:absolute;
   left:50%;
@@ -244,14 +264,20 @@ video:-webkit-full-screen{
   text-align:center;
 
   padding:10px 12px;
-  display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
 
-  opacity:.4;                 /* default mati */
-  pointer-events:none;        /* default nggak bisa diklik */
   box-shadow:0 8px 24px rgba(0,0,0,.7);
+
+  /* default: HILANG total kalau bukan fullscreen */
+  display:none;
+  opacity:.4;
+  pointer-events:none;
+}
+.fs-torch-btn .icon{
+  font-size:20px;
+  line-height:1;
 }
 .fs-torch-btn .lbl{
   font-size:12px;
@@ -262,12 +288,12 @@ video:-webkit-full-screen{
   text-shadow:0 1px 2px rgba(0,0,0,.9);
 }
 
-/* fullscreen aktif + kamera aktif → tombol torch kelihatan */
+/* fullscreen aktif + kamera aktif → tampilkan tombol torch (tapi masih "mati") */
 #cameraWrap.is-fs.scan-active .fs-torch-btn{
   display:flex;
 }
 
-/* device support torch → aktifkan interaksi */
+/* device support torch → aktifkan pointer + terang */
 #cameraWrap.is-fs.scan-active.torch-ready .fs-torch-btn{
   opacity:1;
   pointer-events:auto;
@@ -275,12 +301,9 @@ video:-webkit-full-screen{
   background:rgba(0,0,0,.7);
 }
 
-/* Tombol Senter kecil di layout normal  */
+/* Tombol Senter kecil (bawah kamera, mode normal) */
 #btnTorch{
-  visibility:hidden; /* default disembunyikan */
-}
-#cameraWrap.torch-ready ~ div #btnTorch{
-  visibility:visible;
+  visibility:hidden; /* default hidden sampai device support torch */
 }
 
 /* dropdown kamera */
@@ -344,13 +367,13 @@ video:-webkit-full-screen{
                 ✕
               </button>
 
-              <!-- tombol torch besar di fullscreen -->
+              <!-- tombol torch fullscreen (muncul HANYA saat fullscreen) -->
               <button
                 id="btnTorchFS"
                 type="button"
                 class="fs-torch-btn"
                 aria-label="Senter">
-                <div class="icon" style="font-size:20px;line-height:1;">🔦</div>
+                <div class="icon">🔦</div>
                 <div class="lbl">Senter</div>
               </button>
 
@@ -381,16 +404,23 @@ video:-webkit-full-screen{
 
           <!-- tombol kontrol -->
           <div style="max-width:520px">
+
             <!-- row 1: start / stop -->
             <div class="row no-gutters">
               <div class="col-6 pr-1 mb-2">
                 <button id="btnStart" class="btn btn-blue btn-block">
-                  Buka Kamera
+                  <span class="ctrl-btn-inner">
+                    <span class="ico">📷</span>
+                    <span>Buka Kamera</span>
+                  </span>
                 </button>
               </div>
               <div class="col-6 pl-1 mb-2">
                 <button id="btnStop" class="btn btn-outline-secondary btn-block" disabled>
-                  Tutup
+                  <span class="ctrl-btn-inner">
+                    <span class="ico">✕</span>
+                    <span>Tutup</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -399,12 +429,18 @@ video:-webkit-full-screen{
             <div class="row no-gutters">
               <div class="col-6 pr-1 mb-2">
                 <button id="btnFull" class="btn btn-outline-dark btn-block d-none">
-                  Layar Penuh
+                  <span class="ctrl-btn-inner">
+                    <span class="ico">⛶</span>
+                    <span>Layar Penuh</span>
+                  </span>
                 </button>
               </div>
               <div class="col-6 pl-1 mb-2">
                 <button id="btnTorch" class="btn btn-outline-warning btn-block" disabled>
-                  Senter
+                  <span class="ctrl-btn-inner">
+                    <span class="ico">🔦</span>
+                    <span>Senter</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -470,7 +506,7 @@ video:-webkit-full-screen{
   let controlsObj    = null;
   let currentStream  = null;
   let torchTrack     = null;
-  let facing         = 'environment'; // kita mau kamera belakang by default
+  let facing         = 'environment'; // prefer kamera belakang
 
   /* =========================
      HELPERS
@@ -498,7 +534,7 @@ video:-webkit-full-screen{
   }
 
   function setMirror(isFront){
-    // kalau depan, mirror biar natural selfie; kalau belakang jangan mirror
+    // depan => mirror biar natural
     video.style.transform = isFront ? 'scaleX(-1)' : 'none';
   }
 
@@ -542,18 +578,18 @@ video:-webkit-full-screen{
       btnTorch.disabled = false;
       btnTorch.style.visibility = 'visible';
 
-      // tombol fullscreen
+      // tombol fullscreen (akan kelihatan hanya saat fullscreen)
       btnTorchFS.style.opacity = '1';
       btnTorchFS.style.pointerEvents = 'auto';
     } else {
       disableTorchUI();
     }
 
-    // coba minta autofocus continue (beberapa device Samsung nurut)
+    // coba autofocus continuous (beberapa Samsung nurut)
     try {
       track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
     } catch(e){
-      // santai aja kalau gak support
+      // aman kalau gagal
     }
   }
 
@@ -571,7 +607,7 @@ video:-webkit-full-screen{
      CAMERA ENUM & CONSTRAINTS
   ========================== */
   async function ensureLabels(){
-    // minta izin sekali supaya label kamera kebuka (Android butuh ini)
+    // minta izin sekali supaya label kamera kebuka di Android
     try {
       await navigator.mediaDevices.getUserMedia({video:true, audio:false});
     } catch(e){}
@@ -595,7 +631,7 @@ video:-webkit-full-screen{
       cameraSelect.appendChild(opt);
     });
 
-    // pilih kamera belakang dulu kalau ada indikasi "back" / "environment"
+    // pilih kamera belakang default kalau labelnya ada "back"/"environment"
     const back = devices.find(d => /back|rear|environment/i.test(d.label||''));
     if (back){
       cameraSelect.value = back.deviceId || '';
@@ -605,7 +641,7 @@ video:-webkit-full-screen{
   }
 
   function buildBaseConstraints({ deviceId, prefFacing } = {}){
-    // high-res attempt (1080p)
+    // high-res attempt 1080p
     const highRes = {
       audio:false,
       video:{
@@ -625,13 +661,11 @@ video:-webkit-full-screen{
   }
 
   async function startWithConstraints(cons){
-    // catatan:
-    // - kita panggil decodeFromConstraints biar ZXing pakai stream kita (jadi resolusi kita yg dipakai)
-    // - callback dipanggil setiap frame decode → saat dapet hasil kita stop
+    // Jalankan decoding pakai constraints kita (bukan default ZXing 480p)
     controlsObj = await reader.decodeFromConstraints(cons, video, (res, err)=>{
       if (res && res.text){
         const codeText = (res.text || '').trim();
-        stopScan();        // hentikan biar ga spam
+        stopScan();        // stop supaya ga spam scan
         handleDecoded(codeText);
       }
     });
@@ -647,31 +681,31 @@ video:-webkit-full-screen{
     btnFull.classList.remove('d-none');
     btnExitFs.classList.add('d-none');
 
-    // pasang orientasi mirror kalau front cam
+    // mirror kalau front cam
     const isFrontNow =
       (cons.video && cons.video.facingMode && /user/i.test(cons.video.facingMode.ideal||'')) ||
       (facing === 'user');
     setMirror(isFrontNow);
 
-    // torch & autofocus setup
+    // torch / autofocus setup
     setupTorchUI();
   }
 
   async function startScan(deviceId){
     running = true;
 
-    // beberapa browser bakal nolak constraint tertentu → kita coba beberapa opsi fallback
+    // beberapa browser nolak resolusi tinggi → kita coba bertahap
     const tries = [];
 
-    // 1. high-res ke kamera yg dipilih user
+    // 1. high-res dengan kamera yg dipilih user
     if (deviceId){
       tries.push(buildBaseConstraints({ deviceId }));
     }
 
-    // 2. high-res pakai "environment" / belakang
+    // 2. high-res pakai 'environment'
     tries.push(buildBaseConstraints({ prefFacing:'environment' }));
 
-    // 3. medium-res fallback 1280x720
+    // 3. fallback 1280x720
     tries.push({
       audio:false,
       video:{
@@ -682,7 +716,7 @@ video:-webkit-full-screen{
       }
     });
 
-    // 4. basic fallback 640x480
+    // 4. fallback 640x480
     tries.push({
       audio:false,
       video:{
@@ -692,7 +726,7 @@ video:-webkit-full-screen{
       }
     });
 
-    // 5. ultimate fallback "any camera true"
+    // 5. ultimate true
     tries.push({ audio:false, video:true });
 
     let lastErr = null;
@@ -706,7 +740,7 @@ video:-webkit-full-screen{
       }
     }
 
-    // kalau semua gagal
+    // semua gagal
     running = false;
     btnStart.disabled = false;
     btnStop.disabled  = true;
@@ -797,7 +831,7 @@ video:-webkit-full-screen{
     btnExitFs.classList.add('d-none');
   }
 
-  // sync ESC native
+  // sync kalau user tekan ESC native fullscreen
   document.addEventListener('fullscreenchange', ()=>{
     if (!document.fullscreenElement){
       wrap.classList.remove('fullscreen-scan','is-fs');
@@ -830,7 +864,7 @@ video:-webkit-full-screen{
   ========================== */
 
   btnStart.addEventListener('click', async ()=>{
-    // keamanan basic: browser minta HTTPS / localhost untuk kamera belakang high-res
+    // keamanan basic: kamera high-res butuh HTTPS / localhost
     if (!(window.isSecureContext || ['localhost','127.0.0.1'].includes(location.hostname))){
       showResult('Akses kamera butuh HTTPS atau localhost.');
       return;
@@ -839,7 +873,7 @@ video:-webkit-full-screen{
     await listCameras(); // refresh list & pilih kamera belakang kalau ada
     const devId = cameraSelect.value || null;
 
-    stopScan(); // make sure clean
+    stopScan(); // bersihkan sesi lama kalau ada
     await startScan(devId);
   });
 
@@ -850,7 +884,7 @@ video:-webkit-full-screen{
   btnTorchFS.addEventListener('click', toggleTorch);
 
   cameraSelect.addEventListener('change', ()=>{
-    // user ganti kamera → kalau lagi jalan kita restart dengan kamera itu
+    // user ganti kamera → kalau lagi jalan kita restart ke kamera itu
     if (running){
       const devId = cameraSelect.value || null;
       stopScan();
@@ -858,7 +892,7 @@ video:-webkit-full-screen{
     }
   });
 
-  // init awal biar dropdown gak kosong
+  // init awal: isi dropdown kamera biar ga kosong
   (async ()=>{
     try { await listCameras(); } catch(_){}
   })();
