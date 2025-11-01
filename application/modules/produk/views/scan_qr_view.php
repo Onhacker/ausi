@@ -191,6 +191,7 @@ video:-webkit-full-screen{
   line-height:1;
   font-size:20px;
   font-weight:600;
+  box-shadow:0 4px 12px rgba(0,0,0,.6);
 }
 #cameraWrap.fullscreen-scan .fs-exit-btn{
   display:flex !important;
@@ -219,6 +220,10 @@ video:-webkit-full-screen{
   border-radius:8px;
   padding:6px 10px;
 }
+/* tampilkan hint kalau fullscreen aktif + kamera aktif */
+#cameraWrap.is-fs.scan-active .fs-hint{
+  display:block;
+}
 
 /* tombol torch besar di bawah layar saat fullscreen */
 .fs-torch-btn{
@@ -241,10 +246,14 @@ video:-webkit-full-screen{
   text-align:center;
 
   padding:10px 12px;
-  display:none; /* default hidden, nanti dimunculkan via .is-fs.scan-active */
+  display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
+
+  opacity:.4;                 /* default mati */
+  pointer-events:none;        /* default nggak bisa diklik */
+  box-shadow:0 8px 24px rgba(0,0,0,.7);
 }
 .fs-torch-btn .lbl{
   font-size:12px;
@@ -255,16 +264,28 @@ video:-webkit-full-screen{
   text-shadow:0 1px 2px rgba(0,0,0,.9);
 }
 
-/* munculkan hint & tombol torch fullscreen
-   HANYA jika:
-   - fullscreen aktif (.is-fs)
-   - kamera lagi jalan (.scan-active)
-*/
-#cameraWrap.is-fs.scan-active .fs-hint{
-  display:block;
-}
+/* fullscreen aktif + kamera aktif → tombol torch selalu kelihatan */
 #cameraWrap.is-fs.scan-active .fs-torch-btn{
   display:flex;
+}
+
+/* device support torch → aktifkan interaksi */
+#cameraWrap.is-fs.scan-active.torch-ready .fs-torch-btn{
+  opacity:1;
+  pointer-events:auto;
+  border-color:rgba(255,255,255,.8);
+  background:rgba(0,0,0,.7);
+}
+
+/* Tombol Senter kecil di layout normal (bawah tombol fullscreen)
+   default: invisible
+   kalau torch-ready → visible
+*/
+#btnTorch{
+  visibility:hidden;
+}
+#cameraWrap.torch-ready ~ div #btnTorch{
+  visibility:visible;
 }
 
 /* dropdown kamera */
@@ -319,7 +340,7 @@ video:-webkit-full-screen{
                 Arahkan QR ke kotak tengah
               </div>
 
-              <!-- tombol keluar fullscreen (X), hidden default -->
+              <!-- tombol keluar fullscreen (X) -->
               <button
                 id="btnExitFs"
                 type="button"
@@ -387,7 +408,7 @@ video:-webkit-full-screen{
                 </button>
               </div>
               <div class="col-6 pl-1 mb-2">
-                <button id="btnTorch" class="btn btn-outline-warning btn-block d-none" disabled>
+                <button id="btnTorch" class="btn btn-outline-warning btn-block" disabled>
                   Senter
                 </button>
               </div>
@@ -510,12 +531,22 @@ video:-webkit-full-screen{
     return s;
   }
 
-  // === TORCH SUPPORT ===
+  /* =========================
+     TORCH SUPPORT
+  ========================== */
+
   function disableTorchUI(){
-    btnTorch.disabled   = true;
-    btnTorch.classList.add('d-none');
-    // fullscreen torch btn -> jangan tampilkan sama sekali
-    btnTorchFS.style.display = 'none';
+    // tandai tidak ready torch
+    wrap.classList.remove('torch-ready');
+
+    // kecil (layout normal)
+    btnTorch.disabled = true;
+    btnTorch.style.visibility = 'hidden';
+
+    // fullscreen
+    btnTorchFS.style.opacity = '0.4';
+    btnTorchFS.style.pointerEvents = 'none';
+
     torchTrack = null;
   }
 
@@ -527,15 +558,29 @@ video:-webkit-full-screen{
     if (!track) { disableTorchUI(); return; }
 
     const caps = (track.getCapabilities && track.getCapabilities()) || {};
-    if (caps.torch){
+    let supported = false;
+
+    if (caps.torch) {
+      supported = true;
+    } else if (caps.fillLightMode && Array.isArray(caps.fillLightMode)) {
+      if (caps.fillLightMode.includes('flash') || caps.fillLightMode.includes('torch')) {
+        supported = true;
+      }
+    }
+
+    if (supported){
       torchTrack = track;
 
-      // tombol kecil di bawah frame
-      btnTorch.disabled = false;
-      btnTorch.classList.remove('d-none');
+      // tandai wrap bahwa torch siap
+      wrap.classList.add('torch-ready');
 
-      // tombol besar fullscreen
-      btnTorchFS.style.display = ''; // boleh ditampilkan (CSS yg atur kapan muncul)
+      // kecil (layout normal) → aktifkan
+      btnTorch.disabled = false;
+      btnTorch.style.visibility = 'visible';
+
+      // fullscreen → aktifkan
+      btnTorchFS.style.opacity = '1';
+      btnTorchFS.style.pointerEvents = 'auto';
     } else {
       disableTorchUI();
     }
@@ -578,9 +623,10 @@ video:-webkit-full-screen{
     // tandai aktif scanning (buat fs-hint dan tombol torch fullscreen)
     wrap.classList.add('scan-active');
 
-    // munculkan tombol fullscreen
+    // munculkan tombol fullscreen (mode normal)
     btnFull.classList.remove('d-none');
-    // tombol keluar fullscreen disembunyiin dulu (nanti muncul pas masuk fs)
+
+    // tombol keluar fullscreen disembunyiin dulu (muncul pas fullscreen aktif)
     btnExitFs.classList.add('d-none');
 
     // cek torch
@@ -606,10 +652,10 @@ video:-webkit-full-screen{
         return;
       }
     }catch(e){
-      // kalau gagal, lanjut fallback css
+      // fallback css
     }
 
-    // fallback CSS
+    // fallback CSS manual
     wrap.classList.add('fullscreen-scan','is-fs');
     document.body.classList.add('scan-lock');
     btnExitFs.classList.remove('d-none');
@@ -645,13 +691,8 @@ video:-webkit-full-screen{
     }
   }
 
-  video.addEventListener('dblclick', ()=>{
-    toggleFullscreen();
-  });
-
-  btnExitFs.addEventListener('click', ()=>{
-    exitFullscreen();
-  });
+  video.addEventListener('dblclick', toggleFullscreen);
+  btnExitFs.addEventListener('click', exitFullscreen);
 
   document.addEventListener('keydown', (e)=>{
     if (e.key === 'Escape'){
@@ -755,9 +796,12 @@ video:-webkit-full-screen{
     // balikin placeholder
     wrap.classList.remove('live');
     wrap.classList.remove('scan-active');
+    wrap.classList.remove('torch-ready');
 
-    // sembunyikan tombol fullscreen & matiin torch UI
+    // sembunyikan tombol fullscreen
     btnFull.classList.add('d-none');
+
+    // matiin torch UI state
     disableTorchUI();
 
     // pastikan keluar fullscreen
