@@ -234,38 +234,205 @@ if (!empty($kategoris)) {
   </div>
 
   <!-- QUICKMENU kategori -->
-  <div class="quickmenu-wrap position-relative mb-2" id="grandong">
-    <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Kategori">
-      <div class="quickmenu-item" data-kategori="">
-        <div class="qcard">
-          <div class="menu-circle" style="background:#6f42c1;"><span class="emoji-icon">🗂️</span></div>
-          <small class="menu-label">Semua</small>
+ <div class="quickmenu-wrap position-relative mb-2" id="grandong">
+  <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Kategori">
+
+    <!-- Semua -->
+    <div class="quickmenu-item" data-kategori="">
+      <div class="qcard">
+        <div class="menu-circle" style="background:#6f42c1;">
+          <span class="emoji-icon" data-anim="all">🗂️</span>
         </div>
-      </div>
-      <div class="quickmenu-item" data-kategori="<?= html_escape($kat_makanan_id); ?>">
-        <div class="qcard">
-          <div class="menu-circle" style="background:#e67e22;"><span class="emoji-icon">🍽️</span></div>
-          <small class="menu-label">Makanan</small>
-        </div>
-      </div>
-      <div class="quickmenu-item" data-kategori="<?= html_escape($kat_minuman_id); ?>">
-        <div class="qcard">
-          <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon">🥤</span></div>
-          <small class="menu-label">Minuman</small>
-        </div>
-      </div>
-      <!-- Keranjang di quickmenu -->
-      <div class="quickmenu-item" data-action="cart">
-        <a class="qcard d-block text-decoration-none" href="<?= site_url('produk/cart') ?>" aria-label="Buka keranjang">
-          <div class="menu-circle" style="background:#ef4444;">
-            <i class="mdi mdi-cart-outline" aria-hidden="true" style="font-size:26px;"></i>
-            <span class="q-badge" id="cart-count">0</span>
-          </div>
-          <small class="menu-label" style="color:#ef4444;">Keranjang</small>
-        </a>
+        <small class="menu-label">Semua</small>
       </div>
     </div>
+
+    <!-- Makanan -->
+    <div class="quickmenu-item" data-kategori="<?= html_escape($kat_makanan_id); ?>">
+      <div class="qcard">
+        <div class="menu-circle" style="background:#e67e22;">
+          <span class="emoji-icon" data-anim="food">🍽️</span>
+        </div>
+        <small class="menu-label">Makanan</small>
+      </div>
+    </div>
+
+    <!-- Minuman -->
+    <div class="quickmenu-item" data-kategori="<?= html_escape($kat_minuman_id); ?>">
+      <div class="qcard">
+        <div class="menu-circle" style="background:#17a2b8;">
+          <span class="emoji-icon" data-anim="drink">🥤</span>
+        </div>
+        <small class="menu-label">Minuman</small>
+      </div>
+    </div>
+
+    <!-- Keranjang -->
+    <div class="quickmenu-item" data-action="cart">
+      <a class="qcard d-block text-decoration-none" href="<?= site_url('produk/cart') ?>" aria-label="Buka keranjang">
+        <div class="menu-circle" style="background:#ef4444;">
+          <i class="mdi mdi-cart-outline" data-anim="cart" aria-hidden="true" style="font-size:26px; position:relative;"></i>
+          <span class="q-badge" id="cart-count">0</span>
+        </div>
+        <small class="menu-label" style="color:#ef4444;">Keranjang</small>
+      </a>
+    </div>
+
   </div>
+</div>
+<style type="text/css">
+  /* Biar animasi smooth dan tidak merusak layout */
+.menu-circle {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color:#fff;
+}
+.menu-circle .emoji-icon,
+.menu-circle .mdi {
+  display: inline-block;
+  line-height: 1;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+/* =======================
+   KEYFRAMES
+   ======================= */
+
+/* 1. ALL (Semua): pulse zoom in-out */
+@keyframes qm-pulse {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.2) rotate(3deg); }
+  60%  { transform: scale(0.9) rotate(-3deg); }
+  100% { transform: scale(1); }
+}
+
+/* 2. FOOD (Makanan): efek "tutup piring kebuka"
+   - sedikit miring, naik dikit, pop turun */
+@keyframes qm-food-pop {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); }
+  20%  { transform: translateY(-6px) rotate(-12deg) scale(1.15); }
+  50%  { transform: translateY(-10px) rotate(8deg) scale(1.2); }
+  80%  { transform: translateY(2px) rotate(-4deg) scale(0.95); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+/* 3. DRINK (Minuman): "diseruput"
+   - naik turun cepat + sedikit rotasi sedotan */
+@keyframes qm-drink-sip {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); }
+  25%  { transform: translateY(-5px) rotate(-5deg) scale(1.1); }
+  50%  { transform: translateY(0) rotate(4deg) scale(0.95); }
+  75%  { transform: translateY(-3px) rotate(-3deg) scale(1.08); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+/* 4. CART (Keranjang): wiggle kiri-kanan */
+@keyframes qm-cart-wiggle {
+  0%   { transform: rotate(0deg) scale(1); }
+  15%  { transform: rotate(-10deg) scale(1.05); }
+  30%  { transform: rotate(8deg) scale(1.05); }
+  45%  { transform: rotate(-6deg) scale(1.05); }
+  60%  { transform: rotate(4deg) scale(1.05); }
+  75%  { transform: rotate(-2deg) scale(1.03); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* =======================
+   CLASS TRIGGER
+   ======================= */
+
+.qm-anim-pulse   { animation: qm-pulse       .45s ease-out; }
+.qm-anim-food    { animation: qm-food-pop    .55s cubic-bezier(.2,.7,.3,1); }
+.qm-anim-drink   { animation: qm-drink-sip   .55s cubic-bezier(.2,.7,.3,1); }
+.qm-anim-cart    { animation: qm-cart-wiggle .55s cubic-bezier(.2,.7,.3,1); }
+
+/* biar badge keranjang tetap di atas, ga ikut goyang terlalu jauh */
+.menu-circle .q-badge{
+  position:absolute;
+  top:2px;
+  right:2px;
+  background:#fff;
+  color:#ef4444;
+  font-size:11px;
+  font-weight:700;
+  line-height:1;
+  border-radius:999px;
+  min-width:18px;
+  min-height:18px;
+  padding:2px 4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #ef4444;
+  box-shadow:0 2px 4px rgba(0,0,0,.2);
+  pointer-events:none;
+}
+
+</style>
+<script>
+(function(){
+  // mapping anim
+  const animClassMap = {
+    "all"  : "qm-anim-pulse",
+    "food" : "qm-anim-food",
+    "drink": "qm-anim-drink",
+    "cart" : "qm-anim-cart"
+  };
+
+  // fungsi untuk play anim di satu icon
+  function playAnim(iconEl){
+    if (!iconEl) return;
+    const type = iconEl.getAttribute('data-anim');
+    const cls  = animClassMap[type] || "qm-anim-pulse";
+
+    // kalau masih animasi, reset dulu biar bisa retrigger cepat
+    iconEl.classList.remove(cls);
+
+    // force reflow → trik supaya anim bisa diulang walaupun class sama
+    void iconEl.offsetWidth;
+
+    iconEl.classList.add(cls);
+
+    // lepas class saat anim selesai
+    iconEl.addEventListener('animationend', function handler(){
+      iconEl.classList.remove(cls);
+      iconEl.removeEventListener('animationend', handler);
+    });
+  }
+
+  // listener untuk setiap tile menu
+  document.querySelectorAll('.quickmenu-item').forEach(function(item){
+    item.addEventListener('click', function(e){
+      // cari icon di dalam tile yg di-tap
+      // prioritas: [data-anim] di bawah item yg diklik
+      let iconEl = item.querySelector('[data-anim]');
+      if (!iconEl && e.target && e.target.closest('[data-anim]')) {
+        iconEl = e.target.closest('[data-anim]');
+      }
+
+      playAnim(iconEl);
+
+      // NOTE:
+      // - kalau item punya data-kategori (filter), jalankan filter mu di sini
+      // - kalau item punya <a> (keranjang), biarkan default link jalan
+      //   (biar anim masih main sebelum pindah halaman, kita tidak preventDefault)
+      //   kalau kamu MAU cegah langsung redirect, uncomment preventDefault di bawah
+      //
+      // if (item.getAttribute('data-action') === 'cart') {
+      //   e.preventDefault();
+      //   setTimeout(()=>{ window.location = "<?= site_url('produk/cart') ?>"; }, 200);
+      // }
+    }, { passive: true });
+  });
+})();
+</script>
+
 </form>
 
 <!-- ===== LIST PRODUK: DI LUAR CARD ===== -->
