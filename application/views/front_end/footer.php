@@ -502,63 +502,63 @@
   });
 
 
-  /* ==========================================================
-   * 4. MENU MODAL (ikon grid "Menu" -> #kontakModalfront)
-   *    - buka modal tanpa pindah halaman
-   *    - item di dalam modal (#quickmobilem) dapat spinner sebelum redirect
-   * ========================================================== */
+//   /* ==========================================================
+//    * 4. MENU MODAL (ikon grid "Menu" -> #kontakModalfront)
+//    *    - buka modal tanpa pindah halaman
+//    *    - item di dalam modal (#quickmobilem) dapat spinner sebelum redirect
+//    * ========================================================== */
 
-  const btnMenu   = document.getElementById('btnOpenMenu');
-  const modalEl   = document.getElementById('kontakModalfront');
+//   const btnMenu   = document.getElementById('btnOpenMenu');
+//   const modalEl   = document.getElementById('kontakModalfront');
 
-  // pastikan modal dipindah ke <body> (biar z-index/bootstrap aman)
-  document.addEventListener('DOMContentLoaded', () => {
-    if (modalEl && modalEl.parentNode !== document.body){
-      document.body.appendChild(modalEl);
-    }
-  });
+//   // pastikan modal dipindah ke <body> (biar z-index/bootstrap aman)
+//   document.addEventListener('DOMContentLoaded', () => {
+//     if (modalEl && modalEl.parentNode !== document.body){
+//       document.body.appendChild(modalEl);
+//     }
+//   });
 
-  if (btnMenu && modalEl){
-    btnMenu.addEventListener('click', function(ev){
-      ev.preventDefault();
-      $('#kontakModalfront').modal('show');
-    });
-  }
+//   if (btnMenu && modalEl){
+//     btnMenu.addEventListener('click', function(ev){
+//       ev.preventDefault();
+//       $('#kontakModalfront').modal('show');
+//     });
+//   }
 
-  // helper spinner item modal
-  function makeModalItemLoading(anchor){
-    if (!anchor || anchor.__loadingApplied) return;
-    anchor.__loadingApplied = true;
+//   // helper spinner item modal
+//   function makeModalItemLoading(anchor){
+//     if (!anchor || anchor.__loadingApplied) return;
+//     anchor.__loadingApplied = true;
 
-    anchor.innerHTML = `
-      <div class="menu-circle"
-           style="background:#999;display:flex;align-items:center;justify-content:center;">
-        <div class="spinner-border spinner-border-sm modal-mini-spinner"
-             role="status"
-             aria-hidden="true"></div>
-      </div>
-      <small class="menu-label">Loading...</small>
-    `;
-  }
+//     anchor.innerHTML = `
+//       <div class="menu-circle"
+//            style="background:#999;display:flex;align-items:center;justify-content:center;">
+//         <div class="spinner-border spinner-border-sm modal-mini-spinner"
+//              role="status"
+//              aria-hidden="true"></div>
+//       </div>
+//       <small class="menu-label">Loading...</small>
+//     `;
+//   }
 
-  // delegation untuk item di dalam modal dengan data-menuloading="1"
-  document.addEventListener('click', function(e){
-    const menuAnchor = e.target.closest('#kontakModalfront a[data-menuloading]');
-    if (!menuAnchor) return;
+//   // delegation untuk item di dalam modal dengan data-menuloading="1"
+//   document.addEventListener('click', function(e){
+//     const menuAnchor = e.target.closest('#kontakModalfront a[data-menuloading]');
+//     if (!menuAnchor) return;
 
-    // ctrl/meta/shift/middle click? biar buka tab baru normal
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
+//     // ctrl/meta/shift/middle click? biar buka tab baru normal
+//     if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
 
-    e.preventDefault();
+//     e.preventDefault();
 
-    const href = menuAnchor.getAttribute('href');
-    if (!href) return;
+//     const href = menuAnchor.getAttribute('href');
+//     if (!href) return;
 
-    makeModalItemLoading(menuAnchor);
-    window.location.href = href;
-  });
+//     makeModalItemLoading(menuAnchor);
+//     window.location.href = href;
+//   });
 
-})();
+// })();
 </script>
 
 <!-- MODAL MENU DEPAN -->
@@ -679,6 +679,89 @@
     </div>
   </div>
 </div>
+<script>
+(function(){
+  // cegah inisialisasi ulang
+  if (window.__AUSI_SPINNER_GLOBAL__) return;
+  window.__AUSI_SPINNER_GLOBAL__ = true;
+
+  // sisipkan CSS spinner kalau belum ada
+  if (!document.getElementById('ausiSpinnerStyle')){
+    var st = document.createElement('style');
+    st.id = 'ausiSpinnerStyle';
+    st.textContent = `
+      /* Sembunyikan emoji saat loading */
+      .menu-circle.loading .emoji-icon{
+        opacity:0;
+      }
+
+      /* Spinner putih muter di dalam bulatan */
+      .menu-circle.loading::after{
+        content:"";
+        position:absolute;
+        width:28px;
+        height:28px;
+        border-radius:50%;
+        border:3px solid rgba(255,255,255,.6);
+        border-right-color:transparent;
+        animation:ausiQuickSpin .6s linear infinite;
+      }
+
+      @keyframes ausiQuickSpin{
+        from { transform:rotate(0deg); }
+        to   { transform:rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // helper kasih class .loading ke bulatan menu di dalam anchor yg diklik
+  function activateCircleSpinnerFrom(anchor){
+    if (!anchor) return;
+    var circle = anchor.querySelector('.menu-circle');
+    if (!circle) return;
+    if (!circle.classList.contains('loading')){
+      circle.classList.add('loading');
+    }
+  }
+
+  /* ==========================================================
+   * CLICK DI QUICKMENU ATAS (id="quickmenu")
+   * ========================================================== */
+  document.addEventListener('click', function(e){
+    // cari <a class="qcard ..."> di dalam #quickmenu
+    var card = e.target.closest('#quickmenu .qcard');
+    if (!card) return;
+
+    // kasih efek muter di bulatan
+    activateCircleSpinnerFrom(card);
+    // TIDAK preventDefault -> biar link tetap jalan normal
+  }, {passive:true});
+
+  /* ==========================================================
+   * CLICK DI MENU MODAL (#kontakModalfront)
+   * ========================================================== */
+  document.addEventListener('click', function(e){
+    // hanya item yg memang mau loading: data-menuloading
+    var modalItem = e.target.closest('#kontakModalfront a[data-menuloading]');
+    if (!modalItem) return;
+
+    // kalau user ctrl/shift/command atau middle click, biarin buka tab baru
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
+
+    // normal click → kasih spinner, lalu redirect manual
+    e.preventDefault();
+
+    activateCircleSpinnerFrom(modalItem);
+
+    var href = modalItem.getAttribute('href');
+    if (href){
+      window.location.href = href;
+    }
+  }, {passive:false});
+
+})();
+</script>
 
 <?php $this->load->view("front_end/app") ?>
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
