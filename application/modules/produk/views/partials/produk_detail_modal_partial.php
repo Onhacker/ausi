@@ -161,7 +161,7 @@ $harga   = (float)($product->harga ?? 0);
       <!-- CTA (ikon saja di mobile) -->
       <div class="col-4 text-right">
         <button type="button"
-                class="btn btn-blue btn-sm w-100"
+                class="btn btn-danger w-100"
                 id="btn-add-cart-modal"
                 data-id="<?= (int)$product->id; ?>"
                 <?= $stok <= 0 ? 'disabled' : ''; ?>>

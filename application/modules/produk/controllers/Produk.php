@@ -133,13 +133,13 @@ public function scan_qr(){
         exit;
     }
 
-   public function index(){
+  public function index(){
     $this->_nocache_headers();
     $rec = $this->fm->web_me();
 
     // >>> default-kan delivery bila belum ada mode & bukan dine-in
     $this->_maybe_expire_meja_session(120);   // 2 jam, silakan ubah
-    $this->_ensure_default_delivery_mode();
+    $this->_ensure_default_delivery_mode();   // pastikan cart__mode = 'delivery' kalau belum ada
 
     $data["rec"]       = $rec;
     $data["title"]     = "Semua Produk";
@@ -151,13 +151,27 @@ public function scan_qr(){
     $data["kategori"]  = $this->input->get('kategori', true) ?: '';
     $data["sort"]      = $this->input->get('sort', true) ?: 'random';
 
+    // info meja (kalau dine-in)
     $meja_kode         = $this->session->userdata('guest_meja_kode');
     $meja_nama         = $this->session->userdata('guest_meja_nama');
     $data['meja_info'] = $meja_kode ? ($meja_nama ?: $meja_kode) : null;
 
-    // kirim mode ke view agar header “Delivery/Takeaway/Dine-in” tampil tepat
-    $explicitMode      = $this->session->userdata('cart__mode');
-    $data['mode']      = $meja_kode ? 'dinein' : (($explicitMode==='delivery') ? 'delivery' : 'walkin');
+    // mode aktif
+    $explicitMode      = $this->session->userdata('cart__mode'); // bisa 'delivery', 'walkin', dsb
+
+    if ($meja_kode) {
+        // lagi duduk di meja -> selalu dinein
+        $data['mode'] = 'dinein';
+    } else {
+        // tidak dine-in
+        if ($explicitMode) {
+            // kalau session udah punya mode, pakai itu
+            $data['mode'] = $explicitMode;
+        } else {
+            // fallback terakhir = DELIVERY (bukan walkin lagi)
+            $data['mode'] = 'delivery';
+        }
+    }
 
     $this->load->view('produk_view', $data);
 }
