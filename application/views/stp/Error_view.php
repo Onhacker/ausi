@@ -7,7 +7,7 @@
     <title><?php echo $title ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="Error" name="Error" />
-    <meta content="Silaturahmi" name="PT.MVIN" />
+    <meta content="Onhacker" name="PT.MVIN" />
     <meta name="robots" content="noindex">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <link rel="shortcut icon" href="<?php echo base_url('assets') ?>/images/logo.png">
