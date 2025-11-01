@@ -67,7 +67,7 @@ $is_delivery = ($mode_norm === 'delivery');
       </div>
       <div class="mode-info">
         <h3 class="mode-title">
-          <?= !empty($meja_info) ? ' '.html_escape($meja_info) : 'Dine-in' ?>
+          <?= !empty($meja_info) ? ' '.html_escape($meja_info) : 'Mode Dine-in' ?>
         </h3>
         <p class="mode-sub">
           Pesanan Area <strong><?= !empty($meja_info) ? html_escape($meja_info) : 'ditempat' ?></strong>
@@ -134,7 +134,7 @@ $is_delivery = ($mode_norm === 'delivery');
         <i class="dripicons-rocket" aria-hidden="true"></i>
       </div>
       <div class="mode-info">
-        <h3 class="mode-title">Delivery</h3>
+        <h3 class="mode-title">Mode Delivery</h3>
         <p class="mode-sub">Pesanan <strong>diantar ke alamat Anda</strong></p>
       </div>
 
@@ -149,7 +149,7 @@ $is_delivery = ($mode_norm === 'delivery');
         <i class="dripicons-shopping-bag" aria-hidden="true"></i>
       </div>
       <div class="mode-info">
-        <h3 class="mode-title">Takeaway</h3>
+        <h3 class="mode-title">Mode Takeaway</h3>
         <p class="mode-sub">Pesanan <strong>Dibungkus</strong></p>
       </div>
     </div>
