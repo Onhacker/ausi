@@ -1,6 +1,6 @@
 /* ===== Service Worker ===== */
 
-const CACHE_NAME  = 'ausi-17';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-18';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 
 /* HTML publik yang boleh dicache (path tanpa query) */
@@ -74,6 +74,8 @@ const urlsToCache = [
   '/assets/min/peta.min.js',
   '/assets/sound/notif_b.wav',
   '/assets/sound/notif.wav',
+  '/assets/front/produk.min.css',
+  '/assets/front/produk.min.js',
 ];
 
 /* === Helper === */
