@@ -476,6 +476,9 @@ video:-webkit-full-screen{
     console.error('ZXingBrowser tidak ditemukan');
     return;
   }
+  function isIOS(){
+    return /iP(hone|od|ad)/i.test(navigator.userAgent);
+  }
 
   /* =========================
      ELEMEN DOM
@@ -820,6 +823,16 @@ video:-webkit-full-screen{
      FULLSCREEN HANDLING
   ========================== */
   async function enterFullscreen(){
+    // iOS Safari pakai overlay CSS saja,
+    // jangan pakai webkitEnterFullscreen karena bakal hitam.
+    if (isIOS()){
+      wrap.classList.add('fullscreen-scan','is-fs');
+      document.body.classList.add('scan-lock');
+      btnExitFs.classList.remove('d-none');
+      return;
+    }
+
+    // Non-iOS: coba Fullscreen API biasa lebih dulu
     try{
       if (wrap && wrap.requestFullscreen) {
         await wrap.requestFullscreen();
@@ -827,29 +840,30 @@ video:-webkit-full-screen{
         btnExitFs.classList.remove('d-none');
         return;
       }
-      if (video && video.webkitEnterFullscreen) {
-        video.webkitEnterFullscreen();
-        wrap.classList.add('is-fs');
-        btnExitFs.classList.remove('d-none');
-        return;
-      }
     }catch(e){
-      // fallback if native fullscreen gagal
+      // kalau gagal, lanjut ke fallback manual di bawah
+      console.warn('requestFullscreen gagal, fallback overlay:', e);
     }
 
+    // Fallback manual (Android lama / browser aneh)
     wrap.classList.add('fullscreen-scan','is-fs');
     document.body.classList.add('scan-lock');
     btnExitFs.classList.remove('d-none');
   }
 
-  function exitFullscreen(){
+
+    function exitFullscreen(){
+    // Keluar dari Fullscreen API kalau lagi aktif (Android / desktop)
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen();
     }
+
+    // Selalu matikan kelas fallback overlay
     wrap.classList.remove('fullscreen-scan','is-fs');
     document.body.classList.remove('scan-lock');
     btnExitFs.classList.add('d-none');
   }
+
 
   // sync kalau user tekan ESC native fullscreen
   document.addEventListener('fullscreenchange', ()=>{
