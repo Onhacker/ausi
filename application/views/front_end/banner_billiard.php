@@ -98,3 +98,61 @@
 }
 
 </style>
+<script>
+(function(){
+  if (!document.getElementById('ausiTBtnSpinnerStyle')){
+    var st3 = document.createElement('style');
+    st3.id = 'ausiTBtnSpinnerStyle';
+    st3.textContent = `
+      /* saat loading, jangan bisa di-tap berkali2 */
+      .t-btn.__loading {
+        pointer-events: none;
+      }
+
+      /* spinner di dalam tombol Gas Booking */
+      .t-btn.__loading .spinner-border {
+        width:1rem;
+        height:1rem;
+        border-width:.15em;
+        vertical-align:middle;
+        margin-right:.5rem;
+      }
+    `;
+    document.head.appendChild(st3);
+  }
+})();
+</script>
+
+<script>
+(function(){
+  if (window.__AUSI_TBTN_SPINNER__) return;
+  window.__AUSI_TBTN_SPINNER__ = true;
+
+  document.addEventListener('click', function(e){
+    // cari anchor dengan class t-btn
+    var tbtn = e.target.closest('a.t-btn');
+    if (!tbtn) return;
+
+    // allow ctrl / cmd / shift / middle click → biar tetap bisa open in new tab
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
+
+    // kalau sudah loading sebelumnya, jangan proses ulang
+    if (tbtn.classList.contains('__loading')) return;
+
+    // tahan dulu agar sempat ganti isi tombol jadi spinner
+    e.preventDefault();
+
+    // aktifkan mode loading visual
+    tbtn.classList.add('__loading');
+    tbtn.innerHTML = ''
+      + '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
+      + '<span class="align-middle">Loading...</span>';
+
+    // redirect normal
+    var href = tbtn.getAttribute('href');
+    if (href){
+      window.location.href = href;
+    }
+  }, {passive:false});
+})();
+</script>

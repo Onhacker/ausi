@@ -502,63 +502,7 @@
   });
 
 
-//   /* ==========================================================
-//    * 4. MENU MODAL (ikon grid "Menu" -> #kontakModalfront)
-//    *    - buka modal tanpa pindah halaman
-//    *    - item di dalam modal (#quickmobilem) dapat spinner sebelum redirect
-//    * ========================================================== */
-
-//   const btnMenu   = document.getElementById('btnOpenMenu');
-//   const modalEl   = document.getElementById('kontakModalfront');
-
-//   // pastikan modal dipindah ke <body> (biar z-index/bootstrap aman)
-//   document.addEventListener('DOMContentLoaded', () => {
-//     if (modalEl && modalEl.parentNode !== document.body){
-//       document.body.appendChild(modalEl);
-//     }
-//   });
-
-//   if (btnMenu && modalEl){
-//     btnMenu.addEventListener('click', function(ev){
-//       ev.preventDefault();
-//       $('#kontakModalfront').modal('show');
-//     });
-//   }
-
-//   // helper spinner item modal
-//   function makeModalItemLoading(anchor){
-//     if (!anchor || anchor.__loadingApplied) return;
-//     anchor.__loadingApplied = true;
-
-//     anchor.innerHTML = `
-//       <div class="menu-circle"
-//            style="background:#999;display:flex;align-items:center;justify-content:center;">
-//         <div class="spinner-border spinner-border-sm modal-mini-spinner"
-//              role="status"
-//              aria-hidden="true"></div>
-//       </div>
-//       <small class="menu-label">Loading...</small>
-//     `;
-//   }
-
-//   // delegation untuk item di dalam modal dengan data-menuloading="1"
-//   document.addEventListener('click', function(e){
-//     const menuAnchor = e.target.closest('#kontakModalfront a[data-menuloading]');
-//     if (!menuAnchor) return;
-
-//     // ctrl/meta/shift/middle click? biar buka tab baru normal
-//     if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
-
-//     e.preventDefault();
-
-//     const href = menuAnchor.getAttribute('href');
-//     if (!href) return;
-
-//     makeModalItemLoading(menuAnchor);
-//     window.location.href = href;
-//   });
-
-// })();
+})();
 </script>
 
 <!-- MODAL MENU DEPAN -->

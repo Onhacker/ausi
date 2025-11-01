@@ -411,6 +411,61 @@ if (!$delivery_enabled) {
  
 
     <a class="op-cta mt-2" href="<?= site_url('produk'); ?>">Order</a>
+    <script>
+(function(){
+  if (window.__AUSI_CTA_SPINNER__) return;
+  window.__AUSI_CTA_SPINNER__ = true;
+
+  document.addEventListener('click', function(e){
+    // cari link dengan class op-cta
+    var cta = e.target.closest('a.op-cta');
+    if (!cta) return;
+
+    // allow ctrl / cmd / shift / middle click → biarkan buka tab baru normal
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
+
+    // kalau sudah pernah loading, jangan proses ulang
+    if (cta.classList.contains('__loading')) return;
+
+    e.preventDefault(); // tahan sebentar biar spinner kelihatan
+
+    // switch ke mode loading
+    cta.classList.add('__loading');
+    cta.innerHTML = ''
+      + '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
+      + '<span class="align-middle">Loading...</span>';
+
+    // lanjut ke tujuan asli
+    var href = cta.getAttribute('href');
+    if (href){
+      window.location.href = href;
+    }
+  }, {passive:false});
+})();
+</script>
+<script>
+(function(){
+  if (!document.getElementById('ausiCtaSpinnerStyle')){
+    var st2 = document.createElement('style');
+    st2.id = 'ausiCtaSpinnerStyle';
+    st2.textContent = `
+      /* state loading utk tombol .op-cta */
+      .op-cta.__loading {
+        pointer-events: none; /* cegah spam klik */
+      }
+      .op-cta.__loading .spinner-border {
+        width:1rem;
+        height:1rem;
+        border-width:.15em;
+        vertical-align:middle;
+        margin-right:.4rem;
+      }
+    `;
+    document.head.appendChild(st2);
+  }
+})();
+</script>
+
 
 </div>
 
