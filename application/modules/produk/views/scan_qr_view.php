@@ -623,6 +623,23 @@ video:-webkit-full-screen{
       devices = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
     }
 
+    // --- kita coba tentukan mana kemungkinan kamera belakang
+    // prioritas:
+    // 1. label mengandung "back" / "rear" / "environment"
+    // 2. kalau gak ada label jelas, pakai device terakhir (kebanyakan Android urutannya: front dulu, belakang belakangan)
+    let backGuess = null;
+
+    // 1. cari via nama
+    backGuess = devices.find(d =>
+      /back|rear|environment/i.test(d.label || '')
+    );
+
+    // 2. kalau masih null dan ada lebih dari 1 kamera, ambil kamera terakhir
+    if (!backGuess && devices.length > 1){
+      backGuess = devices[devices.length - 1];
+    }
+
+    // sekarang render <select>
     cameraSelect.innerHTML = '';
     devices.forEach((d,i)=>{
       const opt = document.createElement('option');
@@ -631,14 +648,17 @@ video:-webkit-full-screen{
       cameraSelect.appendChild(opt);
     });
 
-    // pilih kamera belakang default kalau labelnya ada "back"/"environment"
-    const back = devices.find(d => /back|rear|environment/i.test(d.label||''));
-    if (back){
-      cameraSelect.value = back.deviceId || '';
+    // pilih default: kamera belakang kalau ada
+    if (backGuess){
+      cameraSelect.value = backGuess.deviceId || '';
+    } else if (devices[0]) {
+      // fallback aman: pilih index 0 biar gak kosong
+      cameraSelect.value = devices[0].deviceId || '';
     }
 
     return devices;
-  }
+}
+
 
   function buildBaseConstraints({ deviceId, prefFacing } = {}){
     // high-res attempt 1080p
