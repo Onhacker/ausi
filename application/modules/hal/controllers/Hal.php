@@ -41,6 +41,17 @@ class Hal extends MX_Controller {
 
 	}
 
+	function cara_hapus(){
+		// $this->load->model('M_billiard','mbi');
+		$data["rec"] = $this->fm->web_me();
+		$data["title"] = "Cara Hapus Data";
+		$data["deskripsi"] = $data["rec"]->nama_website;
+		$data["prev"] = base_url("assets/images/nongki.webp");
+		// $data["mejas"]      = $this->mbi->get_all_mejas();
+		$this->load->view('cara_hapus',$data);
+
+	}
+
 
 	
 
