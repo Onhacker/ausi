@@ -696,50 +696,69 @@ window.__applyOngkirFromMap = function () {
 
           if (btnMyLoc && navigator.geolocation){
             btnMyLoc.addEventListener('click', function(){
-            	startLocLoading();
-              // navigator.geolocation.getCurrentPosition(
-              //   function(pos){
-              //     var lat = pos.coords.latitude, lng = pos.coords.longitude;
-              //     setDest(lat, lng);
-              //     m.flyTo([lat, lng], 16, { duration: 0.5 });
-              //   },
-              //   function(err){
-              //   	stopLocLoading();
-              //     const geoErr = {1:'izin lokasi ditolak', 2:'lokasi nggak ketemu', 3:'timeout'};
-              //     const detail  = geoErr[err.code] || err.message || ('error ' + err.code);
-              //     const httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')
-              //       ? '<br><small class="text-muted">Catatan: butuh <b>HTTPS</b> atau <code>localhost</code>.</small>'
-              //       : '';
-              //     if (window.Swal && Swal.fire) {
-              //       Swal.fire({ icon:'warning', title:'Lokasi nggak keambil 😅', html: detail + httpsNote, confirmButtonText:'Sip' });
-              //     } else {
-              //       alert('Ups, lokasi nggak keambil: ' + detail);
-              //     }
-              //   },
-              //   { enableHighAccuracy:true, timeout: 12000, maximumAge: 0 }
-              // );
+              startLocLoading();
+
               navigator.geolocation.getCurrentPosition(
-  function (pos) {
-    Swal.fire({
-      icon: 'success',
-      title: 'Lokasi OK',
-      html:
-        'lat=' + pos.coords.latitude +
-        '<br>lng=' + pos.coords.longitude
-    });
-  },
-  function (err) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Lokasi GAGAL',
-      html:
-        'code=' + err.code +
-        '<br>msg=' + err.message
-    });
-  },
-  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-);
+                function (pos) {
+                  // ==== SUKSES ====
+                  var lat = pos.coords.latitude;
+                  var lng = pos.coords.longitude;
+
+                  // taruh pin tujuan + hitung ongkir dll
+                  setDest(lat, lng);
+
+                  // fokuskan peta ke posisi user
+                  try {
+                    m.flyTo([lat, lng], 16, { duration: 0.5 });
+                  } catch(e){}
+
+                  // hentikan loading di tombol
+                  stopLocLoading();
+
+                  // kasih feedback manis ke user (boleh kamu hapus nanti)
+                  if (window.Swal && Swal.fire) {
+                    Swal.fire({
+                      icon: 'success',
+                      title: 'Lokasi OK',
+                      html:
+                        'lat=' + lat.toFixed(6) +
+                        '<br>lng=' + lng.toFixed(6),
+                      timer: 2000,
+                      showConfirmButton: false
+                    });
+                  }
+                },
+                function (err) {
+                  // ==== GAGAL ====
+                  stopLocLoading();
+
+                  const geoErr = {
+                    1: 'Izin lokasi ditolak',
+                    2: 'Lokasi tidak bisa didapat',
+                    3: 'Timeout GPS'
+                  };
+                  const detail = geoErr[err.code] || (err.message || ('error ' + err.code));
+
+                  // note tambahan kalau bukan https / bukan localhost
+                  const httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')
+                    ? '<br><small class="text-muted">Butuh koneksi <b>HTTPS</b> atau <code>localhost</code>.</small>'
+                    : '';
+
+                  if (window.Swal && Swal.fire) {
+                    Swal.fire({
+                      icon: 'warning',
+                      title: 'Lokasi nggak keambil 😅',
+                      html: detail + httpsNote,
+                      confirmButtonText: 'Sip'
+                    });
+                  } else {
+                    alert('Ups, lokasi nggak keambil: ' + detail);
+                  }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+              );
             });
+
           }
 
           updateInfo();
