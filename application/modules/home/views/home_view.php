@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
   <div class="quickmenu-item">
     <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#25D366;"><span class="emoji-icon">🎱</span></div>
-      <small class="menu-label">Book Meja</small>
+      <small class="menu-label">Book Billiard</small>
     </a>
   </div>
 
