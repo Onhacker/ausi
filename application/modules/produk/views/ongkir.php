@@ -927,44 +927,112 @@ window.__applyOngkirFromMap = function () {
     syncCount();
 
     $('#btnUseMyLocation').on('click', function(){
-      var self = this;
-      if (!navigator.geolocation){
-        $hint.text('Peramban tidak mendukung geolokasi.').addClass('text-danger');
+  var self = this;
+
+  // fungsi yang benar-benar minta GPS
+  function ambilLokasiSetelahIzin() {
+    if (!navigator.geolocation){
+      $hint.addClass('text-danger')
+           .text('Perangkat tidak mendukung geolokasi / GPS.');
+      return;
+    }
+
+    if (window.setBtnLoading) setBtnLoading(self, true);
+    $hint.removeClass('text-danger')
+         .text('Meminta lokasi GPS…');
+
+    navigator.geolocation.getCurrentPosition(function(pos){
+      // ====== SUKSES DAPAT KOORDINAT ======
+      var lat = +pos.coords.latitude.toFixed(6);
+      var lng = +pos.coords.longitude.toFixed(6);
+
+      var approx = haversineM(STORE_LAT, STORE_LNG, lat, lng);
+      if (approx > MAX_RADIUS_M){
+        if (window.setBtnLoading) setBtnLoading(self, false);
+        $hint.addClass('text-danger')
+             .text('Maaf, lokasi Anda berada di luar radius layanan (maks '+MAX_RADIUS_KM+' km dari toko).');
         return;
       }
-      if (window.setBtnLoading) setBtnLoading(self, true);
-      $hint.removeClass('text-danger').text('Mencari lokasi Anda...');
 
-      navigator.geolocation.getCurrentPosition(function(pos){
-        var lat = +pos.coords.latitude.toFixed(6);
-        var lng = +pos.coords.longitude.toFixed(6);
+      // simpan ke hidden input
+      if ($('#dest_lat').length) $('#dest_lat').val(lat);
+      if ($('#dest_lng').length) $('#dest_lng').val(lng);
 
-        var approx = haversineM(STORE_LAT, STORE_LNG, lat, lng);
-        if (approx > MAX_RADIUS_M){
-          if (window.setBtnLoading) setBtnLoading(self, false);
-          $hint.addClass('text-danger')
-               .text('Maaf, lokasi Anda berada di luar radius layanan (maks '+MAX_RADIUS_KM+' km dari toko).');
-          return;
-        }
+      // auto tempel koordinat ke textarea alamat (Shareloc)
+      var share = ' (Shareloc: ' + lat + ', ' + lng + ')';
+      if ($ta.val().indexOf('Shareloc:') === -1) {
+        $ta.val(($ta.val().trim() + share).trim());
+        if ($count && $count.length) $count.text($ta.val().length + '/300');
+      }
 
-        if ($('#dest_lat').length) $('#dest_lat').val(lat);
-        if ($('#dest_lng').length) $('#dest_lng').val(lng);
+      if (window.setBtnLoading) setBtnLoading(self, false);
+      $hint.removeClass('text-danger')
+           .text('Koordinat tersimpan ✅. Silakan lanjut atau buka peta untuk cek rute.');
 
-        var share = ' (Shareloc: ' + lat + ', ' + lng + ')';
-        if ($ta.val().indexOf('Shareloc:') === -1) {
-          $ta.val(($ta.val().trim() + share).trim());
-          if ($count && $count.length) $count.text($ta.val().length + '/300');
-        }
-        if (window.setBtnLoading) setBtnLoading(self, false);
-        $hint.removeClass('text-danger')
-             .text('Koordinat tersimpan. Anda bisa buka peta untuk memastikan rute.');
-      }, function(err){
-        var geoErr = {1:'izin lokasi ditolak', 2:'lokasi nggak ketemu', 3:'timeout'};
-        var msg = 'Ups, lokasi nggak keambil (' + (geoErr[err.code] || 'error ' + err.code) + '). Nyalain GPS & izinin lokasi, atau pilih lokasi manual ya.';
-        $hint.addClass('text-danger').text(msg);
-        if (window.setBtnLoading) setBtnLoading(self, false);
-      }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
+    }, function(err){
+      // ====== GAGAL AMBIL KOORDINAT ======
+      var geoErr = {
+        1:'Izin lokasi ditolak',
+        2:'Lokasi tidak ditemukan',
+        3:'Timeout saat ambil lokasi'
+      };
+      var msg = geoErr[err.code] || ('Gagal ambil lokasi ('+err.code+')');
+
+      if (window.setBtnLoading) setBtnLoading(self, false);
+
+      // tambahan info HTTPS (Chrome tidak kasih geolocation kalau bukan https / localhost)
+      var httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')
+        ? ' Situs harus diakses lewat HTTPS agar lokasi bisa diambil.'
+        : '';
+
+      $hint.addClass('text-danger')
+           .text(msg + '. ' + 'Aktifkan GPS & izinkan lokasi.' + httpsNote);
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
     });
+  }
+
+  // sebelum benar-benar minta lokasi, jelaskan dulu ke user
+  if (window.Swal && Swal.fire){
+    Swal.fire({
+      title: 'Izinkan lokasi?',
+      html: `
+        Kami pakai lokasimu untuk:
+        <ul style="text-align:left;margin:0;padding-left:1.2em;font-size:.9em;line-height:1.4em">
+          <li>Hitung jarak ke Ausi Billiard & Café</li>
+          <li>Estimasi ongkir antar</li>
+          <li>Cek apakah alamat kamu masih dalam jangkauan</li>
+        </ul>
+        Lokasi tidak dipakai untuk iklan.
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Izinkan',
+      cancelButtonText: 'Batal'
+    }).then(function(res){
+      if (res.isConfirmed){
+        ambilLokasiSetelahIzin();
+      } else {
+        // user batal → jangan panggil GPS
+        $hint.addClass('text-danger')
+             .text('Lokasi tidak diambil. Kamu bisa tulis alamat manual.');
+      }
+    });
+  } else {
+    // fallback kalau Swal tidak ada
+    var ok = confirm(
+      'Kami pakai lokasi buat hitung jarak & ongkir kurir, tidak untuk iklan.\n' +
+      'Izinkan ambil lokasi sekarang?'
+    );
+    if (ok) {
+      ambilLokasiSetelahIzin();
+    } else {
+      $hint.addClass('text-danger')
+           .text('Lokasi tidak diambil. Kamu bisa tulis alamat manual.');
+    }
+  }
+});
 
   })(jQuery);
 
