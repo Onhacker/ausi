@@ -339,9 +339,9 @@ public function subkategori($kategori_id = null){
         }
 
         // normalisasi nama produk untuk respon
-        $nama       = trim((string)$row->nama);
+        $nama       = ucwords(trim((string)$row->nama));
         $qty_label  = ($qty > 1) ? " (x{$qty})" : '';
-        $msg_ok     = "‘{$nama}’ udah masuk keranjang{$qty_label} 🎉";
+        $msg_ok     = "Masuk keranjang {$qty_label} 🎉";
         $msg_fail   = "Belum bisa nambahin ‘{$nama}’, coba lagi ya 🙏";
 
         // ====== Mode dengan cart_id (punya meja / session terhubung) ======

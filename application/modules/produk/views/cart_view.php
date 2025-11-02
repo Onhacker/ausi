@@ -534,7 +534,7 @@
       })();
 
       $('#modalProduk').one('hidden.bs.modal', function(){
-        if (window.Swal) Swal.fire({icon:'success',title:r.title||'Mantap!',text:r.pesan||'Item masuk keranjang',timer:1500,showConfirmButton:false});
+        if (window.Swal) Swal.fire({icon:'success',title:r.produk||'Mantap!',text:r.pesan||'Item masuk keranjang',timer:1500,showConfirmButton:false});
         else alert((r.title||'Mantap!')+': '+(r.pesan||'Item masuk keranjang'));
       });
       $('#modalProduk').modal('hide');
