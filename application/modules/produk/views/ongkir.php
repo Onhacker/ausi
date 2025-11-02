@@ -1038,13 +1038,24 @@ window.__applyOngkirFromMap = function () {
   if (window.Swal && Swal.fire){
     Swal.fire({
       title: 'Izinkan lokasi?',
-      html: `Saya pakai lokasimu untuk:
-        <ul style="text-align:left;margin:0;padding-left:1.2em;font-size:.9em;line-height:1.4em">
-          <li>Hitung jarak</li>
-          <li>Estimasi ongkir antar</li>
-          <li>Cek apakah alamat kamu masih dalam jangkauan</li>
-        </ul>Santai, Lokasi kamu aman sesuai dengan syarat & kebijakan privasi.
-      `,
+     html: `
+  <div style="font-size:.95em;line-height:1.4em;text-align:left">
+    <div style="margin-bottom:.5em;">
+      Saya pakai lokasimu untuk:
+    </div>
+
+    <ul style="margin:0 0 .75em 1.2em;padding:0;font-size:.9em;line-height:1.4em;list-style:disc;list-style-position:outside;">
+      <li>Hitung jarak</li>
+      <li>Estimasi ongkir antar</li>
+      <li>Cek apakah alamat kamu masih dalam jangkauan</li>
+    </ul>
+
+    <div style="font-size:.85em;color:#444;">
+      Santai, lokasi kamu aman sesuai Syarat &amp; Kebijakan Privasi.
+    </div>
+  </div>
+`,
+
       showCancelButton: true,
       confirmButtonText: 'Izinkan',
       cancelButtonText: 'Batal'
