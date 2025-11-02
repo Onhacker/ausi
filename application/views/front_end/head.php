@@ -10,7 +10,7 @@
   <meta name="author" content="Onhacker.net">
 
   <title><?= ucfirst(strtolower($rec->nama_website)).' - '.$title; ?></title>
-
+  <meta name="google-site-verification" content="yoI3KrMVtbFyU9SfHWnE2d57nrTE3pS-Uu_Edrt6v7E" />
   <!-- ========== THEME COLOR (LIGHT/DARK) ========== -->
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0F172A">
   <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#000000">
