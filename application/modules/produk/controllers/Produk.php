@@ -1311,11 +1311,12 @@ private function _maybe_expire_meja_session($minutes = 120){
         }
 
         // validasi pola kode meja (opsional, biar spam ke DB berkurang)
-        if (!preg_match('/^M\d{5}$/', $kode)) {
+        if (!preg_match('/^[A-Z0-9]{3,10}$/', $kode)) {
             $this->_hard_reset_guest_context();
             $this->session->sess_regenerate(TRUE);
             return redirect('produk');
         }
+
 
         $row = $this->db->get_where('meja', [
             'kode'     => $kode,
