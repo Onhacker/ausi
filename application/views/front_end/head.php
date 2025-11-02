@@ -224,6 +224,134 @@ if (is_file($img_path)) {
 
 <body class="menubar-gradient gradient-topbar topbar-dark">
 
+
+<!-- ====== RUNNING TEXT UJI COBA + COUNTDOWN (STICKY) ====== -->
+<style>
+  .beta-ticker{
+    position:sticky;
+    top:0;
+    z-index:1031; /* di atas konten scroll biasa */
+    overflow:hidden;
+    white-space:nowrap;
+    background:linear-gradient(90deg,#fef3c7 0%,#fde68a 50%,#facc15 100%);
+    color:#1f2937;
+    border-bottom:1px solid rgba(0,0,0,.08);
+    box-shadow:0 6px 20px rgba(0,0,0,.12);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:.85rem;
+    line-height:1.4;
+    font-weight:600;
+  }
+
+  .beta-track{
+    display:inline-block;
+    padding:.5rem .75rem;
+    min-width:100%;
+    /* Animasi jalan ke kiri */
+    animation:beta-marquee 15s linear infinite;
+  }
+
+  .beta-seg{
+    display:inline-block;
+    margin-right:2rem;
+  }
+
+  /* Copy kedua buat looping mulus */
+  .beta-dup{
+    margin-left:2rem;
+  }
+
+  @keyframes beta-marquee{
+    0%   { transform:translateX(0); }
+    100% { transform:translateX(-50%); }
+  }
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark){
+    .beta-ticker{
+      background:linear-gradient(90deg,#1f2937 0%,#374151 50%,#4b5563 100%);
+      color:#facc15;
+      border-bottom:1px solid rgba(250,204,21,.3);
+      box-shadow:0 10px 32px rgba(0,0,0,.8);
+    }
+  }
+</style>
+
+<div class="beta-ticker">
+  <div class="beta-track">
+    <span class="beta-seg" id="beta-msg">
+      ⚠ Aplikasi sedang dalam uji coba. Silakan coba sepuasnya 🎉 | Launching resmi 7 Nov 2025 | Sisa : 0 Hari 00:00:00 ⏳
+    </span>
+
+    <span class="beta-seg beta-dup" id="beta-msg-dup" aria-hidden="true">
+      ⚠ Aplikasi sedang dalam uji coba. Silakan coba sepuasnya 🎉 | Launching resmi 7 Nov 2025 | Sisa : 0 Hari 00:00:00 ⏳
+    </span>
+  </div>
+</div>
+
+<script>
+(function(){
+  // target launching: 7 Nov 2025 00:00 WITA (+08)
+  var target = new Date('2025-11-07T00:00:00+08:00').getTime();
+  var tickerEl = document.querySelector('.beta-ticker');
+  var intId = null;
+
+  function pad2(n){
+    n = Math.floor(n);
+    return (n<10 ? '0'+n : ''+n);
+  }
+
+  function tick(){
+    var now  = Date.now();
+    var diff = target - now;
+
+    // --- kalau sudah lewat launching ---
+    if (diff <= 0){
+      // 1. sembunyikan bannernya
+      if (tickerEl){
+        tickerEl.style.display = 'none';
+      }
+      // 2. stop interval biar hemat
+      if (intId){
+        clearInterval(intId);
+        intId = null;
+      }
+      return; // selesai, jangan update teks countdown lagi
+    }
+
+    // --- masih sebelum launch → normal update countdown
+    var sec   = Math.floor(diff/1000);
+    var days  = Math.floor(sec/86400); // 86400 = 24*60*60
+    sec      -= days*86400;
+
+    var hours = Math.floor(sec/3600);
+    sec      -= hours*3600;
+
+    var mins  = Math.floor(sec/60);
+    sec      -= mins*60;
+
+    var msg =
+      "⚠ Aplikasi sedang dalam uji coba. Silakan pakai sepuasnya 🎉 " +
+      "| Launching resmi pada 7 November 2025 " +
+      "| Hitung mundur: " + days + " Hari " +
+      pad2(hours) + ":" + pad2(mins) + ":" + pad2(sec) +
+      " ⏳";
+
+    var el1 = document.getElementById('beta-msg');
+    var el2 = document.getElementById('beta-msg-dup');
+    if (el1) el1.textContent = msg;
+    if (el2) el2.textContent = msg;
+  }
+
+  tick(); // run pertama
+  intId = setInterval(tick, 1000); // update tiap detik
+})();
+</script>
+
+<!-- ====== /RUNNING TEXT ====== -->
+
+
+
 <header id="topnav">
 
   <div class="navbar-custom">
