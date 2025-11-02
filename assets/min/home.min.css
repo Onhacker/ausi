@@ -169,7 +169,7 @@
     .menu-circle {
         width: 60px;
         height: 60px;
-        font-size: 18px;
+        font-size: 30px;
     }
     .menu-label {
         font-size: 9px;
@@ -314,7 +314,7 @@
         height: 36px;
     }
     .emoji-icon {
-        font-size: 16px;
+        font-size: 30px;
     }
     .menu-label {
         font-size: 0.7rem;
