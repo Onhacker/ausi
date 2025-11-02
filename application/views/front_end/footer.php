@@ -403,7 +403,7 @@
               <button type="button" id="swalBtnBooking"
                 class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
                 <i class="fas fa-calendar-plus me-2 mr-2" aria-hidden="true"></i>
-                <span>Booking Main</span>
+                <span>Booking Main Billiard</span>
               </button>
             </div>
             <div class="col-12 mb-2">
@@ -417,7 +417,7 @@
               <button type="button" id="swalBtnList"
                 class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
                 <i class="fas fa-clipboard-list me-2 mr-2" aria-hidden="true"></i>
-                <span>List Bookingan</span>
+                <span>Jadwal Main Billiard</span>
               </button>
             </div>
             <div class="col-12">
@@ -560,6 +560,43 @@
 </script>
 
 <!-- MODAL MENU DEPAN -->
+<style type="text/css">
+  /* OVERRIDE: paksa 4 kolom di semua ukuran */
+#quickmobilem{
+  grid-template-columns:repeat(4,1fr) !important;
+  gap:8px !important;
+}
+
+/* item jadi rapet rapi */
+#quickmobilem .quickmobilem-item{
+  display:flex;
+}
+
+/* kecilkan sedikit biar muat 4 per baris di layar kecil */
+#quickmobilem .qcard{
+  padding:10px 6px;
+  border-radius:14px;
+}
+
+#quickmobilem .menu-circle{
+  width:50px;
+  height:50px;
+  border-radius:14px;
+}
+
+#quickmobilem .emoji-icon{
+  font-size:22px;
+  line-height:1;
+}
+
+#quickmobilem .menu-label{
+  font-size:11px;
+  font-weight:600;
+  line-height:1.2;
+  margin-top:2px;
+}
+
+</style>
 <div class="modal fade"
      id="kontakModalfront"
      tabindex="-1"
@@ -632,7 +669,7 @@
                 <div class="menu-circle" style="background:#e67e22;">
                   <span class="emoji-icon" aria-hidden="true">📋</span>
                 </div>
-                <small class="menu-label">List Bookingan</small>
+                <small class="menu-label">Jadwal Main Billiard</small>
               </a>
             </div>
 
@@ -641,7 +678,7 @@
                 <div class="menu-circle" style="background:#d81b60;">
                   <span class="emoji-icon" aria-hidden="true">🎁</span>
                 </div>
-                <small class="menu-label">Gratis Main</small>
+                <small class="menu-label">Gratis Main Billiard</small>
               </a>
             </div>
 

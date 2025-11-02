@@ -82,6 +82,8 @@ OFFLINE_URL,
 '/assets/sound/notif.wav',
 '/assets/front/produk.min.css',
 '/assets/front/produk.min.js',
+'/assets/js/canva.js',
+
 ];
 
 /* === Helper === */

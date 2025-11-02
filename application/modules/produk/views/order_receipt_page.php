@@ -362,7 +362,7 @@
 
 </div>
 <!-- html2canvas untuk screenshot -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="<?php echo base_url("assets/js/canva.js") ?>"></script>
 <script>
   (function(){
     function makeFilename(){
