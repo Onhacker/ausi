@@ -1038,14 +1038,12 @@ window.__applyOngkirFromMap = function () {
   if (window.Swal && Swal.fire){
     Swal.fire({
       title: 'Izinkan lokasi?',
-      html: `
-        Kami pakai lokasimu untuk:
+      html: `Saya pakai lokasimu untuk:
         <ul style="text-align:left;margin:0;padding-left:1.2em;font-size:.9em;line-height:1.4em">
-          <li>Hitung jarak ke Ausi Billiard & Café</li>
+          <li>Hitung jarak</li>
           <li>Estimasi ongkir antar</li>
           <li>Cek apakah alamat kamu masih dalam jangkauan</li>
-        </ul>
-        Lokasi tidak dipakai untuk iklan.
+        </ul>Santai, Lokasi kamu aman sesuai dengan syarat & kebijakan privasi.
       `,
       showCancelButton: true,
       confirmButtonText: 'Izinkan',
@@ -1056,20 +1054,20 @@ window.__applyOngkirFromMap = function () {
       } else {
         // user batal → jangan panggil GPS
         $hint.addClass('text-danger')
-             .text('Lokasi tidak diambil. Kamu bisa tulis alamat manual.');
+             .text('Lokasi tidak diambil. Kamu bisa pilih titik manual.');
       }
     });
   } else {
     // fallback kalau Swal tidak ada
     var ok = confirm(
-      'Kami pakai lokasi buat hitung jarak & ongkir kurir, tidak untuk iklan.\n' +
+      'Kami pakai lokasi buat hitung jarak & ongkir kurir, tidak untuk macam-macam.\n' +
       'Izinkan ambil lokasi sekarang?'
     );
     if (ok) {
       ambilLokasiSetelahIzin();
     } else {
       $hint.addClass('text-danger')
-           .text('Lokasi tidak diambil. Kamu bisa tulis alamat manual.');
+           .text('Lokasi tidak diambil. Kamu bisa pilih titik manual.');
     }
   }
 });
