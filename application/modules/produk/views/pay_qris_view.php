@@ -26,7 +26,11 @@
     <!-- Kolom kiri: QRIS + nominal -->
     <div class="col-md-6">
       <div class="card card-body mb-3">
-        <h5 class="mb-3">Scan QRIS</h5>
+        <!-- <h5 class="mb-3">Scan QRIS</h5> -->
+         <div class="d-flex justify-content-between mt-1 pt-2">
+          <strong>Total</strong>
+          <strong>Rp <?= number_format($grand_display,0,',','.') ?></strong>
+        </div>
 
         <div class="text-center">
           <!-- Area yang akan di-screenshot -->

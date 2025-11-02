@@ -646,15 +646,23 @@ private function _list_kurirs($only_available = false){
     }
 
     /** Tandai paid (bulk) */
-   public function mark_paid(){
+  /** Tandai paid (bulk) */
+public function mark_paid(){
     $ids = $this->input->post('id');
     if (!is_array($ids) || !count($ids)){
-        echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Tidak ada data dipilih"]); return;
+        echo json_encode([
+            "success"=>false,
+            "title"=>"Gagal",
+            "pesan"=>"Tidak ada data dipilih"
+        ]);
+        return;
     }
 
     $res = $this->dm->bulk_mark_paid($ids);
 
-    if (!empty($res['ok_count'])) { $this->purge_public_caches(); }
+    if (!empty($res['ok_count'])) {
+        $this->purge_public_caches();
+    }
 
     // Kumpulkan kelompok ID dari hasil model (pastikan array)
     $blocked   = !empty($res['blocked_ids'])  ? (array)$res['blocked_ids']  : [];
@@ -663,28 +671,97 @@ private function _list_kurirs($only_available = false){
     $errors    = !empty($res['errors'])       ? (array)$res['errors']       : [];
 
     // Hitung ok_ids = input - (blocked ∪ already ∪ notfound ∪ errors)
-    $bad = array_unique(array_merge($blocked, $already, $notfound, $errors));
+    $bad    = array_unique(array_merge($blocked, $already, $notfound, $errors));
     $ok_ids = array_values(array_diff(array_map('intval',$ids), array_map('intval',$bad)));
 
     // >>> HENTIKAN DURASI DI KASIR untuk yang benar-benar paid
     if (!empty($ok_ids)) {
-        $this->_stop_kasir_timer($ok_ids); // <<<
+        $this->_stop_kasir_timer($ok_ids);
     }
 
-    // Rangkai pesan yang jelas (tetap sama)
+    // >>> KIRIM WA KE CUSTOMER (pembayaran diterima)
+    if (!empty($ok_ids)) {
+        $this->_wa_paid_notice($ok_ids);
+    }
+
+    // Rangkai pesan yang jelas untuk alert di UI
     $msgs = [];
-    if (!empty($res['ok_count']))       $msgs[] = $res['ok_count']." order ditandai lunas.";
-    if (!empty($res['blocked_ids']))    $msgs[] = "Ditolak (metode bayar belum di-set): #".implode(', #', $res['blocked_ids']);
-    if (!empty($res['already_ids']))    $msgs[] = "Diabaikan (sudah paid/canceled): #".implode(', #', $res['already_ids']);
-    if (!empty($res['notfound_ids']))   $msgs[] = "Tidak ditemukan: #".implode(', #', $res['notfound_ids']);
+    if (!empty($res['ok_count']))     $msgs[] = $res['ok_count']." order ditandai lunas.";
+    if (!empty($res['blocked_ids']))  $msgs[] = "Ditolak (metode bayar belum di-set): #".implode(', #', $res['blocked_ids']);
+    if (!empty($res['already_ids']))  $msgs[] = "Diabaikan (sudah paid/canceled): #".implode(', #', $res['already_ids']);
+    if (!empty($res['notfound_ids'])) $msgs[] = "Tidak ditemukan: #".implode(', #', $res['notfound_ids']);
 
     $ok = !empty($res['ok_count']) && empty($res['blocked_ids']) && empty($res['errors']);
+
     echo json_encode([
         "success" => $ok,
         "title"   => $ok ? "Berhasil" : "Sebagian/Gagal",
         "pesan"   => implode(' ', $msgs) ?: 'Tidak ada yang diproses.'
     ]);
 }
+/**
+ * Kirim WA konfirmasi bahwa pembayaran sudah diterima.
+ * Dipanggil hanya untuk ID order yang benar-benar berhasil jadi "paid".
+ *
+ * @param array $paid_ids
+ */
+private function _wa_paid_notice(array $paid_ids){
+    if (empty($paid_ids)) return;
+
+    // Ambil info toko sekali saja
+    $ident = $this->db->get('identitas')->row();
+    $toko  = trim((string)($ident->nama_website ?? $ident->nama ?? 'AUSI BILLIARD & CAFE'));
+    if ($toko === '') { $toko = 'AUSI BILLIARD & CAFE'; }
+
+    // Ambil data order yang baru dilunasi (id, nomor, total, metode bayar, dll)
+    $orders = $this->dm->get_orders_for_wa($paid_ids);
+    if (!$orders) return;
+
+    foreach ($orders as $o){
+        // nomor hp customer dari pesanan
+        $hpRaw = trim((string)($o->customer_phone ?? ''));
+        if ($hpRaw === '') continue; // ga ada nomor -> skip
+
+        // normalisasi ke format internasional (62xxx)
+        $msisdn = $this->_msisdn($hpRaw);
+        if ($msisdn === '') continue;
+
+        // data basic pesanan
+        $kode    = ($o->nomor !== '' ? $o->nomor : $o->id);
+        $total   = (int)($o->grand_total ?? 0);
+        $metode  = (string)($o->paid_method ?? '-');
+        $waktu   = !empty($o->created_at)
+            ? date('d/m/Y H:i', strtotime($o->created_at))
+            : date('d/m/Y H:i');
+
+        // susun pesan WA
+            $kodeTampil = ($o->nomor !== '' ? $o->nomor : $o->id);
+            $linkStruk  = site_url('produk/receipt/'.$kodeTampil);
+            $namaSapaan = trim($o->nama ?: "kak");
+
+            $msg  = "Halo {$namaSapaan},\n\n";
+            $msg .= "✨ *PEMBAYARAN DITERIMA* ✅\n";
+            $msg .= "Pesanan #{$kodeTampil} pada {$waktu}\n";
+            $msg .= "──────────────────\n";
+            $msg .= "Total Bayar : *".$this->_idr($total)."*\n";
+            $msg .= "Metode      : {$metode}\n";
+            $msg .= "──────────────────\n";
+            $msg .= "Pembayaran telah kami terima 👍\n\n";
+
+            $msg .= "Struk / Detail:\n{$linkStruk}\n\n";
+
+            $msg .= "klo mau struk fisik, langsung ke kasir kak.";
+            $msg .= "Terima kasih sudah bertransaksi di {$toko} 🙌\n\n";
+
+            $msg .= "Simpan kontak ini agar link bisa diklik 📲\n";
+            $msg .= "Pesan ini dikirim otomatis oleh sistem {$toko}. Mohon jangan balas pesan ini.\n";
+
+
+        // kirim via gateway WA kamu
+        $this->_wa_try($msisdn, $msg);
+    }
+}
+
 
 
 

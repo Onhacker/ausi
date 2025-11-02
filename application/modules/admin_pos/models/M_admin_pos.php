@@ -763,4 +763,30 @@ private function _apply_today_window(): void
         return $rows;
     }
 
+    /**
+ * Data minimal untuk broadcast WA setelah pesanan ditandai paid.
+ * @param array $ids daftar ID pesanan yang sukses jadi paid
+ * @return array of stdClass
+ */
+public function get_orders_for_wa(array $ids){
+    $ids = array_values(array_unique(array_map('intval',$ids)));
+    if (!$ids) return [];
+
+    return $this->db->select('
+            id,
+            nomor,
+            nama,
+            grand_total,
+            paid_method,
+            created_at,
+            paid_at,
+            customer_phone
+        ')
+        ->from('pesanan')
+        ->where_in('id', $ids)
+        ->get()
+        ->result();
+}
+
+
 }

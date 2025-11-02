@@ -167,12 +167,55 @@
             </small>
           </div>
 
-          
-            <div class="form-group col-md-6">
-              <label>No. Telepon</label>
-              <input type="tel" class="form-control" name="phone" placeholder="08xxxxxxxxxx" autocomplete="tel" required>
-              <small>untuk notifikasi</small>
-            </div>
+          <div class="form-group col-md-6">
+            <style>
+              .help-icon.pretty{
+                display:inline-flex;
+                justify-content:center;
+                align-items:center;
+                width:18px;
+                height:18px;
+                margin-left:6px;
+
+                font-size:12px;
+                font-weight:600;
+                line-height:1;
+
+                color:#fff;
+                background:linear-gradient(to bottom,#4f8bff 0%,#1a57e8 100%);
+                border-radius:50%;
+                box-shadow:0 2px 4px rgba(0,0,0,.18);
+                cursor:pointer;
+                border:0;
+              }
+
+              /* biar kursor nunjukin bisa ditekan di mobile */
+              .help-icon.pretty:active{
+                box-shadow:0 1px 2px rgba(0,0,0,.3);
+                transform:scale(.96);
+              }
+            </style>
+
+            <label class="d-flex align-items-center">
+              <span>No. WhatsApp</span>
+
+              <span class="help-icon pretty"
+              data-toggle="tooltip"
+              data-placement="right"
+              title="Masukkan No. WA untuk menerima struk, detail pembayaran, dan info pesanan lainnya.">
+              ?
+            </span>
+          </label>
+
+          <input type="tel"
+          class="form-control"
+          name="phone"
+          placeholder="08xxxxxxxxxx"
+          autocomplete="tel"
+          required>
+        </div>
+
+
             <?php if ($mode === 'delivery'): ?>
             <?php $this->load->view("ongkir") ?>
             <?php endif; ?>
@@ -317,19 +360,62 @@ function buildSteps(mode){
     }
 
     // Delivery fields
-    let phone='', alamat='', ongkir=0;
+    // let phone='', alamat='', ongkir=0;
+    // if (MODE === 'delivery') {
+    //   phone  = ($phone.val() || '').trim();
+    //   alamat = ($alamat.val() || '').trim();
+    //   if (IS_KASIR) {
+    //     const ong = ($ongkir.val() || '0').trim();
+    //     ongkir = parseInt(ong, 10) || 0; // tetap dikirim ke server, tapi TIDAK ditampilkan di SweetAlert
+    //   }
+    //   if (!phone || !alamat) {
+    //     Swal.fire({icon:'warning', title:'Lengkapi data delivery', text:'Telepon & alamat wajib untuk pengantaran.', allowOutsideClick:false});
+    //     return;
+    //   }
+    // }
+
+    // Delivery fields
+   let phone='', alamat='', ongkir=0, latVal='', lngVal='';
     if (MODE === 'delivery') {
       phone  = ($phone.val() || '').trim();
       alamat = ($alamat.val() || '').trim();
+
+      // ambil koordinat dari hidden input di form
+      const $lat = $('#form-order').find('input[name="dest_lat"]');
+      const $lng = $('#form-order').find('input[name="dest_lng"]');
+
+      latVal = ($lat.val() || '').trim();
+      lngVal = ($lng.val() || '').trim();
+
       if (IS_KASIR) {
         const ong = ($ongkir.val() || '0').trim();
-        ongkir = parseInt(ong, 10) || 0; // tetap dikirim ke server, tapi TIDAK ditampilkan di SweetAlert
+        ongkir = parseInt(ong, 10) || 0;
       }
+
+      // VALIDASI WAJIB DELIVERY (telepon & alamat teks)
       if (!phone || !alamat) {
-        Swal.fire({icon:'warning', title:'Lengkapi data delivery', text:'Telepon & alamat wajib untuk pengantaran.', allowOutsideClick:false});
+        Swal.fire({
+          icon:'warning',
+          title:'Lengkapi data delivery',
+          text:'Telepon & alamat wajib untuk pengantaran.',
+          allowOutsideClick:false
+        });
+        return;
+      }
+
+      // VALIDASI WAJIB PIN LOKASI 📍
+      if (!latVal || !lngVal) {
+        Swal.fire({
+          icon:'warning',
+          title:'Tentukan titik lokasi 📍',
+          text:'Silakan pilih titik lokasi di map agar kurir tidak nyasar.',
+          allowOutsideClick:false
+        });
         return;
       }
     }
+
+
 
     // ===== SweetAlert RINGKASAN TANPA total/ongkir/total bayar =====
     const ringkasan = `
