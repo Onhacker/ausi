@@ -61,7 +61,8 @@ $route['admin_scan/checkout_api']  = 'admin_scan/admin_scan/checkout_api';
 
 // Panggilan HTTP ke URL: https://silapas.onhacker.co.id/admin_dashboard/expire_bookings
 $route['admin_dashboard/expire_bookings'] = 'admin_dashboard/expire_bookings_http';
-$route['t/(:any)']                 = 'produk/tag/$1';
+$route['t/(:any)/(:any)'] = 'produk/tag/$1/$2';
+
 // application/config/routes.php
 $route['produk/delivery'] = 'produk/set_mode_delivery';
 $route['produk/walkin']   = 'produk/set_mode_walkin';

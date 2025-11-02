@@ -1283,24 +1283,70 @@ private function _maybe_expire_meja_session($minutes = 120){
 
 
     /* ----------------- Tag Meja (QR) ------------------ */
-    public function tag($kode = null){
-        $kode = trim((string)$kode);
-        if ($kode === '') return redirect('produk');
+    // public function tag($kode = null){
+    //     $kode = trim((string)$kode);
+    //     if ($kode === '') return redirect('produk');
 
-        $row = $this->db->get_where('meja', ['kode'=>$kode, 'status'=>'aktif'])->row();
+    //     $row = $this->db->get_where('meja', ['kode'=>$kode, 'status'=>'aktif'])->row();
+
+    //     if ($row) {
+    //         $this->_begin_customer_flow($row);
+    //         if ($this->session->userdata('cart')) $this->session->unset_userdata('cart');
+    //         $this->session->set_flashdata('cart_reset_title', $row->nama);
+    //         $this->session->set_flashdata('cart_reset_msg', 'Kamu akan order di '.$row->nama.'. Tolong pastikan kamu duduk di '.$row->nama.', jangan pindah-pindah ya. 👍');
+
+    //     } else {
+    //         $this->_hard_reset_guest_context();
+    //         $this->session->sess_regenerate(TRUE);
+    //     }
+    //     return redirect('produk');
+    // }
+
+    public function tag($kode = null, $token = null){
+        $kode  = trim((string)$kode);
+        $token = trim((string)$token);
+
+        if ($kode === '' || $token === '') {
+            return redirect('produk');
+        }
+
+        // validasi pola kode meja (opsional, biar spam ke DB berkurang)
+        if (!preg_match('/^M\d{5}$/', $kode)) {
+            $this->_hard_reset_guest_context();
+            $this->session->sess_regenerate(TRUE);
+            return redirect('produk');
+        }
+
+        $row = $this->db->get_where('meja', [
+            'kode'     => $kode,
+            'qr_token' => $token,
+            'status'   => 'aktif'
+        ])->row();
 
         if ($row) {
             $this->_begin_customer_flow($row);
-            if ($this->session->userdata('cart')) $this->session->unset_userdata('cart');
+
+            if ($this->session->userdata('cart')) {
+                $this->session->unset_userdata('cart');
+            }
+
             $this->session->set_flashdata('cart_reset_title', $row->nama);
-            $this->session->set_flashdata('cart_reset_msg', 'Kamu akan order di '.$row->nama.'. Tolong pastikan kamu duduk di '.$row->nama.', jangan pindah-pindah ya. 👍');
+            $this->session->set_flashdata(
+                'cart_reset_msg',
+                'Kamu akan order di '.$row->nama.'. Tolong pastikan kamu duduk di '.$row->nama.', jangan pindah-pindah ya. 👍'
+            );
+
+            // penting: regenerasi session id saat "claim" meja
+            $this->session->sess_regenerate(TRUE);
 
         } else {
             $this->_hard_reset_guest_context();
             $this->session->sess_regenerate(TRUE);
         }
+
         return redirect('produk');
     }
+
 
     /* ----------------- Pembayaran (tanpa API) ------------------ */
     private function _mark_paid_and_end($id, $method){

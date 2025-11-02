@@ -89,13 +89,13 @@ if (!empty($kategoris)) {
     </div>
 
     <!-- QUICKMENU -->
-    <div class="quickmenu-wrap position-relative mb-2" id="grandong">
+    <div class="quickmenu-wrap position-relative mb-1" id="grandong">
       <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Kategori">
 
         <div class="quickmenu-item" data-kategori="">
           <div class="qcard">
-            <div class="menu-circle" style="background:#6f42c1;">
-              <span class="emoji-icon" data-anim="all">🗂️</span>
+            <div class="menu-circle" >
+              <span class="emoji-icon" data-anim="all">🍽️</span>
             </div>
             <small class="menu-label">Semua</small>
           </div>
@@ -103,8 +103,8 @@ if (!empty($kategoris)) {
 
         <div class="quickmenu-item" data-kategori="<?= html_escape($kat_makanan_id); ?>">
           <div class="qcard">
-            <div class="menu-circle" style="background:#e67e22;">
-              <span class="emoji-icon" data-anim="food">🍽️</span>
+            <div class="menu-circle" >
+              <span class="emoji-icon" data-anim="food">🍝</span>
             </div>
             <small class="menu-label">Makanan</small>
           </div>
@@ -112,8 +112,8 @@ if (!empty($kategoris)) {
 
         <div class="quickmenu-item" data-kategori="<?= html_escape($kat_minuman_id); ?>">
           <div class="qcard">
-            <div class="menu-circle" style="background:#17a2b8;">
-              <span class="emoji-icon" data-anim="drink">🥤</span>
+            <div class="menu-circle" >
+              <span class="emoji-icon" data-anim="drink">☕</span>
             </div>
             <small class="menu-label">Minuman</small>
           </div>
@@ -123,11 +123,11 @@ if (!empty($kategoris)) {
           <a class="qcard d-block text-decoration-none"
              href="<?= site_url('produk/cart') ?>"
              aria-label="Buka keranjang">
-            <div class="menu-circle" style="background:#ef4444;">
-              <i class="mdi mdi-cart-outline" data-anim="cart" style="font-size:26px;position:relative;"></i>
-              <span class="q-badge" id="cart-count">0</span>
+            <div class="menu-circle" >
+              <!-- <i class="mdi mdi-cart-outline" style="font-size:26px;position:relative;"></i> -->
+              🍱<span class="q-badge" data-anim="cart" id="cart-count">0</span>
             </div>
-            <small class="menu-label" style="color:#ef4444;">Keranjang</small>
+            <small class="menu-label">Keranjang</small>
           </a>
         </div>
 

@@ -37,12 +37,13 @@
   }
 
   /* header dipadatkan */
-  .title{
-    margin-top:12px;
-    text-align:center;
-    color:#fff;
-    line-height:1.05
-  }
+  .title {
+    margin-top: 12px;
+    margin-bottom: -30px;
+    text-align: center;
+    color: #fff;
+    line-height: 1.05;
+}
   .title h1{
     margin:0;
     font-weight:900;
@@ -53,6 +54,17 @@
     margin:6px 0 2px;
     font-weight:800;
     font-size:clamp(14px,3.6vw,20px)
+  }
+
+  /* >>> tambahan kecil di bawah "SCAN UNTUK ORDER" <<< */
+  .title .subtitle{
+    display:block;
+    margin-top:4px;
+    margin-bottom:0;
+    font-weight:500;
+    font-size:clamp(11px,3vw,13px);
+    line-height:1.3;
+    color:rgba(255,255,255,.8);
   }
 
   /* konten utama lebih lebar, QR dominan */
@@ -192,6 +204,7 @@
   <div class="title">
     <h1><?= html_escape(strtoupper($row->nama)) ?></h1>
     <p>SCAN UNTUK ORDER</p>
+    
   </div>
 
   <div class="stack">
@@ -223,21 +236,17 @@
   const poster = document.getElementById('poster');
 
   btn.addEventListener('click', function(){
-    // optional: kasih efek "processing"
     btn.disabled = true;
     const oldText = btn.textContent;
     btn.textContent = 'Generating...';
 
-    // render elemen .poster jadi canvas
     html2canvas(poster, {
-      scale: 3,               // biar tajam untuk cetak A4
+      scale: 3,
       backgroundColor: '#ffffff',
-      useCORS: true           // supaya <img> external bisa ikut (QR)
+      useCORS: true
     }).then(function(canvas){
-      // ubah canvas jadi PNG dataURL
       const dataURL = canvas.toDataURL('image/png');
 
-      // bikin <a download> sementara
       const a = document.createElement('a');
       a.href = dataURL;
       a.download = "QR-<?= preg_replace('/[^A-Za-z0-9_-]+/','_', $row->nama) ?>.png";

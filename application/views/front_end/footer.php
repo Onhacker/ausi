@@ -23,13 +23,13 @@
       <div class="col-12">
         <div class="card-box-carbul">
           <h3 class=" text-center">
-            <strong><?= $rec->nama_website." ".strtoupper($rec->kabupaten) ?></strong>
+            <strong><?= $rec->nama_website ?></strong>
           </h3>
 
-          <p class="boxed-text-l text-center mb-1">
+        <!--   <p class="boxed-text-l text-center mb-1">
             <?= $rec->meta_deskripsi ?>
           </p>
-
+ -->
           <div class="text-center">
             Bagikan:
             <div class="share-buttons">
