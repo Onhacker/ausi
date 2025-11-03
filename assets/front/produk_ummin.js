@@ -144,13 +144,23 @@
       Swal.fire({icon:"error",title:title||"Gagal",text:text||""});
     }else{alert((title?title+": ":"")+(text||""));}
   }
-  function scrollToGrid(){
-    var el=document.getElementById("grandong");
-    if(!el)return;
-    var OFFSET=70;
-    var y=el.getBoundingClientRect().top+window.pageYOffset-OFFSET;
-    window.scrollTo({top:y,behavior:"smooth"});
+  // baru: tandai #grandong di URL TANPA scroll
+function scrollToGrid(){
+  const url = new URL(window.location.href);
+  if (url.hash !== '#grandong') {
+    url.hash = 'grandong';
+    history.replaceState(history.state, "", url.toString()); // update hash tanpa gerakin layar
   }
+  // opsional: kasih fokus tanpa scroll (diamankan untuk Safari lawas)
+  const el = document.getElementById("grandong");
+  if (el) {
+    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex","-1");
+    const x = window.scrollX, y = window.scrollY;
+    try { el.focus({preventScroll:true}); } 
+    catch(e){ el.focus(); window.scrollTo(x,y); }
+  }
+}
+
 
   /* ==== RECOMMENDED HELPERS ==== */
   function isRecOn(){ return ($("#recommended").val()==="1"); }
