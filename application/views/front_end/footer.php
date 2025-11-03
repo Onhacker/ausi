@@ -870,25 +870,5 @@
   }
 </script>
 
-
-<script>
-// blok pinch zoom
-document.addEventListener('touchmove', function (e) {
-  if (e.scale !== undefined && e.scale !== 1) {
-    e.preventDefault();
-  }
-}, { passive: false });
-
-// blok double-tap zoom
-let __lastTouchEnd = 0;
-document.addEventListener('touchend', function (e) {
-  const now = Date.now();
-  if (now - __lastTouchEnd <= 300) {
-    e.preventDefault();
-  }
-  __lastTouchEnd = now;
-}, { passive: false });
-</script>
-
 </body>
 </html>
