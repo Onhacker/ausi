@@ -32,17 +32,15 @@
 </style>
 
 
-<div class="button-list mb-2 d-flex align-items-center flex-wrap">
+<div class="mb-2 d-flex align-items-center flex-wrap justify-content-start">
   <!-- Kiri: tombol umum -->
-  <button type="button" onclick="reload_table('user')" class="btn btn-warning btn-rounded btn-sm waves-effect waves-light mr-2">
+  <button type="button" onclick="reload_table('user')" class="btn btn-blue btn-sm waves-effect waves-light mr-2">
     <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
   </button>
-<button type="button" id="btn-enable-sound" class="btn btn-outline-secondary btn-rounded btn-sm">
-    <span class="btn-label"><i class="fe-volume-2"></i></span>Aktifkan Suara
-  </button>
-  <!-- Kanan: filter status -->
+
+  <!-- Kiri: filter status -->
   <?php if (!$isKB): ?>
-    <select id="filter-status" class="form-control form-control-sm ml-auto" style="width:220px">
+    <select id="filter-status" class="form-control form-control-sm mr-2" style="width:220px">
       <option value="all" selected>Semua status</option>
       <option value="paid">Paid (Lunas)</option>
       <option value="pending">Pending</option>

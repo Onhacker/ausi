@@ -6,30 +6,37 @@ class M_admin_pos_riwayat extends CI_Model {
     private $table = 'pesanan_paid pp';
 
     private $column_order = [
-        null,             // no
-        'pp.nomor',       // nomor
-        'pp.mode',        // mode
-        'pp.meja_nama',   // meja
-        'pp.paid_at',     // tgl bayar
-        'pp.created_at',  // tgl buat
-        'pp.total',       // subtotal
-        'pp.grand_total', // grand
-        'pp.paid_method', // metode
-        null              // aksi
+        null,               // no
+        'pp.nomor',         // nomor
+        'pp.mode',          // mode
+        'pp.meja_nama',     // meja
+        'pp.archived_at',   // pembayaran diterima
+        'pp.total',         // subtotal
+        'pp.grand_total',   // grand
+        'pp.paid_method',   // metode
+        null                // aksi
     ];
 
     private $column_search = ['pp.nomor','pp.nama','pp.customer_phone','pp.meja_nama','pp.meja_kode','pp.mode','pp.paid_method'];
-    private $order         = ['pp.paid_at'=>'DESC','pp.id'=>'DESC'];
+    private $order         = ['pp.archived_at'=>'DESC','pp.id'=>'DESC'];
 
     private $max_rows = 500;
     private $paid_method_filter = 'all'; // all | cash | qris | transfer | dll
     private $mode_filter = 'all';        // all | walkin | dinein | delivery
+
+    // === baru: filter periode ===
+    private $from_dt = null; // 'Y-m-d H:i:s'
+    private $to_dt   = null; // 'Y-m-d H:i:s'
 
     public function __construct(){ parent::__construct(); }
 
     public function set_max_rows($n=500){ $this->max_rows = max(0,(int)$n); }
     public function set_paid_method_filter($m='all'){ $this->paid_method_filter = $m ?: 'all'; }
     public function set_mode_filter($m='all'){ $this->mode_filter = $m ?: 'all'; }
+    public function set_period_filter($from=null, $to=null){
+        $this->from_dt = $from ?: null;
+        $this->to_dt   = $to   ?: null;
+    }
 
     private function _base_q(){
         $this->db->from($this->table);
@@ -42,11 +49,21 @@ class M_admin_pos_riwayat extends CI_Model {
             pp.paid_at, pp.created_at, pp.updated_at, pp.archived_at
         ');
 
+        // filter metode
         if ($this->paid_method_filter !== 'all'){
             $this->db->where('pp.paid_method', $this->paid_method_filter);
         }
+        // filter mode
         if ($this->mode_filter !== 'all'){
             $this->db->where('pp.mode', $this->mode_filter);
+        }
+        // filter periode (pakai archived_at, fallback paid_at)
+        if ($this->from_dt && $this->to_dt){
+            $this->db->group_start();
+            // NB: COALESCE() dipakai aman di Query Builder sebagai raw field
+            $this->db->where("COALESCE(pp.archived_at, pp.paid_at) >=", $this->from_dt);
+            $this->db->where("COALESCE(pp.archived_at, pp.paid_at) <=", $this->to_dt);
+            $this->db->group_end();
         }
     }
 
@@ -71,7 +88,7 @@ class M_admin_pos_riwayat extends CI_Model {
             $col = $this->column_order[$idx] ?? null;
             if ($col){ $this->db->order_by($col,$dir); }
         } else {
-            $this->db->order_by('pp.paid_at','DESC');
+            $this->db->order_by('pp.archived_at','DESC'); // default → Pembayaran Diterima terbaru
             $this->db->order_by('pp.id','DESC');
         }
     }

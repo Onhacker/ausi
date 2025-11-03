@@ -6,27 +6,35 @@ class M_riwayat_billiard extends CI_Model {
     private $table = 'billiard_paid bp';
 
     private $column_order  = [
-        null,               // no
-        'bp.kode_booking',  // kode
-        'bp.nama_meja',     // meja
-        'bp.paid_at',       // dibayar
-        'bp.tanggal',       // waktu main (tgl)
-        'bp.harga_per_jam', // harga/jam
-        'bp.grand_total',   // grand
-        'bp.metode_bayar',  // metode
-        null                // aksi
+        null,
+        'bp.kode_booking',
+        'bp.nama_meja',
+        'bp.paid_at',
+        'bp.tanggal',
+        'bp.harga_per_jam',
+        'bp.grand_total',
+        'bp.metode_bayar',
+        null
     ];
 
     private $column_search = ['bp.kode_booking','bp.nama','bp.no_hp','bp.nama_meja','bp.metode_bayar'];
     private $order         = ['bp.paid_at'=>'DESC','bp.id_paid'=>'DESC'];
 
     private $max_rows = 500;
-    private $paid_method_filter = 'all'; // all | qris | cash | transfer | ...
+    private $paid_method_filter = 'all';
+
+    // === baru: periode
+    private $from_dt = null; // 'Y-m-d H:i:s'
+    private $to_dt   = null; // 'Y-m-d H:i:s'
 
     public function __construct(){ parent::__construct(); }
 
     public function set_max_rows($n = 500){ $this->max_rows = max(0,(int)$n); }
     public function set_paid_method_filter($m='all'){ $this->paid_method_filter = $m ?: 'all'; }
+    public function set_period_filter($from=null, $to=null){
+        $this->from_dt = $from ?: null;
+        $this->to_dt   = $to   ?: null;
+    }
 
     private function _base_q(){
         $this->db->from($this->table);
@@ -41,6 +49,16 @@ class M_riwayat_billiard extends CI_Model {
 
         if ($this->paid_method_filter !== 'all'){
             $this->db->where('bp.metode_bayar', $this->paid_method_filter);
+        }
+
+        // === filter periode by Dibayar (bp.paid_at)
+        if ($this->from_dt && $this->to_dt){
+            $this->db->where('bp.paid_at >=', $this->from_dt);
+            $this->db->where('bp.paid_at <=', $this->to_dt);
+        } elseif ($this->from_dt){
+            $this->db->where('bp.paid_at >=', $this->from_dt);
+        } elseif ($this->to_dt){
+            $this->db->where('bp.paid_at <=', $this->to_dt);
         }
     }
 

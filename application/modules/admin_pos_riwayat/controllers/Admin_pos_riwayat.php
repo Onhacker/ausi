@@ -19,101 +19,108 @@ class Admin_pos_riwayat extends Admin_Controller {
 
     /** DataTables server-side */
     public function get_data(){
-        try{
-            $metode = $this->input->post('metode', true) ?: 'all';
-            $mode   = $this->input->post('mode', true)   ?: 'all';
+    try{
+        // === ambil filter ===
+        $metode = $this->input->post('metode', true) ?: 'all';
+        $mode   = $this->input->post('mode', true)   ?: 'all';
 
-            $this->dm->set_max_rows(500);
-            $this->dm->set_paid_method_filter($metode);
-            $this->dm->set_mode_filter($mode);
+        // dari filter periode (kirim dari front-end dalam format 'Y-m-d H:i:s')
+        $from_raw = trim((string)$this->input->post('dt_from', true));
+        $to_raw   = trim((string)$this->input->post('dt_to', true));
 
-            $list = $this->dm->get_data();
-            $data = [];
+        // normalisasi aman (biarkan kosong jika gagal parse)
+        $from_dt = $from_raw !== '' ? date('Y-m-d H:i:s', strtotime($from_raw)) : null;
+        $to_dt   = $to_raw   !== '' ? date('Y-m-d H:i:s', strtotime($to_raw))   : null;
 
-            foreach($list as $r){
-                // Nomor
-                $nomor = htmlspecialchars($r->nomor ?: ('#'.$r->src_id), ENT_QUOTES, 'UTF-8');
+        // === set filter ke model ===
+        $this->dm->set_max_rows(500);
+        $this->dm->set_paid_method_filter($metode);
+        $this->dm->set_mode_filter($mode);
+        $this->dm->set_period_filter($from_dt, $to_dt); // <-- baru
 
-                // Mode badge
-                $mode_raw = strtolower(trim((string)$r->mode));
-                $badge='secondary'; $mode_label='-';
-                if ($mode_raw==='dinein' || $mode_raw==='dine-in'){ $badge='info'; $mode_label='Makan di Tempat'; }
-                elseif ($mode_raw==='delivery'){ $badge='warning'; $mode_label='Antar/Kirim'; }
-                else { $badge='primary'; $mode_label='Bungkus'; }
-                $mode_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($mode_label,ENT_QUOTES,'UTF-8').'</span>';
+        // === ambil data ===
+        $list = $this->dm->get_data();
+        $data = [];
 
-                // Meja / Nama (dinamis)
-                $meja_html = '—';
-                if ($mode_raw==='delivery'){
-                    // Nama + HP
-                    $nama  = trim((string)$r->nama);
-                    $phone = trim((string)$r->customer_phone);
-                    $meja_html  = htmlspecialchars($nama !== '' ? $nama : '-', ENT_QUOTES, 'UTF-8');
-                    if ($phone !== ''){
-                        $meja_html .= '<div class="text-muted small">'.htmlspecialchars($phone, ENT_QUOTES, 'UTF-8').'</div>';
-                    }
-                } elseif ($mode_raw==='dinein' || $mode_raw==='dine-in'){
-                    // Meja + Nama
-                    $meja = $r->meja_nama ?: ($r->meja_kode ?: '—');
-                    $meja_html  = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
-                    if (!empty($r->nama)){
-                        $meja_html .= '<div class="text-muted small">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>';
-                    }
-                } else {
-                    // walkin/bungkus → Nama saja
-                    $meja_html = htmlspecialchars($r->nama ?: '-', ENT_QUOTES, 'UTF-8');
+        foreach($list as $r){
+            // Nomor
+            $nomor = htmlspecialchars($r->nomor ?: ('#'.$r->src_id), ENT_QUOTES, 'UTF-8');
+
+            // Mode badge
+            $mode_raw = strtolower(trim((string)$r->mode));
+            $badge='secondary'; $mode_label='-';
+            if ($mode_raw==='dinein' || $mode_raw==='dine-in'){ $badge='info'; $mode_label='Makan di Tempat'; }
+            elseif ($mode_raw==='delivery'){ $badge='warning'; $mode_label='Antar/Kirim'; }
+            else { $badge='primary'; $mode_label='Bungkus'; }
+            $mode_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($mode_label,ENT_QUOTES,'UTF-8').'</span>';
+
+            // Meja / Nama (dinamis)
+            $meja_html = '—';
+            if ($mode_raw==='delivery'){
+                $nama  = trim((string)$r->nama);
+                $phone = trim((string)$r->customer_phone);
+                $meja_html  = htmlspecialchars($nama !== '' ? $nama : '-', ENT_QUOTES, 'UTF-8');
+                if ($phone !== ''){
+                    $meja_html .= '<div class="text-muted small">'.htmlspecialchars($phone, ENT_QUOTES, 'UTF-8').'</div>';
                 }
-
-                // Waktu (archived_at → Pembayaran Diterima)
-                $archived  = $r->archived_at ? date('d-m-Y H:i', strtotime($r->archived_at)) : '-';
-                $arch_html = htmlspecialchars($archived,ENT_QUOTES,'UTF-8');
-
-                // Uang
-                $subtotal = (int)$r->total;
-                $grand    = (int)$r->grand_total;
-                $subtotal_html = 'Rp '.number_format($subtotal,0,',','.');
-                $grand_html    = 'Rp '.number_format($grand,0,',','.');
-
-                // Metode + icon
-                $mraw = strtolower(trim((string)$r->paid_method));
-                $icon = 'fe-help-circle'; $clr='secondary'; $label = strtoupper($mraw ?: '-');
-                if ($mraw==='cash'){ $icon='fe-dollar-sign'; $clr='success'; $label='CASH'; }
-                elseif ($mraw==='qris'){ $icon='fe-smartphone'; $clr='dark'; $label='QRIS'; }
-                elseif ($mraw==='transfer'){ $icon='fe-credit-card'; $clr='primary'; $label='TRANSFER'; }
-                $metode_html = '<span class="badge badge-pill badge-'.$clr.'">'
-                             . '<i class="'.$icon.' mr-1"></i>'.$label.'</span>';
-
-                // susun row
-                $row = [];
-                $row['id']          = (int)$r->id;
-                $row['no']          = '';
-                $row['nomor']       = '<span class="badge badge-dark">'.$nomor.'</span>';
-                $row['mode']        = $mode_html;
-                $row['meja']        = $meja_html;
-                $row['archived_at'] = $arch_html;
-                $row['subtotal']    = $subtotal_html;
-                $row['grand']       = $grand_html;
-                $row['metode']      = $metode_html;
-
-                $data[] = $row;
+            } elseif ($mode_raw==='dinein' || $mode_raw==='dine-in'){
+                $meja = $r->meja_nama ?: ($r->meja_kode ?: '—');
+                $meja_html  = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
+                if (!empty($r->nama)){
+                    $meja_html .= '<div class="text-muted small">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>';
+                }
+            } else {
+                $meja_html = htmlspecialchars($r->nama ?: '-', ENT_QUOTES, 'UTF-8');
             }
 
-            $out = [
-                "draw"            => (int)$this->input->post('draw'),
-                "recordsTotal"    => $this->dm->count_all(),
-                "recordsFiltered" => $this->dm->count_filtered(),
-                "data"            => $data,
-            ];
-            return $this->output->set_content_type('application/json')->set_output(json_encode($out));
-        } catch(\Throwable $e){
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode([
-                    "draw" => (int)$this->input->post('draw'),
-                    "recordsTotal"=>0,"recordsFiltered"=>0,"data"=>[],
-                    "error"=>"Server error: ".$e->getMessage()
-                ]));
+            // Waktu (archived_at → Pembayaran Diterima)
+            $archived  = $r->archived_at ? date('d-m-Y H:i', strtotime($r->archived_at)) : '-';
+            $arch_html = htmlspecialchars($archived,ENT_QUOTES,'UTF-8');
+
+            // Uang
+            $subtotal = (int)$r->total;
+            $grand    = (int)$r->grand_total;
+            $subtotal_html = 'Rp '.number_format($subtotal,0,',','.');
+            $grand_html    = 'Rp '.number_format($grand,0,',','.');
+
+            // Metode + icon
+            $mraw = strtolower(trim((string)$r->paid_method));
+            $icon = 'fe-help-circle'; $clr='secondary'; $label = strtoupper($mraw ?: '-');
+            if ($mraw==='cash'){ $icon='fe-dollar-sign'; $clr='success'; $label='CASH'; }
+            elseif ($mraw==='qris'){ $icon='fe-smartphone'; $clr='dark'; $label='QRIS'; }
+            elseif ($mraw==='transfer'){ $icon='fe-credit-card'; $clr='primary'; $label='TRANSFER'; }
+            $metode_html = '<span class="badge badge-pill badge-'.$clr.'"><i class="'.$icon.' mr-1"></i>'.$label.'</span>';
+
+            $row = [];
+            $row['id']          = (int)$r->id;
+            $row['no']          = '';
+            $row['nomor']       = '<span class="badge badge-dark">'.$nomor.'</span>';
+            $row['mode']        = $mode_html;
+            $row['meja']        = $meja_html;
+            $row['archived_at'] = $arch_html;
+            $row['subtotal']    = $subtotal_html;
+            $row['grand']       = $grand_html;
+            $row['metode']      = $metode_html;
+
+            $data[] = $row;
         }
+
+        $out = [
+            "draw"            => (int)$this->input->post('draw'),
+            "recordsTotal"    => $this->dm->count_all(),
+            "recordsFiltered" => $this->dm->count_filtered(),
+            "data"            => $data,
+        ];
+        return $this->output->set_content_type('application/json')->set_output(json_encode($out));
+    } catch(\Throwable $e){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "draw" => (int)$this->input->post('draw'),
+                "recordsTotal"=>0,"recordsFiltered"=>0,"data"=>[],
+                "error"=>"Server error: ".$e->getMessage()
+            ]));
     }
+}
 
     /** Detail (HTML partial) dari tabel paid */
     public function detail($id=null){

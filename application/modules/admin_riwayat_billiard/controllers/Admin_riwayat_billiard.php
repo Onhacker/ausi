@@ -20,78 +20,82 @@ class Admin_riwayat_billiard extends Admin_Controller {
 
     /** DataTables server-side */
     public function get_data(){
-        try{
-            $metode = $this->input->post('metode', true) ?: 'all';
-            $this->dm->set_max_rows(500);
-            $this->dm->set_paid_method_filter($metode);
+    try{
+        // === filter dari request ===
+        $metode  = $this->input->post('metode',  true) ?: 'all';
+        $fromRaw = trim((string)$this->input->post('dt_from', true));
+        $toRaw   = trim((string)$this->input->post('dt_to',   true));
 
-            $list = $this->dm->get_data();
-            $data = [];
+        // normalisasi aman → 'Y-m-d H:i:s' (biarkan null jika kosong)
+        $from_dt = ($fromRaw !== '') ? date('Y-m-d H:i:s', strtotime($fromRaw)) : null;
+        $to_dt   = ($toRaw   !== '') ? date('Y-m-d H:i:s', strtotime($toRaw))   : null;
 
-            foreach ($list as $r){
-                // Kode Booking
-                $kode = htmlspecialchars($r->kode_booking ?: '-', ENT_QUOTES, 'UTF-8');
+        // set ke model
+        $this->dm->set_max_rows(500);
+        $this->dm->set_paid_method_filter($metode);
+        $this->dm->set_period_filter($from_dt, $to_dt); // <-- baru
 
-                // Meja / Nama
-                $meja = $r->nama_meja ?: ('Meja #'.$r->meja_id);
-                $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
-                if (!empty($r->nama)){
-                    $meja_html .= '<div class="text-muted small">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>';
-                }
+        // ambil data
+        $list = $this->dm->get_data();
+        $data = [];
 
-                // Waktu Bayar
-                $paid_html = $r->paid_at ? htmlspecialchars(date('d-m-Y H:i:s', strtotime($r->paid_at)), ENT_QUOTES, 'UTF-8') : '-';
+        foreach ($list as $r){
+            $kode = htmlspecialchars($r->kode_booking ?: '-', ENT_QUOTES, 'UTF-8');
 
-                // Waktu Main (tanggal + jam + durasi)
-                $tgl = $r->tanggal ? date('d-m-Y', strtotime($r->tanggal)) : '-';
-                $jam = "Jam ".trim(($r->jam_mulai ?: '').' - '.($r->jam_selesai ?: ''));
-                $durasi_html = '<b>'.(int)$r->durasi_jam.' jam</b>';
-                $waktu_html = $tgl.' ('.$durasi_html.')' .'<div class="text-blue small">'.htmlspecialchars($jam,ENT_QUOTES,'UTF-8').'</div>';
-
-                // Harga / Grand Total
-                $harga_html = 'Rp '.number_format((int)$r->harga_per_jam,0,',','.');
-                $grand_html = 'Rp '.number_format((int)$r->grand_total,0,',','.');
-
-                // Metode
-                $metode_html = htmlspecialchars($r->metode_bayar ?: '-', ENT_QUOTES, 'UTF-8');
-
-                // Aksi: hanya detail
-                $idInt = (int)$r->id_paid;
-                $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
-                             . '<button type="button" class="btn btn-info" onclick="show_detail('.$idInt.')"><i class="fe-eye"></i></button>'
-                             . '</div>';
-
-                $row = [];
-                $row['id']        = $idInt;
-                $row['no']        = '';
-                $row['kode']      = '<span class="badge badge-dark">'.$kode.'</span>';
-                $row['meja']      = $meja_html;
-                $row['paid_at']   = $paid_html;
-                $row['waktu']     = $waktu_html;
-                $row['harga']     = $harga_html;
-                $row['grand']     = $grand_html;
-                $row['metode']    = $metode_html;
-                $row['aksi']      = $actionsHtml;
-
-                $data[] = $row;
+            $meja = $r->nama_meja ?: ('Meja #'.$r->meja_id);
+            $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
+            if (!empty($r->nama)){
+                $meja_html .= '<div class="text-muted small">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>';
             }
 
-            $out = [
-                "draw"            => (int)$this->input->post('draw'),
-                "recordsTotal"    => $this->dm->count_all(),
-                "recordsFiltered" => $this->dm->count_filtered(),
-                "data"            => $data,
-            ];
-            return $this->output->set_content_type('application/json')->set_output(json_encode($out));
-        } catch(\Throwable $e){
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode([
-                    "draw" => (int)$this->input->post('draw'),
-                    "recordsTotal"=>0,"recordsFiltered"=>0,"data"=>[],
-                    "error"=>"Server error: ".$e->getMessage()
-                ]));
+            $paid_html = $r->paid_at ? htmlspecialchars(date('d-m-Y H:i', strtotime($r->paid_at)), ENT_QUOTES, 'UTF-8') : '-';
+
+            $tgl = $r->tanggal ? date('d-m-Y', strtotime($r->tanggal)) : '-';
+            $jam = "Jam ".trim(($r->jam_mulai ?: '').' - '.($r->jam_selesai ?: ''));
+            $durasi_html = '<b>'.(int)$r->durasi_jam.' jam</b>';
+            $waktu_html = $tgl.' ('.$durasi_html.')' .'<div class="text-blue small">'.htmlspecialchars($jam,ENT_QUOTES,'UTF-8').'</div>';
+
+            $harga_html = 'Rp '.number_format((int)$r->harga_per_jam,0,',','.');
+            $grand_html = 'Rp '.number_format((int)$r->grand_total,0,',','.');
+            $metode_html = htmlspecialchars($r->metode_bayar ?: '-', ENT_QUOTES, 'UTF-8');
+
+            $idInt = (int)$r->id_paid;
+            $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
+                         . '<button type="button" class="btn btn-info" onclick="show_detail('.$idInt.')"><i class="fe-eye"></i></button>'
+                         . '</div>';
+
+            $row = [];
+            $row['id']      = $idInt;
+            $row['no']      = '';
+            $row['kode']    = '<span class="badge badge-dark">'.$kode.'</span>';
+            $row['meja']    = $meja_html;
+            $row['paid_at'] = $paid_html;
+            $row['waktu']   = $waktu_html;
+            $row['harga']   = $harga_html;
+            $row['grand']   = $grand_html;
+            $row['metode']  = $metode_html;
+            $row['aksi']    = $actionsHtml;
+
+            $data[] = $row;
         }
+
+        $out = [
+            "draw"            => (int)$this->input->post('draw'),
+            "recordsTotal"    => $this->dm->count_all(),
+            "recordsFiltered" => $this->dm->count_filtered(),
+            "data"            => $data,
+        ];
+        return $this->output->set_content_type('application/json')->set_output(json_encode($out));
+    } catch(\Throwable $e){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "draw" => (int)$this->input->post('draw'),
+                "recordsTotal"=>0,"recordsFiltered"=>0,"data"=>[],
+                "error"=>"Server error: ".$e->getMessage()
+            ]));
     }
+}
+
 
     /** Detail sederhana (HTML partial) dari billiard_paid */
     public function detail($id=null){

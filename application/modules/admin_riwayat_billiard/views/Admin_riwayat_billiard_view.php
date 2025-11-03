@@ -12,17 +12,58 @@
     </div>
   </div></div>
 
-  <div class="mb-2 d-flex align-items-center flex-wrap justify-content-start">
-    <button type="button" onclick="reload_paid_table('user')" class="btn btn-warning btn-sm mr-2">
-      <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-    </button>
-    <select id="filter-metode" class="form-control form-control-sm" style="width:200px">
-      <option value="all" selected>Semua Metode</option>
-      <option value="cash">Cash</option>
-      <option value="qris">QRIS</option>
-      <option value="transfer">Transfer</option>
-    </select>
+  <!-- ===== FILTER BARU ===== -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group col-md-3">
+          <label class="mb-1">Periode</label>
+          <select id="preset" class="form-control form-control-sm">
+            <option value="today">Hari ini</option>
+            <option value="yesterday">Kemarin</option>
+            <option value="this_week">Minggu ini</option>
+            <option value="this_month">Bulan ini</option>
+            <option value="range">Rentang Tanggal</option>
+          </select>
+        </div>
+
+        <div class="form-group col-md-3">
+          <label class="mb-1" for="dt_from">Dari (Tanggal &amp; Jam)</label>
+          <input type="datetime-local" id="dt_from" class="form-control form-control-sm">
+        </div>
+
+        <div class="form-group col-md-3">
+          <label class="mb-1" for="dt_to">Sampai (Tanggal &amp; Jam)</label>
+          <input type="datetime-local" id="dt_to" class="form-control form-control-sm">
+        </div>
+
+        <div class="form-group col-md-3">
+          <label class="mb-1">Metode Pembayaran</label>
+          <select id="metode" class="form-control form-control-sm">
+            <option value="all">Semua</option>
+            <option value="cash">Cash</option>
+            <option value="qris">QRIS</option>
+            <option value="transfer">Transfer</option>
+          </select>
+        </div>
+
+        <div class="form-group col-12 d-flex flex-wrap align-items-center justify-content-end btn-wrap">
+          <button type="button" class="btn btn-primary btn-sm mr-2" id="btn-apply">
+            <span class="btn-label"><i class="fe-filter"></i></span> Lihat
+          </button>
+
+          <button type="button" class="btn btn-secondary btn-sm mr-2" id="btn-reset">
+            <i class="fe-rotate-ccw"></i> Reset Form
+          </button>
+
+          <button type="button" onclick="reload_paid_table('user')" class="btn btn-warning btn-sm">
+            <span class="btn-label"><i class="fe-refresh-ccw"></i></span> Refresh Data
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
+  <!-- ===== /FILTER BARU ===== -->
 
   <div class="card"><div class="card-body">
     <table id="table_bil_paid" class="table table-striped table-bordered w-100">
@@ -60,10 +101,30 @@
 </div>
 
 <script>
-var table; var isReloading=false;
+var table, isReloading=false;
 
 function loader(){ if (window.Swal) Swal.fire({title:"Proses...", allowOutsideClick:false, didOpen:()=>Swal.showLoading()}); }
 function close_loader(){ if (window.Swal) Swal.close(); }
+function pad(n){ return (n<10?'0':'')+n; }
+function toInputValue(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function toSql(val, isEnd){ if(!val) return ''; var t = val.replace('T',' '); return t + (t.length===16 ? (isEnd ? ':59' : ':00') : ''); }
+function startOfToday(){ var n=new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 0,0,0); }
+function endOfToday(){ var n=new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 23,59,59); }
+function startOfYesterday(){ var n=new Date(); n.setDate(n.getDate()-1); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 0,0,0); }
+function endOfYesterday(){ var n=new Date(); n.setDate(n.getDate()-1); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 23,59,59); }
+function startOfWeekMon(){ var n=new Date(); var day=n.getDay(); var diff=(day===0?-6:(1-day)); return new Date(n.getFullYear(), n.getMonth(), n.getDate()+diff, 0,0,0); }
+function startOfMonth(){ var n=new Date(); return new Date(n.getFullYear(), n.getMonth(), 1, 0,0,0); }
+
+function applyPreset(){
+  var p=$('#preset').val(), from, to;
+  if (p==='today'){ from=startOfToday(); to=endOfToday(); }
+  else if (p==='yesterday'){ from=startOfYesterday(); to=endOfYesterday(); }
+  else if (p==='this_week'){ from=startOfWeekMon(); to=endOfToday(); }
+  else if (p==='this_month'){ from=startOfMonth(); to=endOfToday(); }
+  else { return; } // 'range' → biarkan user isi
+  $('#dt_from').val(toInputValue(from));
+  $('#dt_to').val(toInputValue(to));
+}
 
 function reload_paid_table(reason='user'){
   if (!table || isReloading) return;
@@ -72,6 +133,10 @@ function reload_paid_table(reason='user'){
 }
 
 $(document).ready(function(){
+  // default preset "Hari ini"
+  $('#preset').val('today');
+  applyPreset();
+
   table = $('#table_bil_paid').DataTable({
     pageLength: 10,
     lengthMenu: [[10,25,100],[10,25,100]],
@@ -91,7 +156,9 @@ $(document).ready(function(){
       url:"<?= site_url('admin_riwayat_billiard/get_data') ?>",
       type:"POST",
       data:function(d){
-        d.metode = $('#filter-metode').val() || 'all';
+        d.metode  = $('#metode').val() || 'all';
+        d.dt_from = toSql($('#dt_from').val(), false);
+        d.dt_to   = toSql($('#dt_to').val(),   true);
       }
     },
     columns:[
@@ -105,11 +172,9 @@ $(document).ready(function(){
       {data:"metode"},
       {data:"aksi",    orderable:false}
     ],
-    order: [],
+    order: [], // biarkan model pakai default (paid_at DESC)
     rowCallback:function(row, data, displayIndex){
-      var api  = this.api();
-      var info = api.page.info();
-      var idx  = info.start + displayIndex + 1;
+      var api=this.api(), info=api.page.info(), idx=info.start + displayIndex + 1;
       $('td:eq(0)', row).html(idx);
     },
     createdRow:function(row, data){
@@ -119,17 +184,24 @@ $(document).ready(function(){
     }
   });
 
-  // klik baris → detail (kecuali klik tombol)
+  // klik baris -> detail (kecuali klik tombol/ikon/link)
   $('#table_bil_paid tbody').on('click','tr', function(e){
     if ($(e.target).closest('button, a, i').length) return;
-    const id = parseInt($(this).attr('data-id')||'0', 10);
-    if (id > 0){ show_detail(id); }
+    const id = parseInt($(this).attr('data-id')||'0',10);
+    if (id>0){ show_detail(id); }
   });
 
-  $('#filter-metode').on('change', function(){ reload_paid_table('user'); });
+  // events filter
+  $('#preset').on('change', applyPreset);
+  $('#btn-apply').on('click', function(){ reload_paid_table('apply'); });
+  $('#btn-reset').on('click', function(){
+    $('#preset').val('today'); applyPreset();
+    $('#metode').val('all');
+    reload_paid_table('reset');
+  });
 });
 
-/* ================== Detail ================== */
+/* ============== Detail ============== */
 function show_detail(id){
   loader();
   $.getJSON("<?= site_url('admin_riwayat_billiard/detail/') ?>"+id)
