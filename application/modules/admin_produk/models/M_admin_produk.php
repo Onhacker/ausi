@@ -31,7 +31,10 @@ class M_admin_produk extends CI_Model {
             }
             $this->db->group_end();
         }
-
+        $kat = $this->input->post('kategori_id', true);
+        if ($kat !== null && $kat !== '' && ctype_digit((string)$kat) && (int)$kat > 0){
+            $this->db->where('p.kategori_id', (int)$kat);
+        }
         if (isset($_POST['order'])){
             $idx = (int)$_POST['order'][0]['column'];
             $dir = $_POST['order'][0]['dir']==='desc'?'DESC':'ASC';
@@ -84,8 +87,8 @@ class M_admin_produk extends CI_Model {
     public function generate_unique_sku($kategori_id, $nama, $ignore_id = null){
         // Ambil nama kategori
         $kat = $this->db->select('nama')
-            ->get_where('kategori_produk', ['id'=>(int)$kategori_id])
-            ->row();
+        ->get_where('kategori_produk', ['id'=>(int)$kategori_id])
+        ->row();
         $kat_name = $kat ? $kat->nama : 'CAT';
 
         // 3 huruf kategori (A-Z), 3 huruf produk (A-Z0-9)
@@ -98,7 +101,7 @@ class M_admin_produk extends CI_Model {
 
         // Cari sequence terakhir
         $this->db->select('sku')->from('produk')
-            ->like('sku', $base.'-', 'after');
+        ->like('sku', $base.'-', 'after');
         if ($ignore_id) $this->db->where('id !=', (int)$ignore_id);
         $this->db->order_by('sku', 'DESC')->limit(1);
         $row = $this->db->get()->row();

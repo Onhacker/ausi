@@ -7,7 +7,6 @@ class Admin_pos_riwayat extends Admin_Controller {
         parent::__construct();
         $this->load->model('M_admin_pos_riwayat','dm');
         cek_session_akses(get_class($this), $this->session->userdata('admin_session')); // jika dipakai
-
     }
 
     public function index(){
@@ -43,18 +42,31 @@ class Admin_pos_riwayat extends Admin_Controller {
                 else { $badge='primary'; $mode_label='Bungkus'; }
                 $mode_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($mode_label,ENT_QUOTES,'UTF-8').'</span>';
 
-                // Meja / Nama
-                $meja = $r->meja_nama ?: ($r->meja_kode ?: '—');
-                $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
-                if (!empty($r->nama)){
-                    $meja_html .= '<div class="text-muted small">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>';
+                // Meja / Nama (dinamis)
+                $meja_html = '—';
+                if ($mode_raw==='delivery'){
+                    // Nama + HP
+                    $nama  = trim((string)$r->nama);
+                    $phone = trim((string)$r->customer_phone);
+                    $meja_html  = htmlspecialchars($nama !== '' ? $nama : '-', ENT_QUOTES, 'UTF-8');
+                    if ($phone !== ''){
+                        $meja_html .= '<div class="text-muted small">'.htmlspecialchars($phone, ENT_QUOTES, 'UTF-8').'</div>';
+                    }
+                } elseif ($mode_raw==='dinein' || $mode_raw==='dine-in'){
+                    // Meja + Nama
+                    $meja = $r->meja_nama ?: ($r->meja_kode ?: '—');
+                    $meja_html  = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
+                    if (!empty($r->nama)){
+                        $meja_html .= '<div class="text-muted small">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>';
+                    }
+                } else {
+                    // walkin/bungkus → Nama saja
+                    $meja_html = htmlspecialchars($r->nama ?: '-', ENT_QUOTES, 'UTF-8');
                 }
 
-                // Waktu
-                $paid_at  = $r->paid_at ? date('d-m-Y H:i', strtotime($r->paid_at)) : '-';
-                $created  = $r->created_at ? date('d-m-Y H:i', strtotime($r->created_at)) : '-';
-                $paid_html   = htmlspecialchars($paid_at,ENT_QUOTES,'UTF-8');
-                $create_html = htmlspecialchars($created,ENT_QUOTES,'UTF-8');
+                // Waktu (archived_at → Pembayaran Diterima)
+                $archived  = $r->archived_at ? date('d-m-Y H:i', strtotime($r->archived_at)) : '-';
+                $arch_html = htmlspecialchars($archived,ENT_QUOTES,'UTF-8');
 
                 // Uang
                 $subtotal = (int)$r->total;
@@ -62,27 +74,26 @@ class Admin_pos_riwayat extends Admin_Controller {
                 $subtotal_html = 'Rp '.number_format($subtotal,0,',','.');
                 $grand_html    = 'Rp '.number_format($grand,0,',','.');
 
-                // Metode
-                $metode_html = htmlspecialchars($r->paid_method ?: '-', ENT_QUOTES, 'UTF-8');
+                // Metode + icon
+                $mraw = strtolower(trim((string)$r->paid_method));
+                $icon = 'fe-help-circle'; $clr='secondary'; $label = strtoupper($mraw ?: '-');
+                if ($mraw==='cash'){ $icon='fe-dollar-sign'; $clr='success'; $label='CASH'; }
+                elseif ($mraw==='qris'){ $icon='fe-smartphone'; $clr='dark'; $label='QRIS'; }
+                elseif ($mraw==='transfer'){ $icon='fe-credit-card'; $clr='primary'; $label='TRANSFER'; }
+                $metode_html = '<span class="badge badge-pill badge-'.$clr.'">'
+                             . '<i class="'.$icon.' mr-1"></i>'.$label.'</span>';
 
-                // Aksi: hanya detail
-                $idInt = (int)$r->id;
-                $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
-                             . '<button type="button" class="btn btn-info" onclick="show_detail('.$idInt.')"><i class="fe-eye"></i></button>'
-                             . '</div>';
-
+                // susun row
                 $row = [];
-                $row['id']        = $idInt;
-                $row['no']        = '';
-                $row['nomor']     = '<span class="badge badge-dark">'.$nomor.'</span>';
-                $row['mode']      = $mode_html;
-                $row['meja']      = $meja_html;
-                $row['paid_at']   = $paid_html;
-                $row['created_at']= $create_html;
-                $row['subtotal']  = $subtotal_html;
-                $row['grand']     = $grand_html;
-                $row['metode']    = $metode_html;
-                $row['aksi']      = $actionsHtml;
+                $row['id']          = (int)$r->id;
+                $row['no']          = '';
+                $row['nomor']       = '<span class="badge badge-dark">'.$nomor.'</span>';
+                $row['mode']        = $mode_html;
+                $row['meja']        = $meja_html;
+                $row['archived_at'] = $arch_html;
+                $row['subtotal']    = $subtotal_html;
+                $row['grand']       = $grand_html;
+                $row['metode']      = $metode_html;
 
                 $data[] = $row;
             }
@@ -114,7 +125,7 @@ class Admin_pos_riwayat extends Admin_Controller {
         $o = $bundle['order'];
         $items = $bundle['items'];
 
-        // HTML ringkas (tanpa harga coret—semua sudah paid)
+        // HTML ringkas
         $html = '<div class="table-responsive">';
         $html .= '<table class="table table-sm table-striped mb-3">';
         $add = function($k,$v) use (&$html){
@@ -122,22 +133,32 @@ class Admin_pos_riwayat extends Admin_Controller {
         };
         $add('Nomor', htmlspecialchars($o->nomor ?? ('#'.$o->src_id),ENT_QUOTES,'UTF-8'));
         $add('Mode', htmlspecialchars($o->mode ?? '-',ENT_QUOTES,'UTF-8'));
-        if (!empty($o->meja_nama) || !empty($o->meja_kode)){
-            $add('Meja', htmlspecialchars($o->meja_nama ?: $o->meja_kode,ENT_QUOTES,'UTF-8'));
+
+        // dinamis untuk detail juga (optional, biar konsisten)
+        $mode_raw = strtolower(trim((string)$o->mode));
+        if ($mode_raw==='delivery'){
+            if (!empty($o->nama)) $add('Nama', htmlspecialchars($o->nama,ENT_QUOTES,'UTF-8'));
+            if (!empty($o->customer_phone)) $add('HP', htmlspecialchars($o->customer_phone,ENT_QUOTES,'UTF-8'));
+            if (!empty($o->alamat_kirim)) $add('Alamat', nl2br(htmlspecialchars($o->alamat_kirim,ENT_QUOTES,'UTF-8')));
+        } elseif ($mode_raw==='dinein' || $mode_raw==='dine-in'){
+            if (!empty($o->meja_nama) || !empty($o->meja_kode)){
+                $add('Meja', htmlspecialchars($o->meja_nama ?: $o->meja_kode,ENT_QUOTES,'UTF-8'));
+            }
+            if (!empty($o->nama)) $add('Nama', htmlspecialchars($o->nama,ENT_QUOTES,'UTF-8'));
+        } else {
+            if (!empty($o->nama)) $add('Nama', htmlspecialchars($o->nama,ENT_QUOTES,'UTF-8'));
         }
-        if (!empty($o->nama)) $add('Nama', htmlspecialchars($o->nama,ENT_QUOTES,'UTF-8'));
-        if (!empty($o->customer_phone)) $add('HP', htmlspecialchars($o->customer_phone,ENT_QUOTES,'UTF-8'));
-        if (!empty($o->alamat_kirim)) $add('Alamat', nl2br(htmlspecialchars($o->alamat_kirim,ENT_QUOTES,'UTF-8')));
-        if (!empty($o->catatan)) $add('Catatan', nl2br(htmlspecialchars($o->catatan,ENT_QUOTES,'UTF-8')));
 
         $add('Subtotal', 'Rp '.number_format((int)$o->total,0,',','.'));
         if ((int)$o->delivery_fee>0) $add('Ongkir', 'Rp '.number_format((int)$o->delivery_fee,0,',','.'));
         if ((int)$o->kode_unik>0)    $add('Kode Unik', 'Rp '.number_format((int)$o->kode_unik,0,',','.'));
         $add('<b>Total Bayar</b>', '<b>Rp '.number_format((int)$o->grand_total,0,',','.').'</b>');
         $add('Metode', htmlspecialchars($o->paid_method ?? '-',ENT_QUOTES,'UTF-8'));
-        if (!empty($o->paid_at))    $add('Dibayar', htmlspecialchars($o->paid_at,ENT_QUOTES,'UTF-8'));
-        if (!empty($o->created_at)) $add('Dibuat',  htmlspecialchars($o->created_at,ENT_QUOTES,'UTF-8'));
-        if (!empty($o->updated_at)) $add('Update',  htmlspecialchars($o->updated_at,ENT_QUOTES,'UTF-8'));
+
+        // gunakan archived_at sebagai "Pembayaran Diterima"
+        if (!empty($o->archived_at)) $add('Pembayaran Diterima', htmlspecialchars($o->archived_at,ENT_QUOTES,'UTF-8'));
+        if (!empty($o->updated_at))  $add('Update',  htmlspecialchars($o->updated_at,ENT_QUOTES,'UTF-8'));
+
         $html .= '</table>';
 
         // Items

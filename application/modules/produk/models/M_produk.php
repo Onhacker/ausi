@@ -49,8 +49,6 @@ class M_produk extends CI_Model {
     private function _base_filters($filters){
         $this->db->from('produk p');
         $this->db->join('kategori_produk kp', 'kp.id = p.kategori_id', 'left');
-
-        // 🔧 FIX PENTING: JOIN kps karena di bawah kita pakai kps.* di WHERE
         $this->db->join('kategori_produk_sub kps', 'kps.id = p.sub_kategori_id', 'left');
 
         $this->db->where('p.is_active', 1);
@@ -72,7 +70,6 @@ class M_produk extends CI_Model {
             else $this->db->where('kp.slug', $k);
         }
 
-        // FILTER SUBKATEGORI (id atau slug)
         if (!empty($filters['sub_kategori'])){
             $s = $filters['sub_kategori'];
             if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
@@ -82,12 +79,18 @@ class M_produk extends CI_Model {
         if (!empty($filters['sold_out'])){
             $this->db->where('p.stok', 0);
         }
+
+        // NEW: filter Recomended (prefix 'p.' biar nggak ambigu)
+        if (!empty($filters['recomended'])) {
+            $this->db->where('p.recomended', 1);
+        }
     }
+
 
     private function _apply_filters($filters){
         $this->db->where('p.is_active', 1);
         $this->db->where('(kp.is_active IS NULL OR kp.is_active = 1)');
-        $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)'); // aman: kps sudah di-_base_select
+        $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
 
         if (!empty($filters['q'])){
             $q = trim($filters['q']);
@@ -104,7 +107,6 @@ class M_produk extends CI_Model {
             else $this->db->where('kp.slug', $k);
         }
 
-        // FILTER SUBKATEGORI (id atau slug)
         if (!empty($filters['sub_kategori'])){
             $s = $filters['sub_kategori'];
             if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
@@ -114,7 +116,13 @@ class M_produk extends CI_Model {
         if (!empty($filters['sold_out'])){
             $this->db->where('p.stok', 0);
         }
+
+        // NEW: filter Recomended (pakai alias tabel)
+        if (!empty($filters['recomended'])) {
+            $this->db->where('p.recomended', 1);
+        }
     }
+
 
     private function _apply_sort($sort, $filters = []){
         // Subquery penjualan SELAMANYA (tanpa batas waktu)
@@ -182,4 +190,14 @@ class M_produk extends CI_Model {
         foreach($items as $it){ $total += (int)$it->subtotal; }
         return ['order'=>$order,'items'=>$items,'total'=>$total];
     }
+
+    // public function get_subcategories_for_placeholder($limit = 100){
+    //     return $this->db->select('id, nama')
+    //     ->from('kategori_produk_sub')
+    //     ->where('is_active', 1)    // sesuaikan jika berbeda
+    //     ->order_by('nama', 'ASC')
+    //     ->limit((int)$limit)
+    //     ->get()->result();
+    // }
+
 }

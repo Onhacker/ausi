@@ -53,8 +53,12 @@
   const $cartCount=$("#cart-count");
   const $fabCount=$("#fab-count");
 
+  /* HIDDEN inputs (pastikan ada) */
   if(!$("#sub_kategori").length){
     $("<input>",{type:"hidden",id:"sub_kategori",name:"sub_kategori",value:""}).appendTo("#filter-form");
+  }
+  if(!$("#recommended").length){
+    $("<input>",{type:"hidden",id:"recommended",name:"recommended",value:"0"}).appendTo("#filter-form");
   }
 
   let $subWrap=$("#subcat-wrap");
@@ -106,71 +110,35 @@
     v=parseInt(v,10);
     return(isNaN(v)||v<1)?1:v;
   }
- function notifySuccess(produk, text){
-  if (window.Swal){
-    Swal.fire({
-      title: produk,
-      text:  text  || "",
-      timer: 1500,
-      showConfirmButton: false,
-
-      iconHtml:
-        '<div class="cart-anim-outer">' +
-          '<div class="cart-anim-wrapper">' +
-
-            // item jatuh: piring
-            '<div class="drop-item drop-plate"></div>' +
-
-            // item jatuh: gelas
-            '<div class="drop-item drop-drink"></div>' +
-
-            // troli merah
-            '<div class="cart-svg-wrap">' +
-              '<svg ' +
-                'xmlns="http://www.w3.org/2000/svg" ' +
-                'viewBox="0 0 48 48" ' +
-                'width="48" height="48" ' +
-                'fill="none" ' +
-                'stroke="#dc3545" ' +
-                'stroke-width="3" ' +
-                'stroke-linecap="round" ' +
-                'stroke-linejoin="round"' +
-              '>' +
-                // handle depan
-                '<path d="M6 12h7.5a2 2 0 0 1 1.9 1.5l2.2 8.5" />' +
-
-                // body keranjang
-                '<path d="M17 22h22.5a2 2 0 0 1 1.9 2.6l-3 9a2 2 0 0 1-1.9 1.4H22.5a2 2 0 0 1-1.9-1.5L17 22Z" />' +
-
-                // kisi keranjang
-                '<path d="M20 26h18" />' +
-                '<path d="M21.5 30h15" />' +
-
-                // roda kiri
-                '<circle class="cart-wheel-shape" cx="22" cy="38" r="3.5" />' +
-
-                // roda kanan
-                '<circle class="cart-wheel-shape" cx="36" cy="38" r="3.5" />' +
-
-                // gagang miring biar kelihatan troli
-                '<path d="M28 14l8 -4" stroke="#dc3545" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
-              '</svg>' +
-            '</div>' +
-
-          '</div>' +
-        '</div>',
-
-      customClass: {
-        popup: 'swal-cart-popup',
-        icon:  'swal-cart-icon'
-      }
-    });
-  } else {
-    alert((title ? title + ": " : "") + (text || ""));
+  function notifySuccess(produk, text){
+    if (window.Swal){
+      Swal.fire({
+        title: produk,
+        text:  text  || "",
+        timer: 1500,
+        showConfirmButton: false,
+        iconHtml:
+          '<div class="cart-anim-outer"><div class="cart-anim-wrapper">'+
+            '<div class="drop-item drop-plate"></div>'+
+            '<div class="drop-item drop-drink"></div>'+
+            '<div class="cart-svg-wrap">'+
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#dc3545" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+
+                '<path d="M6 12h7.5a2 2 0 0 1 1.9 1.5l2.2 8.5" />'+
+                '<path d="M17 22h22.5a2 2 0 0 1 1.9 2.6l-3 9a2 2 0 0 1-1.9 1.4H22.5a2 2 0 0 1-1.9-1.5L17 22Z" />'+
+                '<path d="M20 26h18" />'+
+                '<path d="M21.5 30h15" />'+
+                '<circle class="cart-wheel-shape" cx="22" cy="38" r="3.5" />'+
+                '<circle class="cart-wheel-shape" cx="36" cy="38" r="3.5" />'+
+                '<path d="M28 14l8 -4" stroke="#dc3545" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+
+              '</svg>'+
+            '</div>'+
+          '</div></div>',
+        customClass:{popup:'swal-cart-popup',icon:'swal-cart-icon'}
+      });
+    } else {
+      alert((produk ? produk + ": " : "") + (text || ""));
+    }
   }
-}
-
-
   function notifyError(title,text){
     if(window.Swal){
       Swal.fire({icon:"error",title:title||"Gagal",text:text||""});
@@ -184,20 +152,40 @@
     window.scrollTo({top:y,behavior:"smooth"});
   }
 
+  /* ==== RECOMMENDED HELPERS ==== */
+  function isRecOn(){ return ($("#recommended").val()==="1"); }
+  function setRec(on){
+    $("#recommended").val(on ? "1":"0");
+    if(on){ // saat rec ON, kosongkan kategori & sub
+      $("#kategori").val("");
+      $("#sub_kategori").val("");
+    }
+  }
+  function $recItem(){ // cari item quickmenu "Recomended"
+    const $byAttr = $('#quickmenu .quickmenu-item[data-recommended="1"]');
+    if($byAttr.length) return $byAttr.first();
+    // fallback by label text (kalau lupa pasang data-recommended)
+    return $('#quickmenu .quickmenu-item').filter(function(){
+      return ($(this).find('.menu-label').text().trim().toLowerCase()==='recomended');
+    }).first();
+  }
+
   function serializeFilters(page=1){
     const q=$("#q").val()||"";
     const kategori=$("#kategori").val()||"";
     const sub_kategori=$("#sub_kategori").val()||"";
     const sort=$("#sort").val()||"random";
+    const recommended=isRecOn()?1:0;
     const per_page=12;
+
     const url=new URL(window.location.href);
     let seed=url.searchParams.get("seed");
     if(!seed&&sort==="random"){
-      seed=String(Math.floor(Math.random()*1e9));
+      seed=String(Math.random()*1e9|0);
       url.searchParams.set("seed",seed);
       history.replaceState({},"",url.toString());
     }
-    return{q,kategori,sub_kategori,sort,page,per_page,seed};
+    return{q,kategori,sub_kategori,sort,page,per_page,seed,recommended};
   }
 
   function loadProducts(page=1,pushUrl=true){
@@ -221,12 +209,12 @@
         url.searchParams.set("sort",params.sort);
         url.searchParams.set("page",r.page);
         url.searchParams.set("seed",params.seed);
+        if(params.recommended){ url.searchParams.set("rec","1"); } else { url.searchParams.delete("rec"); }
         history.pushState(params,"",url.toString());
       }
 
       bindAddToCart();
       bindPagination();
-      // bindDetailModal(); // ini memang dari kode asli kamu
       if (typeof bindDetailModal === "function") { bindDetailModal(); }
     })
     .fail(function(){
@@ -289,11 +277,23 @@
   }
 
   function markActiveKategori(){
-    const val=String($("#kategori").val()||"");
-    $("#quickmenu .quickmenu-item").not('[data-action="cart"]').removeClass("active").filter(function(){
-      return String($(this).data("kategori")||"")===val;
-    }).addClass("active");
+  const rec = ($("#recommended").val() === "1");
+  const val = String($("#kategori").val() || "");
+
+  const $all = $("#quickmenu .quickmenu-item").not('[data-action="cart"]');
+  $all.removeClass("active");
+
+  if (rec) {
+    $('#quickmenu .quickmenu-item[data-recommended="1"]').addClass("active");
+    return;
   }
+
+  // HANYA item yang benar-benar punya atribut data-kategori
+  $('#quickmenu .quickmenu-item[data-kategori]').filter(function(){
+    return String(this.getAttribute('data-kategori')) === val;
+  }).addClass("active");
+}
+
 
   function hideSubcats(){
     $subWrap.hide().empty();
@@ -358,13 +358,17 @@
     $("#q").val("");
     $("#kategori").val("");
     $("#sub_kategori").val("");
+    $("#recommended").val("0"); // RESET rec
     $("#sort").val("random");
     setSortLabel("random");
     markActiveKategori();
+
     const url=new URL(window.location.href);
     url.searchParams.delete("seed");
     url.searchParams.delete("sub");
+    url.searchParams.delete("rec"); // hapus rec di URL
     history.replaceState({},"",url.toString());
+
     hideSubcats();
     loadProducts(1);
   });
@@ -382,9 +386,26 @@
     loadProducts(1);
   });
 
+  /* === Quickmenu click: dukung Recomended === */
   $("#quickmenu").on("click",".quickmenu-item",function(e){
     if($(this).data("action")==="cart")return;
     e.preventDefault();
+
+    // DETEKSI tombol 'Recomended'
+    const isRecBtn = ($(this).data("recommended")==="1" || $(this).data("recommended")==1) ||
+                     ($(this).find('.menu-label').text().trim().toLowerCase()==='recomended');
+
+    if(isRecBtn){
+      setRec(true);           // aktifkan rec
+      markActiveKategori();   // highlight rec item
+      hideSubcats();          // subkategori disembunyikan saat rec
+      loadProducts(1);
+      scrollToGrid();
+      return;
+    }
+
+    // kategori biasa → matikan rec
+    setRec(false);
     const kat=String($(this).data("kategori")||"");
     $("#kategori").val(kat);
     $("#sub_kategori").val("");
@@ -439,13 +460,7 @@
         focusCancel:true
       }).then((res)=>{
         if(res.isConfirmed){
-          Swal.fire({
-            icon:"success",
-            title:"Keluar dari Dine-in",
-            text:"Mode diubah. Lanjut belanja sebagai Delivery/Takeaway. 🙌",
-            timer:900,
-            showConfirmButton:false
-          });
+          Swal.fire({icon:"success",title:"Keluar dari Dine-in",text:"Mode diubah. Lanjut belanja sebagai Delivery/Takeaway. 🙌",timer:900,showConfirmButton:false});
           setTimeout(()=>{window.location.href=url;},300);
         }
       });
@@ -456,76 +471,82 @@
     }
   });
 
- $(document).off("click","#btn-add-cart-modal").on("click","#btn-add-cart-modal",function(e){
-  e.preventDefault();
+  $(document).off("click","#btn-add-cart-modal").on("click","#btn-add-cart-modal",function(e){
+    e.preventDefault();
 
-  const $btn = $(this);
+    const $btn = $(this);
+    if ($btn.hasClass("btn-loading") || $btn.is(":disabled")) return;
 
-  // cegah double submit
-  if ($btn.hasClass("btn-loading") || $btn.is(":disabled")) return;
+    const id  = $btn.data("id");
+    const qty = safeQty($("#qty-modal").val());
 
-  const id  = $btn.data("id");
-  const qty = safeQty($("#qty-modal").val());
+    btnStartLoading($btn,"Menambah...");
 
-  // pake util global kamu yg sudah ada di atas
-  btnStartLoading($btn,"Menambah...");
+    $.ajax({
+      url: CFG.add_to_cart,
+      type: "POST",
+      dataType: "json",
+      data: { id, qty }
+    })
+    .done(function(r){
+      if(!r || !r.success){
+        notifyError(r?.title||"Oops!", r?.pesan||"Gagal menambahkan");
+        return;
+      }
+      const n = r.count || 0;
+      if($("#fab-count").length)   { $("#fab-count").text(n); }
+      if($("#cart-count").length)  { $("#cart-count").text(n); }
 
-  $.ajax({
-    url: CFG.add_to_cart,
-    type: "POST",
-    dataType: "json",
-    data: { id, qty }
-  })
-  .done(function(r){
-    if(!r || !r.success){
-      notifyError(r?.title||"Oops!", r?.pesan||"Gagal menambahkan");
-      return;
-    }
-
-    const n = r.count || 0;
-    if($("#fab-count").length)   { $("#fab-count").text(n); }
-    if($("#cart-count").length)  { $("#cart-count").text(n); }
-
-    const $modal = $("#modalProduk");
-    if($modal.length){
-      $modal.one("hidden.bs.modal", function(){
+      const $modal = $("#modalProduk");
+      if($modal.length){
+        $modal.one("hidden.bs.modal", function(){
+          notifySuccess(r.produk||"Mantap!", r.pesan||"Item masuk keranjang");
+        });
+        $modal.modal("hide");
+      }else{
         notifySuccess(r.produk||"Mantap!", r.pesan||"Item masuk keranjang");
-      });
-      $modal.modal("hide");
-    }else{
-      notifySuccess(r.produk||"Mantap!", r.pesan||"Item masuk keranjang");
-    }
-  })
-  .fail(function(){
-    notifyError("Error","Gagal terhubung ke server");
-  })
-  .always(function(){
-    btnStopLoading($btn);
+      }
+    })
+    .fail(function(){
+      notifyError("Error","Gagal terhubung ke server");
+    })
+    .always(function(){
+      btnStopLoading($btn);
+    });
   });
-});
 
-
-
+  /* ===== Initial load ===== */
   $(function(){
     loadCartCount();
-    markActiveKategori();
     $("#dropdownSortBtn").dropdown();
 
     const url=new URL(window.location.href);
-    if(url.searchParams.has("q"))$("#q").val(url.searchParams.get("q"));
-    if(url.searchParams.has("kategori"))$("#kategori").val(url.searchParams.get("kategori"));
-    if(url.searchParams.has("sub"))$("#sub_kategori").val(url.searchParams.get("sub"));
+    if(url.searchParams.has("q"))   $("#q").val(url.searchParams.get("q"));
+    if(url.searchParams.has("kategori")) $("#kategori").val(url.searchParams.get("kategori"));
+    if(url.searchParams.has("sub")) $("#sub_kategori").val(url.searchParams.get("sub"));
     if(url.searchParams.has("sort"))$("#sort").val(url.searchParams.get("sort"));
+
+    // RECOMMENDED from URL (?rec=1 / ?recommended=1)
+    if(url.searchParams.get("rec")==="1" || url.searchParams.get("recommended")==="1"){
+      setRec(true);
+    }else{
+      setRec(false);
+    }
 
     setSortLabel($("#sort").val()||"random");
     markActiveKategori();
 
     const katInit=$("#kategori").val();
-    if(katInit){fetchAndRenderSubcats(katInit);}else{hideSubcats();}
+    if(isRecOn()){
+      hideSubcats(); // rec aktif → tanpa sub
+    }else{
+      if(katInit){fetchAndRenderSubcats(katInit);}else{hideSubcats();}
+    }
 
     const firstPage=parseInt(url.searchParams.get("page")||"1",10);
     loadProducts(firstPage,false);
 
+    // Mode info alert (tetap seperti aslinya)
     const $modeInfo=$("#mode-info");
     const curModeRaw=($modeInfo.data("mode")||"").toString().toLowerCase();
     const mejaLabel=($modeInfo.data("meja")||"").toString();
@@ -564,15 +585,22 @@
     }
   });
 
+  /* ===== history back/forward ===== */
   window.addEventListener("popstate",function(e){
     const s=e.state||{};
     $("#q").val(s.q||"");
     $("#kategori").val(s.kategori||"");
     $("#sub_kategori").val(s.sub_kategori||"");
     $("#sort").val(s.sort||"random");
+    $("#recommended").val(s.recommended? "1":"0");
     setSortLabel($("#sort").val());
     markActiveKategori();
-    if(s.kategori){fetchAndRenderSubcats(s.kategori);}else{hideSubcats();}
+
+    if(s.recommended){ // rec aktif → tanpa sub
+      hideSubcats();
+    }else{
+      if(s.kategori){fetchAndRenderSubcats(s.kategori);}else{hideSubcats();}
+    }
     loadProducts(parseInt(s.page||1,10),false);
   });
 })();

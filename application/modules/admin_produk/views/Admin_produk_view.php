@@ -18,17 +18,47 @@
   <div class="row"><div class="col-12">
     <div class="card"><div class="card-body">
 
-      <div class="button-list mb-2">
-        <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light">
-          <span class="btn-label"><i class="fe-plus-circle"></i></span>Tambah
-        </button>
-        <button type="button" onclick="reload_table()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
-          <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-        </button>
-        <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
-          <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
-        </button>
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="button-list">
+          <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light">
+            <span class="btn-label"><i class="fe-plus-circle"></i></span>Tambah
+          </button>
+
+          <!-- Jika sebelumnya sudah ditambah -->
+          <button type="button" onclick="set_andalan()" class="btn btn-warning btn-rounded btn-sm waves-effect waves-light">
+            <span class="btn-label"><i class="fe-star"></i></span>Set Andalan
+          </button>
+
+          <button type="button" onclick="reload_table()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
+            <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
+          </button>
+          <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
+            <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
+          </button>
+        </div>
+
+        <!-- Filter Kategori: kanan -->
+        <div class="ml-auto" style="min-width:280px; max-width:420px;">
+          <div class="input-group input-group-sm">
+            <div class="input-group-prepend">
+              <span class="input-group-text"><i class="fe-layers"></i></span>
+            </div>
+            <select id="filter_kategori" class="form-control">
+              <option value="">— Semua Kategori —</option>
+              <?php
+              $kats_filter = $this->db->order_by('nama','asc')->get('kategori_produk')->result();
+              foreach($kats_filter as $kf){
+                echo '<option value="'.(int)$kf->id.'">'.htmlspecialchars($kf->nama, ENT_QUOTES, 'UTF-8').'</option>';
+              }
+              ?>
+            </select>
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" id="btn-clear-kat" title="Reset">×</button>
+            </div>
+          </div>
+        </div>
       </div>
+
 
       <table id="datable_1" class="table table-striped table-bordered w-100">
         <thead>
@@ -102,12 +132,14 @@
 
                 </div>
                 <div class="form-group mb-2">
-                  <label class="text-primary">Harga (Rp)</label>
-                  <input type="number" class="form-control" name="harga" id="harga" step="1" required>
+                  <label class="text-primary">Harga</label>
+                  <input type="text" class="form-control rupiah" name="harga" id="harga"
+                  inputmode="numeric" autocomplete="off" placeholder="Rp 0" required>
                 </div>
                 <div class="form-group mb-2">
-                  <label class="text-primary">HPP (Rp)</label>
-                  <input type="number" class="form-control" name="hpp" id="hpp" step="1">
+                  <label class="text-primary">HPP</label>
+                  <input type="text" class="form-control rupiah" name="hpp" id="hpp"
+                  inputmode="numeric" autocomplete="off" placeholder="Rp 0">
                 </div>
                 <div class="form-group mb-2">
                   <label class="text-primary">Stok</label>
@@ -137,6 +169,12 @@
                   <label class="text-primary">Deskripsi</label>
                   <textarea name="deskripsi" id="deskripsi" class="form-control"></textarea>
                   <small class="text-muted">Deskripsi mendukung format (bold, list, gambar, dll.).</small>
+                </div>
+                <div class="form-group mb-0 mt-2">
+                  <div class="checkbox checkbox-warning">
+                    <input id="recomended" type="checkbox" name="recomended" value="1">
+                    <label for="recomended">Jadikan Andalan</label>
+                  </div>
                 </div>
                 <div class="form-group mb-0">
                   <div class="checkbox checkbox-primary">

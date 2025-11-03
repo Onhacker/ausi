@@ -40,12 +40,10 @@
           <th>Nomor</th>
           <th>Mode</th>
           <th>Meja / Nama</th>
-          <th>Dibayar</th>
-          <th>Dibuat</th>
+          <th>Pembayaran Diterima</th>
           <th>Subtotal</th>
           <th>Grand Total</th>
           <th>Metode</th>
-          <th width="10%">Aksi</th>
         </tr>
       </thead>
     </table>
@@ -108,12 +106,10 @@ $(document).ready(function(){
       {data:"nomor"},
       {data:"mode"},
       {data:"meja"},
-      {data:"paid_at"},
-      {data:"created_at"},
+      {data:"archived_at"},
       {data:"subtotal"},
       {data:"grand"},
-      {data:"metode"},
-      {data:"aksi",      orderable:false}
+      {data:"metode"}
     ],
     order: [],
     rowCallback:function(row, data, displayIndex){
@@ -129,9 +125,10 @@ $(document).ready(function(){
     }
   });
 
-  // klik baris => detail (kecuali klik tombol)
+  // klik baris => detail
   $('#table_pos_paid tbody').on('click','tr', function(e){
-    if ($(e.target).closest('button,a,i').length) return;
+    // tidak ada tombol aksi sekarang, tapi tetap guard kalau ada link lain
+    if ($(e.target).closest('a,i,button').length) return;
     const id = parseInt($(this).attr('data-id')||'0',10);
     if (id>0){ show_detail(id); }
   });

@@ -72,6 +72,7 @@ class Admin_produk extends Admin_Controller {
         $this->form_validation->set_rules('kategori_id','Kategori','required|integer');
         $this->form_validation->set_rules('nama','Nama','trim|required|min_length[2]|max_length[150]');
         $this->form_validation->set_rules('sub_kategori_id','Sub Kategori','integer');
+        $this->form_validation->set_rules('recomended','Andalan','in_list[0,1]');
 
         $this->form_validation->set_rules('kata_kunci','Kata Kunci Pencarian','trim|required|min_length[2]|max_length[150]');
         $this->form_validation->set_rules('harga','Harga','required|numeric');
@@ -95,7 +96,7 @@ class Admin_produk extends Admin_Controller {
         $deskripsi   = $this->input->post('deskripsi', false);
         $gambar      = $this->input->post('gambar', true);
         $is_active   = (int) !!$this->input->post('is_active');
-
+        $recomended = (int) !!$this->input->post('recomended');
         // Upload gambar (opsional)
         // Upload gambar (opsional)
         if (!empty($_FILES['gambar_file']['name'])) {
@@ -160,7 +161,8 @@ class Admin_produk extends Admin_Controller {
             'satuan'=>$satuan,
             'deskripsi'=>$deskripsi,
             'gambar'=>$gambar,
-            'is_active'=>$is_active
+            'is_active'=>$is_active,
+            'recomended'      => $recomended
         ]);
 
         if ($ok){ $this->purge_public_caches(); }
@@ -431,5 +433,56 @@ function compress_to_target($srcPath, $destPath, $targetKB = 500, $maxW = 1600, 
     return $this->output->set_content_type('application/json')
         ->set_output(json_encode(['success'=>true,'data'=>$list]));
 }
+
+public function set_andalan(){
+    $ids = $this->input->post('id');
+
+    if (!is_array($ids) || count($ids) === 0){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success" => false,
+                "title"   => "Gagal",
+                "pesan"   => "Pilih minimal satu data dulu."
+            ]));
+    }
+
+    // Pastikan kolom 'recomended' ada
+    if ( ! $this->db->field_exists('recomended', 'produk')){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success" => false,
+                "title"   => "Kolom Tidak Ditemukan",
+                "pesan"   => "Kolom 'recomended' belum ada di tabel produk."
+            ]));
+    }
+
+    // Sanitasi id
+    $clean = [];
+    foreach($ids as $id){
+        $id = (int)$id;
+        if ($id > 0) $clean[] = $id;
+    }
+    if (empty($clean)){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success" => false,
+                "title"   => "Gagal",
+                "pesan"   => "ID tidak valid."
+            ]));
+    }
+
+    $this->db->where_in('id', $clean);
+    $ok = $this->db->update('produk', ['recomended' => 1]);
+
+    if ($ok){ $this->purge_public_caches(); }
+
+    return $this->output->set_content_type('application/json')
+        ->set_output(json_encode([
+            "success" => (bool)$ok,
+            "title"   => $ok ? "Berhasil" : "Gagal",
+            "pesan"   => $ok ? "Produk ditandai sebagai andalan." : "Gagal memperbarui data."
+        ]));
+}
+
 
 }

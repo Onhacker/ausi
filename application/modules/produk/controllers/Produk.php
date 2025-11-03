@@ -151,6 +151,16 @@ public function scan_qr(){
     $data["kategoris"] = $this->pm->get_categories();
     $data["q"]         = $this->input->get('q', true) ?: '';
     $data["kategori"]  = $this->input->get('kategori', true) ?: '';
+    // $data['kategori_produk_sub'] = $this->pm->get_subcategories_for_placeholder();
+    // Kirim sub-kategori + nama kategori induk ke view
+    $data['sub_kat_for_placeholder'] = $this->db->select('s.nama AS sub_nama, c.nama AS kategori_nama')
+        ->from('kategori_produk_sub s')
+        ->join('kategori_produk c', 'c.id = s.kategori_id', 'left')
+        ->where('s.is_active', 1) // sesuaikan kalau kolomnya beda
+        ->order_by('c.nama', 'ASC')
+        ->order_by('s.nama', 'ASC')
+        ->get()->result();
+
     $data["sort"]      = $this->input->get('sort', true) ?: 'random';
 
     // info meja (kalau dine-in)
@@ -224,37 +234,50 @@ public function scan_qr(){
         $this->load->view('produk_view', $data);
     }
 
-    public function list_ajax(){
-        $this->_nocache_headers();
+   public function list_ajax(){
+    $this->_nocache_headers();
+
     $q        = trim($this->input->get('q', true) ?: '');
-    $sub = $this->input->get('sub', true) ?: $this->input->get('sub_kategori', true) ?: '';
+    $sub      = $this->input->get('sub', true) ?: $this->input->get('sub_kategori', true) ?: '';
     $kategori = $this->input->get('kategori', true) ?: '';
     $sort     = $this->input->get('sort', true) ?: 'random';
     $page     = max(1, (int)($this->input->get('page') ?: 1));
     $per_page = max(1, min(50, (int)($this->input->get('per_page') ?: 12)));
     $offset   = ($page - 1) * $per_page;
 
-    // ambil seed dari URL (FE mengatur & persist di URL)
+    // seed untuk random
     $seed = (string)($this->input->get('seed', true) ?? '');
 
-    $filters = [
-	  'q'         => $q,
-	  'kategori'  => $kategori,
-	  'sub_kategori' => $sub,    
-	  'sold_out'  => ($sort==='sold_out') ? 1 : 0,
-	  'rand_seed' => $seed,
-	  'with_sold' => (in_array($sort, ['random','bestseller'], true) ? 1 : 0), // <—
-	];
+    // recommended (?rec=1 atau ?recommended=1)
+    $rec_get = $this->input->get('recommended', true);
+    $rec_alt = $this->input->get('rec', true);
+    $recommended = ((string)$rec_get === '1' || (string)$rec_alt === '1') ? 1 : 0;
 
+    // Kalau RECOMMENDED aktif → abaikan kategori & sub (hard enforce)
+    if ($recommended) {
+        $kategori = '';
+        $sub = '';
+    }
+
+    $filters = [
+        'q'            => $q,
+        'kategori'     => $kategori,
+        'sub_kategori' => $sub,
+        'sold_out'     => ($sort==='sold_out') ? 1 : 0,
+        'rand_seed'    => $seed,
+        'with_sold'    => (in_array($sort, ['random','bestseller'], true) ? 1 : 0),
+        // NEW:
+        'recomended'   => $recommended, // kolom DB 'recomended' (1 m)
+    ];
 
     $total       = $this->pm->count_products($filters);
     $total_pages = max(1, (int)ceil($total / $per_page));
     $page        = min($page, $total_pages);
     $offset      = ($page - 1) * $per_page;
 
-    $products   = $this->pm->get_products($filters, $per_page, $offset, $sort);
-    $items_html = $this->load->view('partials/produk_items_partial', ['products'=>$products], true);
-    $pagi_html  = $this->load->view('partials/produk_pagination_partial', ['page'=>$page, 'total_pages'=>$total_pages], true);
+    $products    = $this->pm->get_products($filters, $per_page, $offset, $sort);
+    $items_html  = $this->load->view('partials/produk_items_partial', ['products'=>$products], true);
+    $pagi_html   = $this->load->view('partials/produk_pagination_partial', ['page'=>$page, 'total_pages'=>$total_pages], true);
 
     $this->output->set_content_type('application/json')->set_output(json_encode([
         'success'         => true,
@@ -264,10 +287,11 @@ public function scan_qr(){
         'per_page'        => $per_page,
         'total'           => $total,
         'total_pages'     => $total_pages,
-        'seed'            => $seed, // opsional
+        'seed'            => $seed,
+        'recommended'     => $recommended, // untuk state push/pop
     ]));
-    // echo $this->db->last_query();
 }
+
 
 public function subkategori($kategori_id = null){
     $this->_public_cache_headers(3600);

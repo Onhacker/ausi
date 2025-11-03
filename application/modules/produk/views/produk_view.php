@@ -33,25 +33,10 @@ if (!empty($kategoris)) {
   <form id="filter-form" class="mb-0">
     <input type="hidden" id="kategori" name="kategori" value="<?= html_escape($kategori); ?>">
     <input type="hidden" id="sort" name="sort" value="<?= html_escape($sort ?: 'random'); ?>">
+    <input type="hidden" id="recommended" name="recommended" value="0">
 
     <div class="filter-toolbar">
-      <div class="filter-search">
-        <div class="input-group">
-          <input type="search"
-                 class="form-control filter-input"
-                 id="q"
-                 name="q"
-                 value="<?= html_escape($q); ?>"
-                 placeholder="Cari produk…"
-                 aria-label="Cari menu"
-                 autocomplete="off">
-          <div class="input-group-append">
-            <button type="button" id="btn-reset" class="btn btn-danger">
-              <i class="fa fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+      <?php $this->load->view("form_cari") ?>
 
       <div class="filter-sort">
         <div class="dropdown">
@@ -118,19 +103,28 @@ if (!empty($kategoris)) {
             <small class="menu-label">Minuman</small>
           </div>
         </div>
+        <div class="quickmenu-item" data-recommended="1">
+          <div class="qcard">
+            <div class="menu-circle">
+              <span class="emoji-icon" data-anim="all">🔥</span>
+            </div>
+            <small class="menu-label">Andalang</small>
+          </div>
+        </div>
 
-        <div class="quickmenu-item" data-action="cart">
+
+
+       <!--  <div class="quickmenu-item" data-action="cart">
           <a class="qcard d-block text-decoration-none"
              href="<?= site_url('produk/cart') ?>"
              aria-label="Buka keranjang">
             <div class="menu-circle" >
-              <!-- <i class="mdi mdi-cart-outline" style="font-size:26px;position:relative;"></i> -->
               🍱<span class="q-badge" data-anim="cart" id="cart-count">0</span>
             </div>
             <small class="menu-label">Keranjang</small>
           </a>
         </div>
-
+ -->
       </div>
     </div>
   </form>
