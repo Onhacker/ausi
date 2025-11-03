@@ -573,10 +573,7 @@
 }
 
 /* kecilkan sedikit biar muat 4 per baris di layar kecil */
-#quickmobilem .qcard{
-  padding:10px 6px;
-  border-radius:14px;
-}
+
 
 #quickmobilem .menu-circle{
   width:50px;
@@ -619,133 +616,173 @@
         <div class="menu-list">
           <div id="quickmobilem" class="quickmobilem-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none" aria-label="Makan di Sini (Scan QR)" data-menuloading="1">
-                <div class="menu-circle" style="background:#2ecc71;">
-                  <span class="emoji-icon" aria-hidden="true">🍽️</span>
-                </div>
-                <small class="menu-label">Makan di Sini</small>
-              </a>
-            </div>
+            <!-- ===== QUICK MENU (4 KOLOM, DENGAN SECTION) ===== -->
+<style>
+  #quickmobilem{ display:block !important; width:100%; }
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('produk/delivery') ?>" class="qcard d-block text-decoration-none" aria-label="Antar / Delivery" data-menuloading="1">
-                <div class="menu-circle" style="background:#3498db;">
-                  <span class="emoji-icon" aria-hidden="true">🚚</span>
-                </div>
-                <small class="menu-label">Antar / Delivery</small>
-              </a>
-            </div>
+  /* Section wrapper & title */
+  #quickmobilem .quicksection{ display:block; width:100%; margin:12px 0 18px; }
+  #quickmobilem .quicksection + .quicksection{
+    border-top:1px dashed rgba(0,0,0,.08);
+    padding-top:12px;
+  }
+  #quickmobilem .quicksection-title{
+    display:flex; align-items:center; gap:.5rem;
+    font-weight:800; font-size:1.05rem; margin:0 0 .5rem;
+  }
+  #quickmobilem .section-icon{ font-size:1.1rem; }
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('produk/walkin') ?>" class="qcard d-block text-decoration-none" aria-label="Bungkus (Walk-in)" data-menuloading="1">
-                <div class="menu-circle" style="background:#9b59b6;">
-                  <span class="emoji-icon" aria-hidden="true">🛍️</span>
-                </div>
-                <small class="menu-label">Bungkus</small>
-              </a>
-            </div>
+  /* Grid 4 kolom (selalu 4) */
+  #quickmobilem .quicksection-items{
+    display:flex; flex-wrap:wrap; margin:-8px;   /* gutters */
+  }
+  #quickmobilem .quicksection-items .quickmobilem-item{
+    padding:1px; box-sizing:border-box;
+    flex:0 0 25% !important;
+    max-width:25% !important;
+    width:25% !important;
+    min-width:0 !important;   /* netralisir rule lama */
+  }
+  #quickmobilem .quickmobilem-item .qcard{
+    display:block; width:100%; height:100%;
+  }
+</style>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Booking Billiard" data-menuloading="1">
-                <div class="menu-circle" style="background:#17a2b8;">
-                  <span class="emoji-icon" aria-hidden="true">🎱</span>
-                </div>
-                <small class="menu-label">Booking Billiard</small>
-              </a>
-            </div>
+<div id="quickmobilem">
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('meja_billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Lihat Meja Billiard" data-menuloading="1">
-                <div class="menu-circle" style="background:#1abc9c;">
-                  <span class="emoji-icon" aria-hidden="true">👀</span>
-                </div>
-                <small class="menu-label">Tarif Meja Billiard</small>
-              </a>
-            </div>
+  <!-- ========== CAFÉ & PESAN ========== -->
+  <div class="quicksection" aria-labelledby="sec-cafe">
+    <div class="quicksection-title" id="sec-cafe">
+      <span class="section-icon">☕</span><span class="section-text">Café & Pesan</span>
+    </div>
+    <div class="quicksection-items">
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none" aria-label="Makan di Sini (Scan QR)" data-menuloading="1">
+          <div class="menu-circle" style="background:#2ecc71;"><span class="emoji-icon" aria-hidden="true">🍽️</span></div>
+          <small class="menu-label">Makan di Sini</small>
+        </a>
+      </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('billiard/daftar_booking') ?>" class="qcard d-block text-decoration-none" aria-label="List Bookingan Billiard" data-menuloading="1">
-                <div class="menu-circle" style="background:#e67e22;">
-                  <span class="emoji-icon" aria-hidden="true">📋</span>
-                </div>
-                <small class="menu-label">Jadwal Main Billiard</small>
-              </a>
-            </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('produk/delivery') ?>" class="qcard d-block text-decoration-none" aria-label="Antar / Delivery" data-menuloading="1">
+          <div class="menu-circle" style="background:#3498db;"><span class="emoji-icon" aria-hidden="true">🚚</span></div>
+          <small class="menu-label">Antar / Delivery</small>
+        </a>
+      </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('billiard/daftar_voucher') ?>" class="qcard d-block text-decoration-none" aria-label="Gratis Main Billiard" data-menuloading="1">
-                <div class="menu-circle" style="background:#d81b60;">
-                  <span class="emoji-icon" aria-hidden="true">🎁</span>
-                </div>
-                <small class="menu-label">Gratis Main Billiard</small>
-              </a>
-            </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('produk/walkin') ?>" class="qcard d-block text-decoration-none" aria-label="Bungkus (Walk-in)" data-menuloading="1">
+          <div class="menu-circle" style="background:#9b59b6;"><span class="emoji-icon" aria-hidden="true">🛍️</span></div>
+          <small class="menu-label">Bungkus</small>
+        </a>
+      </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('cafe') ?>" class="qcard d-block text-decoration-none" aria-label="Jadwal / Cafe" data-menuloading="1">
-                <div class="menu-circle" style="background:#dc7633;">
-                  <span class="emoji-icon" aria-hidden="true">📅</span>
-                </div>
-                <small class="menu-label">Cafe</small>
-              </a>
-            </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('cafe') ?>" class="qcard d-block text-decoration-none" aria-label="Info Café / Jadwal" data-menuloading="1">
+          <div class="menu-circle" style="background:#dc7633;"><span class="emoji-icon" aria-hidden="true">🏪</span></div>
+          <small class="menu-label">Café</small>
+        </a>
+      </div>
+    </div>
+  </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('pijat') ?>" class="qcard d-block text-decoration-none" aria-label="Kursi Pijat" data-menuloading="1">
-                <div class="menu-circle" style="background:#9a6a38;">
-                  <span class="emoji-icon" aria-hidden="true">💆‍♂️</span>
-                </div>
-                <small class="menu-label">Kursi Pijat</small>
-              </a>
-            </div>
+  <!-- ========== BILLIARD ========== -->
+  <div class="quicksection" aria-labelledby="sec-billiard">
+    <div class="quicksection-title" id="sec-billiard">
+      <span class="section-icon">🎱</span><span class="section-text">Billiard</span>
+    </div>
+    <div class="quicksection-items">
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Booking Billiard" data-menuloading="1">
+          <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon" aria-hidden="true">📝</span></div>
+          <small class="menu-label">Booking Billiard</small>
+        </a>
+      </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('hal/kontak') ?>" class="qcard d-block text-decoration-none" aria-label="Kontak" data-menuloading="1">
-                <div class="menu-circle" style="background:#25D366;">
-                  <span class="emoji-icon" aria-hidden="true">☎️</span>
-                </div>
-                <small class="menu-label">Kontak</small>
-              </a>
-            </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('meja_billiard') ?>" class="qcard d-block text-decoration-none" aria-label="Tarif Meja Billiard" data-menuloading="1">
+          <div class="menu-circle" style="background:#1abc9c;"><span class="emoji-icon" aria-hidden="true">💵</span></div>
+          <small class="menu-label">Tarif Meja Billiard</small>
+        </a>
+      </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('hal/pengumuman') ?>" class="qcard d-block text-decoration-none" aria-label="Pengumuman" data-menuloading="1">
-                <div class="menu-circle" style="background:#e74c3c;">
-                  <span class="emoji-icon" aria-hidden="true">📣</span>
-                </div>
-                <small class="menu-label">Pengumuman</small>
-              </a>
-            </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('billiard/daftar_booking') ?>" class="qcard d-block text-decoration-none" aria-label="Jadwal Main Billiard" data-menuloading="1">
+          <div class="menu-circle" style="background:#e67e22;"><span class="emoji-icon" aria-hidden="true">🗓️</span></div>
+          <small class="menu-label">Jadwal Main Billiard</small>
+        </a>
+      </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('hal/review') ?>" class="qcard d-block text-decoration-none" aria-label="Pengumuman" data-menuloading="1">
-                <div class="menu-circle" style="background:#00BFFF;">
-                  <span class="emoji-icon" aria-hidden="true">⭐</span>
-                </div>
-                <small class="menu-label">Google Review</small>
-              </a>
-            </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('billiard/daftar_voucher') ?>" class="qcard d-block text-decoration-none" aria-label="Gratis Main Billiard" data-menuloading="1">
+          <div class="menu-circle" style="background:#d81b60;"><span class="emoji-icon" aria-hidden="true">🎁</span></div>
+          <small class="menu-label">Gratis Main Billiard</small>
+        </a>
+      </div>
+    </div>
+  </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('hal/privacy_policy') ?>" class="qcard d-block text-decoration-none" aria-label="Kebijakan Privasi" data-menuloading="1">
-                <div class="menu-circle" style="background:#16a085;">
-                  <span class="emoji-icon" aria-hidden="true">🔒</span>
-                </div>
-                <small class="menu-label">Kebijakan Privasi</small>
-              </a>
-            </div>
+  <!-- ========== FASILITAS ========== -->
+  <div class="quicksection" aria-labelledby="sec-fasilitas">
+    <div class="quicksection-title" id="sec-fasilitas">
+      <span class="section-icon">🏷️</span><span class="section-text">Fasilitas</span>
+    </div>
+    <div class="quicksection-items">
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('pijat') ?>" class="qcard d-block text-decoration-none" aria-label="Kursi Pijat" data-menuloading="1">
+          <div class="menu-circle" style="background:#9a6a38;"><span class="emoji-icon" aria-hidden="true">💆‍♂️</span></div>
+          <small class="menu-label">Kursi Pijat</small>
+        </a>
+      </div>
+    </div>
+  </div>
 
-            <div class="quickmobilem-item">
-              <a href="<?= site_url('hal') ?>" class="qcard d-block text-decoration-none" aria-label="Syarat dan Ketentuan" data-menuloading="1">
-                <div class="menu-circle" style="background:#6c757d;">
-                  <span class="emoji-icon" aria-hidden="true">📜</span>
-                </div>
-                <small class="menu-label">S&amp;K</small>
-              </a>
-            </div>
+  <!-- ========== INFORMASI ========== -->
+  <div class="quicksection" aria-labelledby="sec-info">
+    <div class="quicksection-title" id="sec-info">
+      <span class="section-icon">ℹ️</span><span class="section-text">Informasi</span>
+    </div>
+    <div class="quicksection-items">
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('hal/kontak') ?>" class="qcard d-block text-decoration-none" aria-label="Kontak" data-menuloading="1">
+          <div class="menu-circle" style="background:#25D366;"><span class="emoji-icon" aria-hidden="true">☎️</span></div>
+          <small class="menu-label">Kontak</small>
+        </a>
+      </div>
 
-          </div><!-- /#quickmobilem -->
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('hal/pengumuman') ?>" class="qcard d-block text-decoration-none" aria-label="Pengumuman" data-menuloading="1">
+          <div class="menu-circle" style="background:#e74c3c;"><span class="emoji-icon" aria-hidden="true">📣</span></div>
+          <small class="menu-label">Pengumuman</small>
+        </a>
+      </div>
+
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('hal/review') ?>" class="qcard d-block text-decoration-none" aria-label="Google Review" data-menuloading="1">
+          <div class="menu-circle" style="background:#00BFFF;"><span class="emoji-icon" aria-hidden="true">⭐</span></div>
+          <small class="menu-label">Google Review</small>
+        </a>
+      </div>
+
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('hal/privacy_policy') ?>" class="qcard d-block text-decoration-none" aria-label="Kebijakan Privasi" data-menuloading="1">
+          <div class="menu-circle" style="background:#16a085;"><span class="emoji-icon" aria-hidden="true">🔒</span></div>
+          <small class="menu-label">Kebijakan Privasi</small>
+        </a>
+      </div>
+
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('hal') ?>" class="qcard d-block text-decoration-none" aria-label="Syarat dan Ketentuan" data-menuloading="1">
+          <div class="menu-circle" style="background:#6c757d;"><span class="emoji-icon" aria-hidden="true">📜</span></div>
+          <small class="menu-label">S&amp;K</small>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- ===== /QUICK MENU ===== -->
+
 
           <div class="sheet-close-wrap text-center">
             <button type="button"
