@@ -31,17 +31,9 @@ $slides = [
 
 <div class="container-fluid">
 
-  <!-- ===== Pretty Title ===== -->
- <!--  <div class="hero-title" role="banner" aria-label="Judul situs">
-    <h1 class="text">Chill Corner</h1>
-      <div class="text-muted">Tempat nongkrong & main billiard hits buat ngumpul bareng</div>
-    <span class="accent" aria-hidden="true"></span>
-  </div> -->
-  <!-- ===== /Pretty Title ===== -->
-
   <div class="row">
     <!-- LEFT: HERO -->
-    <div class="col-xl-4">
+    <div class="col-xl-4 mt-2">
       <section class="pwa-hero" role="region" aria-label="Slideshow sorotan">
         <button class="pwa-hero__nav prev" type="button" aria-label="Sebelumnya">‹</button>
         <button class="pwa-hero__nav next" type="button" aria-label="Berikutnya">›</button>
