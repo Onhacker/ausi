@@ -84,6 +84,10 @@
       <div class="btn-wrap">
         <button class="btn btn-sm btn-primary" id="btn-print-pos"><i class="fe-printer"></i> Cetak Cafee</button>
         <button class="btn btn-sm btn-blue" id="btn-print-bil"><i class="fe-printer"></i> Cetak Billiard</button>
+        <button class="btn btn-sm btn-danger" id="btn-print-kursi">
+  <i class="fe-printer"></i> Cetak Kursi Pijat
+</button>
+
         <button class="btn btn-sm btn-dark" id="btn-print-kurir">
           <i class="fe-truck"></i> Cetak Lap. Kurir
         </button>
@@ -140,7 +144,27 @@
     </div> <!-- end widget-rounded-circle-->
   </div> <!-- end col-->
 
- 
+ <!-- Omzet Kursi Pijat -->
+<div class="col-md-6 col-xl-3">
+  <div class="widget-rounded-circle card-box">
+    <div class="row">
+      <div class="col-6">
+        <div class="avatar-lg rounded bg-soft-pink">
+          <i class="dripicons-rocket font-24 avatar-title text-danger"></i>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="text-right">
+          <h3 class="text-dark mt-1"><span id="sum-kp">Rp 0</span></h3>
+          <p class="text-muted mb-1 text-truncate">
+            Kursi Pijat <small>(<span id="cnt-kp">0</span> trx)</small>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
   <!-- Pengeluaran -->
   <div class="col-md-6 col-xl-3">
@@ -380,6 +404,13 @@ function updateSummary(){
       const kurMini  = miniByMethod(kur.by_method || null);
       const isSubset = !!(r.meta && r.meta.kurir_subset_of_pos === true);
 
+      const kp = r.kursi_pijat || {};
+      const kpTotal = parseInt(kp.total || 0, 10);
+      const kpCount = parseInt(kp.count || 0, 10);
+
+      if ($('#sum-kp').length)  animateNumber('#sum-kp', kpTotal, IDR, 900);
+      if ($('#cnt-kp').length)  animateNumber('#cnt-kp', kpCount, INT, 700);
+
       // ===== Animate angka (pakai guard elemen) =====
       if ($('#sum-pos').length)   animateNumber('#sum-pos',  posTotal,  IDR, 900);
       if ($('#sum-bil').length)   animateNumber('#sum-bil',  bilTotal,  IDR, 900);
@@ -469,6 +500,10 @@ function updateSummary(){
     $('#btn-print-kurir').on('click', function(){
       window.open("<?= site_url('admin_laporan/print_kurir') ?>?" + qs(getParams()), '_blank');
     });
+    $('#btn-print-kursi').on('click', function(){
+  window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');
+});
+
 
   });
 })();

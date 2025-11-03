@@ -244,6 +244,12 @@ if (!function_exists('nav_class')) {
     </a>
   <?php endif; ?>
 
+  <?php if (user_can_mod(['admin_kursi_pijat'])): ?>
+    <a id="quick-billiard-link" href="<?= site_url('admin_kursi_pijat') ?>" class="menu-item">
+      <i class="mdi mdi-seat-recline-extra"></i><span>POS Kursi Pijat</span>
+    </a>
+  <?php endif; ?>
+
   <!-- Pengeluaran -->
   <?php if (user_can_mod(['admin_pengeluaran'])): ?>
     <a id="quick-pengeluaran-link" href="<?= site_url('admin_pengeluaran') ?>" class="menu-item">

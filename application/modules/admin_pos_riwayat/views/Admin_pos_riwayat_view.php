@@ -24,12 +24,12 @@
       <option value="transfer">Transfer</option>
     </select>
 
-    <select id="filter-mode" class="form-control form-control-sm" style="width:180px">
+    <!-- <select id="filter-mode" class="form-control form-control-sm" style="width:180px">
       <option value="all" selected>Semua Mode</option>
       <option value="walkin">Bungkus</option>
       <option value="dinein">Makan di Tempat</option>
       <option value="delivery">Antar/Kirim</option>
-    </select>
+    </select> -->
   </div>
 
   <div class="card"><div class="card-body">

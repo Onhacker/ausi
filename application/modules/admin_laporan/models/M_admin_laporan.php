@@ -293,4 +293,97 @@ public function fetch_pos(array $f): array {
         return $out;
     }
 
+    /* ================= KURSI PIJAT ================= */
+
+/**
+ * Mapping status global -> status kursi_pijat_transaksi
+ * - done/paid  -> selesai
+ * - cancel/void-> batal
+ * - unpaid     -> baru
+ * - all/other  -> tidak difilter
+ */
+private function _map_status_kp(?string $s): ?string {
+    $s = strtolower(trim((string)$s));
+    if ($s === 'done' || $s === 'paid')   return 'selesai';
+    if ($s === 'cancel' || $s === 'void') return 'batal';
+    if ($s === 'unpaid')                  return 'baru';
+    return null; // all/unknown -> no filter
+}
+
+public function fetch_kursi_pijat(array $f): array {
+    $dateExpr = "COALESCE(selesai, mulai)";
+
+    $this->db->select("
+        id_transaksi, nama, durasi_menit, sesi,
+        harga_satuan, total_harga,
+        mulai, selesai, status, COALESCE(catatan,'') AS catatan
+    ", false)->from('kursi_pijat_transaksi');
+
+    // range tanggal
+    $from = $f['date_from'] ?? null;
+    $to   = $f['date_to']   ?? null;
+    if ($from) $this->db->where("$dateExpr >=", $from);
+    if ($to)   $this->db->where("$dateExpr <=", $to);
+
+    // ⬇️ Default: hanya 'selesai' (kecuali user set status spesifik)
+    $ms = $this->_map_status_kp($f['status'] ?? 'all');
+    if ($ms) { $this->db->where('status', $ms); }
+    else     { $this->db->where('status', 'selesai'); }
+
+    // order by COALESCE tanpa escape
+    $this->db->order_by("$dateExpr ASC", '', false);
+    $this->db->order_by('id_transaksi', 'ASC');
+
+    return $this->db->get()->result();
+}
+
+
+public function sum_kursi_pijat(array $f): array {
+    $dateExpr = "COALESCE(selesai, mulai)";
+
+    $this->db->select("COUNT(*) AS cnt, COALESCE(SUM(total_harga),0) AS total", false)
+             ->from('kursi_pijat_transaksi');
+
+    $from = $f['date_from'] ?? null;
+    $to   = $f['date_to']   ?? null;
+    if ($from) $this->db->where("$dateExpr >=", $from);
+    if ($to)   $this->db->where("$dateExpr <=", $to);
+
+    // ⬇️ Default: hanya 'selesai'
+    $ms = $this->_map_status_kp($f['status'] ?? 'all');
+    if ($ms) { $this->db->where('status', $ms); }
+    else     { $this->db->where('status', 'selesai'); }
+
+    $row = $this->db->get()->row();
+    return ['count'=>(int)($row->cnt ?? 0), 'total'=>(int)($row->total ?? 0)];
+}
+
+
+/** Aggregasi harian Kursi Pijat (berdasar COALESCE(selesai, mulai)) */
+public function agg_daily_kursi_pijat(array $f): array {
+    $dateExpr = "COALESCE(selesai, mulai)";
+
+    $this->db->select("DATE($dateExpr) AS d, COALESCE(SUM(total_harga),0) AS total", false)
+             ->from('kursi_pijat_transaksi');
+
+    $from = $f['date_from'] ?? null;
+    $to   = $f['date_to']   ?? null;
+    if ($from) $this->db->where("$dateExpr >=", $from);
+    if ($to)   $this->db->where("$dateExpr <=", $to);
+
+    // ⬇️ Default: hanya 'selesai'
+    $ms = $this->_map_status_kp($f['status'] ?? 'all');
+    if ($ms) { $this->db->where('status', $ms); }
+    else     { $this->db->where('status', 'selesai'); }
+
+    $this->db->group_by("DATE($dateExpr)", false);
+
+    $rows = $this->db->get()->result();
+    $out = [];
+    foreach($rows as $r){ $out[$r->d] = (int)$r->total; }
+    return $out;
+}
+
+
+
 }

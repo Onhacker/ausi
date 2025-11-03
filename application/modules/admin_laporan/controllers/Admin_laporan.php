@@ -33,11 +33,13 @@ public function summary_json(){
     $bil  = $this->lm->sum_billiard($f)   ?: ['count'=>0,'total'=>0,'by_method'=>[]];
     $peng = $this->lm->sum_pengeluaran($f)?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
     $kur  = $this->lm->sum_kurir($f)      ?: ['count'=>0,'total_fee'=>0,'by_method'=>[]];
+    $kp   = $this->lm->sum_kursi_pijat($f)?: ['count'=>0,'total'=>0];
 
     $pos  = ['count'=>(int)($pos['count']??0),'total'=>(int)($pos['total']??0),'by_method'=>(array)($pos['by_method']??[])];
     $bil  = ['count'=>(int)($bil['count']??0),'total'=>(int)($bil['total']??0),'by_method'=>(array)($bil['by_method']??[])];
     $peng = ['count'=>(int)($peng['count']??0),'total'=>(int)($peng['total']??0),'by_kategori'=>(array)($peng['by_kategori']??[])];
     $kur  = ['count'=>(int)($kur['count']??0),'total_fee'=>(int)($kur['total_fee']??0),'by_method'=>(array)($kur['by_method']??[])];
+    $kp   = ['count'=>(int)($kp['count']??0),'total'=>(int)($kp['total']??0)];
 
     $out = [
         'success'     => true,
@@ -45,12 +47,42 @@ public function summary_json(){
         'pos'         => $pos,
         'billiard'    => $bil,
         'pengeluaran' => $peng,
-        'kurir'       => $kur,                     // info (subset POS)
-        'meta'        => ['kurir_subset_of_pos'=>true],
-        'laba'        => ['total' => $pos['total'] + $bil['total'] - $peng['total']],
+        'kurir'       => $kur,
+        'kursi_pijat' => $kp,
+        'meta'        => [
+            'kurir_subset_of_pos' => true,
+            'laba_formula'        => 'pos+billiard+kursi_pijat-pengeluaran',
+        ],
+        'laba'        => ['total' => $pos['total'] + $bil['total'] + $kp['total'] - $peng['total']],
     ];
     return $this->output->set_content_type('application/json','utf-8')->set_output(json_encode($out));
 }
+
+
+public function print_kursi_pijat(){
+    $f = $this->_parse_filter();
+
+    $rows = $this->lm->fetch_kursi_pijat($f);
+    $sum  = $this->lm->sum_kursi_pijat($f);
+
+    $data = [
+        'title'  => 'Laporan Kursi Pijat',
+        'period' => $this->_period_label($f),
+        'rows'   => $rows,
+        'sum'    => $sum,
+        'f'      => $f,
+        'idr'    => function($x){ return $this->_idr($x); },
+    ];
+
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+    $safePeriod = trim($safePeriod, '_');
+    if ($safePeriod === '') $safePeriod = date('Ymd');
+    $filename = 'laporan_kursi_pijat_' . $safePeriod . '.pdf';
+
+    $html = $this->load->view('admin_laporan/pdf_kursi_pijat', $data, true);
+    $this->_pdf($data['title'], $html, $filename);
+}
+
 
 // === CETAK POS (pakai grand_total_net) ===
 public function print_pos(){
@@ -200,6 +232,10 @@ public function print_laba(){
     $sumPos = $this->lm->sum_pos($f);
     $sumBil = $this->lm->sum_billiard($f);
     $sumPen = $this->lm->sum_pengeluaran($f);
+    $sumKP  = $this->lm->sum_kursi_pijat($f);
+
+    // Laba final: Cafe + Billiard + Kursi Pijat - Pengeluaran
+    $laba = (int)$sumPos['total'] + (int)$sumBil['total'] + (int)$sumKP['total'] - (int)$sumPen['total'];
 
     $data = [
         'title'  => 'Laporan Laba',
@@ -207,22 +243,22 @@ public function print_laba(){
         'sumPos' => $sumPos,
         'sumBil' => $sumBil,
         'sumPen' => $sumPen,
-        'laba'   => (int)$sumPos['total'] + (int)$sumBil['total'] - (int)$sumPen['total'],
+        'sumKP'  => $sumKP,
+        'laba'   => $laba,
         'f'      => $f,
         'idr'    => function($x){ return $this->_idr($x); },
     ];
 
-    // nama file dinamis
     $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
     $safePeriod = trim($safePeriod, '_');
-    if ($safePeriod === '') {
-        $safePeriod = date('Ymd');
-    }
+    if ($safePeriod === '') $safePeriod = date('Ymd');
     $filename = 'laporan_laba_' . $safePeriod . '.pdf';
 
     $html = $this->load->view('admin_laporan/pdf_laba', $data, true);
     $this->_pdf($data['title'], $html, $filename);
 }
+
+
 
     /* ===================== Helpers ===================== */
 
@@ -403,83 +439,66 @@ public function print_laba(){
      * }
      */
     public function chart_data(){
-        $f = $this->_parse_filter();
+    $f = $this->_parse_filter();
 
-        // ambil per-hari dari model
-        $cafeMap       = $this->lm->agg_daily_pos($f);          // ['2025-10-28'=>120000,...]
-        $billiardMap   = $this->lm->agg_daily_billiard($f);     // sama bentuknya
-        $pengeluaranMap= $this->lm->agg_daily_pengeluaran($f);  // sama
+    $cafeMap        = $this->lm->agg_daily_pos($f);
+    $billiardMap    = $this->lm->agg_daily_billiard($f);
+    $pengeluaranMap = $this->lm->agg_daily_pengeluaran($f);
+    $kpMap          = $this->lm->agg_daily_kursi_pijat($f); // KP wajib
 
-        // bikin list semua tanggal dari range (date_from .. date_to) by day
-        $tz = new DateTimeZone('Asia/Makassar');
+    $tz = new DateTimeZone('Asia/Makassar');
+    $startDay = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz) ?: new DateTime($f['date_from'], $tz);
+    $endDay   = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'],   $tz) ?: new DateTime($f['date_to'],   $tz);
 
-        // potong ke YYYY-mm-dd (awal & akhir)
-        $startDay = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz);
-        $endDay   = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'],   $tz);
-        if (!$startDay) $startDay = new DateTime($f['date_from'], $tz);
-        if (!$endDay)   $endDay   = new DateTime($f['date_to'],   $tz);
+    $loopStart = clone $startDay; $loopStart->setTime(0,0,0);
+    $loopEnd   = clone $endDay;   $loopEnd->setTime(23,59,59);
 
-        // normalize jam ke 00:00 utk awal, 23:59 utk akhir loop harian,
-        // tapi hati-hati kalau beda hari sudah di-handle _parse_filter (bisa lintas)
-        $loopStart = clone $startDay;
-        $loopStart->setTime(0,0,0);
-        $loopEnd = clone $endDay;
-        $loopEnd->setTime(23,59,59);
+    $categories=[]; $cafeArr=[]; $bilArr=[]; $pengArr=[]; $kpArr=[]; $labaArr=[];
+    $sumCafe=0; $sumBil=0; $sumPeng=0; $sumKP=0; $sumLaba=0;
 
-        $categories = [];
-        $cafeArr = [];
-        $bilArr  = [];
-        $pengArr = [];
-        $labaArr = [];
+    $cur = clone $loopStart;
+    while ($cur <= $loopEnd){
+        $key = $cur->format('Y-m-d');
 
-        $sumCafe = 0;
-        $sumBil  = 0;
-        $sumPeng = 0;
-        $sumLaba = 0;
+        $c  = (int)($cafeMap[$key]        ?? 0);
+        $b  = (int)($billiardMap[$key]    ?? 0);
+        $kp = (int)($kpMap[$key]          ?? 0);
+        $pe = (int)($pengeluaranMap[$key] ?? 0);
 
-        $cur = clone $loopStart;
-        while ($cur <= $loopEnd){
-            $key = $cur->format('Y-m-d');
+        $l  = $c + $b + $kp - $pe; // ← LABA BARU
 
-            $c  = (int)($cafeMap[$key]        ?? 0);
-            $b  = (int)($billiardMap[$key]    ?? 0);
-            $pe = (int)($pengeluaranMap[$key] ?? 0);
-            $l  = $c + $b - $pe;
+        $categories[] = $key;
+        $cafeArr[] = $c; $bilArr[] = $b; $kpArr[] = $kp; $pengArr[] = $pe; $labaArr[] = $l;
 
-            $categories[] = $key;
-            $cafeArr[]    = $c;
-            $bilArr[]     = $b;
-            $pengArr[]    = $pe;
-            $labaArr[]    = $l;
+        $sumCafe += $c; $sumBil += $b; $sumKP += $kp; $sumPeng += $pe; $sumLaba += $l;
 
-            $sumCafe += $c;
-            $sumBil  += $b;
-            $sumPeng += $pe;
-            $sumLaba += $l;
-
-            $cur->modify('+1 day');
-        }
-
-        $out = [
-            'success'       => true,
-            'filter'        => $f,
-            'categories'    => $categories,
-            'cafe'          => $cafeArr,
-            'billiard'      => $bilArr,
-            'pengeluaran'   => $pengArr,
-            'laba'          => $labaArr,
-            'total_rekap'   => [
-                'cafe'        => $sumCafe,
-                'billiard'    => $sumBil,
-                'pengeluaran' => $sumPeng,
-                'laba'        => $sumLaba,
-            ],
-        ];
-
-        return $this->output
-            ->set_content_type('application/json','utf-8')
-            ->set_output(json_encode($out));
+        $cur->modify('+1 day');
     }
+
+    $out = [
+        'success'       => true,
+        'filter'        => $f,
+        'categories'    => $categories,
+        'cafe'          => $cafeArr,
+        'billiard'      => $bilArr,
+        'kursi_pijat'   => $kpArr,
+        'pengeluaran'   => $pengArr,
+        'laba'          => $labaArr, // sudah +KP
+        'total_rekap'   => [
+            'cafe'        => $sumCafe,
+            'billiard'    => $sumBil,
+            'kursi_pijat' => $sumKP,
+            'pengeluaran' => $sumPeng,
+            'laba'        => $sumLaba, // sudah +KP
+        ],
+    ];
+
+    return $this->output
+        ->set_content_type('application/json','utf-8')
+        ->set_output(json_encode($out));
+}
+
+
 
     
 }

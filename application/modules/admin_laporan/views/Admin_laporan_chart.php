@@ -322,28 +322,30 @@
     const pengeluaranData = res.pengeluaran   || [];
     const labaData        = res.laba          || [];
 
+    const kpData = res.kursi_pijat || []; // NEW
+
     const totalPendapatan = cafeData.map(function(v,i){
       const vb = (typeof billiardData[i] !== 'undefined') ? billiardData[i] : 0;
-      return v + vb;
-    });
+  const vk = (typeof kpData[i] !== 'undefined') ? kpData[i] : 0; // NEW
+  return v + vb + vk; // NEW: total termasuk KP
+});
+
 
     Highcharts.chart('chartPendapatan', {
-      title:{ text:null },
-      xAxis:{ categories:categories, crosshair:true },
-      yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
-      tooltip:{
-        shared:true,
-        valueDecimals:0,
-        valuePrefix:'Rp '
-      },
-      credits:{ enabled:false },
-      exporting:{ enabled:true },
-      series:[
-        { name:'Cafe / POS', data:cafeData },
-        { name:'Billiard', data:billiardData },
-        { name:'Total Pendapatan (Cafe+Billiard)', data:totalPendapatan }
-      ]
-    });
+  title:{ text:null },
+  xAxis:{ categories:categories, crosshair:true },
+  yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
+  tooltip:{ shared:true, valueDecimals:0, valuePrefix:'Rp ' },
+  credits:{ enabled:false },
+  exporting:{ enabled:true },
+  series:[
+    { name:'Cafe / POS', data:cafeData },
+    { name:'Billiard', data:billiardData },
+    { name:'Kursi Pijat', data:kpData }, // NEW
+    { name:'Total Pendapatan (Cafe+Billiard+KP)', data:totalPendapatan }
+  ]
+});
+
 
     Highcharts.chart('chartPengeluaran', {
       chart:{ type:'column' },

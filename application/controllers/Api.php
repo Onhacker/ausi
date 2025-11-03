@@ -54,6 +54,13 @@ $MENU_DEF[] = [
             'require' => ['POS Billiard','admin_billiard','user'],
         ],
         [
+          'label'   => 'POS Kursi Pijat',
+          'url'     => site_url('admin_kursi_pijat'),
+          'icon'    => 'mdi mdi-seat-recline-extra',
+          'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
+      ],
+
+        [
             'label'   => 'Pengeluaran',
             'url'     => site_url('admin_pengeluaran'),
             'icon'    => 'mdi mdi-cash-minus',
@@ -258,6 +265,15 @@ public function get_menu_mobile()
             'icon'    => 'mdi mdi-billiards',
             'require' => ['admin_billiard'],
         ],
+
+        [
+            'id'      => 'admin_kursi_pijat',
+            'label'   => 'POS Kursi Pijat',
+            'url'     => site_url('admin_kursi_pijat'),
+            'icon'    => 'mdi mdi-seat-recline-extra',
+            'require' => ['admin_kursi_pijat'],
+        ],
+
         [
             'id'      => 'admin_pengeluaran',
             'label'   => 'Pengeluaran',
