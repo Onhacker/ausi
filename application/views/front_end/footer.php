@@ -734,6 +734,12 @@
           <small class="menu-label">Kursi Pijat</small>
         </a>
       </div>
+      <div class="quickmobilem-item">
+        <a href="<?= site_url('review') ?>" class="qcard d-block text-decoration-none" aria-label="Rating Review" data-menuloading="1">
+          <div class="menu-circle" style="background:#FFC107;"><span class="emoji-icon" aria-hidden="true">📝</span></div>
+          <small class="menu-label">Ratings &amp; Review</small>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -756,13 +762,27 @@
           <small class="menu-label">Pengumuman</small>
         </a>
       </div>
+<!-- Tambahkan sekali saja (opsional) agar SVG pas di lingkaran -->
+<style>
+  .menu-circle svg{ width:24px; height:24px; display:block; }
+</style>
 
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('hal/review') ?>" class="qcard d-block text-decoration-none" aria-label="Google Review" data-menuloading="1">
-          <div class="menu-circle" style="background:#00BFFF;"><span class="emoji-icon" aria-hidden="true">⭐</span></div>
-          <small class="menu-label">Google Review</small>
-        </a>
-      </div>
+
+
+<div class="quickmobilem-item">
+  <a href="<?= site_url('hal/review') ?>" class="qcard d-block text-decoration-none" aria-label="Google Review" data-menuloading="1">
+    <div class="menu-circle" style="background:#fff; border:2px solid #e5e7eb;">
+      <!-- Logo Google (inline SVG) -->
+      <svg viewBox="0 0 256 262" aria-hidden="true" focusable="false">
+        <path fill="#4285F4" d="M255.68 131.09c0-10.22-.84-17.66-2.66-25.39H130.55v45.99h71.93c-1.45 11.61-9.3 29.16-26.77 40.98l-.24 1.59 38.87 30.14 2.69.27c24.67-22.78 38.65-56.33 38.65-93.58"/>
+        <path fill="#34A853" d="M130.55 261.1c35.2 0 64.77-11.62 86.36-31.64l-41.12-31.88c-11.03 7.7-25.82 13.09-45.24 13.09-34.57 0-63.92-22.64-74.43-53.98l-1.54.13-40.23 31.06-.53 1.42C34.2 231.6 79.46 261.1 130.55 261.1"/>
+        <path fill="#FBBC05" d="M56.12 156.69c-2.77-8.22-4.36-16.97-4.36-26.02s1.59-17.8 4.36-26.02l-.07-1.74-40.72-31.49-1.33.63C3.78 89.96 0 109.63 0 130.67c0 21.04 3.78 40.71 13.99 59.62l42.13-33.6"/>
+        <path fill="#EA4335" d="M130.55 51.53c24.45 0 40.88 10.54 50.26 19.37l36.69-35.87C195.23 12.11 165.75 0 130.55 0 79.46 0 34.2 29.5 13.99 71.05l42.13 33.6c10.51-31.34 39.86-53.98 74.43-53.98"/>
+      </svg>
+    </div>
+    <small class="menu-label">Google Review</small>
+  </a>
+</div>
 
       <div class="quickmobilem-item">
         <a href="<?= site_url('hal/privacy_policy') ?>" class="qcard d-block text-decoration-none" aria-label="Kebijakan Privasi" data-menuloading="1">

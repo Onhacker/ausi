@@ -108,6 +108,171 @@ class Hal extends MX_Controller {
     }
 
 
+    public function review_app(){
+    $data["rec"]       = $this->fm->web_me();
+    $data["title"]     = "Review";
+    $data["deskripsi"] = $data["rec"]->nama_website ?? '';
+    $data["prev"]      = base_url("assets/images/nongki.webp");
+
+    $cls = $this->router->class;
+    $data['review_submit_url']  = site_url("$cls/review_submit");
+    $data['review_list_url']    = site_url("$cls/review_list");
+    $data['review_captcha_url'] = site_url("$cls/review_captcha");
+
+    // CSRF
+    $data['csrf_name'] = $this->security->get_csrf_token_name();
+    $data['csrf_hash'] = $this->security->get_csrf_hash();
+
+    // Captcha awal
+    [$words, $value] = $this->_gen_captcha4();
+    $this->session->set_userdata('review_captcha_val', $value);
+    $data['captcha_words'] = $words;
+
+    // Stats untuk header & JSON-LD
+    $stat = $this->db->select('COUNT(*) AS cnt, COALESCE(AVG(bintang),0) AS avg')->get('review_app')->row();
+    $data['review_count'] = (int)($stat->cnt ?? 0);
+    $data['review_avg']   = round((float)($stat->avg ?? 0), 2);
+
+    // Ambil max 10 review terbaru utk JSON-LD
+    $data['jsonld_reviews'] = $this->db->select('nama,bintang,ulasan,created_at')
+        ->from('review_app')->order_by('created_at','DESC')->limit(10)->get()->result_array();
+
+    $this->load->view('review_app',$data);
+}
+
+public function review_submit(){
+    $this->_nocache_headers();
+    $this->output->set_content_type('application/json');
+
+    $nama    = trim((string)$this->input->post('nama', true));
+    $bintang = (int)$this->input->post('bintang', true);
+    $ulasan  = trim((string)$this->input->post('ulasan', true));
+    $captcha = trim((string)$this->input->post('captcha', true));
+
+    $errors = [];
+    if ($nama === '' || mb_strlen($nama) < 2 || mb_strlen($nama) > 100) $errors['nama'] = 'Nama 2–100 karakter.';
+    if ($bintang < 1 || $bintang > 5) $errors['bintang'] = 'Pilih 1–5 bintang.';
+    if ($ulasan === '' || mb_strlen($ulasan) < 10) $errors['ulasan'] = 'Ulasan minimal 10 karakter.';
+    $expect = (string)$this->session->userdata('review_captcha_val');
+    if ($expect === '' || $captcha !== $expect) $errors['captcha'] = 'Captcha salah.';
+
+    // throttle 25 detik / IP
+    $ip = $this->input->ip_address();
+    $recent = $this->db->select('created_at')->from('review_app')->where('ip',$ip)
+        ->order_by('created_at','DESC')->limit(1)->get()->row();
+    if ($recent && (time() - strtotime($recent->created_at)) < 25) {
+        $errors['limit'] = 'Terlalu cepat, coba lagi sebentar.';
+    }
+
+    // refresh captcha untuk respon berikutnya
+    [$wordsNew, $valueNew] = $this->_gen_captcha4();
+    $this->session->set_userdata('review_captcha_val', $valueNew);
+
+    if (!empty($errors)) {
+        return $this->output->set_output(json_encode([
+            'ok' => false,
+            'errors' => $errors,
+            'captcha_words' => $wordsNew,
+            'csrf' => $this->security->get_csrf_hash(),
+        ]));
+    }
+
+    $this->db->insert('review_app', [
+        'nama'       => $nama,
+        'bintang'    => $bintang,
+        'ulasan'     => $ulasan,
+        'ip'         => $ip,
+        'user_agent' => substr((string)$this->input->user_agent(), 0, 255),
+        'created_at' => date('Y-m-d H:i:s'),
+    ]);
+
+    return $this->output->set_output(json_encode([
+        'ok' => true,
+        'msg' => 'Terima kasih! Review kamu tersimpan.',
+        'captcha_words' => $wordsNew,
+        'csrf' => $this->security->get_csrf_hash(),
+    ]));
+}
+
+public function review_list(){
+    $this->_nocache_headers();
+    $this->output->set_content_type('application/json');
+
+    $page     = max(1, (int)$this->input->get('page'));
+    $per_page = max(1, min(50, (int)($this->input->get('per_page') ?: 10)));
+    $offset   = ($page - 1) * $per_page;
+
+    $total = (int)$this->db->count_all_results('review_app');
+
+    $items = $this->db->select('id,nama,bintang,ulasan,created_at')
+        ->from('review_app')->order_by('created_at','DESC')
+        ->limit($per_page, $offset)->get()->result();
+
+    $list = [];
+    foreach ($items as $r) {
+        $list[] = [
+            'id'         => (int)$r->id,
+            'nama'       => htmlspecialchars($r->nama, ENT_QUOTES, 'UTF-8'),
+            'bintang'    => (int)$r->bintang,
+            'ulasan'     => $r->ulasan,
+            'created_at' => date('d M Y H:i', strtotime($r->created_at)),
+        ];
+    }
+
+    // aggregate utk header
+    $stat = $this->db->select('COUNT(*) AS cnt, COALESCE(AVG(bintang),0) AS avg')
+        ->from('review_app')->get()->row();
+    $agg = [
+        'count' => (int)($stat->cnt ?? 0),
+        'avg'   => round((float)($stat->avg ?? 0), 2),
+    ];
+
+    return $this->output->set_output(json_encode([
+        'ok'          => true,
+        'page'        => $page,
+        'per_page'    => $per_page,
+        'total'       => $total,
+        'total_pages' => max(1, (int)ceil($total / $per_page)),
+        'items'       => $list,
+        'agg'         => $agg,
+    ]));
+}
+
+public function review_captcha(){
+    $this->_nocache_headers();
+    $this->output->set_content_type('application/json');
+
+    [$words, $value] = $this->_gen_captcha4();
+    $this->session->set_userdata('review_captcha_val', $value);
+
+    return $this->output->set_output(json_encode([
+        'ok' => true,
+        'captcha_words' => $words,
+        'csrf' => $this->security->get_csrf_hash(),
+    ]));
+}
+
+private function _terbilang_digit($d){
+    static $m = ['nol','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan'];
+    return $m[$d] ?? '';
+}
+
+private function _gen_captcha4(){
+    $ds = [];
+    for ($i=0; $i<4; $i++) $ds[] = random_int(0,9);
+    $words = array_map(function($d){ return $this->_terbilang_digit($d); }, $ds);
+    return [implode(' ', $words), implode('', $ds)];
+}
+
+private function _nocache_headers(){
+    $this->output
+        ->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0')
+        ->set_header('Cache-Control: post-check=0, pre-check=0', false)
+        ->set_header('Pragma: no-cache');
+}
+
+
+
     /** Endpoint JSON untuk listing (AJAX) */
     public function pengumuman_data()
     {

@@ -79,6 +79,7 @@ $route['scan'] = 'produk/scan_qr';
 $route['meja_billiard'] = 'hal/jadwal_billiard';
 $route['cafe'] = 'hal/jadwal';
 $route['pijat'] = 'hal/pijat';
+$route['review'] = 'hal/review_app';
 
 // $route['rss'] = 'rss.xml';
 // $route['sitemap'] = "kmzwa8awaa/index";

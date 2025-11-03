@@ -15,6 +15,7 @@ const HTML_CACHE_WHITELIST = new Set([
   '/produk',
   '/pijat',
   '/review',
+  '/hal/review',
   '/hal/pengumuman'
   ])
 
@@ -31,8 +32,8 @@ const urlsToCache = [
 '/scan',
 '/hal/pengumuman',
 '/produk',
-  '/review',
-
+'/review',
+'/hal/review',
 '/pijat',
 
 
