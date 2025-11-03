@@ -275,7 +275,7 @@
                 <input type="number" class="form-control" id="maks_hari_booking" name="maks_hari_booking"
                 min="0" max="1440" step="1"
                 value="<?= (int) v($record,'maks_hari_booking', 3) ?>">
-                <small class="text-muted d-block">Hanya boleh booking sekian hari ke depan.</small>
+                <small class="text-muted d-block">Hanya boleh booking sekian hari ke depan. Variabel ini jg digunakan untuk menampilkan jumlah data pos terkahir biliiard </small>
               </div>
 
               <div class="form-group col-md-4">

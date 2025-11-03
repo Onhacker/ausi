@@ -161,6 +161,38 @@ function scrollToGrid(){
   }
 }
 
+function scrollToGrid(){
+  const url = new URL(window.location.href);
+  if (url.hash !== '#grandong') {
+    url.hash = 'grandong';
+    history.replaceState(history.state, "", url.toString()); // update hash tanpa gerakin layar
+  }
+  // opsional: kasih fokus tanpa scroll (diamankan untuk Safari lawas)
+  const el = document.getElementById("grandong");
+  if (el) {
+    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex","-1");
+    const x = window.scrollX, y = window.scrollY;
+    try { el.focus({preventScroll:true}); } 
+    catch(e){ el.focus(); window.scrollTo(x,y); }
+  }
+}
+
+function scrollToGridProducts({offset=0, smooth=true} = {}){
+  const el = document.getElementById("grandong");
+  if(!el) return;
+
+  // update hash ke #grandong tanpa loncatan native
+  const url = new URL(window.location.href);
+  if (url.hash !== '#grandong') {
+    url.hash = 'grandong';
+    history.replaceState(history.state, "", url);
+  }
+
+  // scroll dengan kompensasi sticky header (jika ada)
+  const y = el.getBoundingClientRect().top + window.pageYOffset - (offset||0);
+  window.scrollTo({ top: Math.max(0, y), behavior: smooth ? "smooth" : "auto" });
+}
+
 
   /* ==== RECOMMENDED HELPERS ==== */
   function isRecOn(){ return ($("#recommended").val()==="1"); }
@@ -237,7 +269,10 @@ function scrollToGrid(){
       e.preventDefault();
       const p=parseInt($(this).data("page")||1,10);
       loadProducts(p);
-      scrollToGrid();
+        const sticky = document.querySelector(".navbar-fixed-top,.sticky-top,.app-header");
+
+        scrollToGridProducts({ offset: sticky ? sticky.offsetHeight : 0, smooth: true });
+
     });
   }
 
