@@ -50,79 +50,88 @@
               </button>
             </div>
 
-            <?php
-              $playPackage = '#';
-              $playUrl     = 'https://play.google.com/store/apps/details?id=' . $playPackage;
-            ?>
+          <style>
+  .store-badges{
+    display:flex; align-items:center; gap:12px; width:100%;
+    justify-content:flex-start; text-align:initial !important;
+  }
+  /* tombol */
+  .install-badge,.play-badge{
+    display:inline-flex; align-items:center; gap:10px;
+    background:#000; color:#fff; font-size:12px; line-height:1.2; font-weight:600;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    border-radius:999px; padding:4px 10px; text-decoration:none; border:1px solid #000; cursor:pointer;
+    white-space:nowrap; flex:0 0 auto;
+  }
+  .install-badge:hover,.install-badge:focus,
+  .play-badge:hover,.play-badge:focus{ background:#111; color:#fff; text-decoration:none; }
+  .install-icon,.play-icon{ width:26px; height:26px; display:block; flex-shrink:0; }
+  .install-icon svg,.play-icon svg{ width:100%; height:100%; display:block; }
+</style>
+<style>
+  /* Pusatkan kontainer tombol */
+  .store-badges{
+    display:flex;
+    align-items:center;
+    justify-content:center;   /* <-- pusat */
+    gap:12px;
+    width:100%;
+    text-align:initial !important; /* netralisir .text-center parent */
+  }
 
-            <style type="text/css">
-              .install-badge{
-                display:inline-flex;
-                align-items:center;
-                background:#000;
-                color:#fff;
-                font-size:16px;
-                line-height:1.2;
-                font-weight:600;
-                font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-                border-radius:999px;
-                padding:10px 14px;
-                text-decoration:none;
-                border:1px solid #000;
-                cursor:pointer;
-              }
-              .install-badge:hover,
-              .install-badge:focus{
-                text-decoration:none;
-                background:#111;
-                color:#fff;
-              }
+  /* Netralisir sisa rule lama/Bootstrap spacing */
+  #installButton{ margin-left:0 !important; }
+  .store-badges a{ margin:0 !important; } /* hilangkan ms-2/ml-2/my-2 dsb. */
+</style>
 
-              .install-badge .install-icon{
-                display:block;
-                flex-shrink:0;
-                width:24px;
-                height:24px;
-                margin-right:10px;
-              }
-              .install-badge .install-icon svg{
-                width:100%;
-                height:100%;
-                fill:#fff;
-                display:block;
-              }
 
-              @media (max-width:380px){
-                .install-badge{
-                  font-size:14px;
-                  padding:8px 12px;
-                }
-                .install-badge .install-icon{
-                  width:20px;
-                  height:20px;
-                  margin-right:8px;
-                }
-              }
+<?php
+  $playPackage = 'id.co.ausi.twa';
+  $playUrl     = 'https://play.google.com/store/apps/details?id=' . $playPackage;
+?>
 
-              .divider {
-                border: 0;
-                height: 1px;
-                background-color: rgba(0, 0, 0, 0.05);
-                margin: 20px 0;
-                border-radius: 1px;
-              }
-              .text-nowrap { white-space: nowrap; }
-            </style>
+<div class="store-badges mt-2">
+  <!-- Google Play (Android only) -->
+  <a id="playStoreButton"
+     href="<?= htmlspecialchars($playUrl, ENT_QUOTES, 'UTF-8'); ?>"
+     data-play-url="<?= htmlspecialchars($playUrl, ENT_QUOTES, 'UTF-8'); ?>"
+     class="play-badge"
+     aria-label="Get it on Google Play"
+     target="_blank" rel="noopener"
+     style="display:none">
+    <span class="play-icon" aria-hidden="true">
+      <!-- Ikon Google Play full-color -->
+      <svg class="kOqhQd" aria-hidden="true" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0,0h40v40H0V0z"></path><g><path d="M19.7,19.2L4.3,35.3c0,0,0,0,0,0c0.5,1.7,2.1,3,4,3c0.8,0,1.5-0.2,2.1-0.6l0,0l17.4-9.9L19.7,19.2z" fill="#EA4335"></path><path d="M35.3,16.4L35.3,16.4l-7.5-4.3l-8.4,7.4l8.5,8.3l7.5-4.2c1.3-0.7,2.2-2.1,2.2-3.6C37.5,18.5,36.6,17.1,35.3,16.4z" fill="#FBBC04"></path><path d="M4.3,4.7C4.2,5,4.2,5.4,4.2,5.8v28.5c0,0.4,0,0.7,0.1,1.1l16-15.7L4.3,4.7z" fill="#4285F4"></path><path d="M19.8,20l8-7.9L10.5,2.3C9.9,1.9,9.1,1.7,8.3,1.7c-1.9,0-3.6,1.3-4,3c0,0,0,0,0,0L19.8,20z" fill="#34A853"></path></g></svg>
+    </span>
+    <span class="play-text">Download Via Google Play</span>
+  </a>
 
-            <div class="text-center store-badges">
-              <a id="installButton"
-                 href="#"
-                 class="install-badge d-inline-flex my-2 ms-2 ml-2"
-                 aria-label="Install App">
-                <span class="install-icon" aria-hidden="true"></span>
-                <span class="install-text">Install App</span>
-              </a>
-            </div>
+  <!-- PWA (iOS only) -->
+  <a id="installButton"
+     href="#"
+     class="install-badge"
+     aria-label="Install App"
+     style="display:none">
+    <span class="install-icon" aria-hidden="true">
+      <!-- Ikon iOS putih -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M19.67 16.34c-.41.94-.6 1.32-1.13 2.13-.88 1.4-2.12 3.14-3.63 3.14-1.36 0-1.72-.89-3.55-.89s-2.25.89-3.6.89c-1.51 0-2.73-1.61-3.61-3.01C2.46 15.6 2.1 11.07 4.07 8.29c.97-1.37 2.52-2.22 4.12-2.24 1.62-.02 2.64.97 3.55.97.9 0 2.45-1.2 4.13-1.02.7.03 2.67.28 3.94 2.11-3.47 1.89-2.91 6.4-.14 8.23zM14.6 4.8c.62-.75 1.1-1.8 1-2.85-1 .04-2.2.68-2.92 1.5-.64.72-1.16 1.78-1.02 2.81 1.1.08 2.22-.56 2.94-1.46z"/></svg>
+    </span>
+    <span class="install-text">Install on iOS</span>
+  </a>
+</div>
+
+<noscript>
+  <div style="margin-top:8px;text-align:center">
+    <a href="<?= htmlspecialchars($playUrl, ENT_QUOTES, 'UTF-8'); ?>">Unduh dari Google Play</a>
+  </div>
+</noscript>
+
+<!-- SweetAlert2 (opsional, untuk panduan iOS) -->
+<!-- <script src="<?= base_url('assets/vendor/sweetalert2/sweetalert2.min.js'); ?>"></script> -->
+<script src="<?= base_url('assets/js/install.js'); ?>?v=<?= @filemtime(FCPATH.'assets/js/install.js'); ?>"></script>
+
+
+
           </div>
 
           <div class="divider mb-3"></div>
@@ -825,7 +834,8 @@
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/app.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/sw.min.js') ?>"></script>
-<script src="<?= base_url('assets/js/install.js') ?>"></script>
+<script src="<?= base_url('assets/js/install.js'); ?>?v=<?= @filemtime(FCPATH.'assets/js/install.js'); ?>"></script>
+
 <script src="<?= base_url('assets/min/footer.min.js') ?>"></script>
 
 <script>
