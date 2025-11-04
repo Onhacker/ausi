@@ -535,17 +535,23 @@ public function get_dataa(){
 }
 
 
-
 public function set_status_pesanan(){
     $id  = (int)$this->input->post('id');
     $val = (int)$this->input->post('status_pesanan'); // 1|2
     if ($id<=0 || !in_array($val,[1,2],true)){
         echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Parameter tidak valid"]); return;
     }
-    $ok = $this->db->where('id',$id)->update('pesanan', [
-        'status_pesanan' => $val,
-        'updated_at'     => date('Y-m-d H:i:s'),
-    ]);
+
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if ($uname === 'kitchen'){
+        $upd = ['status_pesanan_kitchen'=>$val,'updated_at'=>date('Y-m-d H:i:s')];
+    } elseif ($uname === 'bar'){
+        $upd = ['status_pesanan_bar'=>$val,'updated_at'=>date('Y-m-d H:i:s')];
+    } else {
+        echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Hanya kitchen/bar"]); return;
+    }
+
+    $ok = $this->db->where('id',$id)->update('pesanan', $upd);
     echo json_encode([
         "success"=>$ok,
         "title"=>$ok?"Berhasil":"Gagal",
@@ -611,26 +617,22 @@ private function _active_category_for_user(): ?int {
  * - Sesuaikan nama tabel/kolom & daftar status aktif sesuai skema kamu.
  */
 private function _list_kurirs($only_available = false){
-    // contoh join ringan untuk hitung tugas aktif dari tabel orders
     $this->db->select("
         k.id, k.nama, k.phone, k.vehicle, k.plate, k.status,
         COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN 1 ELSE 0 END), 0) AS on_trip_count
     ", false);
     $this->db->from('kurir k');
-    // sesuaikan status order yang dianggap 'sedang jalan'
     $this->db->join(
         'pesanan o',
-        "o.courier_id = k.id AND o.status_pesanan IN ('1','2')",
+        "o.courier_id = k.id AND o.mode='delivery' AND COALESCE(o.tutup_transaksi,0)=0",
         'left'
     );
 
     if ($only_available) {
-        // kalau mau hanya kurir siap/aktif
         $this->db->where_in('k.status', ['available','ontask']);
     }
 
     $this->db->group_by('k.id');
-    // sort: available dulu, lalu yang on_trip_count kecil, lalu nama
     $this->db->order_by("CASE WHEN k.status='available' THEN 0 WHEN k.status='ontask' THEN 1 ELSE 2 END", "ASC", false);
     $this->db->order_by('on_trip_count', 'ASC');
     $this->db->order_by('k.nama', 'ASC');
@@ -920,30 +922,27 @@ public function print_struk_termal($id = null)
     $id = (int)$id;
     if ($id <= 0) { show_error('ID tidak valid', 400); }
 
-    // pakai $this->dm (alias M_admin_pos)
     $bundle = $this->dm->get_order_with_items($id);
     if (!$bundle) { show_error('Order tidak ditemukan', 404); }
 
     $paper = $this->input->get('paper', true);
     $paper = ($paper === '80') ? '80' : '58';
 
-    // info toko opsional
-    // $store = [
-    //     'nama'   => 'Nama Toko',
-    //     'alamat' => 'Alamat Jalan Contoh No. 123',
-    //     'kota'   => 'Kota',
-    //     'telp'   => '0812-xxxx-xxxx',
-    //     'footer' => 'Terima kasih 🙏',
-    // ];
-    // if (isset($this->om) && method_exists($this->om, 'web_me')) {
-        $web = $this->om->web_me();
-        if ($web) {
-            $store['nama']   = trim($web->nama_website ?? $store['nama']);
-            $store['alamat'] = trim($web->alamat ?? $store['alamat']);
-            $store['kota']   = trim($web->kabupaten ?? $store['kota']);
-            $store['telp']   = trim($web->no_telp ?? $store['telp']);
-        }
-    // }
+    // ✅ default store
+    $store = [
+        'nama'   => 'Nama Toko',
+        'alamat' => 'Alamat',
+        'kota'   => '',
+        'telp'   => '',
+        'footer' => 'Terima kasih 🙏',
+    ];
+    $web = $this->om->web_me();
+    if ($web) {
+        $store['nama']   = trim($web->nama_website ?? $store['nama']);
+        $store['alamat'] = trim($web->alamat ?? $store['alamat']);
+        $store['kota']   = trim($web->kabupaten ?? $store['kota']);
+        $store['telp']   = trim($web->no_telp ?? $store['telp']);
+    }
 
     $data = [
         'paper'      => $paper,
@@ -957,6 +956,7 @@ public function print_struk_termal($id = null)
     $html = $this->load->view('front_end/struk', $data, true);
     $this->output->set_content_type('text/html; charset=UTF-8')->set_output($html);
 }
+
 
 
     /** Search produk untuk picker */
@@ -1033,143 +1033,195 @@ private function _stop_kasir_timer($ids){
         ]);
     }
 }
-public function assign_courier(){
+public function assign_courier()
+{
+    // ====== input ======
     $order_id   = (int)$this->input->post('order_id', true);
     $courier_id = (int)$this->input->post('courier_id', true);
-    if ($order_id <= 0 || $courier_id <= 0){
-      return $this->_json(['ok'=>false,'msg'=>'Parameter tidak lengkap'], 400);
+    if ($order_id <= 0 || $courier_id <= 0) {
+        return $this->_json_err('Parameter tidak lengkap', 400);
     }
 
-    // ambil data order
-    $order = $this->db->where('id',$order_id)->get('pesanan')->row();
-    if (!$order) return $this->_json(['ok'=>false,'msg'=>'Order tidak ditemukan'], 404);
-    if (strtolower($order->mode) !== 'delivery'){
-      return $this->_json(['ok'=>false,'msg'=>'Order bukan delivery'], 422);
-    }
-    if (strtolower($order->status) === 'canceled'){
-      return $this->_json(['ok'=>false,'msg'=>'Order sudah dibatalkan'], 422);
+    // ====== transaksi & lock (pastikan tabel InnoDB) ======
+    $this->db->trans_begin();
+
+    // Lock baris order (hindari double-assign balapan)
+    $order = $this->db->query("SELECT * FROM pesanan WHERE id=? FOR UPDATE", [$order_id])->row();
+    if (!$order) {
+        $this->db->trans_rollback(); return $this->_json_err('Order tidak ditemukan', 404);
     }
 
-    // ambil data kurir
-    $kurir = $this->db->where('id',$courier_id)->get('kurir')->row();
-    if (!$kurir) return $this->_json(['ok'=>false,'msg'=>'Kurir tidak ditemukan'], 404);
+    $mode   = strtolower((string)$order->mode);
+    $status = strtolower((string)$order->status);
+
+    // rule: delivery + pending + metode cash/tunai + belum ada kurir
+    if ($mode !== 'delivery') {
+        $this->db->trans_rollback(); return $this->_json_err('Order bukan delivery', 422);
+    }
+    if ($status === 'canceled') {
+        $this->db->trans_rollback(); return $this->_json_err('Order sudah dibatalkan', 422);
+    }
+    if ($status !== 'pending') {
+        $this->db->trans_rollback(); return $this->_json_err('Status order bukan pending', 422);
+    }
+    if (!$this->_is_cash_method($order->paid_method)) {
+        $this->db->trans_rollback(); return $this->_json_err('Metode pembayaran bukan tunai', 422);
+    }
+
+    // Idempotent: jika sudah ke kurir yang sama, anggap sukses
+    if ((int)$order->courier_id === $courier_id && $courier_id > 0) {
+        $kurir = $this->db->get_where('kurir', ['id' => $courier_id])->row();
+        $this->db->trans_commit();
+        return $this->_json([
+            'ok'=>true,
+            'data'=>[
+                'id'    => (int)$kurir->id,
+                'nama'  => (string)$kurir->nama,
+                'phone' => (string)$kurir->phone
+            ],
+        ]);
+    }
+
+    // Jika sudah ada kurir lain → tolak
+    if ((int)$order->courier_id > 0) {
+        $this->db->trans_rollback(); return $this->_json_err('Kurir sudah ditugaskan.', 409);
+    }
+
+    // Lock baris kurir
+    $kurir = $this->db->query("SELECT * FROM kurir WHERE id=? FOR UPDATE", [$courier_id])->row();
+    if (!$kurir) {
+        $this->db->trans_rollback(); return $this->_json_err('Kurir tidak ditemukan', 404);
+    }
     $st = strtolower((string)($kurir->status ?? 'off'));
-    if (!in_array($st, ['available','ontask'])){
-      return $this->_json(['ok'=>false,'msg'=>'Kurir tidak tersedia'], 422);
+    if (!in_array($st, ['available','ontask'], true)) {
+        $this->db->trans_rollback(); return $this->_json_err('Kurir tidak tersedia', 422);
     }
 
-    $this->db->trans_start();
+    // ====== update order + arsip + status kurir + log ======
+    $now = date('Y-m-d H:i:s');
 
-    // kalau sudah ditugaskan ke kurir yg sama, skip update agar idempotent
-    $alreadyAssigned = (!empty($order->courier_id) && (int)$order->courier_id === (int)$kurir->id);
+    $this->db->where('id', $order_id)->update('pesanan', [
+        'courier_id'    => (int)$kurir->id,
+        'courier_name'  => (string)$kurir->nama,
+        'courier_phone' => (string)$kurir->phone,
+        'updated_at'    => $now,
+    ]);
 
-    if (!$alreadyAssigned){
-      // update order
-      $upd = [
-        'courier_id'    => $kurir->id,
-        'courier_name'  => $kurir->nama,
-        'courier_phone' => $kurir->phone,
-        'updated_at'    => date('Y-m-d H:i:s')
-      ];
-        $this->db->where('id',$order_id)->update('pesanan', $upd);
-        $upda = [
-        'courier_name'  => $kurir->nama,
-        'courier_phone' => $kurir->phone,
-        'courier_id'    => $kurir->id
-        ];
-        $this->db->where('src_id',$order_id)->update('pesanan_paid', $upda);
+    // sinkron ke arsip (boleh no-op jika belum ada baris arsip)
+    $this->db->where('src_id', $order_id)->update('pesanan_paid', [
+        'courier_id'    => (int)$kurir->id,
+        'courier_name'  => (string)$kurir->nama,
+        'courier_phone' => (string)$kurir->phone,
+    ]);
 
-      // optional: tandai kurir on-task
-      $this->db->where('id', $kurir->id)->update('kurir', ['status'=>'ontask']);
+    // tandai kurir on-task (opsional)
+    $this->db->where('id', $kurir->id)->update('kurir', ['status' => 'ontask']);
 
-      // optional: log tracking
-      $this->db->insert('delivery_log', [
+    // log
+    $this->db->insert('delivery_log', [
         'order_id'   => $order_id,
-        'courier_id' => $kurir->id,
+        'courier_id' => (int)$kurir->id,
         'event'      => 'assigned',
         'note'       => 'Kurir ditugaskan',
-        'created_at' => date('Y-m-d H:i:s')
-      ]);
-    }
+        'created_at' => $now,
+    ]);
 
-    $this->db->trans_complete();
-    if (!$this->db->trans_status()){
-      return $this->_json(['ok'=>false,'msg'=>'DB error'], 500);
+    if (!$this->db->trans_status()) {
+        $this->db->trans_rollback();
+        return $this->_json_err('DB error', 500);
     }
+    $this->db->trans_commit();
 
-    /* =========================
-     * KIRIM WHATSAPP (setelah commit)
-     * ========================= */
+    // ====== Kirim WhatsApp (aman: setelah commit) ======
     $store  = $this->db->get('identitas')->row();
-    $toko   = trim((string)($store->nama_website ?? $store->nama ?? ''));
-    if ($toko === '') $toko = 'Toko';
+    $toko   = trim((string)($store->nama_website ?? $store->nama ?? '')) ?: 'Toko';
 
     $nomor  = (string)($order->nomor ?? $order_id);
     $custNm = trim((string)($order->nama ?? $order->customer_name ?? 'Pelanggan'));
     $custPh = trim((string)($order->customer_phone ?? $order->telp ?? $order->hp ?? ''));
-    $alamat = trim((string)($order->alamat_kirim ?? $order->alamat ?? '-'));
-    $ongkir = (int)($order->delivery_fee ?? 0);
 
+    $alamat = trim((string)($order->alamat_kirim ?? $order->alamat ?? '-'));
     $lat = isset($order->dest_lat) ? (float)$order->dest_lat : null;
     $lng = isset($order->dest_lng) ? (float)$order->dest_lng : null;
+    $nav = ($lat !== null && $lng !== null)
+        ? 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($lat.','.$lng)
+        : '';
 
-    $nav = '';
-        if ($lat !== null && $lng !== null) {
-            // boleh pakai dir (navigasi) atau q (pin lokasi)
-            $nav = 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($lat . ',' . $lng);
-            // atau:
-            // $nav = "https://www.google.com/maps/?q={$lat},{$lng}";
-        }    // format pesan ke kurir
+    $veh  = trim(((string)($kurir->vehicle ?? '')).' '.((string)($kurir->plate ?? '')));
+    $kurirTelp = trim((string)($kurir->phone ?? ''));
+
     $msgKurir = "Halo {$kurir->nama},\n".
                 "Anda ditugaskan untuk delivery pesanan #{$nomor} dari {$toko}.\n".
                 "Customer: {$custNm}".($custPh ? " ({$custPh})" : "")."\n".
                 "Alamat: {$alamat}\n".
-                // ($ongkir > 0 ? "Ongkir: ".$this->_idr($ongkir)."\n" : "").
                 ($nav ? "Navigasi: {$nav}\n" : "").
                 "Mohon konfirmasi di sistem setelah pickup. Terima kasih.";
 
-    // format pesan ke customer
-    $veh  = trim(((string)($kurir->vehicle ?? '')).' '.((string)($kurir->plate ?? '')));
-    $veh  = trim($veh);
-    $kurirTelp = trim((string)($kurir->phone ?? ''));
-    $kurirWaCTC = $kurirTelp ? ('https://wa.me/'.$this->_msisdn($kurirTelp)) : '';
-
     $msgCust = "Halo {$custNm},\n".
-               "Kurir telah ditugaskan.\n".
-               "Pesanan Anda #{$nomor} dari {$toko} akan diantar. Pastikan Anda berada di lokasi pengantaran.\n".
+               "Kurir telah ditugaskan untuk pesanan #{$nomor} dari {$toko}.\n".
                "Kurir: {$kurir->nama}".($kurirTelp ? " ({$kurirTelp})" : "").($veh ? "\nKendaraan: {$veh}" : "")."\n".
-               // ($ongkir > 0 ? "Perkiraan ongkir: ".$this->_idr($ongkir)."\n" : "").
-               // ($nav ? "Lokasi tujuan terdaftar.\n" : "").
-               ($kurirWaCTC ? "Hubungi kurir: {$kurirWaCTC}\n" : "").
+               ($kurirTelp ? "Hubungi: https://wa.me/".$this->_msisdn($kurirTelp)."\n" : "").
                "Terima kasih 🙏";
 
-    // normalisasi nomor → 62xxxxx
     $custMsisdn  = $this->_msisdn($custPh);
     $kurirMsisdn = $this->_msisdn($kurirTelp);
 
-    // kirim (aman: hanya jika fungsi helper ada & nomor valid)
-    $okCust = $this->_wa_try($custMsisdn,  $msgCust);
-    $okKur  = $this->_wa_try($kurirMsisdn, $msgKurir);
+    $okCust = $custMsisdn  ? $this->_wa_try($custMsisdn,  $msgCust)  : false;
+    $okKur  = $kurirMsisdn ? $this->_wa_try($kurirMsisdn, $msgKurir) : false;
 
-    // fallback Click-to-Chat
     $fallback = [
-      'courier_ctc'  => $kurirMsisdn ? ('https://wa.me/'.$kurirMsisdn.'?text='.rawurlencode($msgKurir)) : null,
-      'customer_ctc' => $custMsisdn  ? ('https://wa.me/'.$custMsisdn .'?text='.rawurlencode($msgCust))  : null,
+        'courier_ctc'  => $kurirMsisdn ? ('https://wa.me/'.$kurirMsisdn.'?text='.rawurlencode($msgKurir)) : null,
+        'customer_ctc' => $custMsisdn  ? ('https://wa.me/'.$custMsisdn .'?text='.rawurlencode($msgCust))  : null,
     ];
 
     return $this->_json([
-      'ok'=>true,
-      'data'=>[
-        'id'    => (int)$kurir->id,
-        'nama'  => (string)$kurir->nama,
-        'phone' => (string)$kurir->phone
-      ],
-      'wa'=>[
-        'courier'=> ['ok'=>$okKur,  'to'=>$kurirMsisdn, 'fallback_ctc'=>$fallback['courier_ctc']],
-        'customer'=>['ok'=>$okCust, 'to'=>$custMsisdn,  'fallback_ctc'=>$fallback['customer_ctc']],
-      ]
+        'ok'=>true,
+        'data'=>[
+            'id'    => (int)$kurir->id,
+            'nama'  => (string)$kurir->nama,
+            'phone' => (string)$kurir->phone,
+        ],
+        'wa'=>[
+            'courier'=> ['ok'=>$okKur,  'to'=>$kurirMsisdn, 'fallback_ctc'=>$fallback['courier_ctc']],
+            'customer'=>['ok'=>$okCust, 'to'=>$custMsisdn,  'fallback_ctc'=>$fallback['customer_ctc']],
+        ]
     ]);
 }
+
+/** Deteksi metode tunai (mendukung JSON/string gabungan) */
+private function _is_cash_method($raw): bool
+{
+    $raw = (string)$raw;
+    $s = strtolower(trim($raw));
+    if ($s === '' || $s === '-' || $s === 'unknown') return false;
+
+    $tokens = [];
+    if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
+        $tmp = json_decode($raw, true);
+        if (is_array($tmp)) { foreach ($tmp as $v) $tokens[] = strtolower(trim((string)$v)); }
+    }
+    if (!$tokens) {
+        $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+    }
+    foreach ($tokens as $t) {
+        if (preg_match('/^(cash|tunai)$/', $t)) return true;
+    }
+    return false;
+}
+
+
+
+
+/** Helper JSON */
+private function _json_err($msg, $code=422){
+    return $this->_json(['ok'=>false,'msg'=>$msg], $code);
+}
+private function _json($payload, $code=200){
+    return $this->output->set_content_type('application/json')
+                        ->set_status_header($code)
+                        ->set_output(json_encode($payload));
+}
+
 
 /* ===== Helper privat (kalau belum ada) ===== */
 private function _idr($n){ return 'Rp '.number_format((int)$n,0,',','.'); }
@@ -1193,11 +1245,6 @@ private function _wa_try($to,$msg){
 }
 
 
-  private function _json($arr, $code=200){
-    $this->output->set_status_header($code);
-    $this->output->set_output(json_encode($arr));
-    return;
-  }
 
 
   // ====== TAMBAHKAN di class Admin_pos (controller) ======

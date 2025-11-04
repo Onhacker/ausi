@@ -47,12 +47,26 @@ $hasKurir    = ($kurir_id > 0 && $kurir_nama !== '');
 
 // ganti baris paid_method lama
 $pm_raw = trim((string)($order->paid_method ?? ''));
-$pm     = strtolower($pm_raw);
+$s = strtolower(trim($pm_raw));
+$tokens = [];
 
-// ...
+// dukung JSON array/string
+if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
+    $tmp = json_decode($pm_raw, true);
+    if (is_array($tmp)) {
+        foreach ($tmp as $v) { $tokens[] = strtolower(trim((string)$v)); }
+    }
+}
+if (!$tokens) {
+    $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+}
 
-// ganti baris canAssignKurir
-$canAssignKurir = ($is_delivery && $status === 'pending' && $pm === 'cash' && !$hasKurir);
+$hasCash = false;
+foreach ($tokens as $t) {
+    if (preg_match('/^(cash|tunai)$/', $t)) { $hasCash = true; break; }
+}
+
+$canAssignKurir = ($is_delivery && $status === 'pending' && $hasCash && !$hasKurir);
 
 // daftar kurir dari controller (boleh kosong)
 $kurirs = $kurirs ?? [];
