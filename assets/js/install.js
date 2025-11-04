@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  // ====== PUNYAMU (dipertahankan) ======
+  // ====== kode kamu (dipertahankan) ======
   let deferredPrompt = null;
 
   function isAppInstalled() {
@@ -47,18 +47,14 @@
 
   function showStandaloneNoticeOnce(){
     if (!isAppInstalled()) return;
-
     const KEY = 'shownStandaloneNotice';
     try { if (localStorage.getItem(KEY)) return; }
     catch (e) { if (window.__shownStandaloneNotice) return; window.__shownStandaloneNotice = true; }
-
     whenSwalReady((fallback)=>{
       const markDone = ()=>{ try { localStorage.setItem(KEY,'1'); } catch(e){} };
       if (!fallback && window.Swal?.fire) {
         Swal.fire('Aplikasi Sudah Terinstal','Anda menjalankan aplikasi dalam mode mandiri (standalone).','info').then(markDone, markDone);
-      } else {
-        alert('Aplikasi berjalan dalam mode mandiri (standalone).'); markDone();
-      }
+      } else { alert('Aplikasi berjalan dalam mode mandiri (standalone).'); markDone(); }
     });
   }
 
@@ -67,7 +63,7 @@
   });
   window.addEventListener('load', showStandaloneNoticeOnce);
 
-  // Ikon kamu
+  // ====== ikon ======
   const ICON_ANDROID = `
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g fill="#fff">
   <path d="M6 18c0 1.1.9 2 2 2h1v3h2v-3h2v3h2v-3h1c1.1 0 2-.9 2-2V9H6v9zM15.53 4.18l1.3-1.3-.78-.78-1.48 1.48C14.38 3.17 13.23 3 12 3s-2.38.17-2.93.48L7.59 2 6.81 2.88l1.3 1.3C7.61 5.24 7 6.48 7 8h10c0-1.52-.61-2.76-1.47-3.82zM10 6c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm4 0c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
@@ -79,26 +75,20 @@
 
   const ICON_APP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h9a3 3 0 0 1 3 3v1a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-1a3 3 0 0 1 3-3z"/><path d="M17 11h1a2 2 0 0 1 0 4h-1"/><path d="M4 20h14"/><path d="M9 4c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/><path d="M12 4c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/><path d="M15 5c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/></svg>';
 
-  // ====== Tambahan minimal untuk Google Play & visibilitas ======
+  // ====== tambahan: Google Play & visibilitas ======
   function isAndroidUA(){
     const ua = navigator.userAgent || navigator.vendor || '';
     return /Android/i.test(ua);
   }
 
   const ICON_PLAY = `
-  <svg class="kOqhQd" aria-hidden="true" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0,0h40v40H0V0z"></path><g><path d="M19.7,19.2L4.3,35.3c0,0,0,0,0,0c0.5,1.7,2.1,3,4,3c0.8,0,1.5-0.2,2.1-0.6l0,0l17.4-9.9L19.7,19.2z" fill="#EA4335"></path><path d="M35.3,16.4L35.3,16.4l-7.5-4.3l-8.4,7.4l8.5,8.3l7.5-4.2c1.3-0.7,2.2-2.1,2.2-3.6C37.5,18.5,36.6,17.1,35.3,16.4z" fill="#FBBC04"></path><path d="M4.3,4.7C4.2,5,4.2,5.4,4.2,5.8v28.5c0,0.4,0,0.7,0.1,1.1l16-15.7L4.3,4.7z" fill="#4285F4"></path><path d="M19.8,20l8-7.9L10.5,2.3C9.9,1.9,9.1,1.7,8.3,1.7c-1.9,0-3.6,1.3-4,3c0,0,0,0,0,0L19.8,20z" fill="#34A853"></path></g></svg>`.trim();
+<svg class="kOqhQd" aria-hidden="true" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0,0h40v40H0V0z"></path><g><path d="M19.7,19.2L4.3,35.3c0,0,0,0,0,0c0.5,1.7,2.1,3,4,3c0.8,0,1.5-0.2,2.1-0.6l0,0l17.4-9.9L19.7,19.2z" fill="#EA4335"></path><path d="M35.3,16.4L35.3,16.4l-7.5-4.3l-8.4,7.4l8.5,8.3l7.5-4.2c1.3-0.7,2.2-2.1,2.2-3.6C37.5,18.5,36.6,17.1,35.3,16.4z" fill="#FBBC04"></path><path d="M4.3,4.7C4.2,5,4.2,5.4,4.2,5.8v28.5c0,0.4,0,0.7,0.1,1.1l16-15.7L4.3,4.7z" fill="#4285F4"></path><path d="M19.8,20l8-7.9L10.5,2.3C9.9,1.9,9.1,1.7,8.3,1.7c-1.9,0-3.6,1.3-4,3c0,0,0,0,0,0L19.8,20z" fill="#34A853"></path></g></svg>`.trim();
 
-  function getPlayUrl(){
-    const a = document.getElementById('playStoreButton');
-    return a ? (a.dataset.playUrl || a.getAttribute('href') || '') : '';
-  }
-
-  // Punyamu: atur ikon/teks tombol install (termasuk “Ngopi Yuk”)
   function setupInstallButtonUI(){
-    const btn   = document.getElementById('installButton');
+    const btn = document.getElementById('installButton');
     if (!btn) return;
-    const iconEl  = btn.querySelector('.install-icon');
-    const textEl  = btn.querySelector('.install-text');
+    const iconEl = btn.querySelector('.install-icon');
+    const textEl = btn.querySelector('.install-text');
 
     if (isAppInstalled()){
       if (iconEl) iconEl.innerHTML = ICON_APP;
@@ -117,75 +107,78 @@
     btn.setAttribute('aria-label','Install on Android');
   }
 
-  // Baru: tampilkan mana yang perlu
   function setupBadgesVisibility(){
     const playBtn    = document.getElementById('playStoreButton');
     const installBtn = document.getElementById('installButton');
 
     if (isAppInstalled()){
-      if (playBtn)    playBtn.style.display = 'none';
-      if (installBtn) installBtn.style.display = 'inline-flex'; // akan jadi "Ngopi Yuk" oleh setupInstallButtonUI()
+      if (playBtn)    playBtn.style.display   = 'none';
+      if (installBtn) installBtn.style.display = 'inline-flex';
       return;
     }
 
     if (isIOSUA()){
-      if (playBtn)    playBtn.style.display = 'none';
+      if (playBtn)    playBtn.style.display   = 'none';
       if (installBtn) installBtn.style.display = 'inline-flex';
     } else {
-      // Android & platform lain → tampilkan Play
       if (playBtn){
         const ic = playBtn.querySelector('.play-icon');
         if (ic && !ic.innerHTML) ic.innerHTML = ICON_PLAY;
         playBtn.style.display = 'inline-flex';
-        // href Play sudah di HTML → tidak perlu handler khusus
       }
       if (installBtn) installBtn.style.display = 'none';
     }
   }
 
-  // Klik install → tetap pakai logika kamu
-  document.addEventListener('DOMContentLoaded', () => {
+  async function onInstallClick(e){
+    e.preventDefault();
+
+    if (isAppInstalled()) {
+      return whenSwalReady((fallback)=>{
+        if (!fallback) Swal.fire('Yuk','Kesini aja ngopi bareng.','info');
+        else alert('Kesini aja ngopi bareng');
+      });
+    }
+
+    if (isIOSUA()) { return window.showIOSInstallGuide(e); }
+
+    if (!deferredPrompt) {
+      return whenSwalReady((fallback)=>{
+        if (!fallback) Swal.fire('Installed','Aplikasi sudah terinstal, cek di home HP anda.','warning');
+        else alert('Instal belum siap.');
+      });
+    }
+
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    if (choice && choice.outcome === 'accepted') {
+      whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Berhasil!','Aplikasi sedang diinstal.','success'); });
+    } else {
+      whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Dibatalkan','Anda membatalkan instalasi.','info'); });
+    }
+    deferredPrompt = null;
+  }
+
+  // === FIX PENTING: jalankan init walaupun DOMContentLoaded sudah lewat ===
+  function init(){
     setupInstallButtonUI();
     setupBadgesVisibility();
-
     const installButton = document.getElementById('installButton');
-    if (!installButton) return;
-
-    installButton.addEventListener('click', async (e) => {
-      e.preventDefault();
-
-      if (isAppInstalled()) {
-        return whenSwalReady((fallback)=>{
-          if (!fallback) Swal.fire('Yuk','Kesini aja ngopi bareng.','info');
-          else alert('Kesini aja ngopi bareng');
-        });
-      }
-
-      if (isIOSUA()) { return window.showIOSInstallGuide(e); }
-
-      if (!deferredPrompt) {
-        return whenSwalReady((fallback)=>{
-          if (!fallback) Swal.fire('Installed','Aplikasi sudah terinstal, cek di home HP anda.','warning');
-          else alert('Instal belum siap.');
-        });
-      }
-
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice && choice.outcome === 'accepted') {
-        whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Berhasil!','Aplikasi sedang diinstal.','success'); });
-      } else {
-        whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Dibatalkan','Anda membatalkan instalasi.','info'); });
-      }
-      deferredPrompt = null;
-    });
-  });
+    if (installButton){
+      installButton.removeEventListener('click', onInstallClick);
+      installButton.addEventListener('click', onInstallClick);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init(); // DOM sudah siap → langsung jalan
+  }
 
   window.addEventListener('appinstalled', () => {
     console.log('✅ App installed');
     whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal.','success'); });
   });
 
-  // Tetap ada agar kompatibel dengan onclick="openPlayStore(event)" di tempat lain
   function openPlayStore(e){ return true; }
 })();
