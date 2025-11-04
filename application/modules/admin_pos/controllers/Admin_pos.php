@@ -337,51 +337,82 @@ public function get_dataa(){
             // ======== KOLom "Lama" (elapsed) ========
             // Default: live berjalan dari createdTs
             // ======== KOLom "Lama" (elapsed) ========
-            $createdTs = strtotime($r->created_at ?: date('Y-m-d H:i:s')) ?: time();
-            $lamaHtml  = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
+            // $createdTs = strtotime($r->created_at ?: date('Y-m-d H:i:s')) ?: time();
+            // $lamaHtml  = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
 
 
-            // Kitchen: berhenti kalau selesai (status_pesanan_kitchen=2)
+            // // Kitchen: berhenti kalau selesai (status_pesanan_kitchen=2)
+            // if ($isKitchen) {
+            //     if ((int)$r->status_pesanan_kitchen === 2) {
+            //         // pakai durasi tersimpan kalau ada, fallback hitung dari done_at
+            //         if ($r->kitchen_duration_s !== null) {
+            //             $dur = (int)$r->kitchen_duration_s;
+            //         } elseif (!empty($r->kitchen_done_at)) {
+            //             $dur = max(0, strtotime($r->kitchen_done_at) - $createdTs);
+            //         } else {
+            //             $dur = 0;
+            //         }
+            //         $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+            //     }
+            // // Bar: berhenti kalau selesai (status_pesanan_bar=2)
+            // } elseif ($isBar) {
+            //     if ((int)$r->status_pesanan_bar === 2) {
+            //         if ($r->bar_duration_s !== null) {
+            //             $dur = (int)$r->bar_duration_s;
+            //         } elseif (!empty($r->bar_done_at)) {
+            //             $dur = max(0, strtotime($r->bar_done_at) - $createdTs);
+            //         } else {
+            //             $dur = 0;
+            //         }
+            //         $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+            //     }
+            // // Kasir/Admin: berhenti kalau transaksi ditutup
+            // } else {
+            //     $status_raw = strtolower((string)($r->status ?? ''));
+            //     $isClosed   = ((int)($r->tutup_transaksi ?? 0) === 1)
+            //                || in_array($status_raw, ['paid','canceled'], true);
+
+            //     if ($isClosed) {
+            //         // pakai titik selesai paling masuk akal
+            //         $endTs = null;
+            //         if (!empty($r->paid_at))      $endTs = strtotime($r->paid_at);
+            //         elseif (!empty($r->updated_at)) $endTs = strtotime($r->updated_at);
+            //         else                            $endTs = $createdTs;
+
+            //         $dur = max(0, $endTs - $createdTs);
+            //         $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+            //     }
+            // }
+            // ======== Kolom "Lama" (elapsed) ========
+            // createdTs = epoch (detik)
+            $createdTs = strtotime($r->created_at ?: 'now') ?: time();
+
+            // default: masih berjalan (live)
+            $isClosed = false;
             if ($isKitchen) {
-                if ((int)$r->status_pesanan_kitchen === 2) {
-                    // pakai durasi tersimpan kalau ada, fallback hitung dari done_at
-                    if ($r->kitchen_duration_s !== null) {
-                        $dur = (int)$r->kitchen_duration_s;
-                    } elseif (!empty($r->kitchen_done_at)) {
-                        $dur = max(0, strtotime($r->kitchen_done_at) - $createdTs);
-                    } else {
-                        $dur = 0;
-                    }
-                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-                }
-            // Bar: berhenti kalau selesai (status_pesanan_bar=2)
+                $isClosed = ((int)$r->status_pesanan_kitchen === 2);
             } elseif ($isBar) {
-                if ((int)$r->status_pesanan_bar === 2) {
-                    if ($r->bar_duration_s !== null) {
-                        $dur = (int)$r->bar_duration_s;
-                    } elseif (!empty($r->bar_done_at)) {
-                        $dur = max(0, strtotime($r->bar_done_at) - $createdTs);
-                    } else {
-                        $dur = 0;
-                    }
-                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-                }
-            // Kasir/Admin: berhenti kalau transaksi ditutup
+                $isClosed = ((int)$r->status_pesanan_bar === 2);
             } else {
                 $status_raw = strtolower((string)($r->status ?? ''));
-                $isClosed   = ((int)($r->tutup_transaksi ?? 0) === 1)
-                           || in_array($status_raw, ['paid','canceled'], true);
+                $isClosed = ((int)($r->tutup_transaksi ?? 0) === 1)
+                         || in_array($status_raw, ['paid','canceled'], true);
+            }
 
-                if ($isClosed) {
-                    // pakai titik selesai paling masuk akal
-                    $endTs = null;
-                    if (!empty($r->paid_at))      $endTs = strtotime($r->paid_at);
-                    elseif (!empty($r->updated_at)) $endTs = strtotime($r->updated_at);
-                    else                            $endTs = $createdTs;
+            if ($isClosed) {
+                // Tentukan endTs terbaik, lalu kirim data-dur (detik)
+                $endTs = null;
+                if ($isKitchen && !empty($r->kitchen_done_at))      $endTs = strtotime($r->kitchen_done_at);
+                elseif ($isBar   && !empty($r->bar_done_at))        $endTs = strtotime($r->bar_done_at);
+                elseif (!empty($r->paid_at))                        $endTs = strtotime($r->paid_at);
+                elseif (!empty($r->updated_at))                     $endTs = strtotime($r->updated_at);
+                else                                                $endTs = $createdTs;
 
-                    $dur = max(0, $endTs - $createdTs);
-                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-                }
+                $dur = max(0, (int)$endTs - (int)$createdTs);
+                $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+            } else {
+                // Masih berjalan → kirim data-start (epoch detik)
+                $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
             }
 
             // ===== Kolom "Pesanan" (khusus kitchen/bar) =====
@@ -436,8 +467,8 @@ public function get_dataa(){
 
             // 2. mode
             $row['mode']  =
-    // SISIPKAN ID TERSEMBUNYI DI SINI:
-            '<span class="d-none meta-rowid" data-rowid="'.$rowId.'"></span>' .
+    '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'.
+
 
     // lalu konten mode yg lama:
             '<div class="d-inline-block text-left">'

@@ -875,77 +875,59 @@ function ensureElapsedSpans(api){
 })();
 </script>
 <script>
-// ===== POS ticker FIX — handle "data-dur" null string & live update =====
+// ===== POS ticker — single source of truth =====
 (function(){
-  if (window.__POS_TICK_FIX__) return; window.__POS_TICK_FIX__ = true;
+  if (window.__POS_TICK__) return; window.__POS_TICK__ = true;
 
-  function humanize(sec){
-    sec = +sec || 0; if (sec < 0) sec = 0;
-    var d = Math.floor(sec/86400); sec -= d*86400;
-    var h = Math.floor(sec/3600);  sec -= h*3600;
-    var m = Math.floor(sec/60);    sec -= m*60;
+  // Humanizer sederhana: d=hari, j=jam, m=menit, d=detik
+  function H(sec){
+    sec = sec|0; if (sec < 0) sec = 0;
+    var d = (sec/86400)|0; sec -= d*86400;
+    var h = (sec/3600)|0;  sec -= h*3600;
+    var m = (sec/60)|0;    sec -= m*60;
     var out = [];
-    if (d) out.push(d+'h');   // hari
-    if (h) out.push(h+'j');   // jam
-    if (m) out.push(m+'m');   // menit
-    out.push(sec+'d');        // detik
+    if (d) out.push(d+'h');
+    if (h) out.push(h+'j');
+    if (m) out.push(m+'m');
+    out.push(sec+'d');
     return out.join(' ');
   }
-
-  function isValidDur(raw){
-    // anggap TIDAK valid kalau: null, undefined, "", "null", "undefined", NaN
-    if (raw == null) return false;
-    if (raw === '' || raw === 'null' || raw === 'undefined') return false;
-    var n = parseInt(raw, 10);
-    return Number.isFinite(n) && n >= 0;
-  }
+  window.POS_humanizeDuration = H;
 
   function tickOnce(){
-    var now = Math.floor(Date.now()/1000);
+    var now = (Date.now()/1000)|0;
     var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
-
-    for (var i=0; i<els.length; i++){
-      var el = els[i];
-
-      var rawDur = el.getAttribute('data-dur');
-      if (isValidDur(rawDur)) {
-        // order CLOSED: tampilkan durasi final, tidak live
-        var dur = parseInt(rawDur,10) || 0;
-        var fixed = humanize(dur);
-        if (el.textContent !== fixed) el.textContent = fixed;
-        if (!el.classList.contains('text-muted')) el.classList.add('text-muted');
-        continue;
+    for (var i=0, n=els.length; i<n; i++){
+      var el = els[i], txt;
+      // kalau ada data-dur → sudah berhenti
+      var durAttr = el.getAttribute('data-dur');
+      if (durAttr !== null && durAttr !== '') {
+        var dur = parseInt(durAttr,10) || 0;
+        txt = H(dur);
+        if (!el.dataset.muted){ el.classList.add('text-muted'); el.dataset.muted = '1'; }
+      } else {
+        // live: pakai data-start (detik)
+        var st = parseInt(el.getAttribute('data-start')||'0',10) || 0;
+        if (st > 1e12) st = (st/1000)|0; // kalau server tak sengaja kirim ms
+        txt = (st>0) ? H(now - st) : '—';
       }
-
-      // order masih jalan: pakai data-start
-      var rawStart = el.getAttribute('data-start') || '0';
-      var st = parseInt(rawStart, 10) || 0;
-      if (st > 1e12) st = Math.floor(st/1000); // kalau server kirim ms
-
-      var txt = st > 0 ? humanize(now - st) : '—';
       if (el.textContent !== txt) el.textContent = txt;
     }
   }
-
-  // expose untuk dipanggil dari tempat lain (drawCallback dsb.)
   window.POS_tickOnce = tickOnce;
 
-  // jalan sekarang + tiap 1 dtk
-  tickOnce();
-  var interval = setInterval(tickOnce, 1000);
-
-  // aman: re-tick setiap DataTables redraw
-  if (window.jQuery) {
-    jQuery(function(){
-      var $t = jQuery('#datable_pos');
-      if ($t.length) $t.on('draw.dt', tickOnce);
-    });
+  // 1Hz loop (pause saat tab disembunyikan)
+  var last = 0;
+  function loop(ts){
+    if (document.visibilityState !== 'hidden' && ts - last >= 950){ tickOnce(); last = ts; }
+    requestAnimationFrame(loop);
   }
+  requestAnimationFrame(loop);
 
-  // jika tab jadi aktif lagi, langsung sinkron
-  document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState !== 'hidden') tickOnce();
-  });
+  // Re-tick setiap DataTables redraw / selesai XHR
+  if (window.jQuery){
+    jQuery(document).on('draw.dt xhr.dt', '#datable_pos', tickOnce);
+  }
 })();
 </script>
 

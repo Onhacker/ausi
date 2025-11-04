@@ -38,16 +38,15 @@
 </button>
 
 <!-- ====== TOMBOL BARU: ORDER (LIST MEJA) ====== -->
-<button type="button" class="btn btn-success btn-sm waves-effect waves-light mr-2" onclick="openMejaModal()">
+
+  <?php if (!$isKB): ?>
+    <button type="button" class="btn btn-success btn-sm waves-effect waves-light mr-2" onclick="openMejaModal()">
   <span class="btn-label"><i class="fe-grid"></i></span>Order
 </button>
 
 <a href="<?php echo site_url('produk/walkin') ?>" class="btn btn-primary btn-sm waves-effect waves-light mr-2">
   <span class="btn-label"><i class="fe-shopping-bag"></i></span>Bungkus
 </a>
-
-
-  <?php if (!$isKB): ?>
     <select id="filter-status" class="form-control form-control-sm mr-2" style="width:220px">
       <option value="all" selected>Semua status</option>
       <option value="paid">Paid (Lunas)</option>
