@@ -1,4 +1,5 @@
 /* assets/js/install.js */
+// berubah
 (() => {
   'use strict';
 

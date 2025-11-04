@@ -814,13 +814,15 @@
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal fade -->
 
-<!-- petunjuk install ios -->
-<?php $this->load->view("front_end/app"); ?>
+
+
 
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/app.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/sw.min.js') ?>"></script>
 <!-- load JS eksternal -->
+<!-- petunjuk install ios -->
+<?php $this->load->view("front_end/app"); ?>
 <script src="<?= base_url('assets/js/install.js'); ?>?v=<?= @filemtime(FCPATH.'assets/js/install.js'); ?>"></script>
 
 <script src="<?= base_url('assets/min/footer.min.js') ?>"></script>
