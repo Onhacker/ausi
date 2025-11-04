@@ -68,7 +68,13 @@
   }
 
   // ====== DataTables init di DOM ready
-  $(function(){
+  // GANTI baris: $(function(){
+(function initPOSWhenReady(){
+  if (!window.jQuery || !(jQuery.fn && (jQuery.fn.DataTable || jQuery.fn.dataTable))) {
+    return setTimeout(initPOSWhenReady, 80); // tunggu jQuery + DataTables
+  }
+  jQuery(function(){
+
     // util paging info
     $.fn.dataTableExt.oApi.fnPagingInfo = function(o){
       return {
@@ -167,23 +173,77 @@
     $('#filter-status').on('change', function(){ reload_table('user'); });
 
     // timer "Durasi" live
-    setInterval(function(){
-      var now = Math.floor(Date.now()/1000);
-      $('#datable_pos tbody span.elapsed').each(function(){
-        var durAttr = this.getAttribute('data-dur');
-        if (durAttr !== null && durAttr !== ''){
-          var dur = parseInt(durAttr,10) || 0;
-          this.textContent = humanizeDuration(dur);
-          this.classList.add('text-muted');
-          return;
-        }
-        var start = parseInt(this.getAttribute('data-start')||'0',10);
-        if (start>0){
-          this.textContent = humanizeDuration(now - start);
-        }
-      });
-    }, 1000);
+    // setInterval(function(){
+    //   var now = Math.floor(Date.now()/1000);
+    //   $('#datable_pos tbody span.elapsed').each(function(){
+    //     var durAttr = this.getAttribute('data-dur');
+    //     if (durAttr !== null && durAttr !== ''){
+    //       var dur = parseInt(durAttr,10) || 0;
+    //       this.textContent = humanizeDuration(dur);
+    //       this.classList.add('text-muted');
+    //       return;
+    //     }
+    //     var start = parseInt(this.getAttribute('data-start')||'0',10);
+    //     if (start>0){
+    //       this.textContent = humanizeDuration(now - start);
+    //     }
+    //   });
+    // }, 1000);
+    }); // akhir jQuery DOM ready
+})(); // akhir initPOSWhenReady
+// === Formatter durasi (global, tanpa jQuery) ===
+window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
+  sec = Math.max(0, Math.floor(sec||0));
+  var d = Math.floor(sec/86400); sec%=86400;
+  var j = Math.floor(sec/3600);  sec%=3600;
+  var m = Math.floor(sec/60);    sec%=60;
+  var parts = [];
+  if (d) parts.push(d+'h'); // hari
+  if (j) parts.push(j+'j'); // jam
+  if (m) parts.push(m+'m'); // menit
+  parts.push(sec+'d');      // detik
+  return parts.join(' ');
+};
+
+// === Tick sekali (update semua span.elapsed) ===
+function POS_tickOnce(){
+  var now = Math.floor(Date.now()/1000);
+  var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
+  for (var i=0; i<els.length; i++){
+    var el = els[i];
+    var durAttr = el.getAttribute('data-dur');
+    if (durAttr !== null && durAttr !== ''){
+      var dur = parseInt(durAttr,10) || 0;
+      el.textContent = window.POS_humanizeDuration(dur);
+      el.classList.add('text-muted');
+      continue;
+    }
+    var st = parseInt(el.getAttribute('data-start')||'0',10);
+    if (st > 1e12) st = Math.floor(st/1000); // kalau tak sengaja ms
+    if (st > 0){
+      el.textContent = window.POS_humanizeDuration(now - st);
+    }
+  }
+}
+
+// === Loop 1 detik, tanpa tergantung jQuery ===
+(function POS_startTicker(){
+  if (window.__POS_TICK__) return; window.__POS_TICK__ = true;
+  function loop(){ POS_tickOnce(); setTimeout(loop, 1000); }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', loop);
+  } else { loop(); }
+})();
+
+// === Re-tick setiap DataTables draw (kalau jQuery ada) ===
+(function hookDraw(){
+  if (!window.jQuery) return setTimeout(hookDraw, 100);
+  jQuery(function(){
+    var $tbl = jQuery('#datable_pos');
+    if ($tbl.length) $tbl.on('draw.dt', POS_tickOnce);
   });
+})();
+
 
   /* ================== Toolbar & Detail ================== */
   function show_detail(id){
@@ -579,3 +639,189 @@
 
 })(); // end IIFE
 </script>
+<script>
+/* ===== Meja module (BS4/BS5-safe) — V3 ===== */
+(function(){
+  if (window.__MEJA_V3__) return; window.__MEJA_V3__ = true;
+
+  var $modal = $('#meja-modal');
+  var $list  = $('#meja-list');
+  var $empty = $('#meja-empty');
+  var $count = $('#meja-count');
+  var $q     = $('#meja-q');
+  var tDeb   = null;
+
+  function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
+  function toast(msg){ if (window.Swal) Swal.fire({toast:true, position:'top', timer:1300, showConfirmButton:false, icon:'success', title:msg}); }
+
+  function render(items){
+    $list.empty();
+    if (!items || !items.length){ $empty.show(); $count.text('0 meja'); return; }
+    $empty.hide(); $count.text(items.length + ' meja');
+
+    items.forEach(function(it){
+      var kode = esc(it.kode), nama = esc(it.nama), area = esc(it.area||'');
+      var kap  = parseInt(it.kapasitas||0,10)||0;
+      var link = it.link || '#';
+      var qr   = it.qrcode || '';
+
+      var $col = $('<div class="col-md-6 col-lg-4 p-1"></div>');
+      var $card = $(`
+        <div class="meja-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="meja-kode">${kode}</div>
+              <div class="meja-meta">${nama}${area? ' · '+area : ''}${kap? ' · '+kap+' org':''}</div>
+            </div>
+            <span class="badge badge-success">aktif</span>
+          </div>
+          <div class="meja-actions mt-2">
+            <a href="${link}" target="_blank" rel="noopener" class="btn btn-sm btn-primary"><i class="fe-external-link"></i> Buka</a>
+            ${qr ? `<button type="button" class="btn btn-sm btn-outline-info" data-qr="${esc(qr)}"><i class="fe-image"></i> QR</button>` : ''}
+          </div>
+        </div>
+      `);
+      $col.append($card); $list.append($col);
+    });
+  }
+
+  function loadMeja(q){
+    // tampilkan placeholder loading
+    $list.html('<div class="col-12 text-center text-muted py-3">Memuat…</div>');
+    $.getJSON("<?= site_url('admin_pos/list_meja') ?>", { q: q||'' })
+      .done(function(r){
+        if (!r || !r.success){ $list.html('<div class="col-12 text-center text-danger py-3">Gagal memuat data</div>'); return; }
+        render(r.data||[]);
+      })
+      .fail(function(xhr){
+        var msg = 'Koneksi bermasalah';
+        if (xhr && xhr.status) msg += ' ('+xhr.status+')';
+        $list.html('<div class="col-12 text-center text-danger py-3">'+msg+'</div>');
+        console.error('list_meja error:', xhr && xhr.responseText);
+      });
+  }
+
+  // === expose ke global utk dipanggil tombol toolbar ===
+  window.openMejaModal = function(){
+    // show modal (helper BS4/BS5)
+    if (typeof showModalById === 'function') showModalById('meja-modal', {backdrop:'static', keyboard:true});
+    else { // fallback minimal
+      var el = document.getElementById('meja-modal');
+      if (el){ el.style.display='block'; el.classList.add('show'); document.body.classList.add('modal-open'); }
+    }
+    // load list + focus input
+    setTimeout(function(){
+      loadMeja($q.val());
+      try{ document.getElementById('meja-q').focus(); }catch(_){}
+    }, 50);
+  };
+
+  // cari (debounce)
+  $q.on('input', function(){
+    clearTimeout(tDeb);
+    var v = this.value.trim();
+    tDeb = setTimeout(function(){ loadMeja(v); }, 250);
+  });
+
+  // aksi copy/QR (delegasi)
+  $list.on('click', 'button[data-copy]', function(){
+    var txt = $(this).data('copy')||'';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function(){ toast('Link disalin'); });
+    } else {
+      var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+      ta.select(); try{ document.execCommand('copy'); }catch(_){}
+      document.body.removeChild(ta); toast('Link disalin');
+    }
+  });
+  $list.on('click', 'button[data-qr]', function(){
+    var src = $(this).data('qr')||'';
+    if (!src) return;
+    if (window.Swal){
+      Swal.fire({title:'QR Code Meja', html:'<img src="'+esc(src)+'" alt="QR" style="max-width:100%">', confirmButtonText:'Tutup'});
+    } else { window.open(src, '_blank'); }
+  });
+
+  // (opsional) muat ulang saat modal dibuka via event BS
+  $modal.on('shown.bs.modal', function(){
+    loadMeja($q.val());
+    try{ document.getElementById('meja-q').focus(); }catch(_){}
+  });
+
+  // simpan loader ke global untuk debugging jika perlu
+  window._meja_load = loadMeja;
+})();
+</script>
+<script>
+/* ===== Bootstrap modal helpers (BS4 & BS5 safe) ===== */
+(function(){
+  if (window.__BS_MODAL_HELPERS__) return; window.__BS_MODAL_HELPERS__ = true;
+
+  function bsShow(el, options){
+    if (!el) return false;
+
+    // Bootstrap 5 (tanpa jQuery)
+    if (window.bootstrap && window.bootstrap.Modal){
+      var Modal = window.bootstrap.Modal;
+      if (typeof Modal.getOrCreateInstance !== 'function'){
+        Modal.getOrCreateInstance = function(element, opts){
+          return (Modal.getInstance && Modal.getInstance(element)) || new Modal(element, opts || {});
+        };
+      }
+      var inst = Modal.getOrCreateInstance(el, options || {backdrop:'static', keyboard:true});
+      inst.show();
+      return true;
+    }
+
+    // Bootstrap 4 (jQuery plugin)
+    if (window.jQuery && jQuery.fn && typeof jQuery.fn.modal === 'function'){
+      jQuery(el).modal(Object.assign({backdrop:'static', keyboard:true, show:true}, options||{}));
+      return true;
+    }
+
+    // Fallback (tanpa Bootstrap JS)
+    el.style.display = 'block';
+    el.classList.add('show');
+    document.body.classList.add('modal-open');
+
+    // bikin backdrop tipis biar UX enak
+    if (!document.querySelector('.modal-backdrop')) {
+      var bd = document.createElement('div');
+      bd.className = 'modal-backdrop show';
+      bd.style.background = 'rgba(0,0,0,.5)';
+      document.body.appendChild(bd);
+    }
+    return true;
+  }
+
+  function bsHide(el){
+    if (!el) return;
+
+    if (window.bootstrap && window.bootstrap.Modal){
+      var Modal = window.bootstrap.Modal;
+      var inst = (Modal.getInstance && Modal.getInstance(el)) || null;
+      if (inst && inst.hide){ inst.hide(); return; }
+    }
+    if (window.jQuery && jQuery.fn && typeof jQuery.fn.modal === 'function'){
+      jQuery(el).modal('hide'); return;
+    }
+
+    // Fallback
+    el.style.display = 'none';
+    el.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    var bd = document.querySelector('.modal-backdrop');
+    if (bd) bd.parentNode.removeChild(bd);
+  }
+
+  window.showModalById = function(id, options){
+    var el = (typeof id === 'string') ? document.getElementById(id) : id;
+    bsShow(el, options);
+  };
+  window.hideModalById = function(id){
+    var el = (typeof id === 'string') ? document.getElementById(id) : id;
+    bsHide(el);
+  };
+})();
+</script>
+

@@ -191,8 +191,13 @@ $us = $this->om->user();
             </div>
             <div class="col-md-6">
                 <div class="text-md-right footer-links d-none d-sm-block">
-                    <a href="javascript:void(0);">Version 2.0.0</a>
-                </div>
+                  <button type="button" id="btn-enable-sound-inline" class="btn btn-warning ml" style="display:none">
+                  Aktifkan Suara Notifikasi
+                </button>
+
+                    <!-- <a href="javascript:void(0);">Version 2.0.0</a> -->
+              </div>
+
             </div>
         </div>
     </div>

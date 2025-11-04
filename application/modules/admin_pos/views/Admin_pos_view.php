@@ -31,14 +31,22 @@
 
 </style>
 
-
 <div class="mb-2 d-flex align-items-center flex-wrap justify-content-start">
   <!-- Kiri: tombol umum -->
-  <button type="button" onclick="reload_table('user')" class="btn btn-blue btn-sm waves-effect waves-light mr-2">
-    <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-  </button>
+ <button type="button" onclick="reload_table('user')" class="btn btn-blue btn-sm waves-effect waves-light mr-2">
+  <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
+</button>
 
-  <!-- Kiri: filter status -->
+<!-- ====== TOMBOL BARU: ORDER (LIST MEJA) ====== -->
+<button type="button" class="btn btn-success btn-sm waves-effect waves-light mr-2" onclick="openMejaModal()">
+  <span class="btn-label"><i class="fe-grid"></i></span>Order
+</button>
+
+<a href="<?php echo site_url('produk/walkin') ?>" class="btn btn-primary btn-sm waves-effect waves-light mr-2">
+  <span class="btn-label"><i class="fe-shopping-bag"></i></span>Bungkus
+</a>
+
+
   <?php if (!$isKB): ?>
     <select id="filter-status" class="form-control form-control-sm mr-2" style="width:220px">
       <option value="all" selected>Semua status</option>
@@ -50,6 +58,7 @@
     </select>
   <?php endif; ?>
 </div>
+
 
 
 </table> 
@@ -80,6 +89,40 @@
 
     </div></div>
   </div></div>
+
+
+<!-- ===== MODAL: LIST MEJA ===== -->
+<div id="meja-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h4 class="mymodal-title">Pilih Meja</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-2">
+          <input type="search" id="meja-q" class="form-control" placeholder="Cari meja (kode/nama/area)…">
+        </div>
+
+        <div id="meja-list" class="row no-gutters"></div>
+        <div id="meja-empty" class="text-muted small py-3" style="display:none">Tidak ada data.</div>
+      </div>
+      <div class="modal-footer">
+        <small class="text-muted mr-auto" id="meja-count"></small>
+        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<style>
+  /* Kartu meja */
+  .meja-card{ border:1px solid rgba(0,0,0,.08); border-radius:.75rem; padding:.75rem; margin:.25rem; width:100%; }
+  .meja-kode{ font-weight:700; font-size:1rem; }
+  .meja-meta{ color:#6b7280; font-size:.85rem; }
+  .meja-actions .btn{ margin-right:.3rem; margin-top:.35rem; }
+</style>
 
   <!-- Modal Detail -->
   <div id="pos-detail-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">

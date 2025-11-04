@@ -1168,4 +1168,44 @@ private function _wa_try($to,$msg){
     return;
   }
 
+
+  // ====== TAMBAHKAN di class Admin_pos (controller) ======
+public function list_meja(){
+    // agar response JSON tidak di-cache
+    $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+    $q = trim((string)$this->input->get('q', true));
+
+    $this->db->from('meja')->where('status','aktif');
+    if ($q !== ''){
+        $this->db->group_start()
+                 ->like('kode',$q)->or_like('nama',$q)->or_like('area',$q)
+                 ->group_end();
+    }
+    $this->db->order_by('kode','ASC');
+
+    $rows = $this->db->get()->result();
+    $out  = [];
+
+    foreach ($rows as $r){
+        // link: produk/tag/{kode}/{qr_token}
+        $url = site_url('produk/tag/'.$r->kode.'/'.$r->qr_token);
+
+        $out[] = [
+            'id'        => (int)$r->id,
+            'kode'      => (string)$r->kode,
+            'nama'      => (string)$r->nama,
+            'area'      => (string)($r->area ?? ''),
+            'kapasitas' => (int)($r->kapasitas ?? 0),
+            'qrcode'    => $r->qrcode ? base_url($r->qrcode) : null,
+            'link'      => $url, // <<— PENTING: URL absolut
+        ];
+    }
+
+    return $this->output->set_content_type('application/json')
+        ->set_output(json_encode(['success'=>true,'data'=>$out]));
+}
+
+
+
 }

@@ -1,3 +1,4 @@
+<?php $this->load->view("front_end/front_notif") ?>
 <?php if ($this->uri->segment(1) != 'on_login'): ?>
   <script>
   const thisUri = "<?= site_url($this->uri->uri_string()); ?>";

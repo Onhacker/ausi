@@ -470,9 +470,7 @@
             <div class="form-row">
               <div class="form-group col-md-6">
                 <button type="button" class="btn btn-outline-info btn-block" onclick="testSmtp()">Test Kirim Email</button>
-                <button type="button" id="btn-enable-sound-inline" class="btn btn-warning btn-block" style="display:none">
-                  Aktifkan Suara Notifikasi
-                </button>
+                
               </div>
             </div>
 
