@@ -879,7 +879,6 @@ function ensureElapsedSpans(api){
 (function(){
   if (window.__POS_TICK__) return; window.__POS_TICK__ = true;
 
-  // Humanizer sederhana: d=hari, j=jam, m=menit, d=detik
   function H(sec){
     sec = sec|0; if (sec < 0) sec = 0;
     var d = (sec/86400)|0; sec -= d*86400;
@@ -899,24 +898,23 @@ function ensureElapsedSpans(api){
     var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
     for (var i=0, n=els.length; i<n; i++){
       var el = els[i], txt;
-      // kalau ada data-dur → sudah berhenti
       var durAttr = el.getAttribute('data-dur');
       if (durAttr !== null && durAttr !== '') {
         var dur = parseInt(durAttr,10) || 0;
         txt = H(dur);
         if (!el.dataset.muted){ el.classList.add('text-muted'); el.dataset.muted = '1'; }
       } else {
-        // live: pakai data-start (detik)
         var st = parseInt(el.getAttribute('data-start')||'0',10) || 0;
-        if (st > 1e12) st = (st/1000)|0; // kalau server tak sengaja kirim ms
+        if (st > 1e12) st = (st/1000)|0; // kalau server kirim ms
         txt = (st>0) ? H(now - st) : '—';
       }
+      // paksa rewrite text
       if (el.textContent !== txt) el.textContent = txt;
     }
   }
   window.POS_tickOnce = tickOnce;
 
-  // 1Hz loop (pause saat tab disembunyikan)
+  // 1Hz (pause saat tab hidden)
   var last = 0;
   function loop(ts){
     if (document.visibilityState !== 'hidden' && ts - last >= 950){ tickOnce(); last = ts; }
@@ -924,7 +922,7 @@ function ensureElapsedSpans(api){
   }
   requestAnimationFrame(loop);
 
-  // Re-tick setiap DataTables redraw / selesai XHR
+  // Re-tick setiap redraw/XHR DataTables
   if (window.jQuery){
     jQuery(document).on('draw.dt xhr.dt', '#datable_pos', tickOnce);
   }

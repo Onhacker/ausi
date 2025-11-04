@@ -385,35 +385,39 @@ public function get_dataa(){
             // }
             // ======== Kolom "Lama" (elapsed) ========
             // createdTs = epoch (detik)
-            $createdTs = strtotime($r->created_at ?: 'now') ?: time();
+            // ======== Kolom "Lama" (elapsed) ========
+                // createdTs = epoch detik
+                $createdTs = strtotime($r->created_at ?: 'now') ?: time();
 
-            // default: masih berjalan (live)
-            $isClosed = false;
-            if ($isKitchen) {
-                $isClosed = ((int)$r->status_pesanan_kitchen === 2);
-            } elseif ($isBar) {
-                $isClosed = ((int)$r->status_pesanan_bar === 2);
-            } else {
-                $status_raw = strtolower((string)($r->status ?? ''));
-                $isClosed = ((int)($r->tutup_transaksi ?? 0) === 1)
-                         || in_array($status_raw, ['paid','canceled'], true);
-            }
+                $isClosed = false;
+                if ($isKitchen) {
+                    $isClosed = ((int)$r->status_pesanan_kitchen === 2);
+                } elseif ($isBar) {
+                    $isClosed = ((int)$r->status_pesanan_bar === 2);
+                } else {
+                    $status_raw = strtolower((string)($r->status ?? ''));
+                    $isClosed = ((int)($r->tutup_transaksi ?? 0) === 1)
+                             || in_array($status_raw, ['paid','canceled'], true);
+                }
 
-            if ($isClosed) {
-                // Tentukan endTs terbaik, lalu kirim data-dur (detik)
-                $endTs = null;
-                if ($isKitchen && !empty($r->kitchen_done_at))      $endTs = strtotime($r->kitchen_done_at);
-                elseif ($isBar   && !empty($r->bar_done_at))        $endTs = strtotime($r->bar_done_at);
-                elseif (!empty($r->paid_at))                        $endTs = strtotime($r->paid_at);
-                elseif (!empty($r->updated_at))                     $endTs = strtotime($r->updated_at);
-                else                                                $endTs = $createdTs;
+                if ($isClosed) {
+                    // Titik selesai terbaik
+                    $endTs = null;
+                    if ($isKitchen && !empty($r->kitchen_done_at))      $endTs = strtotime($r->kitchen_done_at);
+                    elseif ($isBar   && !empty($r->bar_done_at))        $endTs = strtotime($r->bar_done_at);
+                    elseif (!empty($r->paid_at))                        $endTs = strtotime($r->paid_at);
+                    elseif (!empty($r->updated_at))                     $endTs = strtotime($r->updated_at);
+                    else                                                $endTs = $createdTs;
 
-                $dur = max(0, (int)$endTs - (int)$createdTs);
-                $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-            } else {
-                // Masih berjalan → kirim data-start (epoch detik)
-                $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
-            }
+                    $dur = max(0, (int)$endTs - (int)$createdTs);
+                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+                } else {
+                    // Masih berjalan → kirim data-start (detik)
+                    $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
+                }
+
+                $row['lama'] = $lamaHtml;
+
 
             // ===== Kolom "Pesanan" (khusus kitchen/bar) =====
             $pesananHtml = '';
@@ -468,6 +472,7 @@ public function get_dataa(){
             // 2. mode
             $row['mode']  =
     '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'.
+
 
 
     // lalu konten mode yg lama:
