@@ -825,3 +825,82 @@ function POS_tickOnce(){
 })();
 </script>
 
+<script>
+/* ===== POS Ticker & Draw Hook – stand-alone (tidak tergantung __POS_INIT__) ===== */
+
+/* 1) Humanizer (global, aman di-reuse) */
+window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
+  sec = Math.max(0, Math.floor(sec||0));
+  var d = Math.floor(sec/86400); sec%=86400;
+  var j = Math.floor(sec/3600);  sec%=3600;
+  var m = Math.floor(sec/60);    sec%=60;
+  var parts = [];
+  if (d) parts.push(d+'h');  // hari
+  if (j) parts.push(j+'j');  // jam
+  if (m) parts.push(m+'m');  // menit
+  parts.push(sec+'d');       // detik
+  return parts.join(' ');
+};
+
+/* 2) Tick sekali semua <span.elapsed> */
+(function(){
+  if (window.POS_tickOnce) return;   // idempotent
+  window.POS_tickOnce = function(){
+    var now = Math.floor(Date.now()/1000);
+    var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
+    for (var i=0;i<els.length;i++){
+      var el = els[i];
+      var durAttr = el.getAttribute('data-dur');
+      if (durAttr !== null && durAttr !== ''){
+        var dur = parseInt(durAttr,10) || 0;
+        el.textContent = window.POS_humanizeDuration(dur);
+        el.classList.add('text-muted');
+        continue;
+      }
+      var st = parseInt(el.getAttribute('data-start')||'0',10);
+      if (st > 1e12) st = Math.floor(st/1000); // jaga-jaga kalau ms
+      if (st > 0){
+        el.textContent = window.POS_humanizeDuration(now - st);
+      }
+    }
+  };
+})();
+
+/* 3) Loop 1 detik (selalu hidup, tidak tergantung jQuery) */
+(function(){
+  if (window.__POS_TICK__) return; window.__POS_TICK__ = true;
+  function loop(){ window.POS_tickOnce(); setTimeout(loop, 1000); }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', loop);
+  } else { loop(); }
+
+  // Debug ringan: laporkan jumlah elemen tiap 10s kalau berubah
+  setInterval(function(){
+    var n = document.querySelectorAll('#datable_pos tbody span.elapsed').length;
+    if (!window.__POS_TICK_SEEN__ || n !== window.__POS_TICK_SEEN__){
+      console.debug('POS TICK • elements:', n);
+      window.__POS_TICK_SEEN__ = n;
+    }
+  }, 10000);
+})();
+
+/* 4) Hook DataTables draw → retick (baru kalau jQuery/DataTables siap) */
+(function hookDraw(){
+  if (window.__POS_DRAW_HOOK__) return; 
+  function tryHook(){
+    if (window.jQuery && jQuery.fn && (jQuery.fn.dataTable || jQuery.fn.DataTable)) {
+      window.__POS_DRAW_HOOK__ = true;
+      jQuery(function(){
+        var $t = jQuery('#datable_pos');
+        if ($t.length){ 
+          $t.on('draw.dt', window.POS_tickOnce);
+          window.POS_tickOnce(); // tick awal setelah draw pertama
+        }
+      });
+      return;
+    }
+    setTimeout(tryHook, 100);
+  }
+  tryHook();
+})();
+</script>
