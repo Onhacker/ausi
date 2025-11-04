@@ -88,6 +88,45 @@
       {data:"metode"}
     );
     if (!window.IS_KB){ columns.push({data:"aksi", orderable:false}); }
+    // bikin <span class="elapsed"> di kolom "Lama" kalau belum ada
+    function ensureElapsedSpans(api){
+      var lamaIdx = window.IS_KB ? 5 : 4; // Non-KB: 4, KB: 5
+      api.rows({page:'current'}).every(function(){
+        var d = this.data() || {};
+        var row = this.node();
+        var td = row && row.cells ? row.cells[lamaIdx] : null;
+        if (!td) return;
+
+        // sudah ada span.elapsed? skip.
+        if (td.querySelector('span.elapsed')) return;
+
+        // cari kandidat timestamp/durasi dari JSON (fleksibel)
+        var start = parseInt(
+          (d.start_ts ?? d.start ?? d.start_time ?? d.waktu_unix ?? d.waktu ?? 0),
+          10
+        ) || 0;
+        var dur   = parseInt(
+          (d.dur ?? d.duration ?? d.elapsed ?? d.elapsed_sec ?? 0),
+          10
+        ) || 0;
+
+        // fallback: kalau d.waktu string tanggal, coba parse
+        if (!start && typeof d.waktu === 'string'){
+          var parsed = Date.parse(d.waktu.replace(' ', 'T'));
+          if (!isNaN(parsed)) start = Math.floor(parsed/1000);
+        }
+
+        if (start > 1e12) start = Math.floor(start/1000); // kalau ms → s
+
+        // suntikkan span
+        if (dur > 0){
+          td.innerHTML = '<span class="elapsed" data-dur="'+dur+'"></span>';
+        } else if (start > 0){
+          td.innerHTML = '<span class="elapsed" data-start="'+start+'"></span>';
+        }
+        // kalau nggak ada data sama sekali, biarkan text apa adanya
+      });
+    }
 
     // init
     window.table = $('#datable_pos').DataTable({
@@ -128,13 +167,16 @@
         }
       },
       drawCallback: function(){
-        // pastikan update setelah setiap redraw
+        var api = this.api();
+        ensureElapsedSpans(api); // pastikan ada <span.elapsed>
         setTimeout(function(){ if (window.POS_tickOnce) window.POS_tickOnce(); }, 0);
       },
       initComplete: function(){
-        // tick pertama begitu tabel siap
+        var api = this.api();
+        ensureElapsedSpans(api); // tick pertama juga disiapkan
         if (window.POS_tickOnce) window.POS_tickOnce();
       },
+
 
     });
   
