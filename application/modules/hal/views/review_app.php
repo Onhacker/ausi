@@ -66,7 +66,25 @@
   }
   .flash{ animation:flashRing 1.1s ease; border-radius:12px; }
   </style>
+ <style>
+        /* Aktif = biru */
+        .pagination .page-item.active .page-link,
+        .pagination .page-link[aria-current="page"]{
+          background-color: #4a81d4; /* blue */
+          border-color: #4a81d4;
+          color: #fff;
+        }
 
+        /* State hover/focus saat aktif */
+        .pagination .page-item.active .page-link:hover,
+        .pagination .page-item.active .page-link:focus,
+        .pagination .page-link[aria-current="page"]:hover,
+        .pagination .page-link[aria-current="page"]:focus{
+          background-color: #0b5ed7;
+          border-color: #0b5ed7;
+          color: #fff;
+        }
+      </style>
   <!-- RINGKASAN + FORM -->
   <div class="row g-3">
     <!-- RINGKASAN -->
@@ -166,7 +184,7 @@
       </div>
 
       <nav class="mt-3" aria-label="Navigasi halaman review">
-        <ul class="pagination pagination-sm  justify-content-center gap-1" id="reviewsPager"></ul>
+        <ul class="pagination  justify-content-center gap-1" id="reviewsPager"></ul>
       </nav>
     </div>
   </div>
