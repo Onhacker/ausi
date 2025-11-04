@@ -53,20 +53,7 @@
   function formatRpInt(n){ n=parseInt(n||0,10); return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
   function digitsOnly(s){ return (s||'').toString().replace(/[^\d]/g,''); }
 
-  // ===== Stopwatch "Durasi" (hari/jam/menit/detik)
-  function humanizeDuration(sec){
-    sec = Math.max(0, Math.floor(sec||0));
-    var d = Math.floor(sec/86400); sec%=86400;
-    var j = Math.floor(sec/3600);  sec%=3600;
-    var m = Math.floor(sec/60);    sec%=60;
-    var parts = [];
-    if (d) parts.push(d+'h');      // hari
-    if (j) parts.push(j+'j');      // jam
-    if (m) parts.push(m+'m');      // menit
-    parts.push(sec+'d');           // detik
-    return parts.join(' ');
-  }
-
+ 
   // ====== DataTables init di DOM ready
   // GANTI baris: $(function(){
 (function initPOSWhenReady(){
@@ -150,15 +137,7 @@
       },
 
     });
-    try{
-  var tbody = document.querySelector('#datable_pos tbody');
-  if (tbody && !window.__POS_OBS__){
-    window.__POS_OBS__ = new MutationObserver(function(){
-      if (window.POS_tickOnce) window.POS_tickOnce();
-    });
-    window.__POS_OBS__.observe(tbody, { childList: true, subtree: true });
-  }
-}catch(_){}
+  
 
     // pastikan flag reload reset di semua outcome
     window.table.on('xhr.dt error.dt', function(){ window.isReloading = false; });
@@ -210,18 +189,6 @@
     }); // akhir jQuery DOM ready
 })(); // akhir initPOSWhenReady
 // === Formatter durasi (global, tanpa jQuery) ===
-window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
-  sec = Math.max(0, Math.floor(sec||0));
-  var d = Math.floor(sec/86400); sec%=86400;
-  var j = Math.floor(sec/3600);  sec%=3600;
-  var m = Math.floor(sec/60);    sec%=60;
-  var parts = [];
-  if (d) parts.push(d+'h'); // hari
-  if (j) parts.push(j+'j'); // jam
-  if (m) parts.push(m+'m'); // menit
-  parts.push(sec+'d');      // detik
-  return parts.join(' ');
-};
 
 // === Tick sekali (update semua span.elapsed) ===
 // function POS_tickOnce(){
@@ -245,22 +212,9 @@ window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
 // }
 
 // === Loop 1 detik, tanpa tergantung jQuery ===
-(function POS_startTicker(){
-  if (window.__POS_TICK__) return; window.__POS_TICK__ = true;
-  function loop(){ POS_tickOnce(); setTimeout(loop, 1000); }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', loop);
-  } else { loop(); }
-})();
+
 
 // === Re-tick setiap DataTables draw (kalau jQuery ada) ===
-(function hookDraw(){
-  if (!window.jQuery) return setTimeout(hookDraw, 100);
-  jQuery(function(){
-    var $tbl = jQuery('#datable_pos');
-    if ($tbl.length) $tbl.on('draw.dt', POS_tickOnce);
-  });
-})();
 
 
   /* ================== Toolbar & Detail ================== */
@@ -840,6 +794,56 @@ window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
     var el = (typeof id === 'string') ? document.getElementById(id) : id;
     bsHide(el);
   };
+})();
+</script>
+<script>
+// ===== POS ticker V2 — ringan & idempotent =====
+(function(){
+  if (window.__POS_TICK_V2__) return; window.__POS_TICK_V2__ = true;
+
+  // Humanizer baru (aman dari NaN, hasil singkat)
+  function H(sec){
+    sec = sec|0; if (sec < 0) sec = 0;
+    var d = (sec/86400)|0; sec -= d*86400;
+    var h = (sec/3600)|0;  sec -= h*3600;
+    var m = (sec/60)|0;    sec -= m*60;
+    var out = [];
+    if (d) out.push(d+'h');  // hari
+    if (h) out.push(h+'j');  // jam
+    if (m) out.push(m+'m');  // menit
+    out.push(sec+'d');       // detik
+    return out.join(' ');
+  }
+  // pakai versi ini sebagai standar
+  window.POS_humanizeDuration = H;
+
+  function tickOnce(){
+    var now = (Date.now()/1000)|0;
+    var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
+    for (var i=0, n=els.length; i<n; i++){
+      var el = els[i], txt;
+      var durAttr = el.getAttribute('data-dur');
+      if (durAttr !== null && durAttr !== ''){
+        var dur = parseInt(durAttr,10) || 0;
+        txt = H(dur);
+        if (!el.dataset.muted){ el.classList.add('text-muted'); el.dataset.muted = '1'; }
+      } else {
+        var st = parseInt(el.getAttribute('data-start')||'0',10) || 0;
+        if (st > 1e12) st = (st/1000)|0; // kalau server kirim ms
+        txt = (st>0) ? H(now - st) : '—';
+      }
+      if (el.textContent !== txt) el.textContent = txt; // hanya set jika berubah
+    }
+  }
+  window.POS_tickOnce = tickOnce; // dipakai drawCallback/initComplete
+
+  // Loop 1 Hz via requestAnimationFrame (pause saat tab hidden)
+  var last = 0;
+  function loop(ts){
+    if (document.visibilityState !== 'hidden' && ts - last >= 950){ tickOnce(); last = ts; }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
 })();
 </script>
 
