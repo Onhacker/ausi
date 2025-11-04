@@ -303,7 +303,12 @@ public function get_dataa(){
 
         $list = $this->dm->get_data();
         $data = [];
-
+        $ids = array_map(function($r){ return (int)$r->id; }, $list);
+        $itemsByOrder = [];
+        if ($isKitchen || $isBar) {
+            $catId = $isKitchen ? 1 : 2;
+            $itemsByOrder = $this->dm->compact_items_for_orders($ids, $catId);
+        }
         foreach ($list as $r) {
             // === Mode badge ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
@@ -414,30 +419,19 @@ public function get_dataa(){
             // ===== Kolom "Pesanan" (khusus kitchen/bar) =====
             $pesananHtml = '';
             if ($isKitchen || $isBar) {
-                $catId = $isKitchen ? 1 : 2; // 1 = makanan (kitchen), 2 = minuman (bar)
-                $list  = $this->dm->compact_items_for_order((int)$r->id, $catId);
-
-                if ($list) {
-                    $chips = [];
-                    foreach ($list as $it) {
-                        $qty  = (int)$it->qty;
-                        $name = htmlspecialchars($it->nama, ENT_QUOTES, 'UTF-8');
-                        // badge chip: "2× Nasi"
-                        $chips[] = '<span class="badge badge-light border font-weight-bold mr-1 mb-1">'
-                                 . $qty . '× ' . $name
-                                 . '</span>';
-                    }
-                    // wrap agar rapi dan bisa multi-baris
-                    $pesananHtml = '<div class="d-flex flex-wrap" style="gap:.25rem .25rem;">'
-                                 . implode('', $chips)
-                                 . '</div>';
-                } else {
-                    $pesananHtml = '<span class="text-muted">—</span>';
+                $chips = [];
+                foreach (($itemsByOrder[(int)$r->id] ?? []) as $it) {
+                    $name = htmlspecialchars($it->nama, ENT_QUOTES, 'UTF-8');
+                    $qty  = (int)$it->qty;
+                    $chips[] = '<span class="badge badge-light border font-weight-bold mr-1 mb-1">'.$qty.'× '.$name.'</span>';
                 }
+                $pesananHtml = $chips
+                    ? '<div class="d-flex flex-wrap" style="gap:.25rem .25rem;">'.implode('', $chips).'</div>'
+                    : '<span class="text-muted">—</span>';
 
-                // tambahkan ke kolom row
-                
+                $row['pesanan'] = $pesananHtml;
             }
+
             $actionsHtml = '';
             if (!$isKitchen && !$isBar) {
                 $idInt = (int)$r->id;

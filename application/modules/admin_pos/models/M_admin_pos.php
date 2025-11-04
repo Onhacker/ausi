@@ -730,38 +730,67 @@ private function _apply_today_window(): void
     $this->db->where('o.created_at <=', $end);
 }
 
+/** Ringkas item per order (opsional filter kategori 1/2) */
+public function compact_items_for_order(int $order_id, ?int $cat_id = null): array
+{
+    $order_id = (int)$order_id;
 
+    $this->db->from('pesanan_item pi')
+             ->join('produk p', 'p.id = pi.produk_id', 'left')
+             ->select('COALESCE(pi.nama, p.nama) AS nama', false)
+             ->select('SUM(pi.qty) AS qty', false)
+             ->where('pi.pesanan_id', $order_id);
 
-    /** Ringkas item per order untuk kitchen/bar → [nama, qty] (opsional filter kategori 1/2) */
-    public function compact_items_for_order(int $order_id, ?int $cat_id = null): array
-    {
-        $order_id = (int)$order_id;
-
-        $this->db->from('pesanan_item pi');
-        $this->db->join('produk p', 'p.id = pi.produk_id', 'left');
-
-        // nama ditentukan: prioritas pi.nama, fallback p.nama
-        $this->db->select('COALESCE(pi.nama, p.nama) AS nama', false);
-        $this->db->select('SUM(pi.qty) AS qty', false);
-
-        $this->db->where('pi.pesanan_id', $order_id);
-
-        if ($cat_id === 1 || $cat_id === 2) {
-            $this->db->where('pi.id_kategori', (int)$cat_id);
-        }
-
-        // gabung per nama, urutkan alfabet biar rapi
-        $this->db->group_by('COALESCE(pi.nama, p.nama)', false);
-        $this->db->order_by('COALESCE(pi.nama, p.nama)', 'ASC', false);
-
-        $rows = $this->db->get()->result();
-        // normalisasi tipe
-        foreach ($rows as $r) {
-            $r->nama = (string)($r->nama ?? '-');
-            $r->qty  = (int)$r->qty;
-        }
-        return $rows;
+    if ($cat_id === 1 || $cat_id === 2) {
+        // pakai pi.id_kategori bila ada, jika null pakai p.kategori_id
+        $this->db->group_start()
+                 ->where('pi.id_kategori', (int)$cat_id)
+                 ->or_group_start()
+                    ->where('pi.id_kategori', null)
+                    ->where('p.kategori_id', (int)$cat_id)
+                 ->group_end()
+                 ->group_end();
     }
+
+    $this->db->group_by('COALESCE(pi.nama, p.nama)', false)
+             ->order_by('COALESCE(pi.nama, p.nama)', 'ASC', false);
+
+    $rows = $this->db->get()->result();
+    foreach ($rows as $r) { $r->nama = (string)($r->nama ?? '-'); $r->qty = (int)$r->qty; }
+    return $rows;
+}
+
+
+    // /** Ringkas item per order untuk kitchen/bar → [nama, qty] (opsional filter kategori 1/2) */
+    // public function compact_items_for_order(int $order_id, ?int $cat_id = null): array
+    // {
+    //     $order_id = (int)$order_id;
+
+    //     $this->db->from('pesanan_item pi');
+    //     $this->db->join('produk p', 'p.id = pi.produk_id', 'left');
+
+    //     // nama ditentukan: prioritas pi.nama, fallback p.nama
+    //     $this->db->select('COALESCE(pi.nama, p.nama) AS nama', false);
+    //     $this->db->select('SUM(pi.qty) AS qty', false);
+
+    //     $this->db->where('pi.pesanan_id', $order_id);
+
+    //     if ($cat_id === 1 || $cat_id === 2) {
+    //         $this->db->where('pi.id_kategori', (int)$cat_id);
+    //     }
+
+    //     // gabung per nama, urutkan alfabet biar rapi
+    //     $this->db->group_by('COALESCE(pi.nama, p.nama)', false);
+    //     $this->db->order_by('COALESCE(pi.nama, p.nama)', 'ASC', false);
+
+    //     $rows = $this->db->get()->result();
+    //     // normalisasi tipe
+    //     foreach ($rows as $r) {
+    //         $r->nama = (string)($r->nama ?? '-');
+    //         $r->qty  = (int)$r->qty;
+    //     }
+    //     return $rows;
+    // }
 
     /**
  * Data minimal untuk broadcast WA setelah pesanan ditandai paid.
