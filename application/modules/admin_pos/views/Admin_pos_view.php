@@ -30,6 +30,96 @@
 }
 
 </style>
+<div id="store-time"
+     data-server-now="<?= (int)$server_now ?>"
+     data-server-now-ms="<?= (int)$server_now_ms ?>"
+     data-close-ts="<?= (int)($today_close_ts ?? 0) ?>"
+     data-next-open="<?= (int)($next_open_ts ?? 0) ?>"
+     data-tz="<?= htmlspecialchars($store_tz, ENT_QUOTES, 'UTF-8') ?>">
+  <div class="d-flex align-items-center" style="gap:12px; flex-wrap:wrap">
+    <div>
+      <div class="small text-muted">Waktu Server (<span id="tzLabel"></span>)</div>
+      <div class="h4 mb-0" id="nowClock">--:--:--</div>
+    </div>
+    <div class="vr" style="width:1px;background:#e5e7eb;height:36px"></div>
+    <div>
+      <div class="small text-muted" id="statusLabel">Status</div>
+      <div class="h5 mb-0" id="statusText">-</div>
+    </div>
+    <div class="vr" style="width:1px;background:#e5e7eb;height:36px"></div>
+    <div>
+      <div class="small text-muted" id="countdownLabel">Close Order dalam</div>
+      <div class="h5 mb-0" id="countdown">--:--:--</div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== Waktu server + countdown close (tanpa jam browser) =====
+(function(){
+  var box = document.getElementById('store-time');
+  if (!box) return;
+
+  var server0Sec = parseInt(box.dataset.serverNow || '0', 10) || 0;           // detik (server)
+  var server0Ms  = parseInt(box.dataset.serverNowMs || '0', 10) || (server0Sec*1000);
+  var closeTs    = parseInt(box.dataset.closeTs || '0', 10) || 0;            // detik (server)
+  var nextOpen   = parseInt(box.dataset.nextOpen || '0', 10) || 0;           // detik (server)
+  var tzLabel    = box.dataset.tz || 'Asia/Jakarta';
+
+  // baseline monotonic — tidak terpengaruh jam sistem
+  var perf0 = performance.now(); // ms sejak page start
+
+  // Kembalikan waktu SERVER (detik) saat ini
+  function nowServerSec(){
+    var elapsedMs = performance.now() - perf0;
+    return Math.floor((server0Ms + elapsedMs) / 1000);
+  }
+
+  function pad2(n){ n = Math.floor(n); return (n<10?'0':'')+n; }
+  function fmtClockFromEpochSec(epoch){
+    // Hanya tampil HH:MM:SS (tidak konversi TZ di browser)
+    var d = new Date(epoch*1000);
+    return pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
+  }
+  function fmtCountdown(sec){
+    sec = Math.max(0, sec|0);
+    var d = (sec/86400)|0; sec -= d*86400;
+    var h = (sec/3600)|0;  sec -= h*3600;
+    var m = (sec/60)|0;    sec -= m*60;
+    return (d>0? (d+'h '):'') + pad2(h)+':'+pad2(m)+':'+pad2(sec);
+  }
+
+  var elNow  = document.getElementById('nowClock');
+  var elTz   = document.getElementById('tzLabel');
+  var elStat = document.getElementById('statusText');
+  var elCdLb = document.getElementById('countdownLabel');
+  var elCd   = document.getElementById('countdown');
+
+  elTz.textContent = tzLabel;
+
+  function tick(){
+    var now = nowServerSec(); // <-- ini waktu server
+
+    elNow.textContent = fmtClockFromEpochSec(now);
+
+    if (closeTs > 0 && now < closeTs){
+      // toko buka
+      elStat.textContent = 'BUKA';
+      elStat.classList.remove('text-danger'); elStat.classList.add('text-success');
+      elCdLb.textContent = 'Close Order dalam';
+      elCd.textContent   = fmtCountdown(closeTs - now);
+    } else {
+      // toko tutup
+      elStat.textContent = 'TUTUP';
+      elStat.classList.remove('text-success'); elStat.classList.add('text-danger');
+      elCdLb.textContent = 'Buka lagi dalam';
+      elCd.textContent   = (nextOpen>0 && now<nextOpen) ? fmtCountdown(nextOpen - now) : '—';
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
 
 <div class="mb-2 d-flex align-items-center flex-wrap justify-content-start">
   <!-- Kiri: tombol umum -->

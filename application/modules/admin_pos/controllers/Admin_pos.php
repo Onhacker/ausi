@@ -16,13 +16,81 @@ class Admin_pos extends Admin_Controller {
         $this->output->set_header('X-Cache-Purged: pos');
     }
 
+    // public function index(){
+    //     $data["controller"] = get_class($this);
+    //     $data["title"]      = "Transaksi";
+    //     $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+    //     $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
+    //     $this->render($data);
+    // }
+
     public function index(){
-        $data["controller"] = get_class($this);
-        $data["title"]      = "Transaksi";
-        $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
-        $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
-        $this->render($data);
+    // 1) Ambil identitas (1 baris)
+    $ident = $this->db->get('identitas')->row();
+    $tzStr = $ident && !empty($ident->waktu) ? $ident->waktu : 'Asia/Jakarta';
+    $tz    = new DateTimeZone($tzStr);
+
+    // 2) Waktu server
+    $serverNow    = time();                           // detik
+    $serverNowMs  = (int) round(microtime(true)*1000); // milidetik
+
+    // 3) Tentukan close hari ini & next open (semua di server)
+    $nowTz = new DateTime('now', $tz);
+    $todayYmd = $nowTz->format('Y-m-d');
+    $dowN = (int)$nowTz->format('N'); // 1..7
+
+    $map = [1=>'mon',2=>'tue',3=>'wed',4=>'thu',5=>'fri',6=>'sat',7=>'sun'];
+    $dkey = $map[$dowN];
+
+    $f_open  = "op_{$dkey}_open";
+    $f_close = "op_{$dkey}_close";
+    $f_closed_flag = "op_{$dkey}_closed";
+
+    $isClosedDay = !empty($ident->$f_closed_flag);
+    $openStr  = $ident->$f_open  ?? null;
+    $closeStr = $ident->$f_close ?? null;
+
+    $todayCloseTs = null;
+    $isOpenNow = false;
+
+    if (!$isClosedDay && $openStr && $closeStr){
+        $openDT  = DateTime::createFromFormat('Y-m-d H:i', $todayYmd.' '.$openStr,  $tz);
+        $closeDT = DateTime::createFromFormat('Y-m-d H:i', $todayYmd.' '.$closeStr, $tz);
+        if ($closeDT <= $openDT) { $closeDT->modify('+1 day'); } // tutup lewat tengah malam
+        $todayCloseTs = $closeDT->getTimestamp();
+        $isOpenNow = ($nowTz >= $openDT && $nowTz < $closeDT);
     }
+
+    $nextOpenTs = null;
+    if (!$isOpenNow){
+        for ($i=0; $i<7; $i++){
+            $probe = (clone $nowTz)->modify("+{$i} day");
+            $dk = $map[(int)$probe->format('N')];
+            $fo = "op_{$dk}_open"; $fc = "op_{$dk}_close"; $ff = "op_{$dk}_closed";
+            if (!empty($ident->$ff) || empty($ident->$fo) || empty($ident->$fc)) continue;
+            $openDT = DateTime::createFromFormat('Y-m-d H:i', $probe->format('Y-m-d').' '.$ident->$fo, $tz);
+            // jika hari ini dan sudah melewati close → loncat ke hari berikutnya
+            if ($i===0 && $todayCloseTs && $serverNow >= $todayCloseTs) continue;
+            $nextOpenTs = $openDT->getTimestamp();
+            break;
+        }
+    }
+
+    $data["controller"] = get_class($this);
+    $data["title"]      = "Transaksi";
+    $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+    // === PASS KE VIEW (semua dari server) ===
+    $data["server_now"]     = $serverNow;
+    $data["server_now_ms"]  = $serverNowMs;
+    $data["store_tz"]       = $tzStr;
+    $data["today_close_ts"] = $todayCloseTs;
+    $data["next_open_ts"]   = $nextOpenTs;
+    $data["is_open_now"]    = $isOpenNow;
+
+    $data["content"] = $this->load->view($data["controller"]."_view", $data, true);
+    $this->render($data);
+}
+
 
     public function set_ongkir(){
     $id  = (int)$this->input->post('id');
