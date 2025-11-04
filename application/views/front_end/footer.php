@@ -51,9 +51,9 @@
             </div>
 
             <?php
-  $playPackage = 'id.co.ausi.twa'; // isi dengan package id-mu kalau sudah pasti
-  $playUrl     = 'https://play.google.com/store/apps/details?id=' . $playPackage;
-?>
+              $playPackage = 'id.co.ausi.twa'; // isi dengan package id-mu kalau sudah pasti
+              $playUrl     = 'https://play.google.com/store/apps/details?id=' . $playPackage;
+            ?>
 
 <style>
   /* Container (biar center dan rapi) */
@@ -115,11 +115,9 @@
   </div>
 </noscript>
 
-<!-- load JS eksternal -->
-<script src="<?= base_url('assets/js/install.js'); ?>?v=<?= @filemtime(FCPATH.'assets/js/install.js'); ?>"></script>
 
 
-          </div>
+          <!-- </div> -->
 
           <div class="divider mb-3"></div>
 
@@ -135,7 +133,7 @@
             <a class="col-5 text-nowrap text-blue"
                href="<?= site_url('hal') ?>"
                aria-label="Syarat &amp; Ketentuan">
-              <span class="d-inline d-sm-none">
+              <span class="d-inline">
                 <abbr title="Syarat &amp; Ketentuan">S&amp;K</abbr>
               </span>
               <span class="d-none d-sm-inline text-blue">Syarat &amp; Ketentuan</span>
@@ -147,7 +145,7 @@
     </div><!-- /.row -->
   </div><!-- /.container-fluid mb-5 -->
 <?php endif; ?>
-
+</div>
 </div>
 <!-- Close wrapper (#app-scroll dari head.php) -->
 
@@ -821,6 +819,8 @@
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/app.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/sw.min.js') ?>"></script>
+<!-- load JS eksternal -->
+<script src="<?= base_url('assets/js/install.js'); ?>?v=<?= @filemtime(FCPATH.'assets/js/install.js'); ?>"></script>
 
 <script src="<?= base_url('assets/min/footer.min.js') ?>"></script>
 
