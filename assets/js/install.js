@@ -9,10 +9,79 @@
     return window.matchMedia('(display-mode: standalone)').matches
         || window.navigator.standalone === true; // iOS Safari
   }
-  function isIOSUA() {
-    const ua = navigator.userAgent || navigator.vendor || '';
-    return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
+
+
+  // helper deteksi iOS & Safari seperti sebelumnya
+function isIOSUA() {
+  const ua = navigator.userAgent || navigator.vendor || '';
+  return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
+}
+function isSafariIOS() {
+  const ua = navigator.userAgent || navigator.vendor || '';
+  const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+  return isIOSUA() && isSafari;
+}
+
+/* === Overlay controller === */
+(function initIOSOverlayInstallGuide(){
+  // ambil elemen overlay + tombol close
+  const overlayEl = document.getElementById('ios-a2hs-overlay');
+
+  // simpan ref global biar bisa dipanggil dari installButton click
+  window.__iosA2HS = {
+    open: function(){
+      if (!overlayEl) return;
+      overlayEl.classList.add('show');
+    },
+    close: function(){
+      if (!overlayEl) return;
+      overlayEl.classList.remove('show');
+    }
+  };
+
+  // tombol close (X)
+  if (overlayEl){
+    const closeBtn = overlayEl.querySelector('.ios-a2hs-close');
+    if (closeBtn){
+      closeBtn.addEventListener('click', function(){
+        window.__iosA2HS.close();
+      });
+    }
+
+    // klik backdrop di luar kartu -> tutup juga
+    overlayEl.addEventListener('click', function(e){
+      if (e.target === overlayEl){
+        window.__iosA2HS.close();
+      }
+    });
   }
+
+  // inject fallback global lama: showIOSInstallGuide()
+  window.showIOSInstallGuide = function(e){
+    if (e) e.preventDefault();
+
+    // jika bukan Safari iOS, jangan bohongi user
+    if (!isSafariIOS()){
+      // fallback behaviour
+      if (window.Swal?.fire){
+        Swal.fire({
+          title:'Buka di Safari',
+          html:'Untuk instal di iPhone/iPad:<br>1. Buka pakai <b>Safari</b>.<br>2. Tap ikon Bagikan → <b>Tambahkan ke Layar Utama</b>.',
+          icon:'info'
+        });
+      } else {
+        alert('Buka halaman ini di Safari.\nLalu: Bagikan → Tambahkan ke Layar Utama.');
+      }
+      return false;
+    }
+
+    // tampilkan overlay animasi khusus iOS
+    window.__iosA2HS.open();
+    return false;
+  };
+})();
+
+
 
   // Tetap ada kalau butuh nunggu Swal di jalur fallback
   function whenSwalReady(run, timeout=3000){
