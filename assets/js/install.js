@@ -13,7 +13,7 @@
     return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
   }
 
-  // Fallback iOS guide (akan di-override oleh overlay di File A)
+  // Fallback; akan dioverride oleh overlay (File A)
   (function ensureIOSGuide(){
     window.showIOSInstallGuide = window.showIOSInstallGuide || function(e){
       if (e) e.preventDefault();
@@ -62,7 +62,6 @@
   });
   window.addEventListener('load', showStandaloneNoticeOnce);
 
-  // ===== ikon =====
   const ICON_ANDROID = `
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g fill="#fff">
   <path d="M6 18c0 1.1.9 2 2 2h1v3h2v-3h2v3h2v-3h1c1.1 0 2-.9 2-2V9H6v9zM15.53 4.18l1.3-1.3-.78-.78-1.48 1.48C14.38 3.17 13.23 3 12 3s-2.38.17-2.93.48L7.59 2 6.81 2.88l1.3 1.3C7.61 5.24 7 6.48 7 8h10c0-1.52-.61-2.76-1.47-3.82zM10 6c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm4 0c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
@@ -124,8 +123,8 @@
   }
 
   async function onInstallClick(e){
-    // pastikan non-passive agar preventDefault efektif di iOS
-    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    // non-passive supaya preventDefault efektif di iOS
+    e && typeof e.preventDefault === 'function' && e.preventDefault();
 
     if (isAppInstalled()) {
       return whenSwalReady((fallback)=>{
@@ -135,7 +134,7 @@
     }
 
     if (isIOSUA()) {
-      // selalu panggil panduan overlay (sudah dioverride oleh File A)
+      // panggil overlay (sudah dioverride oleh File A)
       return window.showIOSInstallGuide(e);
     }
 
@@ -162,15 +161,15 @@
 
     const installButton = document.getElementById('installButton');
     if (installButton){
-      // bersihkan & pasang ulang (click + touchend agar responsif di iPhone)
-      installButton.replaceWith(installButton.cloneNode(true));
-      const fresh = document.getElementById('installButton');
+      // bersihin handler lama: cloneNode → re-attach listeners non-passive
+      const fresh = installButton.cloneNode(true);
+      installButton.replaceWith(fresh);
       fresh.addEventListener('click', onInstallClick, {passive:false});
       fresh.addEventListener('touchend', onInstallClick, {passive:false});
     }
   }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init, {once:true});
   } else {
     init();
   }

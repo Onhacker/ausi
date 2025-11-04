@@ -62,30 +62,44 @@
 </div>
 
 <script>
-/* Controller overlay — idempotent & override selalu */
+/* Controller overlay — dedupe & reparent to <body>, override selalu */
 (function(){
+  // Deduplicate jika ada overlay ganda
+  const all = document.querySelectorAll('#ios-a2hs-overlay');
+  if (all.length > 1) {
+    // simpan yang terakhir (yang paling baru stylenya)
+    all.forEach((el, i) => { if (i < all.length - 1) el.remove(); });
+  }
   const overlayEl = document.getElementById('ios-a2hs-overlay');
-  if (!overlayEl || overlayEl.dataset.inited === '1') return;
+  if (!overlayEl) return;
+
+  // Pastikan overlay jadi child langsung <body> (hindari stacking-context parent)
+  if (overlayEl.parentElement !== document.body) {
+    document.body.appendChild(overlayEl);
+  }
+
+  // Inisialisasi sekali
+  if (overlayEl.dataset.inited === '1') return;
   overlayEl.dataset.inited = '1';
 
   const closeBtn = overlayEl.querySelector('.ios-a2hs-close');
-  closeBtn && closeBtn.addEventListener('click', () => overlayEl.classList.remove('show'));
-  overlayEl.addEventListener('click', (e)=>{ if (e.target === overlayEl) overlayEl.classList.remove('show'); });
+  closeBtn && closeBtn.addEventListener('click', () => overlayEl.classList.remove('show'), {passive:true});
+  overlayEl.addEventListener('click', (e)=>{ if (e.target === overlayEl) overlayEl.classList.remove('show'); }, {passive:true});
 
   function isIOSUA(){ const ua=navigator.userAgent||navigator.vendor||''; return /iPad|iPhone|iPod/i.test(ua)|| (ua.includes('Macintosh')&&'ontouchend'in document); }
   function isSafari(){ const ua=navigator.userAgent||navigator.vendor||''; return /^((?!chrome|android|crios|fxios).)*safari/i.test(ua); }
 
-  // API global untuk install.js
+  // API global untuk dipanggil install.js
   window.__iosA2HS = {
     open(){
-      /* trik reflow + next tick supaya langsung kelihatan */
+      // trick: reflow + RAF supaya langsung repaint
       void overlayEl.offsetWidth;
       requestAnimationFrame(()=> overlayEl.classList.add('show'));
     },
     close(){ overlayEl.classList.remove('show'); }
   };
 
-  // SELALU override showIOSInstallGuide (hindari fallback nempel)
+  // SELALU override showIOSInstallGuide
   window.showIOSInstallGuide = function(e){
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if (!(isIOSUA() && isSafari())) {
@@ -99,5 +113,8 @@
     window.__iosA2HS.open();
     return false;
   };
+
+  // Helper test dari console:
+  window.__testIOSOverlay = () => window.__iosA2HS.open();
 })();
 </script>
