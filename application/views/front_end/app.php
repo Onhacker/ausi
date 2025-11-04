@@ -1,5 +1,5 @@
 <style>
-/* ===== Overlay iOS A2HS (WAJIB ADA, jangan dihapus) ===== */
+/* ===== Overlay iOS A2HS ===== */
 .ios-a2hs-overlay{
   position:fixed; inset:0; display:none;
   align-items:center; justify-content:center; padding:1.5rem;
@@ -64,7 +64,7 @@
 </div>
 
 <script>
-/* Controller overlay — idempotent, tidak bentrok kalau dipanggil ulang */
+/* Controller overlay — idempotent */
 (function(){
   const overlayEl = document.getElementById('ios-a2hs-overlay');
   if (!overlayEl || overlayEl.dataset.inited === '1') return;
@@ -77,13 +77,13 @@
   function isIOSUA(){ const ua=navigator.userAgent||navigator.vendor||''; return /iPad|iPhone|iPod/i.test(ua)|| (ua.includes('Macintosh')&&'ontouchend'in document); }
   function isSafari(){ const ua=navigator.userAgent||navigator.vendor||''; return /^((?!chrome|android|crios|fxios).)*safari/i.test(ua); }
 
-  // Sediakan API global untuk dipanggil install.js
+  // API global untuk install.js
   window.__iosA2HS = window.__iosA2HS || {
     open(){ overlayEl.classList.add('show'); },
     close(){ overlayEl.classList.remove('show'); }
   };
 
-  // Definisikan showIOSInstallGuide hanya jika belum ada
+  // showIOSInstallGuide hanya jika belum ada
   if (typeof window.showIOSInstallGuide !== 'function'){
     window.showIOSInstallGuide = function(e){
       if (e) e.preventDefault();

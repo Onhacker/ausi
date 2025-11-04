@@ -1,6 +1,6 @@
 /* ===== Service Worker ===== */
 
-const CACHE_NAME  = 'ausi-29';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-30';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 
 /* HTML publik yang boleh dicache (path tanpa query) */
@@ -113,29 +113,36 @@ const API_DENYLIST = [
   };
   const RUNTIME_BYPASS = [/\/api\/status$/];
   /* ===== INSTALL ===== */
-  self.addEventListener('install', (event) => {
-    self.skipWaiting();
-    const SKIP_BIG = /\.(mp4|mov|webm|zip|pdf)$/i;
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  const SKIP_BIG = /\.(mp4|mov|webm|zip|pdf)$/i;
 
-    event.waitUntil((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await Promise.allSettled(
-        urlsToCache.map(async (url) => {
-          try {
-            if (SKIP_BIG.test(url)) return;
-            const res = await fetch(url, { cache: 'reload' });
-          if (res && res.ok) await cache.put(url, res.clone()); // simpan dgn query
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(
+      urlsToCache.map(async (url) => {
+        try {
+          if (SKIP_BIG.test(url)) return;
+          const res = await fetch(url, { cache: 'reload' });
+          if (res && res.ok) {
+            await cache.put(url, res.clone());
+            const u = new URL(url, self.location.origin);
+            if (u.searchParams.has('v')) {
+              await cache.put(u.origin + u.pathname, res.clone());
+            }
+          }
         } catch (err) {
           console.warn('[SW] Precache fail', url, err);
         }
       })
-        );
-      try {
-        const off = await fetch(OFFLINE_URL, { cache: 'reload' });
-        if (off.ok) await cache.put(OFFLINE_URL, off.clone());
-      } catch {}
-    })());
-  });
+    );
+    try {
+      const off = await fetch(OFFLINE_URL, { cache: 'reload' });
+      if (off.ok) await cache.put(OFFLINE_URL, off.clone());
+    } catch {}
+  })());
+});
+
 
   /* ===== ACTIVATE ===== */
   self.addEventListener('activate', (event) => {
@@ -195,17 +202,39 @@ const API_DENYLIST = [
   }
 
   /* 2) Aset same-origin → stale-while-revalidate (preserve query) */
+ /* 2) Aset same-origin → stale-while-revalidate + fallback tanpa ?v */
   if (sameOrigin && isStaticAsset(req)) {
     event.respondWith((async () => {
       const c = await caches.open(CACHE_NAME);
-      const cached = await c.match(req); // match dgn Request asli (ada query)
+      const url   = new URL(req.url);
+      const hasV  = url.searchParams.has('v');
+      const clean = hasV ? (url.origin + url.pathname) : null;
+
+      // 1) Coba exact match (dengan query) dulu
+      let cached = await c.match(req);
+
+      // 2) Kalau tidak ada dan ini aset versi (?v=...), coba tanpa query
+      if (!cached && hasV) {
+        cached = await c.match(clean);
+      }
+
+      // 3) Revalidate di belakang layar dan simpan dua kunci (dengan & tanpa ?v)
       const updating = fetch(req, { credentials: 'include' })
-      .then(res => { if (res && res.ok) c.put(req, res.clone()); return res; })
-      .catch(() => null);
+        .then(res => {
+          if (res && res.ok) {
+            c.put(req, res.clone());
+            if (hasV) c.put(clean, res.clone());
+          }
+          return res;
+        })
+        .catch(() => null);
+
+      // 4) Prioritaskan cache jika ada; kalau tidak, jatuhkan ke network
       return cached || (await updating) || new Response('', { status: 504 });
     })());
     return;
   }
+
 
   /* 3) Lainnya (XHR same-origin yg bukan denylist & seluruh cross-origin) → network-first */
   event.respondWith(

@@ -823,7 +823,11 @@
 <!-- load JS eksternal -->
 <!-- petunjuk install ios -->
 <?php $this->load->view("front_end/app"); ?>
-<script src="<?= base_url('assets/js/install.js'); ?>?v=<?= @filemtime(FCPATH.'assets/js/install.js'); ?>"></script>
+<?php
+$path = 'assets/js/install.js';
+$ver  = file_exists(FCPATH.$path) ? filemtime(FCPATH.$path) : time(); // fallback
+?>
+<script defer src="<?= base_url($path) ?>?v=<?= $ver ?>"></script>
 
 <script src="<?= base_url('assets/min/footer.min.js') ?>"></script>
 
