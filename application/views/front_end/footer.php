@@ -814,6 +814,8 @@
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal fade -->
 
+<!-- petunjuk install ios -->
+<?php $this->load->view("front_end/app"); ?>
 
 <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
 <script src="<?= base_url('assets/admin/js/app.min.js') ?>"></script>

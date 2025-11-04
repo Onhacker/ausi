@@ -2,7 +2,6 @@
 (() => {
   'use strict';
 
-  // ====== kode kamu (dipertahankan) ======
   let deferredPrompt = null;
 
   function isAppInstalled() {
@@ -14,28 +13,7 @@
     return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
   }
 
-  (function ensureIOSGuide(){
-    if (typeof window.showIOSInstallGuide === 'function') return;
-    window.showIOSInstallGuide = function(e){
-      if (e) e.preventDefault();
-      const ua = navigator.userAgent || navigator.vendor || '';
-      const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
-      const htmlSafari =
-        '<ol style="text-align:left;max-width:520px;margin:0 auto">' +
-        '<li>Ketuk ikon <b>Bagikan</b> (kotak dengan panah ke atas).</li>' +
-        '<li>Pilih <b>Tambahkan ke Layar Utama</b>.</li>' +
-        '<li>Ketuk <b>Tambahkan</b>.</li>' +
-        '</ol>';
-      if (!window.Swal) { alert('Buka menu Bagikan → Tambahkan ke Layar Utama'); return false; }
-      if (!isSafari) {
-        Swal.fire({title:'Buka di Safari', html:'Buka halaman ini di <b>Safari</b> untuk menginstal PWA.<br><br>'+htmlSafari, icon:'info'});
-        return false;
-      }
-      Swal.fire({title:'Instal ke iOS', html:htmlSafari, icon:'info'});
-      return false;
-    };
-  })();
-
+  // Tetap ada kalau butuh nunggu Swal di jalur fallback
   function whenSwalReady(run, timeout=3000){
     const t0 = Date.now();
     (function tick(){
@@ -76,11 +54,6 @@
   const ICON_APP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h9a3 3 0 0 1 3 3v1a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-1a3 3 0 0 1 3-3z"/><path d="M17 11h1a2 2 0 0 1 0 4h-1"/><path d="M4 20h14"/><path d="M9 4c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/><path d="M12 4c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/><path d="M15 5c0 .8-.5 1.2-.5 2s.5 1.2.5 2"/></svg>';
 
   // ====== tambahan: Google Play & visibilitas ======
-  function isAndroidUA(){
-    const ua = navigator.userAgent || navigator.vendor || '';
-    return /Android/i.test(ua);
-  }
-
   const ICON_PLAY = `
 <svg class="kOqhQd" aria-hidden="true" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0,0h40v40H0V0z"></path><g><path d="M19.7,19.2L4.3,35.3c0,0,0,0,0,0c0.5,1.7,2.1,3,4,3c0.8,0,1.5-0.2,2.1-0.6l0,0l17.4-9.9L19.7,19.2z" fill="#EA4335"></path><path d="M35.3,16.4L35.3,16.4l-7.5-4.3l-8.4,7.4l8.5,8.3l7.5-4.2c1.3-0.7,2.2-2.1,2.2-3.6C37.5,18.5,36.6,17.1,35.3,16.4z" fill="#FBBC04"></path><path d="M4.3,4.7C4.2,5,4.2,5.4,4.2,5.8v28.5c0,0.4,0,0.7,0.1,1.1l16-15.7L4.3,4.7z" fill="#4285F4"></path><path d="M19.8,20l8-7.9L10.5,2.3C9.9,1.9,9.1,1.7,8.3,1.7c-1.9,0-3.6,1.3-4,3c0,0,0,0,0,0L19.8,20z" fill="#34A853"></path></g></svg>`.trim();
 
@@ -130,6 +103,24 @@
     }
   }
 
+  // Gunakan overlay iOS-mu jika ada; kalau tidak, fallback Swal/alert
+  function openIOSGuide(e){
+    if (typeof window.showIOSInstallGuide === 'function') {
+      return window.showIOSInstallGuide(e);
+    }
+    // Fallback kalau overlay belum load
+    whenSwalReady((fallback)=>{
+      const msg = 'Untuk instal di iPhone/iPad:\n1. Buka pakai Safari.\n2. Bagikan → Tambahkan ke Layar Utama.';
+      if (fallback) { alert(msg); return; }
+      Swal.fire({
+        title:'Buka di Safari',
+        html:'Untuk instal di iPhone/iPad:<br>1. Buka pakai <b>Safari</b>.<br>2. Bagikan → <b>Tambahkan ke Layar Utama</b>.',
+        icon:'info'
+      });
+    });
+    return false;
+  }
+
   async function onInstallClick(e){
     e.preventDefault();
 
@@ -140,7 +131,7 @@
       });
     }
 
-    if (isIOSUA()) { return window.showIOSInstallGuide(e); }
+    if (isIOSUA()) { return openIOSGuide(e); }
 
     if (!deferredPrompt) {
       return whenSwalReady((fallback)=>{
@@ -159,7 +150,7 @@
     deferredPrompt = null;
   }
 
-  // === FIX PENTING: jalankan init walaupun DOMContentLoaded sudah lewat ===
+  // Init aman walau DOMContentLoaded sudah lewat
   function init(){
     setupInstallButtonUI();
     setupBadgesVisibility();
@@ -172,7 +163,7 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    init(); // DOM sudah siap → langsung jalan
+    init();
   }
 
   window.addEventListener('appinstalled', () => {
@@ -180,5 +171,6 @@
     whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal.','success'); });
   });
 
+  // Kompatibel dengan onclick="openPlayStore(event)" di tempat lain
   function openPlayStore(e){ return true; }
 })();
