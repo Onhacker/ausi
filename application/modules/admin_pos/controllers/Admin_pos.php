@@ -528,6 +528,8 @@ public function get_dataa(){
             "data"            => $data,
         ];
         $out['hide_price_payment'] = (bool)($isKitchen || $isBar);
+        $out['server_now'] = time(); // <— TAMBAH BARIS INI
+
         return $this->output->set_content_type('application/json')->set_output(json_encode($out));
     } catch(\Throwable $e){
         return $this->output->set_content_type('application/json')

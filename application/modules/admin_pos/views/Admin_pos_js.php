@@ -222,6 +222,10 @@ function ensureElapsedSpans(api){
 
     // sembunyikan kolom Jumlah & Metode utk Kitchen/Bar (ikut json.hide_price_payment)
     window.table.on('xhr.dt', function (e, settings, json) {
+      if (json && json.server_now){
+    // server_now (detik) - now browser (detik)
+    window.__POS_TDIFF__ = (parseInt(json.server_now,10)||0) - ((Date.now()/1000)|0);
+  }
       var hide = !!(json && json.hide_price_payment);
       // Non-KB: [no,mode,meja,waktu,lama,jumlah,status,metode,aksi]
       // KB    : [no,mode,meja,pesanan,waktu,lama,jumlah,status,metode]
@@ -720,8 +724,8 @@ function ensureElapsedSpans(api){
         <div class="meja-card">
           <div class="d-flex justify-content-between align-items-start">
             <div>
-              <div class="meja-kode">${kode}</div>
-              <div class="meja-meta">${nama}${area? ' · '+area : ''}${kap? ' · '+kap+' org':''}</div>
+              <div class="meja-kode">${nama}</div>
+              <div class="meja-meta">${kode}</div>
             </div>
             <span class="badge badge-success">aktif</span>
           </div>
@@ -894,7 +898,8 @@ function ensureElapsedSpans(api){
   window.POS_humanizeDuration = H;
 
   function tickOnce(){
-    var now = (Date.now()/1000)|0;
+    // var now = (Date.now()/1000)|0;
+    var now = ((Date.now()/1000)|0) + (window.__POS_TDIFF__||0);
     var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
     for (var i=0, n=els.length; i<n; i++){
       var el = els[i], txt;
