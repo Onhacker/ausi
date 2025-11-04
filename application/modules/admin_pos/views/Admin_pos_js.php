@@ -89,44 +89,80 @@
     );
     if (!window.IS_KB){ columns.push({data:"aksi", orderable:false}); }
     // bikin <span class="elapsed"> di kolom "Lama" kalau belum ada
-    function ensureElapsedSpans(api){
-      var lamaIdx = window.IS_KB ? 5 : 4; // Non-KB: 4, KB: 5
-      api.rows({page:'current'}).every(function(){
-        var d = this.data() || {};
-        var row = this.node();
-        var td = row && row.cells ? row.cells[lamaIdx] : null;
-        if (!td) return;
+    // Buat <span class="elapsed"> di kolom "Lama" + cari start time yang masuk akal
+function ensureElapsedSpans(api){
+  // index kolom tergantung KB atau bukan
+  var idxWaktu = window.IS_KB ? 4 : 3;
+  var idxLama  = window.IS_KB ? 5 : 4;
 
-        // sudah ada span.elapsed? skip.
-        if (td.querySelector('span.elapsed')) return;
+  // parser tanggal yang fleksibel (ISO, dd/mm/yyyy, yyyy-mm-dd)
+  function parseDateLoose(s){
+    if (!s) return 0;
+    s = (s+'').trim();
+    // coba ISO-ish
+    var t = Date.parse(s.replace(' ', 'T'));
+    if (!isNaN(t)) return (t/1000)|0;
 
-        // cari kandidat timestamp/durasi dari JSON (fleksibel)
-        var start = parseInt(
-          (d.start_ts ?? d.start ?? d.start_time ?? d.waktu_unix ?? d.waktu ?? 0),
-          10
-        ) || 0;
-        var dur   = parseInt(
-          (d.dur ?? d.duration ?? d.elapsed ?? d.elapsed_sec ?? 0),
-          10
-        ) || 0;
-
-        // fallback: kalau d.waktu string tanggal, coba parse
-        if (!start && typeof d.waktu === 'string'){
-          var parsed = Date.parse(d.waktu.replace(' ', 'T'));
-          if (!isNaN(parsed)) start = Math.floor(parsed/1000);
-        }
-
-        if (start > 1e12) start = Math.floor(start/1000); // kalau ms → s
-
-        // suntikkan span
-        if (dur > 0){
-          td.innerHTML = '<span class="elapsed" data-dur="'+dur+'"></span>';
-        } else if (start > 0){
-          td.innerHTML = '<span class="elapsed" data-start="'+start+'"></span>';
-        }
-        // kalau nggak ada data sama sekali, biarkan text apa adanya
-      });
+    // dd/mm/yyyy HH:mm[:ss]
+    var m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (m){
+      var d=+m[1], mo=(+m[2])-1, y=+m[3]; if (y<100) y+=2000;
+      var H=+m[4]||0, Mi=+m[5]||0, S=+m[6]||0;
+      return (new Date(y,mo,d,H,Mi,S).getTime()/1000)|0;
     }
+
+    // yyyy-mm-dd HH:mm[:ss]
+    var m2 = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[^\d]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m2){
+      var y2=+m2[1], mo2=(+m2[2])-1, d2=+m2[3];
+      var H2=+m2[4]||0, Mi2=+m2[5]||0, S2=+m2[6]||0;
+      return (new Date(y2,mo2,d2,H2,Mi2,S2).getTime()/1000)|0;
+    }
+    return 0;
+  }
+
+  api.rows({page:'current'}).every(function(){
+    var d = this.data() || {};
+    var row = this.node();
+
+    // sel "Lama"
+    var tdLama  = row && row.cells ? row.cells[idxLama]  : null;
+    if (!tdLama) return;
+
+    // kalau sudah ada span.elapsed → skip
+    if (tdLama.querySelector('span.elapsed')) return;
+
+    // 1) coba baca dari data JSON (beberapa kemungkinan nama field)
+    var start = parseInt(
+      (d.start_ts ?? d.start ?? d.start_time ?? d.waktu_unix ?? 0),
+      10
+    ) || 0;
+    var dur   = parseInt(
+      (d.dur ?? d.duration ?? d.elapsed ?? d.elapsed_sec ?? 0),
+      10
+    ) || 0;
+
+    // 2) kalau belum dapat, baca dari sel "Waktu"
+    if (!start){
+      var tdWaktu = row && row.cells ? row.cells[idxWaktu] : null;
+      var waktuTxt = tdWaktu ? tdWaktu.textContent.trim() : '';
+      start = parseDateLoose(waktuTxt);
+    }
+
+    if (start > 1e12) start = (start/1000)|0; // kalau ms → detik
+
+    // 3) sisipkan span sesuai data yang ada
+    if (dur > 0){
+      tdLama.innerHTML = '<span class="elapsed" data-dur="'+dur+'"></span>';
+    } else if (start > 0){
+      tdLama.innerHTML = '<span class="elapsed" data-start="'+start+'"></span>';
+    } else {
+      // tidak punya info apapun → biarkan isi lama apa adanya
+      // (tidak disisipkan apa-apa)
+    }
+  });
+}
+
 
     // init
     window.table = $('#datable_pos').DataTable({
