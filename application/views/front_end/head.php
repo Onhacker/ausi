@@ -293,7 +293,7 @@ if (is_file($img_path)) {
 <script>
 (function(){
   // target launching: 7 Nov 2025 00:00 WITA (+08)
-  var target = new Date('2025-11-07T00:00:00+08:00').getTime();
+  var target = new Date('2025-11-08T00:00:00+08:00').getTime();
   var tickerEl = document.querySelector('.beta-ticker');
   var intId = null;
 

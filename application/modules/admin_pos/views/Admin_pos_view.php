@@ -76,7 +76,7 @@
       <th>Durasi</th>
       <th class="th-price">Jumlah</th>
       <th>Status</th>
-      <th class="th-method">Metode Pembayaran</th>
+      <th class="th-method">Metode</th>
 
       <?php if (!$isKB): ?>
         <th width="14%">Aksi</th>
