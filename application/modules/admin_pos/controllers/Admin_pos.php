@@ -21,6 +21,7 @@ class Admin_pos extends Admin_Controller {
         $data["title"]      = "Transaksi";
         $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
         $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
+         $this->output->enable_profiler(TRUE);
         $this->render($data);
     }
 
@@ -232,6 +233,7 @@ class Admin_pos extends Admin_Controller {
     /** DataTables server-side */
     // application/controllers/Admin_pos.php
 public function get_dataa(){
+    $this->db->save_queries = true;
     try{
         // ===== filter status dari POST =====
         $status = $this->input->post('status', true);
@@ -309,6 +311,7 @@ public function get_dataa(){
             $catId = $isKitchen ? 1 : 2;
             $itemsByOrder = $this->dm->compact_items_for_orders($ids, $catId);
         }
+        $q_before = count($this->db->queries);
         foreach ($list as $r) {
             // === Mode badge ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
@@ -513,6 +516,9 @@ public function get_dataa(){
             $data[] = $row;
 
         }
+        $q_after = count($this->db->queries);
+        $this->output->set_header('X-Queries-Loop: '.($q_after - $q_before));
+$this->output->set_header('X-Queries-Total: '.count($this->db->queries));
 
         $out = [
             "draw"            => (int)$this->input->post('draw'),
