@@ -139,8 +139,26 @@
         if (data && data.id){
           $(row).attr('data-id', data.id).addClass('row-link').css('cursor','pointer');
         }
-      }
+      },
+      drawCallback: function(){
+        // pastikan update setelah setiap redraw
+        setTimeout(function(){ if (window.POS_tickOnce) window.POS_tickOnce(); }, 0);
+      },
+      initComplete: function(){
+        // tick pertama begitu tabel siap
+        if (window.POS_tickOnce) window.POS_tickOnce();
+      },
+
     });
+    try{
+  var tbody = document.querySelector('#datable_pos tbody');
+  if (tbody && !window.__POS_OBS__){
+    window.__POS_OBS__ = new MutationObserver(function(){
+      if (window.POS_tickOnce) window.POS_tickOnce();
+    });
+    window.__POS_OBS__.observe(tbody, { childList: true, subtree: true });
+  }
+}catch(_){}
 
     // pastikan flag reload reset di semua outcome
     window.table.on('xhr.dt error.dt', function(){ window.isReloading = false; });
@@ -206,25 +224,25 @@ window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
 };
 
 // === Tick sekali (update semua span.elapsed) ===
-function POS_tickOnce(){
-  var now = Math.floor(Date.now()/1000);
-  var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
-  for (var i=0; i<els.length; i++){
-    var el = els[i];
-    var durAttr = el.getAttribute('data-dur');
-    if (durAttr !== null && durAttr !== ''){
-      var dur = parseInt(durAttr,10) || 0;
-      el.textContent = window.POS_humanizeDuration(dur);
-      el.classList.add('text-muted');
-      continue;
-    }
-    var st = parseInt(el.getAttribute('data-start')||'0',10);
-    if (st > 1e12) st = Math.floor(st/1000); // kalau tak sengaja ms
-    if (st > 0){
-      el.textContent = window.POS_humanizeDuration(now - st);
-    }
-  }
-}
+// function POS_tickOnce(){
+//   var now = Math.floor(Date.now()/1000);
+//   var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
+//   for (var i=0; i<els.length; i++){
+//     var el = els[i];
+//     var durAttr = el.getAttribute('data-dur');
+//     if (durAttr !== null && durAttr !== ''){
+//       var dur = parseInt(durAttr,10) || 0;
+//       el.textContent = window.POS_humanizeDuration(dur);
+//       el.classList.add('text-muted');
+//       continue;
+//     }
+//     var st = parseInt(el.getAttribute('data-start')||'0',10);
+//     if (st > 1e12) st = Math.floor(st/1000); // kalau tak sengaja ms
+//     if (st > 0){
+//       el.textContent = window.POS_humanizeDuration(now - st);
+//     }
+//   }
+// }
 
 // === Loop 1 detik, tanpa tergantung jQuery ===
 (function POS_startTicker(){
@@ -826,25 +844,22 @@ function POS_tickOnce(){
 </script>
 
 <script>
-/* ===== POS Ticker & Draw Hook – stand-alone (tidak tergantung __POS_INIT__) ===== */
-
-/* 1) Humanizer (global, aman di-reuse) */
+// === Humanizer (global, reuse kalau sudah ada)
 window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
   sec = Math.max(0, Math.floor(sec||0));
   var d = Math.floor(sec/86400); sec%=86400;
   var j = Math.floor(sec/3600);  sec%=3600;
   var m = Math.floor(sec/60);    sec%=60;
   var parts = [];
-  if (d) parts.push(d+'h');  // hari
-  if (j) parts.push(j+'j');  // jam
-  if (m) parts.push(m+'m');  // menit
-  parts.push(sec+'d');       // detik
+  if (d) parts.push(d+'h');
+  if (j) parts.push(j+'j');
+  if (m) parts.push(m+'m');
+  parts.push(sec+'d');
   return parts.join(' ');
 };
 
-/* 2) Tick sekali semua <span.elapsed> */
-(function(){
-  if (window.POS_tickOnce) return;   // idempotent
+// === Tick sekali semua <span.elapsed> (GLOBAL)
+if (!window.POS_tickOnce){
   window.POS_tickOnce = function(){
     var now = Math.floor(Date.now()/1000);
     var els = document.querySelectorAll('#datable_pos tbody span.elapsed');
@@ -864,37 +879,25 @@ window.POS_humanizeDuration = window.POS_humanizeDuration || function(sec){
       }
     }
   };
-})();
+}
 
-/* 3) Loop 1 detik (selalu hidup, tidak tergantung jQuery) */
+// === Loop 1 detik (aman walau POS_tickOnce belum ready di very-early stage)
 (function(){
   if (window.__POS_TICK__) return; window.__POS_TICK__ = true;
-  function loop(){ window.POS_tickOnce(); setTimeout(loop, 1000); }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', loop);
-  } else { loop(); }
-
-  // Debug ringan: laporkan jumlah elemen tiap 10s kalau berubah
-  setInterval(function(){
-    var n = document.querySelectorAll('#datable_pos tbody span.elapsed').length;
-    if (!window.__POS_TICK_SEEN__ || n !== window.__POS_TICK_SEEN__){
-      console.debug('POS TICK • elements:', n);
-      window.__POS_TICK_SEEN__ = n;
-    }
-  }, 10000);
+  function loop(){ if (window.POS_tickOnce) window.POS_tickOnce(); setTimeout(loop, 1000); }
+  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', loop); }
+  else { loop(); }
 })();
 
-/* 4) Hook DataTables draw → retick (baru kalau jQuery/DataTables siap) */
+// === Hook DataTables draw → retick
 (function hookDraw(){
-  if (window.__POS_DRAW_HOOK__) return; 
   function tryHook(){
-    if (window.jQuery && jQuery.fn && (jQuery.fn.dataTable || jQuery.fn.DataTable)) {
-      window.__POS_DRAW_HOOK__ = true;
+    if (window.jQuery && (jQuery.fn.dataTable || jQuery.fn.DataTable)){
       jQuery(function(){
         var $t = jQuery('#datable_pos');
-        if ($t.length){ 
+        if ($t.length){
           $t.on('draw.dt', window.POS_tickOnce);
-          window.POS_tickOnce(); // tick awal setelah draw pertama
+          window.POS_tickOnce(); // tick awal
         }
       });
       return;

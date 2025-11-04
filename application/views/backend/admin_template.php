@@ -50,7 +50,7 @@ $us = $this->om->user();
 </style>
 </head>
 <?php $this->load->view("global") ?>
-<body class="menubar-gradient gradient-topbar topbar-dark <?= $this->session->userdata('admin_login') ? 'berubah' : '' ?>">
+<body class="menubar-gradient unsticky-header gradient-topbar topbar-dark <?= $this->session->userdata('admin_login') ? 'berubah' : '' ?>">
 
     <div id="preloader">
         <div id="status">
