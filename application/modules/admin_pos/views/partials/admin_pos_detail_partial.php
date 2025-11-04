@@ -43,8 +43,16 @@ $kurir_nama  = trim((string)($order->courier_name ?? ''));
 $kurir_telp  = trim((string)($order->courier_phone ?? ''));
 $hasKurir    = ($kurir_id > 0 && $kurir_nama !== '');
 // $canAssignKurir = ($is_delivery && !in_array($status, ['canceled']) && !$hasKurir);
-$canAssignKurir = ($is_delivery && $status === 'paid' && !$hasKurir);
+// $canAssignKurir = ($is_delivery && $status === 'paid' && !$hasKurir);
 
+// ganti baris paid_method lama
+$pm_raw = trim((string)($order->paid_method ?? ''));
+$pm     = strtolower($pm_raw);
+
+// ...
+
+// ganti baris canAssignKurir
+$canAssignKurir = ($is_delivery && $status === 'pending' && $pm === 'cash' && !$hasKurir);
 
 // daftar kurir dari controller (boleh kosong)
 $kurirs = $kurirs ?? [];
@@ -125,10 +133,15 @@ $kurirs = $kurirs ?? [];
           <i class="fe-clock"></i>
           <?= htmlspecialchars(date('d-m-Y H:i', strtotime($order->created_at)), ENT_QUOTES,'UTF-8'); ?>
         </span>
-        <span class="pill">
+        <!-- <span class="pill">
           <i class="fe-credit-card"></i>
           <?= htmlspecialchars($order->paid_method ?: '-', ENT_QUOTES,'UTF-8'); ?>
+        </span> -->
+        <span class="pill">
+          <i class="fe-credit-card"></i>
+          <?= htmlspecialchars($pm_raw ?: '-', ENT_QUOTES,'UTF-8'); ?>
         </span>
+
         <span class="pill">
           <i class="fe-flag"></i>
           <span class="badge badge-<?= $statusBadge ?> mb-0" style="font-size:.78rem;"><?= htmlspecialchars($order->status ?? '-', ENT_QUOTES,'UTF-8'); ?></span>
