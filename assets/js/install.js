@@ -2,7 +2,6 @@
 (() => {
   'use strict';
 
-  // ====== kode asli kamu (dipertahankan & dirapikan) ======
   let deferredPrompt = null;
 
   function isAppInstalled() {
@@ -14,10 +13,9 @@
     return /iPad|iPhone|iPod/i.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
   }
 
-  // TETAP ada fallback guide (kalau overlay belum ter-load)
+  // Fallback iOS guide (akan di-override oleh overlay di File A)
   (function ensureIOSGuide(){
-    if (typeof window.showIOSInstallGuide === 'function') return;
-    window.showIOSInstallGuide = function(e){
+    window.showIOSInstallGuide = window.showIOSInstallGuide || function(e){
       if (e) e.preventDefault();
       const ua = navigator.userAgent || navigator.vendor || '';
       const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
@@ -64,7 +62,7 @@
   });
   window.addEventListener('load', showStandaloneNoticeOnce);
 
-  // ====== ikon ======
+  // ===== ikon =====
   const ICON_ANDROID = `
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g fill="#fff">
   <path d="M6 18c0 1.1.9 2 2 2h1v3h2v-3h2v3h2v-3h1c1.1 0 2-.9 2-2V9H6v9zM15.53 4.18l1.3-1.3-.78-.78-1.48 1.48C14.38 3.17 13.23 3 12 3s-2.38.17-2.93.48L7.59 2 6.81 2.88l1.3 1.3C7.61 5.24 7 6.48 7 8h10c0-1.52-.61-2.76-1.47-3.82zM10 6c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm4 0c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
@@ -79,50 +77,6 @@
   const ICON_PLAY = `
 <svg class="kOqhQd" aria-hidden="true" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0,0h40v40H0V0z"></path><g><path d="M19.7,19.2L4.3,35.3c0,0,0,0,0,0c0.5,1.7,2.1,3,4,3c0.8,0,1.5-0.2,2.1-0.6l0,0l17.4-9.9L19.7,19.2z" fill="#EA4335"></path><path d="M35.3,16.4L35.3,16.4l-7.5-4.3l-8.4,7.4l8.5,8.3l7.5-4.2c1.3-0.7,2.2-2.1,2.2-3.6C37.5,18.5,36.6,17.1,35.3,16.4z" fill="#FBBC04"></path><path d="M4.3,4.7C4.2,5,4.2,5.4,4.2,5.8v28.5c0,0.4,0,0.7,0.1,1.1l16-15.7L4.3,4.7z" fill="#4285F4"></path><path d="M19.8,20l8-7.9L10.5,2.3C9.9,1.9,9.1,1.7,8.3,1.7c-1.9,0-3.6,1.3-4,3c0,0,0,0,0,0L19.8,20z" fill="#34A853"></path></g></svg>`.trim();
 
-  // ===== “penunggu overlay” & pembuka iOS =====
-  function waitForIOSOverlayReady(cb, timeout=2000){
-    const t0 = Date.now();
-    (function tick(){
-      const ok = !!(window.__iosA2HS && typeof window.__iosA2HS.open === 'function');
-      if (ok) return cb(true);
-      if (Date.now() - t0 > timeout) return cb(false);
-      requestAnimationFrame(tick);
-    })();
-  }
-
-  function openIOSGuide(e){
-    if (e) e.preventDefault();
-
-    // 1) jika overlay sudah siap → buka
-    if (window.__iosA2HS && typeof window.__iosA2HS.open === 'function') {
-      window.__iosA2HS.open();
-      return false;
-    }
-
-    // 2) tunggu overlay max 2s
-    waitForIOSOverlayReady((ok)=>{
-      if (ok) { window.__iosA2HS.open(); return; }
-      // 3) fallback: fungsi guide default
-      if (typeof window.showIOSInstallGuide === 'function') {
-        window.showIOSInstallGuide(e);
-        return;
-      }
-      // 4) fallback terakhir
-      if (window.Swal?.fire){
-        Swal.fire({
-          title:'Buka di Safari',
-          html:'Untuk instal di iPhone/iPad:<br>1. Buka pakai <b>Safari</b>.<br>2. Bagikan → <b>Tambahkan ke Layar Utama</b>.',
-          icon:'info'
-        });
-      } else {
-        alert('Buka di Safari → Bagikan → Tambahkan ke Layar Utama');
-      }
-    });
-
-    return false;
-  }
-
-  // ===== UI tombol & visibilitas =====
   function setupInstallButtonUI(){
     const btn = document.getElementById('installButton');
     if (!btn) return;
@@ -152,16 +106,14 @@
 
     if (isAppInstalled()){
       if (playBtn)    playBtn.style.display   = 'none';
-      if (installBtn) installBtn.style.display = 'inline-flex'; // berubah jadi “Ngopi Yuk”
+      if (installBtn) installBtn.style.display = 'inline-flex';
       return;
     }
 
     if (isIOSUA()){
-      // iOS → hanya tombol PWA (dengan petunjukmu)
       if (playBtn)    playBtn.style.display   = 'none';
       if (installBtn) installBtn.style.display = 'inline-flex';
     } else {
-      // Android/others → hanya Google Play
       if (playBtn){
         const ic = playBtn.querySelector('.play-icon');
         if (ic && !ic.innerHTML) ic.innerHTML = ICON_PLAY;
@@ -172,7 +124,8 @@
   }
 
   async function onInstallClick(e){
-    e.preventDefault();
+    // pastikan non-passive agar preventDefault efektif di iOS
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
     if (isAppInstalled()) {
       return whenSwalReady((fallback)=>{
@@ -181,7 +134,10 @@
       });
     }
 
-    if (isIOSUA()) return openIOSGuide(e);
+    if (isIOSUA()) {
+      // selalu panggil panduan overlay (sudah dioverride oleh File A)
+      return window.showIOSInstallGuide(e);
+    }
 
     if (!deferredPrompt) {
       return whenSwalReady((fallback)=>{
@@ -200,14 +156,17 @@
     deferredPrompt = null;
   }
 
-  // init aman walau DOM sudah ready
   function init(){
     setupInstallButtonUI();
     setupBadgesVisibility();
+
     const installButton = document.getElementById('installButton');
     if (installButton){
-      installButton.removeEventListener('click', onInstallClick);
-      installButton.addEventListener('click', onInstallClick);
+      // bersihkan & pasang ulang (click + touchend agar responsif di iPhone)
+      installButton.replaceWith(installButton.cloneNode(true));
+      const fresh = document.getElementById('installButton');
+      fresh.addEventListener('click', onInstallClick, {passive:false});
+      fresh.addEventListener('touchend', onInstallClick, {passive:false});
     }
   }
   if (document.readyState === 'loading') {
@@ -221,6 +180,4 @@
     whenSwalReady((fallback)=>{ if (!fallback) Swal.fire('Terpasang','Aplikasi berhasil diinstal.','success'); });
   });
 
-  // kompatibel dengan onclick="openPlayStore(event)" di tempat lain
-  function openPlayStore(e){ return true; }
 })();

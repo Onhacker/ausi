@@ -11,7 +11,6 @@
 }
 .ios-a2hs-overlay.show{ display:flex; }
 
-/* Kartu & elemen dalamnya */
 .ios-a2hs-card{position:relative;background:#fff;border-radius:1rem;width:100%;max-width:340px;box-shadow:0 24px 48px rgba(0,0,0,.32);animation:ios-pop .28s cubic-bezier(.2,1.15,.4,1.2);padding:1.25rem 1.25rem 1rem;text-align:center}
 .ios-a2hs-close{position:absolute;top:.5rem;right:.5rem;background:rgba(0,0,0,.06);border:0;border-radius:.5rem;width:32px;height:32px;font-size:1.1rem;line-height:32px;cursor:pointer;color:#374151;font-weight:600}
 .ios-a2hs-title{font-size:1rem;font-weight:600;color:#111827;margin-bottom:.25rem}
@@ -37,7 +36,6 @@
 @keyframes bounceArrow{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 </style>
 
-<!-- ===== Overlay Instal PWA iOS (S A T U   K A L I) ===== -->
 <div id="ios-a2hs-overlay" class="ios-a2hs-overlay" role="dialog" aria-modal="true" aria-labelledby="ios-a2hs-title" aria-describedby="ios-a2hs-desc">
   <div class="ios-a2hs-card">
     <button class="ios-a2hs-close" type="button" aria-label="Tutup panduan">&times;</button>
@@ -64,7 +62,7 @@
 </div>
 
 <script>
-/* Controller overlay — idempotent */
+/* Controller overlay — idempotent & override selalu */
 (function(){
   const overlayEl = document.getElementById('ios-a2hs-overlay');
   if (!overlayEl || overlayEl.dataset.inited === '1') return;
@@ -78,26 +76,28 @@
   function isSafari(){ const ua=navigator.userAgent||navigator.vendor||''; return /^((?!chrome|android|crios|fxios).)*safari/i.test(ua); }
 
   // API global untuk install.js
-  window.__iosA2HS = window.__iosA2HS || {
-    open(){ overlayEl.classList.add('show'); },
+  window.__iosA2HS = {
+    open(){
+      /* trik reflow + next tick supaya langsung kelihatan */
+      void overlayEl.offsetWidth;
+      requestAnimationFrame(()=> overlayEl.classList.add('show'));
+    },
     close(){ overlayEl.classList.remove('show'); }
   };
 
-  // showIOSInstallGuide hanya jika belum ada
-  if (typeof window.showIOSInstallGuide !== 'function'){
-    window.showIOSInstallGuide = function(e){
-      if (e) e.preventDefault();
-      if (!(isIOSUA() && isSafari())) {
-        if (window.Swal?.fire){
-          Swal.fire({title:'Buka di Safari',html:'Untuk instal di iPhone/iPad:<br>1. Buka pakai <b>Safari</b>.<br>2. Bagikan → <b>Tambahkan ke Layar Utama</b>.',icon:'info'});
-        } else {
-          alert('Buka di Safari → Bagikan → Tambahkan ke Layar Utama');
-        }
-        return false;
+  // SELALU override showIOSInstallGuide (hindari fallback nempel)
+  window.showIOSInstallGuide = function(e){
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (!(isIOSUA() && isSafari())) {
+      if (window.Swal?.fire){
+        Swal.fire({title:'Buka di Safari',html:'Untuk instal di iPhone/iPad:<br>1. Buka pakai <b>Safari</b>.<br>2. Bagikan → <b>Tambahkan ke Layar Utama</b>.',icon:'info'});
+      } else {
+        alert('Buka di Safari → Bagikan → Tambahkan ke Layar Utama');
       }
-      window.__iosA2HS.open();
       return false;
-    };
-  }
+    }
+    window.__iosA2HS.open();
+    return false;
+  };
 })();
 </script>
