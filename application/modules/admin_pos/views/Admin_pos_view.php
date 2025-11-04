@@ -49,11 +49,11 @@
 </a>
     <select id="filter-status" class="form-control form-control-sm mr-2" style="width:220px">
       <option value="all" selected>Semua status</option>
-      <option value="paid">Paid (Lunas)</option>
-      <option value="pending">Pending</option>
+      <option value="paid">Lunas</option>
+      <option value="pending">Menunggu Pembayaran</option>
       <option value="verifikasi">Verifikasi</option>
       <option value="canceled">Canceled</option>
-      <option value="failed">Failed</option>
+      <!-- <option value="failed">Failed</option> -->
     </select>
   <?php endif; ?>
 </div>

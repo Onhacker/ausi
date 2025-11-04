@@ -255,6 +255,52 @@ public function get_dataa(){
         $isKitchen = ($uname === 'kitchen');
         $isBar     = ($uname === 'bar');
 
+
+        // === Formatter METODE (hanya: Cash, QRIS, Transfer) ===
+        $fmt_method = function($raw) {
+            $rawStr = (string)$raw;
+            $s = strtolower(trim($rawStr));
+            if ($s === '' || $s === '-' || $s === 'unknown') {
+                return '<span class="text-muted">—</span>';
+            }
+
+            // pecah token (dukung json array / string gabungan)
+            $tokens = [];
+            if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
+                $tmp = json_decode($rawStr, true);
+                if (is_array($tmp)) {
+                    foreach ($tmp as $v) { $tokens[] = strtolower(trim((string)$v)); }
+                }
+            }
+            if (!$tokens) {
+                $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+            }
+
+            // normalisasi -> flag 3 jenis saja
+            $has = ['cash'=>false, 'qris'=>false, 'transfer'=>false];
+            foreach ($tokens as $t) {
+                if (preg_match('/^(cash|tunai)$/', $t))                           $has['cash'] = true;
+                elseif (preg_match('/^(qris|qr|scan)$/', $t))                      $has['qris'] = true;
+                elseif (preg_match('/^(transfer|tf|bank|bca|bri|bni|mandiri)$/', $t)) $has['transfer'] = true;
+            }
+
+            // builder chip
+            $chip = function($icon,$label,$cls){
+                return '<span class="badge badge-pill '.$cls.' mr-1 mb-1">'
+                     .   '<i class="mdi '.$icon.' mr-1"></i>'.$label
+                     . '</span>';
+            };
+
+            $out = '';
+            if ($has['cash'])     $out .= $chip('mdi-cash',           'Tunai',    'badge-success');
+            if ($has['qris'])     $out .= $chip('mdi-qrcode-scan',    'QRIS',     'badge-info');
+            if ($has['transfer']) $out .= $chip('mdi-bank-transfer',  'Transfer', 'badge-secondary');
+
+            if ($out === '') return '<span class="text-muted">—</span>'; // selain 3, sembunyikan
+            return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem" title="'.htmlspecialchars($rawStr, ENT_QUOTES, 'UTF-8').'">'.$out.'</div>';
+        };
+
+
         $list = $this->dm->get_data();
         $data = [];
 
@@ -332,61 +378,7 @@ public function get_dataa(){
                 elseif ($status_raw === 'sent')       $status_label = 'terkirim';
             }
 
-            $method = $r->paid_method ?: '-';
-
-            // ======== KOLom "Lama" (elapsed) ========
-            // Default: live berjalan dari createdTs
-            // ======== KOLom "Lama" (elapsed) ========
-            // $createdTs = strtotime($r->created_at ?: date('Y-m-d H:i:s')) ?: time();
-            // $lamaHtml  = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
-
-
-            // // Kitchen: berhenti kalau selesai (status_pesanan_kitchen=2)
-            // if ($isKitchen) {
-            //     if ((int)$r->status_pesanan_kitchen === 2) {
-            //         // pakai durasi tersimpan kalau ada, fallback hitung dari done_at
-            //         if ($r->kitchen_duration_s !== null) {
-            //             $dur = (int)$r->kitchen_duration_s;
-            //         } elseif (!empty($r->kitchen_done_at)) {
-            //             $dur = max(0, strtotime($r->kitchen_done_at) - $createdTs);
-            //         } else {
-            //             $dur = 0;
-            //         }
-            //         $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-            //     }
-            // // Bar: berhenti kalau selesai (status_pesanan_bar=2)
-            // } elseif ($isBar) {
-            //     if ((int)$r->status_pesanan_bar === 2) {
-            //         if ($r->bar_duration_s !== null) {
-            //             $dur = (int)$r->bar_duration_s;
-            //         } elseif (!empty($r->bar_done_at)) {
-            //             $dur = max(0, strtotime($r->bar_done_at) - $createdTs);
-            //         } else {
-            //             $dur = 0;
-            //         }
-            //         $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-            //     }
-            // // Kasir/Admin: berhenti kalau transaksi ditutup
-            // } else {
-            //     $status_raw = strtolower((string)($r->status ?? ''));
-            //     $isClosed   = ((int)($r->tutup_transaksi ?? 0) === 1)
-            //                || in_array($status_raw, ['paid','canceled'], true);
-
-            //     if ($isClosed) {
-            //         // pakai titik selesai paling masuk akal
-            //         $endTs = null;
-            //         if (!empty($r->paid_at))      $endTs = strtotime($r->paid_at);
-            //         elseif (!empty($r->updated_at)) $endTs = strtotime($r->updated_at);
-            //         else                            $endTs = $createdTs;
-
-            //         $dur = max(0, $endTs - $createdTs);
-            //         $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-            //     }
-            // }
-            // ======== Kolom "Lama" (elapsed) ========
-            // createdTs = epoch (detik)
-            // ======== Kolom "Lama" (elapsed) ========
-                // createdTs = epoch detik
+                $method = $r->paid_method ?: '-';
                 $createdTs = strtotime($r->created_at ?: 'now') ?: time();
 
                 $isClosed = false;
@@ -510,7 +502,14 @@ public function get_dataa(){
               . '</span>';
 
             // 9. metode
-            $row['metode'] = ($isKitchen || $isBar) ? '' : htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
+            // $row['metode'] = ($isKitchen || $isBar) ? '' : htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
+            // 9. metode
+            if ($isKitchen || $isBar) {
+                $row['metode'] = '';
+            } else {
+                $row['metode'] = $fmt_method($r->paid_method ?? '');
+            }
+
 
             // 10. aksi (hanya kasir/admin)
             if (!$isKitchen && !$isBar) {
