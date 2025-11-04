@@ -433,19 +433,37 @@ public function get_dataa(){
             }
 
             $actionsHtml = '';
+            // if (!$isKitchen && !$isBar) {
+            //     $idInt = (int)$r->id;
+            //     $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
+            //     $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')"><i class="fe-x-circle"></i></button>';
+
+            //     // tombol Hapus hanya untuk admin_username = admin
+            //     $unameLower = strtolower((string)$this->session->userdata('admin_username'));
+            //     $btnDelete  = ($unameLower === 'admin')
+            //         ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>'
+            //         : '';
+
+            //     $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnCancel.$btnDelete.'</div>';
+            // }
+
             if (!$isKitchen && !$isBar) {
                 $idInt = (int)$r->id;
+
                 $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
                 $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')"><i class="fe-x-circle"></i></button>';
+                $btnDelete = '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>';
 
-                // tombol Hapus hanya untuk admin_username = admin
                 $unameLower = strtolower((string)$this->session->userdata('admin_username'));
-                $btnDelete  = ($unameLower === 'admin')
-                    ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>'
-                    : '';
+    $isAdmin = ($unameLower === 'admin'); // sesuaikan kalau ada role lain
 
-                $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnCancel.$btnDelete.'</div>';
-            }
+    // kasir & user selain admin: hanya tombol Paid
+    $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
+    . $btnPaid
+    . ($isAdmin ? $btnCancel.$btnDelete : '')
+    . '</div>';
+}
+
 
             $row = [];
 
@@ -922,7 +940,7 @@ public function print_struk_termal($id = null)
     $id = (int)$id;
     if ($id <= 0) { show_error('ID tidak valid', 400); }
 
-    $bundle = $this->dm->get_order_with_items($id);
+    $bundle = $this->dm->get_order_any($id);
     if (!$bundle) { show_error('Order tidak ditemukan', 404); }
 
     $paper = $this->input->get('paper', true);

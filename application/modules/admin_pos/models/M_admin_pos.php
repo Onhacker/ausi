@@ -855,6 +855,12 @@ public function get_orders_for_wa(array $ids){
         ->get()
         ->result();
 }
+// di model:
+public function get_order_any($id){
+  $live = $this->get_order_with_items($id);
+  if ($live) return $live;
+  return $this->get_order_with_items_archived($id); // bikin versi baca dari *_paid
+}
 
 
 }
