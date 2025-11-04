@@ -759,6 +759,45 @@ public function compact_items_for_order(int $order_id, ?int $cat_id = null): arr
     foreach ($rows as $r) { $r->nama = (string)($r->nama ?? '-'); $r->qty = (int)$r->qty; }
     return $rows;
 }
+/** Ringkas item utk banyak order sekaligus → [order_id => [{nama, qty}, ...]] */
+public function compact_items_for_orders(array $order_ids, ?int $cat_id = null): array
+{
+    $order_ids = array_values(array_unique(array_filter(array_map('intval',$order_ids))));
+    if (!$order_ids) return [];
+
+    $this->db->from('pesanan_item pi')
+             ->join('produk p', 'p.id = pi.produk_id', 'left')
+             ->select('pi.pesanan_id')
+             ->select('COALESCE(pi.nama, p.nama) AS nama', false)
+             ->select('SUM(pi.qty) AS qty', false)
+             ->where_in('pi.pesanan_id', $order_ids);
+
+    if ($cat_id === 1 || $cat_id === 2) {
+        // pakai pi.id_kategori jika ada; fallback p.kategori_id bila null
+        $this->db->group_start()
+                 ->where('pi.id_kategori', (int)$cat_id)
+                 ->or_group_start()
+                    ->where('pi.id_kategori', null)
+                    ->where('p.kategori_id', (int)$cat_id)
+                 ->group_end()
+                 ->group_end();
+    }
+
+    $this->db->group_by(['pi.pesanan_id','COALESCE(pi.nama, p.nama)'], false)
+             ->order_by('pi.pesanan_id','ASC')
+             ->order_by('COALESCE(pi.nama, p.nama)','ASC', false);
+
+    $rows = $this->db->get()->result();
+
+    $out = [];
+    foreach ($rows as $r) {
+        $out[(int)$r->pesanan_id][] = (object)[
+            'nama' => (string)($r->nama ?? '-'),
+            'qty'  => (int)$r->qty
+        ];
+    }
+    return $out;
+}
 
 
     // /** Ringkas item per order untuk kitchen/bar → [nama, qty] (opsional filter kategori 1/2) */
