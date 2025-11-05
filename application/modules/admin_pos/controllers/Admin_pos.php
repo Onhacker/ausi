@@ -1242,27 +1242,6 @@ private function _is_transfer_or_qris($raw){
 }
 
 
-/** Deteksi metode tunai (mendukung JSON/string gabungan) */
-private function _is_cash_method($raw): bool
-{
-    $raw = (string)$raw;
-    $s = strtolower(trim($raw));
-    if ($s === '' || $s === '-' || $s === 'unknown') return false;
-
-    $tokens = [];
-    if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
-        $tmp = json_decode($raw, true);
-        if (is_array($tmp)) { foreach ($tmp as $v) $tokens[] = strtolower(trim((string)$v)); }
-    }
-    if (!$tokens) {
-        $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
-    }
-    foreach ($tokens as $t) {
-        if (preg_match('/^(cash|tunai)$/', $t)) return true;
-    }
-    return false;
-}
-
 
 
 
