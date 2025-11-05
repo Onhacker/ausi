@@ -11,8 +11,7 @@
       <h4 class="page-title"><?= $title; ?></h4>
     </div>
   </div></div>
-
-  <div class="mb-2 d-flex align-items-center flex-wrap justify-content-start">
+<div class="mb-2 d-flex align-items-center button-list flex-wrap justify-content-start">
   <a href="<?= site_url('billiard') ?>" class="btn btn-blue btn-sm mr-2">
     <span class="btn-label"><i class="fe-plus-circle"></i></span>Booking
   </a>
