@@ -916,6 +916,112 @@ $ver  = file_exists(FCPATH.$path) ? filemtime(FCPATH.$path) : time(); // fallbac
     });
   }
 </script>
+<script>
+(function(){
+  if (window.__PWA_TOPFIX__) return; window.__PWA_TOPFIX__ = true;
+
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+  function css(el, prop, val){ if (el) el.style.setProperty(prop, val, 'important'); }
+
+  function setViewportFit(){
+    var meta = document.querySelector('meta[name="viewport"]');
+    var content = meta ? meta.getAttribute('content') || '' : '';
+    if (!meta){ meta = document.createElement('meta'); meta.setAttribute('name','viewport'); }
+    if (!/viewport-fit=cover/.test(content)) {
+      content = content ? (content.replace(/\s+$/,'') + ', viewport-fit=cover') : 'width=device-width, initial-scale=1, viewport-fit=cover';
+    }
+    meta.setAttribute('content', content);
+    if (!meta.parentNode) document.head.appendChild(meta);
+  }
+
+  function getHeaderColor(){
+    var h = document.querySelector('.app-header, .navbar, header, .site-header');
+    var c = h ? getComputedStyle(h).backgroundColor : '';
+    if (!c || c === 'transparent' || c === 'rgba(0, 0, 0, 0)') c = '#0b3b6d'; // fallback
+    return c;
+  }
+
+  function setThemeBars(col){
+    // Android Chrome status bar
+    var tc = document.querySelector('meta[name="theme-color"]');
+    if (!tc){ tc = document.createElement('meta'); tc.setAttribute('name','theme-color'); document.head.appendChild(tc); }
+    tc.setAttribute('content', col);
+
+    // iOS PWA status bar (pakai 'default' biar nggak overlay aneh)
+    var ios = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!ios){ ios = document.createElement('meta'); ios.setAttribute('name','apple-mobile-web-app-status-bar-style'); document.head.appendChild(ios); }
+    ios.setAttribute('content','default');
+  }
+
+  function injectStyles(col){
+    document.documentElement.style.setProperty('--header-color', col);
+    document.documentElement.classList.add('pwa-standalone');
+
+    var cssText = `
+      html.pwa-standalone{ background: var(--header-color) !important; }
+      .top-safe-patch{
+        position:fixed; top:0; left:0; right:0;
+        height: calc(env(safe-area-inset-top, 0px) + 2px);
+        background: var(--header-color);
+        pointer-events:none; z-index:2147483646;
+      }
+      .force-header-on-top{ position: sticky; top:0; z-index:2147483647 !important; }
+      /* Matikan loader tipis yang suka numpuk di atas */
+      #nprogress, #nprogress .bar, #nprogress .peg, #nprogress .spinner,
+      .pace, .pace-progress, .pace-activity{ display:none !important; }
+      /* Redam pull-to-refresh seam di Android */
+      html, body { overscroll-behavior-y: contain !important; }
+    `;
+    var st = document.getElementById('pwa-topfix-style') || document.createElement('style');
+    st.id = 'pwa-topfix-style'; st.textContent = cssText;
+    document.head.appendChild(st);
+
+    var headEl = document.querySelector('.app-header, .navbar, header, .site-header');
+    if (headEl) headEl.classList.add('force-header-on-top');
+
+    if (!document.getElementById('top-safe-patch')){
+      var patch = document.createElement('div');
+      patch.id = 'top-safe-patch'; patch.className = 'top-safe-patch';
+      document.body.appendChild(patch);
+    }
+  }
+
+  function killLoadersAndRogueBars(){
+    function kill(){
+      // bunuh NProgress/Pace bila muncul lagi
+      document.querySelectorAll('#nprogress, #nprogress .bar, #nprogress .peg, #nprogress .spinner, .pace, .pace-progress, .pace-activity')
+        .forEach(el => { try{ el.remove(); }catch(e){} });
+      try { if (window.Pace) Pace.stop(); } catch(e){}
+      try { if (window.NProgress){ NProgress.configure({trickle:false,showSpinner:false}); NProgress.remove(); } } catch(e){}
+
+      // sembunyikan bar fixed/sticky setebal <=3px di top:0 (kecuali header)
+      document.querySelectorAll('body *').forEach(function(el){
+        var s = getComputedStyle(el), h = parseFloat(s.height)||0, t = parseFloat(s.top)||0;
+        if ((s.position==='fixed'||s.position==='sticky') && t <= 1 && h <= 3 &&
+            !el.closest('.navbar, .app-header, header, .site-header')){
+          el.style.setProperty('display','none','important');
+        }
+      });
+    }
+    kill();
+    var mo = new MutationObserver(kill);
+    mo.observe(document.documentElement, { childList:true, subtree:true });
+  }
+
+  function run(){
+    if (!isStandalone) return; // hanya saat PWA/standalone
+    setViewportFit();
+    var col = getHeaderColor();
+    setThemeBars(col);
+    injectStyles(col);
+    killLoadersAndRogueBars();
+  }
+
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+})();
+</script>
 
 </body>
 </html>
