@@ -117,6 +117,9 @@
         confirmButtonText: 'Kirim',
         cancelButtonText: 'Nanti',
         focusConfirm: false,
+         // focusConfirm: false,
+   focusCancel: false,
+  focusDeny: false,
         didOpen: function(modal){
           var wrap = modal.querySelector('.swal-rate-wrap');
           var ta   = modal.querySelector('#swal-review');
@@ -154,8 +157,13 @@
             if (this.value.length > maxLenNama) this.value = this.value.slice(0, maxLenNama);
             cntN.textContent = this.value.length + '/' + maxLenNama;
           });
+             setTimeout(function(){
+     if (document.activeElement && document.activeElement !== document.body) {
+       try { document.activeElement.blur(); } catch(_){}
+     }
+   }, 0);
 
-          setTimeout(function(){ inNm && inNm.focus(); }, 0);
+          // setTimeout(function(){ inNm && inNm.focus(); }, 0);
           cnt.textContent  = '0/'+maxLenReview;
           cntN.textContent = '0/'+maxLenNama;
           render();
