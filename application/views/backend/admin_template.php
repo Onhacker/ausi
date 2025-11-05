@@ -20,16 +20,7 @@ $us = $this->om->user();
     <link href="<?php echo base_url('assets/admin') ?>/css/icons.min.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo base_url('assets/admin') ?>/css/app.min.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo base_url() ?>assets/admin/libs/animate/animate.min.css" rel="stylesheet" type="text/css" />
-    <?php if ($this->uri->segment(1) == "admin_permohonan") { ?>
-       <link href="<?php echo base_url("assets/admin") ?>/libs/dropify/dropify.min.css" rel="stylesheet" type="text/css" />
-       <style>
-        .dropify-wrapper .dropify-clear {
-            display: none !important;
-            pointer-events: none !important;
-            visibility: hidden !important;
-        }
-    </style>
-<?php } ?>
+   
 <link href="<?php echo base_url('assets/admin') ?>/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
 <link href="<?php echo base_url(); ?>assets/admin/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />
 <script src="<?php echo base_url("assets/admin") ?>/js/jquery-3.1.1.min.js"></script>
@@ -39,18 +30,55 @@ $us = $this->om->user();
       scroll-behavior: smooth;
   }
 
-  .white-shadow-text {
-      color: #fff !important; 
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-  }
-  .berubah.gradient-topbar #topnav {
-      background: linear-gradient(80deg, #0d47a1 0%, #42a5f5 100%);
+.white-shadow-text {
+    color: #ffffff !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+/* ===== Un-sticky & compact header khusus mobile ===== */
+@media (max-width: 991.98px){
+  /* lepas sticky/fixed */
+  #topnav,
+  #topnav .navbar-custom,
+  #topnav .topbar-menu{
+    position: static !important;
+    top: auto !important;
   }
 
+  /* rapikan ruang di bawah header */
+  #topnav{ margin-bottom: 0 !important; }
+  #topnav .navbar-custom{ margin-bottom: 0 !important; box-shadow: none !important; }
+  #topnav .topbar-menu{
+    margin: 0 !important;
+    padding: .25rem 0 !important; /* lebih tipis */
+  }
+  #navigation{ padding: 0 !important; }  /* beberapa tema kasih padding ekstra */
+
+  /* menu item lebih rapat */
+  .topbar-menu .navigation-menu>li>a{
+    padding: .45rem .6rem !important;
+  }
+
+  /* hilangkan kompensasi konten */
+  body{ padding-top: 0 !important; }
+  .wrapper{ margin-top: 0 !important; padding-top: .25rem !important; }
+
+  /* judul halaman juga dirapatkan */
+  .page-title-box{
+    margin-top: 0 !important;
+    padding-top: .25rem !important;
+    margin-bottom: .75rem !important;
+  }
+}
+
+.gradient-topbar #topnav {
+    background: linear-gradient(360deg, #FF9800 0, #FFC107 100%) !important;
+    -webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
+}
 </style>
 </head>
 <?php $this->load->view("global") ?>
-<body class="menubar-gradient unsticky-header gradient-topbar topbar-dark <?= $this->session->userdata('admin_login') ? 'berubah' : '' ?>">
+<body class="menubar-gradient unsticky-header gradient-topbar topbar-dark ">
 
     <div id="preloader">
         <div id="status">
@@ -61,7 +89,7 @@ $us = $this->om->user();
     </div>
 
 <header id="topnav">
-  <div class="navbar-custom">
+  <div class="navbar-custom ">
     <div class="container-fluid">
       <?php $this->load->view("backend/notif.php") ?>
 
@@ -84,12 +112,12 @@ $us = $this->om->user();
       </div>
 
       <!-- MOBILE HEADER (hanya tampil di mobile) -->
-      <div class="logo-box d-lg-none">
+      <div class="logo-box d-lg-none ">
         <a class="logo text-center" href="javascript:void(0)">
           <span class="logo-sm d-inline-flex align-items-center">
-            <img src="<?php echo base_url('assets/images/logo.png') ?>" 
+            <img src="<?php echo base_url('assets/images/logo_admin.png') ?>" 
                  alt="Logo <?php echo htmlspecialchars($web->nama_website, ENT_QUOTES) ?>" height="40" class="mr-1">
-            <span class="header-title ml-1 white-shadow-text">
+            <span class="header ml-1 white-shadow-text">
               <?php echo htmlspecialchars($web->nama_website, ENT_QUOTES) ?>
             </span>
           </span>
@@ -103,8 +131,8 @@ $us = $this->om->user();
   <div class="topbar-menu">
     <div class="container-fluid">
       <div id="navigation">
-       <ul class="navigation-menu">
-        <ul id="menu-dynamic" class="navigation-menu"></ul>
+  <ul id="menu-dynamic" class="navigation-menu"></ul>
+
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -209,16 +237,11 @@ $us = $this->om->user();
 <script src="<?php echo base_url('assets/admin') ?>/js/sw.min.js"></script>
 
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/admin/js/jquery.easyui.min.js"></script>
-<?php if ($this->uri->segment(1) == "admin_profil" or $this->uri->segment(1) == "admin_permohonan") {?>
+<?php if ($this->uri->segment(1) == "admin_profil") {?>
     <script src="<?php echo base_url("assets/admin") ?>/libs/dropify/dropify_peng.js"></script>
 
 <?php } ?>
 
-
-<?php if ($this->uri->segment(1) == "admin_reg" or $this->uri->segment(1) == "admin_permohonan") {?>
-    <script src="<?php echo base_url(); ?>assets/admin/datatables/js/jquery.dataTables.min.js"></script>
-    <script src="<?php echo base_url(); ?>assets/admin/datatables/js/dataTables.bootstrap4.min.js"></script>
-<?php } ?>
 
 
 <?php if (strtolower($controller) == "admin_modul" or strtolower($controller) == "admin_user" ) { ?>
@@ -237,10 +260,6 @@ $us = $this->om->user();
    <script src="<?php echo base_url("assets/admin/") ?>libs/select2/select2.min.js"></script> 
 <?php } ?>
 
-<?php if (strtolower($controller) == "admin_dashboard" or strtolower($controller) == "admin_permohonan") {?>
-   <script src="<?php echo base_url("assets/admin/") ?>libs/select2/select2.min.js"></script>
-   <script src="<?php echo base_url("assets/admin") ?>/libs/tippy-js/tippy.all.min.js"></script>
-<?php } ?>
 <?php if (strtolower($controller) == "admin_produk"  or strtolower($controller) == "admin_pengumuman") {?>
   <script src="<?= base_url('assets/admin/summernote/summernote-bs4.min.js'); ?>"></script>
 

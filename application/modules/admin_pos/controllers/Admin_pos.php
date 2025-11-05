@@ -55,8 +55,9 @@ class Admin_pos extends Admin_Controller {
     $deliveryFee = (int)$fee;
     $baseTotal   = $subtotal + $deliveryFee;
 
-    $method = strtolower(trim((string)($row->paid_method ?? '')));
-    $isCash = ($method === 'cash');
+    // $method = strtolower(trim((string)($row->paid_method ?? '')));
+    // $isCash = ($method === 'cash');
+    $isCash = $this->_is_cash_method($row->paid_method);
 
     if ($isCash){
         $kodeUnik = 0;
@@ -1198,10 +1199,6 @@ if (!$okStatus) {
     "Kurir: {$kurir->nama}".($kurirTelp ? " ({$kurirTelp})" : "").($veh ? "\nKendaraan: {$veh}" : "")."\n".
     ($kurirTelp ? "Hubungi: https://wa.me/".$kurirMsisdn."\n" : "").
     "Terima kasih 🙏";
-
-
-    $custMsisdn  = $this->_msisdn($custPh);
-    $kurirMsisdn = $this->_msisdn($kurirTelp);
 
     $okCust = $custMsisdn  ? $this->_wa_try($custMsisdn,  $msgCust)  : false;
     $okKur  = $kurirMsisdn ? $this->_wa_try($kurirMsisdn, $msgKurir) : false;
