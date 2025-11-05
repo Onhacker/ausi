@@ -1174,19 +1174,31 @@ if (!$okStatus) {
 
     $veh  = trim(((string)($kurir->vehicle ?? '')).' '.((string)($kurir->plate ?? '')));
     $kurirTelp = trim((string)($kurir->phone ?? ''));
+    $methodPretty   = $this->_pretty_paid_method($order->paid_method);
+    $payStatusText  = ($status === 'paid') ? 'LUNAS' : 'Bayar di tempat';
 
+    // ...setelah variabel $custPh, $kurirTelp, $methodPretty, $payStatusText, $nav, dll.
+
+    $custMsisdn  = $this->_msisdn($custPh);    // normalisasi utk wa.me
+    $kurirMsisdn = $this->_msisdn($kurirTelp); // sudah ada dipakai di bawah
+
+    // SUSUN PESAN WA KURIR (dengan nomor + link WA customer)
     $msgKurir = "Halo {$kurir->nama},\n".
-                "Anda ditugaskan untuk delivery pesanan #{$nomor} dari {$toko}.\n".
-                "Customer: {$custNm}".($custPh ? " ({$custPh})" : "")."\n".
-                "Alamat: {$alamat}\n".
-                ($nav ? "Navigasi: {$nav}\n" : "").
-                "Mohon konfirmasi di sistem setelah pickup. Terima kasih.";
+    "Anda ditugaskan untuk mengantar pesanan #{$nomor} dari {$toko}.\n".
+    "Customer: {$custNm}\n".
+    "Kontak Customer: ".($custPh ?: "-").($custMsisdn ? "\nWA: https://wa.me/{$custMsisdn}" : "")."\n".
+    "Alamat: {$alamat}\n".
+    "Pembayaran: {$methodPretty} — {$payStatusText}\n".
+    ($nav ? "Navigasi: {$nav}\n" : "").
+    "Mohon konfirmasi di sistem setelah pickup. Terima kasih.";
 
+    // (opsional) pesan ke customer tetap seperti sebelumnya
     $msgCust = "Halo {$custNm},\n".
-               "Kurir telah ditugaskan untuk pesanan #{$nomor} dari {$toko}.\n".
-               "Kurir: {$kurir->nama}".($kurirTelp ? " ({$kurirTelp})" : "").($veh ? "\nKendaraan: {$veh}" : "")."\n".
-               ($kurirTelp ? "Hubungi: https://wa.me/".$this->_msisdn($kurirTelp)."\n" : "").
-               "Terima kasih 🙏";
+    "Kurir telah ditugaskan untuk pesanan #{$nomor} dari {$toko}.\n".
+    "Kurir: {$kurir->nama}".($kurirTelp ? " ({$kurirTelp})" : "").($veh ? "\nKendaraan: {$veh}" : "")."\n".
+    ($kurirTelp ? "Hubungi: https://wa.me/".$kurirMsisdn."\n" : "").
+    "Terima kasih 🙏";
+
 
     $custMsisdn  = $this->_msisdn($custPh);
     $kurirMsisdn = $this->_msisdn($kurirTelp);
@@ -1243,6 +1255,42 @@ private function _is_transfer_or_qris($raw){
 
 
 
+private function _pretty_paid_method($raw){
+    $tokens = $this->_paid_tokens($raw);
+    if (!$tokens) return '—';
+
+    $tset = array_fill_keys($tokens, true);
+
+    // Cash/COD
+    if ($this->_is_cash_method($raw)) return 'Tunai / COD';
+
+    // QRIS
+    if (isset($tset['qris']) || isset($tset['qr']) || isset($tset['qr-code'])) return 'QRIS';
+
+    // E-wallet
+    $ew = [
+        'gopay' => 'GoPay', 'ovo' => 'OVO', 'dana' => 'DANA',
+        'shopeepay' => 'ShopeePay', 'linkaja' => 'LinkAja'
+    ];
+    foreach ($ew as $k => $v){
+        if (isset($tset[$k])) return $v;
+    }
+
+    // Transfer/Bank (deteksi bank jika ada)
+    $isTransfer = isset($tset['transfer']) || isset($tset['tf']) || isset($tset['bank']) || isset($tset['mbanking']) || isset($tset['va']) || isset($tset['virtualaccount']);
+    if ($isTransfer){
+        $banks = ['bca','bri','bni','mandiri','cimb','permata','btn','maybank','danamon','ocbc','uob','mega','bsi'];
+        foreach ($tokens as $tok){
+            if (in_array($tok, $banks, true)){
+                return 'Transfer ' . strtoupper($tok);
+            }
+        }
+        return 'Transfer/Bank';
+    }
+
+    // Fallback: gabungkan token
+    return strtoupper(implode(' / ', $tokens));
+}
 
 
 /** Helper JSON */
