@@ -126,7 +126,7 @@
                 <?php for ($i=0; $i<5; $i++): ?><i class="mdi mdi-star-outline empty"></i><?php endfor; ?>
               <?php endif; ?>
             </div>
-            <a class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i> Ulas</a>
+            <a class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i> Komen</a>
           </div>
 
           <div class="sold-label">
