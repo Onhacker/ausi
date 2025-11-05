@@ -27,7 +27,6 @@
       }
     </style>
 
-
     <div class="empty-state my-3">
       <div class="empty-state__inner text-center">
         <div class="emoji">🛒</div>
@@ -54,7 +53,7 @@
       })();
     </script>
   </div>
-  <?php else: ?>
+<?php else: ?>
   <style>
     .product-img-bg{ position:relative; overflow:hidden; border-radius:10px; }
 
@@ -97,7 +96,7 @@
   <?php
     // konstanta global utk view
     $BESTSELLER_MIN = 10;  // ambang "laris" untuk TOTAL penjualan (ubah sesuai kebutuhan)
-    $NEW_DAYS       = 14;  // definisi "baru"
+    $NEW_DAYS       = 3;   // definisi "baru"
     $nowTs          = time();
   ?>
 
@@ -152,95 +151,111 @@
         </div>
 
         <div class="product-info">
-          <div class="row align-items-center">
-            <div class="col">
-              <h5 class="font-16 mt-0 sp-line-1 mb-1">
-                <a href="javascript:void(0)" class="text-dark btn-detail" data-slug="<?= html_escape($slug); ?>">
-                  <?= html_escape(ucwords($p->nama)); ?>
-                </a>
-              </h5>
+          <!-- === NAMA DI ATAS (sendiri) === -->
+          <h5 class="font-14 mt-2 sp-line-1 mb-1">
+            <a href="javascript:void(0)" class="text-dark btn-detail" data-slug="<?= html_escape($slug); ?>">
+              <?= html_escape(ucwords($p->nama)); ?>
+            </a>
+          </h5>
 
-              <?php if ($starCount > 0): ?>
-                <!-- Bintang (total) -->
-                <div class="star-meter" aria-label="Indikator terlaris total: <?= $starCount; ?> bintang">
-                  <?php for($i=1;$i<=5;$i++): ?>
-                    <?php if ($i <= $starCount): ?>
-                      <i class="mdi mdi-star full" aria-hidden="true"></i>
-                    <?php else: ?>
-                      <i class="mdi mdi-star-outline empty" aria-hidden="true"></i>
-                    <?php endif; ?>
-                  <?php endfor; ?>
-                </div>
-                <!-- Label penjualan total (tepat di bawah bintang) -->
-                <div class="sold-label">
-                  <?= number_format($basisLaris,0,',','.'); ?> terjual
-                </div>
-              <?php endif; ?>
-
-             
+          <?php if ($starCount > 0): ?>
+            <!-- Bintang (total) -->
+            <div class="star-meter" aria-label="Indikator terlaris total: <?= $starCount; ?> bintang">
+              <?php for($i=1;$i<=5;$i++): ?>
+                <?php if ($i <= $starCount): ?>
+                  <i class="mdi mdi-star full" aria-hidden="true"></i>
+                <?php else: ?>
+                  <i class="mdi mdi-star-outline empty" aria-hidden="true"></i>
+                <?php endif; ?>
+              <?php endfor; ?>
             </div>
-            <style type="text/css">
-              .product-price-tag {
-                height: 30px !important;
-                line-height: 30px !important;
-            </style>
-            <div class="col-auto">
-              <div class="product-price-tag">Rp <?= number_format((float)$p->harga, 0, ',', '.'); ?></div>
+            <!-- Label penjualan total (tepat di bawah bintang) -->
+            <div class="sold-label">
+              <?= number_format($basisLaris,0,',','.'); ?> terjual
+            </div>
+          <?php endif; ?>
+
+          <!-- (keep) perbaikan kecil untuk height/line-height -->
+          <style type="text/css">
+            .product-price-tag {
+              height: 30px !important;
+              line-height: 30px !important;
+            }
+          </style>
+
+          <!-- === HARGA DI BAWAH KANAN === -->
+          <div class="text-right mt-1">
+            <div class="product-price-tag">
+              <span class="cur">Rp</span><?= number_format((float)$p->harga, 0, ',', '.'); ?>
             </div>
           </div>
-<style>
-.btn-loading {
-  pointer-events: none;
-  opacity: .6;
-}
 
-/* kalau kamu sudah pakai Bootstrap, spinner-border bs dipakai langsung.
-   tapi aku kasih fallback custom biar aman */
-.spinner-border {
-  display: inline-block;
-  width: .9rem;
-  height: .9rem;
-  border: .15rem solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin .6s linear infinite;
-  vertical-align: -0.2em;
-  margin-right: .4rem;
-}
+          <style>
+            .btn-loading { pointer-events: none; opacity: .6; }
+            /* Price tag + "Rp" pangkat */
+            .product-price-tag{
+              display:inline-block;
+              padding:.15rem .6rem .15rem .5rem;
+              border-radius:1.5rem !important;
+              background:#795548 !important;
+              color:#ffffff;
+              font-weight:700;
+              font-size:.95rem !important;
+              white-space:nowrap;
+              height:30px !important;
+              line-height:30px !important;
+            }
+            .product-price-tag .cur{
+              position:relative;
+              top:-0.55em;
+              font-size:.65em;
+              margin-right:.15rem;
+              letter-spacing:.3px;
+              opacity:.95;
+              display:inline-block;
+            }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+            /* kalau kamu sudah pakai Bootstrap, spinner-border bs dipakai langsung.
+               tapi aku kasih fallback custom biar aman */
+            .spinner-border {
+              display: inline-block;
+              width: .9rem;
+              height: .9rem;
+              border: .15rem solid currentColor;
+              border-right-color: transparent;
+              border-radius: 50%;
+              animation: spin .6s linear infinite;
+              vertical-align: -0.2em;
+              margin-right: .4rem;
+            }
 
-/* kalau belum ada .d-none dari Bootstrap */
-.d-none {
-  display: none !important;
-}
-</style>
+            @keyframes spin { to { transform: rotate(360deg); } }
 
+            /* kalau belum ada .d-none dari Bootstrap */
+            .d-none { display: none !important; }
+          </style>
 
           <!-- Aksi kiri-kanan (Detail kiri, Keranjang kanan) -->
           <div class="mt-2 d-flex align-items-center justify-content-between">
-           <button type="button"
-                  class="btn btn-sm btn-blue btn-detail btn-icon-only-sm"
-                  data-slug="<?= html_escape($slug); ?>"
-                  aria-label="Detail">
-            <span class="spinner-border d-none" aria-hidden="true"></span>
-            <i class="mdi mdi-eye-outline icon-default" aria-hidden="true"></i>
-            <span class="btn-text">Detail</span>
-          </button>
+            <button type="button"
+                    class="btn btn-sm btn-blue btn-detail btn-icon-only-sm"
+                    data-slug="<?= html_escape($slug); ?>"
+                    aria-label="Detail">
+              <span class="spinner-border d-none" aria-hidden="true"></span>
+              <i class="mdi mdi-eye-outline icon-default" aria-hidden="true"></i>
+              <span class="btn-text">Detail</span>
+            </button>
 
-          <button type="button"
-                  class="btn btn-sm btn-danger waves-effect waves-light btn-add-cart btn-icon-only-sm"
-                  data-id="<?= (int)$p->id; ?>"
-                  data-qty="1"
-                  <?= $soldout ? 'disabled' : ''; ?>
-                  aria-label="Tambah ke keranjang">
-            <span class="spinner-border d-none" aria-hidden="true"></span>
-            <i class="mdi mdi-cart icon-default" aria-hidden="true"></i>
-            <span class="btn-text">+ keranjang</span>
-          </button>
-
+            <button type="button"
+                    class="btn btn-sm btn-danger waves-effect waves-light btn-add-cart btn-icon-only-sm"
+                    data-id="<?= (int)$p->id; ?>"
+                    data-qty="1"
+                    <?= $soldout ? 'disabled' : ''; ?>
+                    aria-label="Tambah ke keranjang">
+              <span class="spinner-border d-none" aria-hidden="true"></span>
+              <i class="mdi mdi-cart icon-default" aria-hidden="true"></i>
+              <span class="btn-text">+ keranjang</span>
+            </button>
           </div>
         </div>
       </div>
