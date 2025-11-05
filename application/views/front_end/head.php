@@ -71,13 +71,13 @@
   }
 
   /* ============ Wrapper header ============ */
-  #topnav{
-   z-index:5000000;
-    /*color:var(--hdr-text);*/
-    /*background:linear-gradient(155deg,var(--hdr-bg1),var(--hdr-bg2));*/
-    /*box-shadow:var(--hdr-shadow);*/
-    /*padding-top: max(6px, var(--safe-top));*/
-  }
+  /*#topnav{
+    position:sticky; top:0; z-index:1030;
+    color:var(--hdr-text);
+    background:linear-gradient(155deg,var(--hdr-bg1),var(--hdr-bg2));
+    box-shadow:var(--hdr-shadow);
+    padding-top: max(6px, var(--safe-top));
+  }*/
 
   /* Bar atas: glassy */
   #topnav .navbar-custom{
