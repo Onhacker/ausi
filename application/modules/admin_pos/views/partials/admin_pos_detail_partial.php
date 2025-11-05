@@ -14,7 +14,9 @@ $delivery_fee    = (int)($order->delivery_fee ?? 0);
 $customer_name   = trim((string)($order->nama ?? ''));
 $customer_phone  = trim((string)($order->customer_phone ?? ''));
 $alamat_kirim    = trim((string)($order->alamat_kirim ?? ''));
-$meja_label      = $order->meja_nama ?: ($order->meja_kode ?: '—');
+$meja_label = ($order->meja_nama ?? ($order->meja_kode ?? '—'));
+
+// $meja_label      = $order->meja_nama ?: ($order->meja_kode ?: '—');
 $paid_method     = trim((string)($order->paid_method ?? ''));
 // $canUpdateOngkir = ($is_delivery && $paid_method === '');
 $canUpdateOngkir = ($is_delivery && $paid_method === '' && $delivery_fee <= 0);
@@ -38,38 +40,49 @@ $status = strtolower($order->status ?? '-');
 $statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
 
 // ==== KURIR (assigned) ====
-$kurir_id    = (int)($order->courier_id ?? 0);
-$kurir_nama  = trim((string)($order->courier_name ?? ''));
-$kurir_telp  = trim((string)($order->courier_phone ?? ''));
-$hasKurir    = ($kurir_id > 0 && $kurir_nama !== '');
-// $canAssignKurir = ($is_delivery && !in_array($status, ['canceled']) && !$hasKurir);
-// $canAssignKurir = ($is_delivery && $status === 'paid' && !$hasKurir);
+$status   = strtolower($order->status ?? '');
+$kurir_id = (int)($order->courier_id ?? 0);
+$kurir_nm = trim((string)($order->courier_name ?? ''));
+$hasKurir = ($kurir_id > 0 && $kurir_nm !== '');
 
-// ganti baris paid_method lama
+// ==== deteksi metode bayar ====
 $pm_raw = trim((string)($order->paid_method ?? ''));
-$s = strtolower(trim($pm_raw));
+$s = strtolower($pm_raw);
 $tokens = [];
 
-// dukung JSON array/string
+// dukung JSON string/array
 if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
-    $tmp = json_decode($pm_raw, true);
-    if (is_array($tmp)) {
-        foreach ($tmp as $v) { $tokens[] = strtolower(trim((string)$v)); }
+  $tmp = json_decode($pm_raw, true);
+  if (is_array($tmp)) {
+    foreach ($tmp as $v) {
+      if (is_array($v)) { $v = implode(' ', $v); }
+      $tokens[] = strtolower(trim((string)$v));
     }
+  }
 }
 if (!$tokens) {
-    $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+  $tokens = preg_split('/[\s,\/\+\|\-]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+
+  // $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
 }
 
-$hasCash = false;
-foreach ($tokens as $t) {
-    if (preg_match('/^(cash)$/', $t)) { $hasCash = true; break; }
-}
+// sinonim
+$cashSyn  = ['cash','tunai','cod','bayar_ditempat','bayarditempat'];
+$digSyn   = ['transfer','tf','bank','qris','qr','qr-code','gopay','ovo','dana','shopeepay','mbanking','va','virtualaccount'];
 
-$canAssignKurir = ($is_delivery && $status === 'verifikasi' && $hasCash && !$hasKurir);
+// helper
+$hasCash    = (bool)array_intersect($tokens, $cashSyn);
+$hasDigital = (bool)array_intersect($tokens, $digSyn);
 
-// daftar kurir dari controller (boleh kosong)
-$kurirs = $kurirs ?? [];
+// ==== 2 kondisi tombol ====
+// 1) delivery + verifikasi + cash
+// 2) delivery + paid + digital (transfer/QRIS)
+$canAssignKurir = (
+  $is_delivery && !$hasKurir && (
+    ($status === 'verifikasi' && $hasCash) ||
+    ($status === 'paid'       && $hasDigital)
+  )
+);
 ?>
 
 <style>

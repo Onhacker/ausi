@@ -1072,19 +1072,26 @@ public function assign_courier()
     $mode   = strtolower((string)$order->mode);
     $status = strtolower((string)$order->status);
 
-    // rule: delivery + pending + metode cash/tunai + belum ada kurir
-    if ($mode !== 'delivery') {
-        $this->db->trans_rollback(); return $this->_json_err('Order bukan delivery', 422);
-    }
-    if ($status === 'canceled') {
-        $this->db->trans_rollback(); return $this->_json_err('Order sudah dibatalkan', 422);
-    }
-    if ($status !== 'pending') {
-        $this->db->trans_rollback(); return $this->_json_err('Status order bukan pending', 422);
-    }
-    if (!$this->_is_cash_method($order->paid_method)) {
-        $this->db->trans_rollback(); return $this->_json_err('Metode pembayaran bukan tunai', 422);
-    }
+    // ... ambil $order, $mode, $status seperti kode Anda ...
+if ($mode !== 'delivery') {
+    $this->db->trans_rollback(); return $this->_json_err('Order bukan delivery', 422);
+}
+if (in_array($status, ['canceled','failed'], true)) {
+    $this->db->trans_rollback(); return $this->_json_err('Order tidak valid untuk assignment', 422);
+}
+
+// klasifikasi metode bayar
+$isCash    = $this->_is_cash_method($order->paid_method);          // cash/tunai/COD
+$isDigital = $this->_is_transfer_or_qris($order->paid_method);     // transfer/QRIS/e-wallet
+
+// ✅ dua jalur yang diizinkan:
+// - cash  + verifikasi
+// - noncash(digital) + paid
+$okStatus = ($isCash && $status === 'verifikasi') || ($isDigital && $status === 'paid');
+if (!$okStatus) {
+    $this->db->trans_rollback();
+    return $this->_json_err('Status/metode tidak memenuhi syarat (cash=verifikasi, digital=paid)', 422);
+}
 
     // Idempotent: jika sudah ke kurir yang sama, anggap sukses
     if ((int)$order->courier_id === $courier_id && $courier_id > 0) {
@@ -1205,6 +1212,35 @@ public function assign_courier()
         ]
     ]);
 }
+
+private function _paid_tokens($raw){
+    $s = strtolower(trim((string)$raw));
+    $tokens = [];
+    if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
+        $tmp = json_decode($raw, true);
+        if (is_array($tmp)) {
+            foreach ($tmp as $v) {
+                if (is_array($v)) { $v = implode(' ', $v); }
+                $tokens[] = strtolower(trim((string)$v));
+            }
+        }
+    }
+    if (!$tokens) {
+        $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+    }
+    return array_filter($tokens, fn($t)=>$t!=='');
+}
+
+private function _is_cash_method($raw){
+    $cash = ['cash','tunai','cod','bayar_ditempat','bayarditempat'];
+    return (bool)array_intersect($this->_paid_tokens($raw), $cash);
+}
+
+private function _is_transfer_or_qris($raw){
+    $dig = ['transfer','tf','bank','qris','qr','qr-code','gopay','ovo','dana','shopeepay','mbanking','va','virtualaccount'];
+    return (bool)array_intersect($this->_paid_tokens($raw), $dig);
+}
+
 
 /** Deteksi metode tunai (mendukung JSON/string gabungan) */
 private function _is_cash_method($raw): bool
