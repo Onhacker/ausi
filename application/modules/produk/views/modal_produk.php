@@ -1,83 +1,3 @@
-<style type="text/css">
-	/* Modal paling depan & tanpa blur */
-	#modalProduk.modal{ z-index: 200200 !important; }
-	.modal-backdrop{
-		z-index: 200190 !important;
-		backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-	}
-	.modal-open *{ filter: none !important; -webkit-filter: none !important; }
-	.blur, .backdrop-blur, .is-blurred{ filter:none !important; -webkit-filter:none !important; }
-	/* Auto height: modal mengikuti tinggi konten (maksimal tinggi viewport - margin) */
-	#modalProduk .modal-dialog {
-		max-height: calc(100vh - 2rem);   /* jaga supaya tidak lewat layar */
-	}
-
-	#modalProduk .modal-content {
-		height: auto;                      /* biar tumbuh sesuai isi */
-		max-height: 100%;                  /* tapi tetap patuh batas dialog */
-	}
-
-	#modalProduk .modal-body {
-		overflow: visible !important;      /* hilangkan scroll internal */
-		max-height: none !important;       /* jangan batasi isi body */
-	}
-
-	/* Kalau konten sangat panjang, biarkan page yang scroll */
-	#modalProduk.modal {
-		overflow-y: auto;
-	}
-	/* Kunci tampilan "Review" agar tidak ikut bold */
-	.product-info a.rate-link{
-		font-weight: 500 !important;       /* atau 400 sesuai selera */
-	}
-	.product-info a.rate-link:hover,
-	.product-info a.rate-link:focus,
-	.product-info a.rate-link:active,
-	.product-info a.rate-link:visited{
-		font-weight: 500 !important;
-	}
-
-</style>
-
-<style>
-	/* === Scroll di dalam isi modal (body), aman di semua ukuran layar === */
-	#modalProduk .modal-dialog{
-		margin: .75rem auto;                 /* biar ada napas */
-		max-height: calc(100vh - 1.5rem);    /* jangan lebih tinggi dari viewport */
-	}
-	#modalProduk .modal-content{
-		display: flex;
-		flex-direction: column;
-		max-height: 100%;
-	}
-	#modalProduk .modal-header,
-	#modalProduk .modal-footer{
-		flex: 0 0 auto;                      /* tinggi natural */
-	}
-	#modalProduk .modal-body{
-		flex: 1 1 auto;                      /* sisa ruang untuk body */
-		overflow: auto !important;           /* INI yang bikin isi modal scroll */
-		-webkit-overflow-scrolling: touch;   /* smooth di iOS */
-	}
-
-	/* Kalau ada gambar/elemen lebar, jangan melebarin modal */
-	#modalProduk .modal-body img{
-		max-width: 100%;
-		height: auto;
-	}
-
-	/* Spinner kecil untuk tombol */
-	.spinner-border{
-		display:inline-block;width:.9rem;height:.9rem;
-		border:.15rem solid currentColor;border-right-color:transparent;
-		border-radius:50%;animation:spin .6s linear infinite;
-		vertical-align:-0.2em;margin-right:.4rem;
-	}
-	@keyframes spin{to{transform:rotate(360deg)}}
-	/* Saat loading, nonaktifkan interaksi */
-	#btnLihatSelengkapnya.is-loading{ pointer-events:none; opacity:.8; }
-
-</style>
 
 <!-- ===== Modal Detail Produk ===== -->
 <div class="modal fade" id="modalProduk" tabindex="-1" aria-hidden="true" aria-labelledby="modalProdukTitle">
@@ -95,11 +15,14 @@
 				<!-- Pastikan footer sudah kiri–kanan -->
 				<div class="modal-footer d-flex justify-content-between align-items-center w-100">
 					<button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-					<a id="btnLihatSelengkapnya" href="#" class="btn btn-blue"
+					<?php if ($this->uri->segment(2)<> "cart") {?>
+						<a id="btnLihatSelengkapnya" href="#" class="btn btn-blue"
 					rel="noopener" data-loading-label="Membuka…">
 					<span class="spinner-border d-none" aria-hidden="true"></span>
 					<span class="btn-text">selengkapnya</span>
 				</a>
+					<?php } ?>
+					
 
 			</div>
 
@@ -232,3 +155,4 @@
   }
 })();
 </script>
+<?php $this->load->view("partials/form_rating") ?>

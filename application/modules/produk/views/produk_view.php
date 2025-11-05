@@ -165,4 +165,5 @@ window.AUSI_CFG = {
 <script src="<?= base_url('assets/front/produk.min.js') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.js'); ?>"></script>
 
 <?php $this->load->view("front_end/footer.php") ?>
+
 <?php $this->load->view("modal_produk.php") ?>

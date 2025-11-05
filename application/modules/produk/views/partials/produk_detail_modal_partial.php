@@ -60,86 +60,8 @@ function _rv_mask_name($name){
 
 
 ?>
-<style>
-  :root{
-    --ink:#0f172a; --muted:#6b7280; --line:rgba(15,23,42,.08);
-    --chip-bg:#f8fafc; --ok:#10b981; --bad:#ef4444; --brand:#1e88e5;
-    --card:#fff; --shadow:0 4px 14px rgba(2,6,23,.07);
-    --radius:10px;
-  }
-  .modal-product{ --gap:10px; }
+  <link href="<?= base_url('assets/front/produk_detail_modal_partial.min.css'); ?>" rel="stylesheet" />
 
-  .modal-product .img-wrap{ border-radius:var(--radius); overflow:hidden; background:#f1f5f9; box-shadow:var(--shadow); }
-  .modal-product .img-fluid{ display:block; width:100%; height:auto; object-fit:cover; }
-
-  .category{ color:var(--brand); font-weight:700; font-size:.78rem; letter-spacing:.15px; margin-bottom:.15rem; }
-
-  .header-line{ display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; flex-wrap:wrap; margin:.1rem 0 .2rem; }
-  .product-title{ margin:0; font-weight:800; line-height:1.15; color:var(--ink); font-size:1rem; }
-  .price-tag{ font-size:1.05rem; font-weight:900; color:var(--ink); white-space:nowrap; }
-  .price-tag small{ font-weight:600; color:var(--muted); font-size:.8rem; margin-left:.25rem; }
-
-  .meta-line{ display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; margin:.15rem 0 .35rem; }
-  .chip{ display:inline-flex; align-items:center; gap:.32rem; padding:.18rem .45rem; border-radius:999px; font-size:.74rem; font-weight:600; border:1px solid var(--line); background:var(--chip-bg); color:#111827; }
-  .dot{ width:.44rem; height:.44rem; border-radius:50%; display:inline-block; }
-  .dot.on{ background:var(--ok); } .dot.off{ background:var(--bad); }
-
-  .desc-title{ font-size:.8rem; font-weight:700; color:#334155; margin:.1rem 0 .25rem; }
-  .desc-box{ max-height:140px; /*overflow:auto;*/ border:1px solid var(--line); border-radius:9px; padding:.6rem; background:var(--card); margin-bottom:.6rem; box-shadow:0 1px 6px rgba(2,6,23,.04); }
-  .desc-box p{ margin-bottom:.4rem; }
-  .desc-box::-webkit-scrollbar{ width:6px; }
-  .desc-box::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.12); border-radius:999px; }
-
-  .qty-group{ border-radius:10px; overflow:hidden; max-width:520px; box-shadow:0 2px 10px rgba(2,6,23,.05); }
-  .qty-group .input-group-text{ border:none; background:#f8fafc; font-weight:700; font-size:.78rem; padding:.35rem .5rem; }
-  .qty-group .btn{ min-width:36px; font-weight:800; padding:.35rem .5rem; font-size:.86rem; }
-  .qty-group input[type="number"]{ text-align:center; font-weight:800; border-left:none; border-right:none; padding:.35rem .25rem; height:34px; font-size:.9rem; }
-
-  .spinner-border.spinner-border-sm{ width:1rem; height:1rem; border-width:.15em; }
-
-  .mb-1{ margin-bottom:.2rem!important; } .mb-2{ margin-bottom:.4rem!important; }
-
-  /* ===== Rating area ===== */
-  .rate-row{ display:flex; align-items:center; gap:.5rem; margin:.25rem 0 .35rem; }
-  .star-meter{ display:flex; align-items:center; gap:2px; cursor:pointer; }
-  .star-meter .mdi{ font-size:16px; line-height:1; vertical-align:middle; }
-  .star-meter .full{ color:#f59e0b; } .star-meter .empty{ color:#cbd5e1; }
-  .rate-link{ font-weight:600; cursor:pointer; color:#2563eb; text-decoration:underline; }
-  .rate-link:hover{ text-decoration:none; }
-
-  /* Reviews box */
-  .reviews-box{ border:1px solid var(--line); border-radius:9px; padding:.6rem; background:#fff; box-shadow:0 1px 6px rgba(2,6,23,.04); }
-  .review-item{ display:flex; gap:.6rem; padding:.4rem 0; border-bottom:1px dashed var(--line); }
-  .review-item:last-child{ border-bottom:none; }
-  .review-stars .mdi{ font-size:14px; } .review-stars .full{ color:#f59e0b; }
-  .review-meta{ font-size:.74rem; color:#64748b; }
-  .review-text{ margin:.15rem 0 0; font-size:.88rem; }
-  .reviews-footer{ text-align:right; margin-top:.4rem; }
-  .reviews-footer a{ font-weight:600; font-size:.85rem; }
-
-  @media (max-width: 991.98px){
-    .product-title{ font-size:.98rem; }
-    .price-tag{ font-size:1rem; }
-  }
-  @media (max-width: 767.98px){
-    .modal-product{ --gap:8px; }
-    .desc-box{ max-height:120px; }
-    .qty-group .btn{ min-width:34px; padding:.32rem .45rem; font-size:.84rem; }
-  }
-
-  .review-item{ display:flex; gap:.6rem; padding:.4rem 0; border-bottom:1px dashed var(--line); }
-  .review-item:last-child{ border-bottom:none; }
-  .review-avatar{
-    width:36px;height:36px;border-radius:50%;
-    background:#e2e8f0;color:#0f172a;font-weight:800;
-    display:flex;align-items:center;justify-content:center;flex:0 0 36px;
-  }
-  .review-head{ display:flex;justify-content:space-between;align-items:center;gap:.5rem; }
-  .review-name{ font-weight:700;color:#0f172a;font-size:.85rem; }
-  .review-stars .mdi{ font-size:14px; } .review-stars .full{ color:#f59e0b; }
-  .review-meta{ font-size:.74rem;color:#64748b; }
-
-</style>
 
 <div class="row modal-product align-items-start" style="row-gap: var(--gap); column-gap: var(--gap);">
   <div class="col-md-5 mb-1 mb-md-0">
@@ -247,7 +169,7 @@ function _rv_mask_name($name){
       <?php endif; ?>
 
       <div class="reviews-footer">
-        <a href="<?= site_url('produk/detail/'.rawurlencode($slug)).'#ulasan'; ?>" class="text-blue">Lihat ulasan selengkapnya →</a>
+        <a href="<?= site_url('produk/detail/'.rawurlencode($slug)).'#ulasan'; ?>" class="text-blue">Lihat ulasan selengkapnya → </a>
       </div>
     </div>
   </div>
@@ -293,7 +215,7 @@ function _rv_mask_name($name){
   var PROD_ID = <?= (int)$product->id ?>;
   var REV_URL = "<?= site_url('produk/review_list'); ?>";
 
-  // CSRF (ikuti config CI)
+  // CSRF mengikuti konfigurasi CI
   var CSRF = <?php
     if ($this->config->item('csrf_protection')) {
       echo json_encode([
@@ -303,12 +225,13 @@ function _rv_mask_name($name){
     } else { echo 'null'; }
   ?>;
 
-  // ===== Helpers UI =====
+  /* ===== Helpers ===== */
   function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
   function nl2br(s){ return esc(s).replace(/\r?\n/g,'<br>'); }
   function initials(name){
     name=(name||'').trim(); if(!name) return '?';
-    var p=name.split(/\s+/); return (p[0][0]||'?')+((p[1]||'')[0]||'');
+    var p=name.split(/\s+/);
+    return (p[0]&&p[0][0]?p[0][0]:'?') + ((p[1]&&p[1][0])?p[1][0]:'');
   }
   function mask(name){
     name=(name||'').trim(); if(!name) return 'Anonim';
@@ -316,24 +239,36 @@ function _rv_mask_name($name){
   }
   function starHtml(n){
     n=parseInt(n||0,10); var h='';
-    for(var i=1;i<=5;i++) h += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>';
+    for (var i=1;i<=5;i++) h += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>';
     return h;
   }
   function findBox(){
-    // prioritas di dalam modal-product
-    return document.querySelector('.modal-product .reviews-box') || document.querySelector('.reviews-box');
+    // utamakan modal yang sedang tampil
+    return document.querySelector('.modal.show .modal-product .reviews-box')
+        || document.querySelector('.modal-product .reviews-box')
+        || document.querySelector('.reviews-box');
   }
-  function renderReviews(rows, total){
+
+  /* ===== Render (wipe & replace) ===== */
+  var LAST_TOKEN = 0;
+  function renderReviews(rows, total, token){
+    if (token !== LAST_TOKEN) return; // abaikan hasil lama
     var BOX = findBox(); if (!BOX) return;
-    // bersihkan items lama (tanpa menghapus footer/link)
-    BOX.querySelectorAll('.review-item, .text-muted').forEach(el=>el.remove());
+
     var footer = BOX.querySelector('.reviews-footer');
+
+    // hapus semua selain footer → cegah dobel
+    Array.from(BOX.childNodes).forEach(function(n){
+      if (!footer || n !== footer) BOX.removeChild(n);
+    });
+
+    var anchor = footer || null;
 
     if (!rows || !rows.length){
       var empty = document.createElement('div');
       empty.className = 'text-muted';
       empty.textContent = 'Belum ada ulasan.';
-      BOX.insertBefore(empty, footer);
+      BOX.insertBefore(empty, anchor);
     } else {
       var frag = document.createDocumentFragment();
       rows.slice(0,3).forEach(function(r){
@@ -353,21 +288,25 @@ function _rv_mask_name($name){
           '</div>';
         frag.appendChild(wrap);
       });
-      BOX.insertBefore(frag, footer);
+      BOX.insertBefore(frag, anchor);
     }
 
-    // sinkronkan label jumlah ulasan hanya di scope modal
+    // update label jumlah ulasan (di area modal saja)
     var scope = BOX.closest('.modal-product') || document;
     scope.querySelectorAll('.count-label').forEach(function(el){
       el.textContent = parseInt(total||0,10);
     });
   }
 
-  // ===== Refresh (debounce + guard) =====
-  var BUSY = false, TMR = null;
+  /* ===== Single-flight refresh (maks 1 request aktif/terjadwal) ===== */
+  var TMR = null, INFLIGHT = false, SCHEDULED = false;
+  var LAST_DONE_AT = 0;  // cap waktu fetch terakhir selesai
+
   function refreshNow(){
-    if (BUSY) return;
-    BUSY = true;
+    if (INFLIGHT){ return; }          // jangan jalankan fetch kedua
+    INFLIGHT = true; SCHEDULED = false;
+
+    var token = ++LAST_TOKEN;
 
     var fd = new FormData();
     fd.append('id', PROD_ID);
@@ -384,31 +323,40 @@ function _rv_mask_name($name){
     .then(function(res){
       if (!res || !res.success) return;
       if (res.csrf && CSRF){ CSRF.name=res.csrf.name; CSRF.hash=res.csrf.hash; }
-      renderReviews(res.rows||[], res.total||0);
+      renderReviews(res.rows||[], res.total||0, token);
     })
     .catch(function(){ /* diam */ })
-    .finally(function(){ BUSY=false; });
-  }
-  function refreshDebounced(){
-    clearTimeout(TMR);
-    TMR = setTimeout(refreshNow, 250);
-  }
-
-  // ===== 1) Event dari form rating/ulasan (kalau ada) =====
-  [
-    'rv-prepended','reviews:refresh','rating:success','rating:saved',
-    'review:success','review:saved','ulasan:updated'
-  ].forEach(function(ev){
-    document.addEventListener(ev, function(e){
-      var id = e && e.detail && (e.detail.produk_id || e.detail.produkId || e.detail.id);
-      if (!id || parseInt(id,10) === PROD_ID) refreshDebounced();
+    .finally(function(){
+      INFLIGHT = false;
+      LAST_DONE_AT = Date.now();
     });
-  });
+  }
 
-  // ===== 2) Intersep POST yang menyimpan rating/ulasan (tanpa loop) =====
+  function refreshOnce(){
+    if (SCHEDULED || INFLIGHT) return;
+    // throttle: cegah fetch kedua beruntun setelah fetch baru saja selesai
+    if (Date.now() - LAST_DONE_AT < 300) return;
+    SCHEDULED = true;
+    clearTimeout(TMR);
+    TMR = setTimeout(refreshNow, 150);
+  }
+
+  /* ===== Trigger dari form rating/ulasan ===== */
+  ['rv-prepended','reviews:refresh','rating:success','rating:saved','review:success','review:saved','ulasan:updated']
+    .forEach(function(ev){
+      document.addEventListener(ev, function(e){
+        var id = e && e.detail && (e.detail.produk_id || e.detail.produkId || e.detail.id);
+        if (!id || parseInt(id,10) === PROD_ID) refreshOnce();
+      });
+    });
+
+  /* ===== Intercept POST penyimpanan rating/ulasan (bukan review_list) ===== */
   (function(){
-    // cocokkan /produk/... yang berhubungan rating/ulasan, tapi bukan review_list
-    var SAVE_RE = /\/produk\/(?!.*review_list).*?(rating|review|ulasan|rate|nilai|kirim|save)/i;
+    if (window.__RV_FETCH_WRAP_DONE__) return;
+    window.__RV_FETCH_WRAP_DONE__ = true;
+
+    // pastikan "review_list" tidak ikut match
+    var SAVE_RE = /\/produk\/(?![^?#]*review_list)[^?#]*(rating|review(?!_list)|ulasan|rate|nilai|kirim|save)/i;
 
     function shouldHook(url, method){
       return method && method.toUpperCase()==='POST' && SAVE_RE.test(String(url||''));
@@ -421,7 +369,7 @@ function _rv_mask_name($name){
         var method = (init && init.method) || (typeof input!=='string' && input && input.method) || 'GET';
         var hook = shouldHook(url, method);
         return _fetch(input, init).then(function(res){
-          if (hook && res && res.ok) refreshDebounced();
+          if (hook && res && res.ok) refreshOnce();
           return res;
         });
       };
@@ -429,14 +377,11 @@ function _rv_mask_name($name){
 
     if (window.XMLHttpRequest){
       var _open = XMLHttpRequest.prototype.open, _send = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.open = function(m,u){
-        this.__rv_hook = shouldHook(u, m);
-        return _open.apply(this, arguments);
-      };
+      XMLHttpRequest.prototype.open = function(m,u){ this.__rv_hook = shouldHook(u, m); return _open.apply(this, arguments); };
       XMLHttpRequest.prototype.send = function(b){
         if (this.__rv_hook){
           this.addEventListener('load', function(){
-            if (this.status >= 200 && this.status < 300) refreshDebounced();
+            if (this.status >= 200 && this.status < 300) refreshOnce();
           });
         }
         return _send.apply(this, arguments);
@@ -444,22 +389,31 @@ function _rv_mask_name($name){
     }
   })();
 
-  // ===== 3) Saat modal tampil / elemen muncul terlambat =====
-  if (window.jQuery){
-    $(document).on('shown.bs.modal', '.modal', function(){ refreshDebounced(); });
-  }
+  /* ===== Saat modal tampil / node baru muncul ===== */
+ if (window.jQuery){
+  $(document).on('shown.bs.modal', '.modal', function(){
+    // Hanya refresh jika modal ini memang punya kotak ulasan
+    var box = this.querySelector('.modal-product .reviews-box');
+    if (box && !box.__rv_inited){
+      box.__rv_inited = true;
+      refreshOnce();
+    }
+  });
+}
+
   try{
     var mo = new MutationObserver(function(){
       var box = findBox();
       if (box && !box.__rv_inited){
         box.__rv_inited = true;
-        refreshDebounced();
+        refreshOnce();
       }
     });
     mo.observe(document.documentElement, {childList:true, subtree:true});
   }catch(_){}
 
-  // initial refresh ringan (ambil data terbaru jika ada)
-  refreshDebounced();
+  // initial satu kali saja (kalau modal sudah terpasang di DOM)
+  if (findBox()) refreshOnce();
 })();
 </script>
+

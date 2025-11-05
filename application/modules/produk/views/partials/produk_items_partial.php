@@ -45,71 +45,7 @@
     </script>
   </div>
 <?php else: ?>
-  <style>
-    .product-img-bg{ position:relative; overflow:hidden; border-radius:10px; }
 
-    .corner-ribbon{
-      --h:22px; --w:160px;
-      position:absolute; z-index:5; top:12px; left:-42px;
-      width:var(--w); line-height:var(--h);
-      transform: rotate(-45deg);
-      text-align:center; color:#fff; font-weight:700; font-size:12px;
-      letter-spacing:.2px; box-shadow:0 6px 14px rgba(0,0,0,.12); pointer-events:none;
-    }
-    .corner-ribbon.hot{ background:#ab0808; }
-    .corner-ribbon.success{ background:#16a34a; }
-    @media (max-width: 767.98px){
-      .corner-ribbon{ --h:20px; --w:120px; top:10px; left:-36px; font-size:11px; }
-    }
-
-    .star-meter{ display:flex; align-items:center; gap:2px; margin:.1rem 0 .15rem; cursor:pointer; }
-    .star-meter .mdi{ font-size:14px; line-height:1; vertical-align:middle; }
-    .star-meter .full{ color:#f59e0b; }
-    .star-meter .empty{ color:#cbd5e1; }
-
-    .rate-link{ font-size:.8rem; margin-left:.35rem; color:#2563eb; text-decoration:underline; cursor:pointer; }
-    .rate-link:hover{ text-decoration:none; }
-
-    .sold-label{ font-size:.72rem; color:#64748b; margin:0 0 .25rem; }
-    .card-box { margin-bottom: 0px !important; border-radius: .60rem !important; }
-
-    .product-price-tag{
-      display:inline-block; padding:.15rem .6rem .15rem .5rem;
-      border-radius:1.5rem !important; background:#795548 !important; color:#ffffff;
-      font-weight:700; font-size:.95rem !important; white-space:nowrap;
-      height:30px !important; line-height:30px !important;
-    }
-    .product-price-tag .cur{
-      position:relative; top:-0.55em; font-size:.65em; margin-right:.15rem;
-      letter-spacing:.3px; opacity:.95; display:inline-block;
-    }
-    .spinner-border { display:inline-block;width:.9rem;height:.9rem;border:.15rem solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:-0.2em;margin-right:.4rem; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .d-none{display:none!important}
-  </style>
-<style>
-/* Default: teks tetap muncul di desktop */
-.btn-icon-only-sm .btn-text{ display:inline; }
-
-/* Mobile: icon-only (≤ 768px) */
-@media (max-width: 767.98px){
-  .btn-icon-only-sm{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:.48rem .56rem;           /* lebih ringkas di mobile */
-    min-width:44px; min-height:38px; /* area sentuh nyaman */
-  }
-  .btn-icon-only-sm .btn-text{ display:none !important; }
-  .btn-icon-only-sm i{
-    margin:0 !important;
-    font-size:18px;
-    line-height:1;
-  }
-  /* kalau ada label tambahan */
-  .btn-icon-only-sm .btn-label{ margin-right:0 !important; }
-}
-</style>
 
   <?php
     $BESTSELLER_MIN = 1;
