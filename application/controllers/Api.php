@@ -91,11 +91,25 @@ $MENU_DEF[] = [
 
 // ====== Laporan (disisipkan di sini) ======
 // ====== Laporan (single item) ======
+
+
 $MENU_DEF[] = [
     'label'   => 'Laporan',
-    'url'     => site_url('admin_laporan'),
     'icon'    => 'mdi mdi-file-chart',
-    'require' => ['Laporan','admin_laporan','admin_laporan/index'],
+    'children'=> [
+        [
+            'label'   => 'Laporan Keuangan',
+            'url'     => site_url('admin_laporan'),
+            'icon'    => 'mdi mdi-file-chart',
+            'require' => ['Laporan','admin_laporan','user'],
+        ],
+        [
+            'label'   => 'Laporan Rating Produk',
+            'url'     => site_url('admin_rating'),
+            'icon'    => 'mdi mdi-star-outline',
+            'require' => ['Laporan Rating Produk','admin_rating','user'],
+        ],
+    ],
 ];
 
 
@@ -301,10 +315,18 @@ public function get_menu_mobile()
         // ===== Laporan =====
         [
             'id'      => 'admin_laporan',
-            'label'   => 'Laporan',
+            'label'   => 'Laporan Keuangan',
             'url'     => site_url('admin_laporan'),
             'icon'    => 'mdi mdi-file-chart',
             'require' => ['admin_laporan','admin_laporan/index'],
+        ],
+
+         [
+            'id'      => 'admin_rating',
+            'label'   => 'Laporan Rating Produk',
+            'url'     => site_url('admin_rating'),
+            'icon'    => 'mdi mdi-star-outline',
+            'require' => ['admin_rating','admin_rating'],
         ],
 
         // ===== Master / Pengaturan =====

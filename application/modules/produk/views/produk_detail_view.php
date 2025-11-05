@@ -121,6 +121,16 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 #btn-add-cart-detail.is-loading{ pointer-events:none; opacity:.9; }
+/* Avatar & nama di daftar ulasan (detail) */
+.rv-item{ display:flex; gap:.6rem; padding:.5rem 0; border-bottom:1px dashed var(--line); }
+.rv-item:last-child{ border-bottom:none; }
+.rv-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:#e2e8f0;color:#0f172a;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex:0 0 36px;
+}
+.rv-head{ display:flex;justify-content:space-between;align-items:center;gap:.5rem; }
+.rv-name{ font-weight:700;color:#0f172a;font-size:.85rem; }
 
 </style>
 
@@ -523,149 +533,7 @@ $bread = [
   refreshCartCount();
 })();
 </script>
-
-<script>
-/* ==== Rating + Review (SweetAlert) ==== */
-(function(){
-  var CSRF = <?php
-    if ($this->config->item('csrf_protection')) {
-      echo json_encode([
-        'name' => $this->security->get_csrf_token_name(),
-        'hash' => $this->security->get_csrf_hash()
-      ]);
-    } else {
-      echo 'null';
-    }
-  ?>;
-
-  function postJSON(url, data){
-    return fetch(url, {
-      method: 'POST',
-      headers: {'X-Requested-With': 'XMLHttpRequest'},
-      body: (function(){
-        var fd = new FormData();
-        for (var k in data){ fd.append(k, data[k]); }
-        if (CSRF) fd.append(CSRF.name, CSRF.hash);
-        return fd;
-      })()
-    }).then(function(r){ return r.json(); });
-  }
-
-  function renderAvg(box, avg, count){
-    avg = parseFloat(avg||0); count = parseInt(count||0,10);
-    var meter = box.querySelector('.star-meter');
-    var avgLb = box.querySelector('.avg-label');
-    var cntLb = box.querySelector('.count-label');
-
-    if (avgLb) avgLb.textContent = avg.toFixed(1).replace('.', ',');
-    if (cntLb) cntLb.textContent = count;
-
-    if (meter){
-      var r = Math.round(Math.max(0,Math.min(5,avg))*2)/2;
-      var full = Math.floor(r), half = (r-full)===0.5, empty = 5-full-(half?1:0);
-      var html='';
-      for(var i=0;i<full;i++) html+='<i class="mdi mdi-star full"></i>';
-      if(half) html+='<i class="mdi mdi-star-half-full full"></i>';
-      for(var j=0;j<empty;j++) html+='<i class="mdi mdi-star-outline empty"></i>';
-      meter.innerHTML = html;
-    }
-  }
-
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])); }
-
-  function openRate(prodId, prodName, box){
-    if (!window.Swal){
-      var val = prompt('Beri rating (1–5) untuk: '+prodName, 5);
-      var stars = parseInt(val||'0',10); if (!stars||stars<1||stars>5) return;
-      var rev = prompt('Tulis review (opsional):','')||'';
-      postJSON('<?= site_url('produk/rate') ?>', { id:prodId, stars:stars, review:rev })
-        .then(function(res){ if(res&&res.success){ renderAvg(box,res.avg,res.count); alert('Terima kasih!'); } else alert(res&&res.pesan||'Gagal'); });
-      return;
-    }
-
-    var chosen = 0, maxLen = 1000;
-
-    Swal.fire({
-      title: 'Beri rating',
-      html:
-        '<div style="margin-top:.25rem;font-weight:600">'+esc(prodName)+'</div>'+
-        '<div class="swal-rate-wrap" style="margin:.75rem 0 .5rem;display:flex;justify-content:center;gap:8px;">'+
-          [1,2,3,4,5].map(n=>'<i class="mdi mdi-star-outline rate-star" data-n="'+n+'" style="font-size:28px;cursor:pointer;"></i>').join('')+
-        '</div>'+
-        '<div class="small text-muted" id="swal-rate-hint" style="margin-bottom:.5rem;">Pilih 1–5 bintang</div>'+
-        '<textarea id="swal-review" class="form-control" rows="3" placeholder="Tulis review (opsional)" style="resize:vertical;"></textarea>'+
-        '<div class="small text-muted mt-1" id="swal-count">0/'+maxLen+'</div>',
-      showCancelButton: true,
-      confirmButtonText: 'Simpan',
-      cancelButtonText: 'Batal',
-      focusConfirm: false,
-      returnFocus: false,
-      didOpen: function(m){
-        // Matikan focus trap Bootstrap agar textarea bisa diketik
-        if (window.jQuery) { $(document).off('focusin.bs.modal'); }
-        document.addEventListener('focusin', function onFI(e){
-          if (e.target && e.target.closest && e.target.closest('.swal2-container')) {
-            e.stopImmediatePropagation();
-          }
-        }, {capture:true, once:true});
-
-        var wrap=m.querySelector('.swal-rate-wrap'),
-            hint=m.querySelector('#swal-rate-hint'),
-            ta=m.querySelector('#swal-review'),
-            cnt=m.querySelector('#swal-count');
-
-        function draw(){
-          wrap.querySelectorAll('.rate-star').forEach(function(el){
-            var n=parseInt(el.getAttribute('data-n')||'0',10);
-            el.className='mdi rate-star '+(n<=chosen?'mdi-star':'mdi-star-outline');
-            el.style.color=(n<=chosen?'#f59e0b':'');
-          });
-          hint.textContent = chosen ? (chosen+'/5') : 'Pilih 1–5 bintang';
-        }
-        wrap.addEventListener('click', function(e){
-          var ic=e.target.closest('.rate-star'); if(!ic) return;
-          chosen=parseInt(ic.getAttribute('data-n')||'0',10);
-          draw();
-        });
-        ta.addEventListener('input', function(){
-          if(this.value.length>maxLen) this.value=this.value.slice(0,maxLen);
-          cnt.textContent=this.value.length+'/'+maxLen;
-        });
-        draw();
-        setTimeout(function(){ ta && ta.focus(); }, 50);
-      },
-      preConfirm: function(){
-        var r=(document.getElementById('swal-review')||{}).value||'';
-        if(!chosen){ Swal.showValidationMessage('Pilih minimal 1 bintang'); return false; }
-        return {stars:chosen, review:r.trim()};
-      }
-    }).then(function(res){
-      if (!res.isConfirmed || !res.value) return;
-      postJSON('<?= site_url('produk/rate') ?>', { id:prodId, stars:res.value.stars, review:res.value.review })
-        .then(function(resp){
-          if (!resp || !resp.success){
-            Swal.fire('Gagal', (resp&&resp.pesan)||'Gagal menyimpan rating', 'error'); return;
-          }
-          renderAvg(box, resp.avg, resp.count);
-          Swal.fire({icon:'success', title:'Terima kasih!', text:'Rating & review tersimpan.', timer:1300, showConfirmButton:false});
-        })
-        .catch(function(){ Swal.fire('Gagal', 'Kesalahan jaringan.', 'error'); });
-    });
-  }
-
-  // Delegasi klik pada bintang & “Beri rating”
-  document.addEventListener('click', function(e){
-    var star = e.target.closest('[data-rate-box-detail] .star-meter');
-    var link = e.target.closest('[data-rate-box-detail] .rate-link');
-    if (!star && !link) return;
-    var box = (star||link).closest('[data-rate-box-detail]');
-    var id  = parseInt(box.getAttribute('data-id')||'0',10);
-    var nm  = box.getAttribute('data-name')||'Produk';
-    if (!id) return;
-    openRate(id, nm, box);
-  }, {passive:true});
-})();
-</script>
+<?php $this->load->view("partials/form_rating") ?>
 
 <script>
 (function(){
@@ -719,6 +587,23 @@ $bread = [
 </script>
 <script>
 (function(){
+  if (window.__RV_LOADER__) return;
+  window.__RV_LOADER__ = true;
+
+  var PROD_ID = <?= (int)$product->id ?>;
+  var list    = document.getElementById('rv-list');
+  var btnMore = document.getElementById('btn-more-rev');
+
+  // skeleton awal
+  var skel = document.createElement('div');
+  skel.id = 'rv-skel';
+  skel.className = 'text-muted';
+  skel.textContent = 'Memuat ulasan…';
+  if (list && !document.getElementById('rv-skel')) list.appendChild(skel);
+
+  var OFF=0, LIM=6, TOT=0, BUSY=false, DONE=false;
+
+  // CSRF (kalau aktif)
   var CSRF = <?php
     if ($this->config->item('csrf_protection')) {
       echo json_encode([
@@ -728,110 +613,133 @@ $bread = [
     } else { echo 'null'; }
   ?>;
 
-  var REV_URL = "<?= site_url('produk/review_list'); ?>";
-  var prodId  = <?= (int)$product->id; ?>;
-  var limit   = 5;
-  var offset  = 0;
-  var total   = 0;
-
-  var wrap = document.getElementById('rv-list');
-  var skel = document.getElementById('rv-skel');
-  var moreBtn = document.getElementById('btn-more-rev');
-
-  // kalau belum ada tombol, tambahkan
-  if (!moreBtn){
-    var holder = document.createElement('div');
-    holder.className = 'text-center mt-2';
-    holder.innerHTML = '<button class="btn btn-outline-secondary btn-sm" id="btn-more-rev">Muat lebih banyak</button>';
-    wrap.parentNode.appendChild(holder);
-    moreBtn = document.getElementById('btn-more-rev');
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   }
-
-  function starHTML(n){
-    n = parseInt(n||0,10);
-    var html = '';
-    for (var i=1;i<=5;i++){
-      html += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>';
-    }
-    return html;
+  function fmtDate(ts){
+    var d = new Date(ts); var m=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    return String(d.getDate()).padStart(2,'0')+' '+m[d.getMonth()]+' '+d.getFullYear();
   }
-  function rowHTML(r){
-    var txt = (r.review||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m]));
+  function initials(name){
+    name = (name||'').trim(); if(!name) return '?';
+    var p = name.split(/\s+/); return (p[0][0]||'?') + ((p[1]||'')[0]||'');
+  }
+  function maskName(name){
+    name = (name||'').trim(); if(!name) return 'Anonim';
+    return name.split(/\s+/).map(p => (p[0]||'?').toUpperCase()+'***').join(' ');
+  }
+  function starHtml(n){
+    var h=''; for (var i=1;i<=5;i++) h += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>';
+    return h;
+  }
+  function rowHtml(r){
     return (
       '<div class="rv-item">'+
-        '<div class="rv-stars">'+ starHTML(r.stars) +'</div>'+
-        '<div>'+
-          '<div class="rv-meta">'+ (r.ts_fmt||'') +'</div>'+
-          '<div class="rv-text">'+ (txt ? txt.replace(/\n/g,'<br>') : '') +'</div>'+
+        '<div class="rv-avatar">'+escapeHtml(initials(r.nama||''))+'</div>'+
+        '<div class="flex-fill">'+
+          '<div class="rv-head">'+
+            '<span class="rv-name">'+escapeHtml(maskName(r.nama||''))+'</span>'+
+            '<span class="rv-meta">'+escapeHtml(r.ts_fmt||fmtDate(new Date()))+'</span>'+
+          '</div>'+
+          '<div class="rv-stars">'+starHtml(parseInt(r.stars||0,10))+'</div>'+
+          (r.review ? '<div class="rv-text">'+escapeHtml(r.review)+'</div>' : '')+
         '</div>'+
       '</div>'
     );
   }
 
-  function loadMore(){
-    if (!moreBtn) return;
-    moreBtn.disabled = true;
-    moreBtn.textContent = 'Memuat...';
+  function setBtnBusy(b){
+    if (!btnMore) return;
+    btnMore.disabled = !!b;
+    btnMore.innerHTML = b
+      ? '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memuat…'
+      : 'Muat lebih banyak';
+  }
+
+  function fetchPage(){
+    if (BUSY || DONE) return;
+    BUSY = true; setBtnBusy(true);
 
     var fd = new FormData();
-    fd.append('id', prodId);
-    fd.append('offset', offset);
-    fd.append('limit', limit);
+    fd.append('id', <?= (int)$product->id ?>);
+    fd.append('offset', OFF);
+    fd.append('limit', LIM);
     if (CSRF){ fd.append(CSRF.name, CSRF.hash); }
-fetch(REV_URL, {
-  method:'POST',
-  headers:{'X-Requested-With':'XMLHttpRequest'},
-  body: fd
-}).then(function(r){
-  var ct = r.headers.get('content-type')||'';
-  if (r.status === 403) throw new Error('CSRF');
-  if (!ct.includes('application/json')) throw new Error('NOT_JSON');
-  return r.json();
-}).then(function(res){
-  // --- tambahkan ini: update CSRF untuk request berikutnya
-  if (res && res.csrf && CSRF){
-    CSRF.name = res.csrf.name;
-    CSRF.hash = res.csrf.hash;
+
+    fetch('<?= site_url('produk/review_list') ?>', {
+      method: 'POST',
+      headers: {'X-Requested-With':'XMLHttpRequest'},
+      body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.success){ throw new Error('bad'); }
+
+      // update CSRF bila dikirim balik
+      if (res.csrf && CSRF){ CSRF.name=res.csrf.name; CSRF.hash=res.csrf.hash; }
+
+      TOT = parseInt(res.total||0,10);
+      var rows = res.rows||[];
+
+      if (skel){ skel.remove(); skel=null; }
+      if (!rows.length && OFF===0){
+        list.innerHTML = '<div class="text-muted">Belum ada ulasan.</div>';
+        DONE = true; if(btnMore) btnMore.style.display='none';
+        document.querySelectorAll('.count-label').forEach(function(el){ el.textContent = 0; });
+        return;
+      }
+
+      var frag = document.createDocumentFragment();
+      rows.forEach(function(r){
+        var wrap = document.createElement('div');
+        wrap.className = 'rv-item';
+        wrap.innerHTML = rowHtml(r);
+        frag.appendChild(wrap);
+      });
+      list.appendChild(frag);
+
+      OFF += rows.length;
+      document.querySelectorAll('.count-label').forEach(function(el){ el.textContent = TOT; });
+
+      if (OFF >= TOT || rows.length === 0){
+        DONE = true;
+        if (btnMore) btnMore.style.display='none';
+      } else {
+        setBtnBusy(false);
+      }
+    })
+    .catch(function(){
+      if (OFF===0){ list.innerHTML = '<div class="text-danger">Gagal memuat ulasan.</div>'; }
+    })
+    .finally(function(){ BUSY=false; setBtnBusy(false); });
   }
 
-  if (skel) { skel.remove(); skel = null; }
-  if (!res || !res.success) throw new Error((res && res.pesan) || 'Gagal memuat');
-
-  total  = parseInt(res.total||0,10);
-  var rows = res.rows || [];
-
-  if (offset === 0 && rows.length === 0){
-    wrap.innerHTML = '<div class="text-muted">Belum ada ulasan.</div>';
-    moreBtn.classList.add('d-none');
-    return;
+  // ⬇️ fungsi publik untuk refresh total
+  function refreshAll(){
+    OFF=0; LIM=6; TOT=0; BUSY=false; DONE=false;
+    list.innerHTML = '';
+    skel = document.createElement('div');
+    skel.id = 'rv-skel';
+    skel.className = 'text-muted';
+    skel.textContent = 'Memuat ulasan…';
+    list.appendChild(skel);
+    if (btnMore){ btnMore.style.display=''; btnMore.disabled=false; btnMore.textContent='Muat lebih banyak'; }
+    fetchPage();
   }
+  window.refreshReviews = refreshAll;
 
-  rows.forEach(function(row){ wrap.insertAdjacentHTML('beforeend', rowHTML(row)); });
-  offset += rows.length;
+  // dipanggil setelah submit rating sukses
+  document.addEventListener('reviews:refresh', function(e){
+    var pid = e.detail && e.detail.produkId;
+    if (!pid || pid === PROD_ID) refreshAll();
+  });
 
-  if (offset >= total || rows.length === 0){
-    moreBtn.classList.add('d-none');
-  } else {
-    moreBtn.disabled = false;
-    moreBtn.textContent = 'Muat lebih banyak';
-  }
-}).catch(function(err){
-  if (skel) { skel.textContent = (String(err)==='Error: CSRF')
-    ? 'Sesi kedaluwarsa. Muat ulang halaman.'
-    : 'Gagal memuat ulasan. Coba lagi.'; }
-  if (moreBtn){
-    moreBtn.disabled = false;
-    moreBtn.textContent = 'Coba lagi';
-  }
-});
-
-  }
-
-  // batch pertama
-  loadMore();
-  moreBtn && moreBtn.addEventListener('click', loadMore);
+  // inisialisasi pertama
+  btnMore && btnMore.addEventListener('click', fetchPage, {passive:true});
+  fetchPage();
 })();
 </script>
+
 <script>
 (function(){
   var btn = document.getElementById('btn-add-cart-detail');

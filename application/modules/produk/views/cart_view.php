@@ -551,3 +551,4 @@
 
 <?php $this->load->view("front_end/footer.php"); ?>
 <?php $this->load->view("modal_produk"); ?>
+<?php $this->load->view("partials/form_rating") ?>

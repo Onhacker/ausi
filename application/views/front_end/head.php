@@ -168,6 +168,7 @@
   .navigation-menu .submenu li a{
     border-radius:10px; padding:.5rem .6rem;
   }
+  
   </style>
 
   <script>
@@ -622,6 +623,64 @@ function showPagePreloader(){
 function hidePagePreloader(){
   document.getElementById('page-preloader')?.classList.add('is-hidden');
 }
+</script>
+<script>
+(function(){
+  if (window.__KILL_TOPBARS__) return; 
+  window.__KILL_TOPBARS__ = true;
+
+  function killLibs(){
+    try { if (window.Pace) Pace.stop(); } catch(e){}
+    try { if (window.NProgress){ NProgress.configure({trickle:false,showSpinner:false}); NProgress.remove(); } } catch(e){}
+    document.querySelectorAll('#nprogress, #nprogress .bar, #nprogress .peg, #nprogress .spinner, .pace, .pace-progress, .pace-activity')
+      .forEach(el => el.remove());
+  }
+
+  function setOverscroll(){
+    // cegah bounce/pull-to-refresh yang sering memunculkan garis putih
+    [document.documentElement, document.body].forEach(el => {
+      if (el) el.style.overscrollBehaviorY = 'contain';
+    });
+  }
+
+  function protectHeader(){
+    var header = document.querySelector('.app-header, .navbar, header, .site-header');
+    if (!header) return;
+    var cs = getComputedStyle(header);
+    var currentZ = parseInt(cs.zIndex || '0', 10);
+    header.style.zIndex = String(Math.max(currentZ, 5000));
+
+    // patch garis 1–2px di paling atas dengan warna header (tanpa ubah body)
+    if (!document.getElementById('top-gap-patch')){
+      var col = cs.backgroundColor;
+      if (col === 'transparent' || col === 'rgba(0, 0, 0, 0)') col = '#0b3b6d'; // fallback
+      var patch = document.createElement('div');
+      patch.id = 'top-gap-patch';
+      Object.assign(patch.style, {
+        position:'fixed', top:'0', left:'0', right:'0', height:'2px',
+        background: col, pointerEvents:'none',
+        zIndex: (parseInt(header.style.zIndex,10)-1) || 4999
+      });
+      document.body.appendChild(patch);
+    }
+  }
+
+  function sweepRogueBars(){
+    // sembunyikan elemen fixed/sticky super tipis di top:0 (bukan header)
+    document.querySelectorAll('body *').forEach(function(el){
+      var s = getComputedStyle(el);
+      if ((s.position === 'fixed' || s.position === 'sticky') &&
+          s.top === '0px' && parseFloat(s.height) <= 3 &&
+          !el.closest('.navbar, .app-header, header, .site-header')) {
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  function run(){ killLibs(); setOverscroll(); protectHeader(); sweepRogueBars(); }
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+})();
 </script>
 
 <!-- WRAPPER HALAMAN / AREA SCROLL -->

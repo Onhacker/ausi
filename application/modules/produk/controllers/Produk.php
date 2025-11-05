@@ -141,13 +141,22 @@ public function rate(){
 
     $id     = (int)$this->input->post('id');
     $stars  = (int)$this->input->post('stars');
-    $review = trim((string)($this->input->post('review', true) ?? ''));
+    $review = trim((string)($this->input->post('review', true) ?? '')); // xss_clean
+    $nama   = trim((string)($this->input->post('nama',   true) ?? '')); // xss_clean
 
     if ($id <= 0 || $stars < 1 || $stars > 5) {
         return $this->_json(['success'=>false,'pesan'=>'Input tidak valid'], 400);
     }
-    // batasin panjang review biar aman
+
+    // batasin panjang biar aman
     if (mb_strlen($review) > 1000) $review = mb_substr($review, 0, 1000);
+    if (mb_strlen($nama)   >   60) $nama   = mb_substr($nama,   0,   60);
+
+    // opsi: kosongkan nama yang hanya berisi spasi/emoji tak terlihat
+    if ($nama !== '') {
+        // rapikan spasi ganda
+        $nama = preg_replace('/\s{2,}/u', ' ', $nama);
+    }
 
     // Pastikan produk aktif
     $prod = $this->db->select('id,is_active')->get_where('produk', ['id'=>$id])->row();
@@ -161,7 +170,7 @@ public function rate(){
     $this->db->trans_begin();
 
     // Cek rating sebelumnya dari perangkat yang sama
-    $prev = $this->db->select('id,stars,review')
+    $prev = $this->db->select('id,stars,review,nama')
         ->get_where('produk_rating', ['produk_id'=>$id, 'client_token'=>$token])
         ->row();
 
@@ -172,8 +181,8 @@ public function rate(){
             'stars'      => $stars,
             'updated_at' => $now
         ];
-        // update/isi review bila ada input (boleh kosong = tidak diubah)
         if ($review !== '') { $upd['review'] = $review; $upd['review_at'] = $now; }
+        if ($nama   !== '') { $upd['nama']   = $nama; } // update nama hanya bila ada input
 
         $this->db->where('id', (int)$prev->id)->update('produk_rating', $upd);
 
@@ -188,12 +197,13 @@ public function rate(){
             'stars'        => $stars,
             'review'       => ($review !== '') ? $review : null,
             'review_at'    => ($review !== '') ? $now : null,
+            'nama'         => ($nama   !== '') ? $nama   : null,
             'created_at'   => $now,
             'updated_at'   => $now
         ]);
 
-        $this->db->set('rating_sum', 'rating_sum + '.(int)$stars, false)
-                 ->set('rating_count', 'rating_count + 1', false)
+        $this->db->set('rating_sum',   'rating_sum + '.(int)$stars, false)
+                 ->set('rating_count', 'rating_count + 1',          false)
                  ->where('id', $id)->update('produk');
     }
 
@@ -218,6 +228,7 @@ public function rate(){
         'avg'     => (float)$avg,
         'count'   => (int)($agg->rating_count ?? 0),
         'stars'   => $stars
+        // opsional: bisa juga return 'nama' bila mau dipakai di UI
     ], 200);
 }
 
@@ -417,7 +428,7 @@ public function detail($slug = null){
     }
 
     // Ambil ulasan untuk halaman detail (terbaru dulu; batasi 50 agar ringan)
-    $reviews = $this->db->select('stars, review, COALESCE(review_at, created_at) AS ts', false)
+    $reviews = $this->db->select('stars,nama, review, COALESCE(review_at, created_at) AS ts', false)
     ->from('produk_rating')
     ->where('produk_id', (int)$prod->id)
     ->where("review IS NOT NULL AND TRIM(review) <> ''", null, false)
@@ -483,6 +494,7 @@ public function review_list(){
         $ts = $tscol ? (is_numeric($tscol) ? (int)$tscol : strtotime($tscol)) : time();
         $out[] = [
             'stars'  => (int)$r->stars,
+            'nama' => (string)($r->nama ?? ''),
             'review' => (string)($r->review ?? ''),
             'ts_fmt' => date('d M Y', $ts),
         ];

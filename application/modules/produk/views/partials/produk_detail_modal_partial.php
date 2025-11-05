@@ -20,7 +20,7 @@ $half  = ((float)$rounded - $full) === 0.5;
 $empty = 5 - $full - ($half ? 1 : 0);
 
 // ===== Ambil 3 review terbaru (punya teks) =====
-$reviews = $this->db->select('stars, review, COALESCE(review_at, created_at) AS ts', false)
+$reviews = $this->db->select('nama, stars, review, COALESCE(review_at, created_at) AS ts', false)
   ->from('produk_rating')
   ->where('produk_id', (int)$product->id)
   ->where("review IS NOT NULL AND TRIM(review) <> ''", null, false)
@@ -28,11 +28,37 @@ $reviews = $this->db->select('stars, review, COALESCE(review_at, created_at) AS 
   ->limit(3)
   ->get()->result();
 
+
 function _rv_date($ts){
   if (!$ts) return '';
   $t = is_numeric($ts) ? (int)$ts : strtotime($ts);
   return date('d M Y', $t);
 }
+
+function _rv_initials($name){
+  $name = trim((string)$name);
+  if ($name==='') return '?';
+  $parts = preg_split('/\s+/u', $name);
+  $a = mb_strtoupper(mb_substr($parts[0],0,1));
+  $b = isset($parts[1]) ? mb_strtoupper(mb_substr($parts[1],0,1)) : '';
+  return $a.$b;
+}
+
+
+function _rv_mask_name($name){
+  $name = trim((string)$name);
+  if ($name === '') return 'Anonim';
+  $parts = preg_split('/\s+/u', $name);
+  $masked = [];
+  foreach ($parts as $p){
+    $first = mb_strtoupper(mb_substr($p, 0, 1));
+    $masked[] = $first . '***'; // selalu 3 bintang, rapi & konsisten
+  }
+  return implode(' ', $masked);
+}
+
+
+
 ?>
 <style>
   :root{
@@ -100,6 +126,19 @@ function _rv_date($ts){
     .desc-box{ max-height:120px; }
     .qty-group .btn{ min-width:34px; padding:.32rem .45rem; font-size:.84rem; }
   }
+
+  .review-item{ display:flex; gap:.6rem; padding:.4rem 0; border-bottom:1px dashed var(--line); }
+  .review-item:last-child{ border-bottom:none; }
+  .review-avatar{
+    width:36px;height:36px;border-radius:50%;
+    background:#e2e8f0;color:#0f172a;font-weight:800;
+    display:flex;align-items:center;justify-content:center;flex:0 0 36px;
+  }
+  .review-head{ display:flex;justify-content:space-between;align-items:center;gap:.5rem; }
+  .review-name{ font-weight:700;color:#0f172a;font-size:.85rem; }
+  .review-stars .mdi{ font-size:14px; } .review-stars .full{ color:#f59e0b; }
+  .review-meta{ font-size:.74rem;color:#64748b; }
+
 </style>
 
 <div class="row modal-product align-items-start" style="row-gap: var(--gap); column-gap: var(--gap);">
@@ -124,7 +163,9 @@ function _rv_date($ts){
     </div>
 
     <!-- ===== Rating row (klik bintang/teks untuk memberi rating) ===== -->
-    <div class="rate-row" data-rate-box-modal data-id="<?= (int)$product->id; ?>" data-name="<?= html_escape($product->nama); ?>">
+
+      <div class="rate-row" data-rate-box data-id="<?= (int)$product->id; ?>" data-name="<?= html_escape($product->nama); ?>">
+
       <div class="star-meter" aria-label="Rating: <?= number_format($ratingAvg,1,',','.'); ?>/5" title="Beri rating">
         <?php for ($i=0; $i<$full; $i++): ?><i class="mdi mdi-star full"></i><?php endfor; ?>
         <?php if ($half): ?><i class="mdi mdi-star-half-full full"></i><?php endif; ?>
@@ -185,18 +226,23 @@ function _rv_date($ts){
     <div class="desc-title">Ulasan Terbaru</div>
     <div class="reviews-box">
       <?php if ($reviews): foreach($reviews as $rv): ?>
-        <div class="review-item">
-          <div class="review-stars">
-            <?php for ($i=1;$i<=5;$i++): ?>
-              <i class="mdi <?= $i <= (int)$rv->stars ? 'mdi-star full' : 'mdi-star-outline'; ?>"></i>
-            <?php endfor; ?>
-          </div>
-          <div class="flex-fill">
-            <div class="review-meta"><?= _rv_date($rv->ts); ?></div>
-            <div class="review-text"><?= nl2br(html_escape($rv->review)); ?></div>
-          </div>
-        </div>
-      <?php endforeach; else: ?>
+  <div class="review-item">
+    <div class="review-avatar"><?= html_escape(_rv_initials($rv->nama ?? '')) ?></div>
+    <div class="flex-fill">
+      <div class="review-head">
+        <span class="review-name"><?= html_escape(_rv_mask_name($rv->nama ?? '')) ?></span>
+
+        <span class="review-meta"><?= _rv_date($rv->ts); ?></span>
+      </div>
+      <div class="review-stars">
+        <?php for ($i=1;$i<=5;$i++): ?>
+          <i class="mdi <?= $i <= (int)$rv->stars ? 'mdi-star full' : 'mdi-star-outline'; ?>"></i>
+        <?php endfor; ?>
+      </div>
+      <div class="review-text"><?= nl2br(html_escape($rv->review)); ?></div>
+    </div>
+  </div>
+<?php endforeach; else: ?>
         <div class="text-muted">Belum ada ulasan.</div>
       <?php endif; ?>
 
@@ -206,6 +252,7 @@ function _rv_date($ts){
     </div>
   </div>
 </div>
+
 
 <script>
 /* kontrol Qty + Enter submit (existing) */
@@ -237,168 +284,182 @@ function _rv_date($ts){
   });
   clamp();
 })();
-
-/* ====== Rating + Review (SweetAlert) ====== */
+</script>
+<script>
 (function(){
-  // jangan double-init kalau partial dipanggil beberapa kali
-  if (window.__MODAL_RATE_INIT__) return; window.__MODAL_RATE_INIT__ = true;
+  if (window.__RV_MODAL_SYNC__) return;
+  window.__RV_MODAL_SYNC__ = true;
 
+  var PROD_ID = <?= (int)$product->id ?>;
+  var REV_URL = "<?= site_url('produk/review_list'); ?>";
+
+  // CSRF (ikuti config CI)
   var CSRF = <?php
     if ($this->config->item('csrf_protection')) {
       echo json_encode([
         'name' => $this->security->get_csrf_token_name(),
         'hash' => $this->security->get_csrf_hash()
       ]);
-    } else {
-      echo 'null';
-    }
+    } else { echo 'null'; }
   ?>;
 
-  function postJSON(url, data){
-    return fetch(url, {
-      method: 'POST',
-      headers: {'X-Requested-With': 'XMLHttpRequest'},
-      body: (function(){
-        var fd = new FormData();
-        for (var k in data){ fd.append(k, data[k]); }
-        if (CSRF) fd.append(CSRF.name, CSRF.hash);
-        return fd;
-      })()
-    }).then(function(r){ return r.json(); });
+  // ===== Helpers UI =====
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+  function nl2br(s){ return esc(s).replace(/\r?\n/g,'<br>'); }
+  function initials(name){
+    name=(name||'').trim(); if(!name) return '?';
+    var p=name.split(/\s+/); return (p[0][0]||'?')+((p[1]||'')[0]||'');
   }
+  function mask(name){
+    name=(name||'').trim(); if(!name) return 'Anonim';
+    return name.split(/\s+/).map(p => (p[0]||'?').toUpperCase()+'***').join(' ');
+  }
+  function starHtml(n){
+    n=parseInt(n||0,10); var h='';
+    for(var i=1;i<=5;i++) h += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>';
+    return h;
+  }
+  function findBox(){
+    // prioritas di dalam modal-product
+    return document.querySelector('.modal-product .reviews-box') || document.querySelector('.reviews-box');
+  }
+  function renderReviews(rows, total){
+    var BOX = findBox(); if (!BOX) return;
+    // bersihkan items lama (tanpa menghapus footer/link)
+    BOX.querySelectorAll('.review-item, .text-muted').forEach(el=>el.remove());
+    var footer = BOX.querySelector('.reviews-footer');
 
-  function renderAvg(box, avg, count){
-    avg = parseFloat(avg||0); count = parseInt(count||0,10);
-    var meter = box.querySelector('.star-meter');
-    var avgLb = box.querySelector('.avg-label');
-    var cntLb = box.querySelector('.count-label');
-
-    if (avgLb) avgLb.textContent = avg.toFixed(1).replace('.', ',');
-    if (cntLb) cntLb.textContent = count;
-
-    if (meter){
-      var r = Math.round(Math.max(0,Math.min(5,avg))*2)/2;
-      var full = Math.floor(r), half = (r-full)===0.5, empty = 5-full-(half?1:0);
-      var html=''; for(var i=0;i<full;i++) html+='<i class="mdi mdi-star full"></i>';
-      if(half) html+='<i class="mdi mdi-star-half-full full"></i>';
-      for(var j=0;j<empty;j++) html+='<i class="mdi mdi-star-outline empty"></i>';
-      meter.innerHTML = html;
+    if (!rows || !rows.length){
+      var empty = document.createElement('div');
+      empty.className = 'text-muted';
+      empty.textContent = 'Belum ada ulasan.';
+      BOX.insertBefore(empty, footer);
+    } else {
+      var frag = document.createDocumentFragment();
+      rows.slice(0,3).forEach(function(r){
+        var rawName = (r && (r.nama||r.name||r.customer_name||r.user_name||'')) || '';
+        var when    = (r && (r.ts_fmt||r.created_fmt||r.created_at_fmt||r.created_at||r.ts||'')) || '';
+        var wrap = document.createElement('div');
+        wrap.className = 'review-item';
+        wrap.innerHTML =
+          '<div class="review-avatar">'+esc(initials(rawName))+'</div>'+
+          '<div class="flex-fill">'+
+            '<div class="review-head">'+
+              '<span class="review-name">'+esc(mask(rawName))+'</span>'+
+              '<span class="review-meta">'+esc(when)+'</span>'+
+            '</div>'+
+            '<div class="review-stars">'+starHtml(r && r.stars)+'</div>'+
+            (r && r.review ? '<div class="review-text">'+nl2br(r.review)+'</div>' : '')+
+          '</div>';
+        frag.appendChild(wrap);
+      });
+      BOX.insertBefore(frag, footer);
     }
+
+    // sinkronkan label jumlah ulasan hanya di scope modal
+    var scope = BOX.closest('.modal-product') || document;
+    scope.querySelectorAll('.count-label').forEach(function(el){
+      el.textContent = parseInt(total||0,10);
+    });
   }
 
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])); }
+  // ===== Refresh (debounce + guard) =====
+  var BUSY = false, TMR = null;
+  function refreshNow(){
+    if (BUSY) return;
+    BUSY = true;
 
-  function openRate(prodId, prodName, box){
-  // fallback sederhana jika SweetAlert belum dimuat
-  if (!window.Swal){
-    var stars = parseInt(prompt('Beri rating (1–5) untuk: '+prodName, 5) || '0', 10);
-    if (!stars || stars < 1 || stars > 5) return;
-    var rev = prompt('Tulis review (opsional):','') || '';
-    postJSON('<?= site_url('produk/rate') ?>', { id:prodId, stars:stars, review:rev })
-      .then(function(resp){
-        if (!resp || !resp.success){ alert((resp && resp.pesan) || 'Gagal menyimpan rating'); return; }
-        renderAvg(box, resp.avg, resp.count);
-        alert('Terima kasih!');
-      });
-    return;
+    var fd = new FormData();
+    fd.append('id', PROD_ID);
+    fd.append('offset', 0);
+    fd.append('limit', 3);
+    if (CSRF){ fd.append(CSRF.name, CSRF.hash); }
+
+    fetch(REV_URL, {
+      method:'POST',
+      headers:{'X-Requested-With':'XMLHttpRequest'},
+      body: fd
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (!res || !res.success) return;
+      if (res.csrf && CSRF){ CSRF.name=res.csrf.name; CSRF.hash=res.csrf.hash; }
+      renderReviews(res.rows||[], res.total||0);
+    })
+    .catch(function(){ /* diam */ })
+    .finally(function(){ BUSY=false; });
+  }
+  function refreshDebounced(){
+    clearTimeout(TMR);
+    TMR = setTimeout(refreshNow, 250);
   }
 
-  var chosen = 0, maxLen = 1000;
-  var esc = function(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])); };
-
-  Swal.fire({
-    title: 'Beri rating',
-    html:
-      '<div style="margin-top:.25rem;font-weight:600">'+esc(prodName)+'</div>'+
-      '<div class="swal-rate-wrap" style="margin:.75rem 0 .5rem;display:flex;justify-content:center;gap:8px;">'+
-        [1,2,3,4,5].map(n=>'<i class="mdi mdi-star-outline rate-star" data-n="'+n+'" style="font-size:28px;cursor:pointer;"></i>').join('')+
-      '</div>'+
-      '<div class="small text-muted" id="swal-rate-hint" style="margin-bottom:.5rem;">Pilih 1–5 bintang</div>'+
-      '<textarea id="swal-review" class="form-control" rows="3" placeholder="Tulis review (opsional)" style="resize:vertical;"></textarea>'+
-      '<div class="small text-muted mt-1" id="swal-count">0/'+maxLen+'</div>',
-    showCancelButton: true,
-    confirmButtonText: 'Simpan',
-    cancelButtonText: 'Batal',
-    focusConfirm: false,
-    returnFocus: false,   // penting: jangan rebut fokus kembali
-    didOpen: function(m){
-      // 🔧 Matikan focus trap Bootstrap agar textarea bisa diketik
-      if (window.jQuery) { $(document).off('focusin.bs.modal'); }
-      // (opsional) izinkan fokus ke elemen dalam swal meski ada modal
-      document.addEventListener('focusin', function onFI(e){
-        if (e.target && e.target.closest && e.target.closest('.swal2-container')) {
-          e.stopImmediatePropagation();
-        }
-      }, {capture:true, once:true});
-
-      var wrap = m.querySelector('.swal-rate-wrap'),
-          hint = m.querySelector('#swal-rate-hint'),
-          ta   = m.querySelector('#swal-review'),
-          cnt  = m.querySelector('#swal-count');
-
-      function draw(){
-        wrap.querySelectorAll('.rate-star').forEach(function(el){
-          var n = parseInt(el.getAttribute('data-n')||'0',10);
-          el.className = 'mdi rate-star ' + (n<=chosen ? 'mdi-star' : 'mdi-star-outline');
-          el.style.color = (n<=chosen ? '#f59e0b' : '');
-        });
-        hint.textContent = chosen ? (chosen+'/5') : 'Pilih 1–5 bintang';
-      }
-
-      wrap.addEventListener('click', function(e){
-        var ic = e.target.closest('.rate-star'); if(!ic) return;
-        chosen = parseInt(ic.getAttribute('data-n')||'0',10);
-        draw();
-      });
-
-      ta.addEventListener('input', function(){
-        if (this.value.length > maxLen) this.value = this.value.slice(0, maxLen);
-        cnt.textContent = this.value.length + '/' + maxLen;
-      });
-
-      draw();
-      setTimeout(function(){ ta && ta.focus(); }, 50);
-    },
-    preConfirm: function(){
-      var r = (document.getElementById('swal-review')||{}).value || '';
-      if (!chosen){
-        Swal.showValidationMessage('Pilih minimal 1 bintang');
-        return false;
-      }
-      return { stars: chosen, review: r.trim() };
-    }
-  }).then(function(res){
-    if (!res.isConfirmed || !res.value) return;
-    postJSON('<?= site_url('produk/rate') ?>', {
-      id: prodId,
-      stars: res.value.stars,
-      review: res.value.review
-    })
-    .then(function(resp){
-      if (!resp || !resp.success){
-        Swal.fire('Gagal', (resp && resp.pesan) || 'Gagal menyimpan rating', 'error');
-        return;
-      }
-      renderAvg(box, resp.avg, resp.count);
-      Swal.fire({ icon:'success', title:'Terima kasih!', text:'Rating & review tersimpan.', timer:1300, showConfirmButton:false });
-    })
-    .catch(function(){
-      Swal.fire('Gagal', 'Kesalahan jaringan.', 'error');
+  // ===== 1) Event dari form rating/ulasan (kalau ada) =====
+  [
+    'rv-prepended','reviews:refresh','rating:success','rating:saved',
+    'review:success','review:saved','ulasan:updated'
+  ].forEach(function(ev){
+    document.addEventListener(ev, function(e){
+      var id = e && e.detail && (e.detail.produk_id || e.detail.produkId || e.detail.id);
+      if (!id || parseInt(id,10) === PROD_ID) refreshDebounced();
     });
   });
-}
 
+  // ===== 2) Intersep POST yang menyimpan rating/ulasan (tanpa loop) =====
+  (function(){
+    // cocokkan /produk/... yang berhubungan rating/ulasan, tapi bukan review_list
+    var SAVE_RE = /\/produk\/(?!.*review_list).*?(rating|review|ulasan|rate|nilai|kirim|save)/i;
 
-  // delegasi klik untuk bintang & "Beri rating"
-  document.addEventListener('click', function(e){
-    var star = e.target.closest('[data-rate-box-modal] .star-meter');
-    var link = e.target.closest('[data-rate-box-modal] .rate-link');
-    if (!star && !link) return;
-    var box = (star||link).closest('[data-rate-box-modal]');
-    var id  = parseInt(box.getAttribute('data-id')||'0',10);
-    var nm  = box.getAttribute('data-name')||'Produk';
-    if (!id) return;
-    openRate(id, nm, box);
-  }, {passive:true});
+    function shouldHook(url, method){
+      return method && method.toUpperCase()==='POST' && SAVE_RE.test(String(url||''));
+    }
+
+    if (window.fetch){
+      var _fetch = window.fetch;
+      window.fetch = function(input, init){
+        var url = (typeof input==='string') ? input : (input && input.url) || '';
+        var method = (init && init.method) || (typeof input!=='string' && input && input.method) || 'GET';
+        var hook = shouldHook(url, method);
+        return _fetch(input, init).then(function(res){
+          if (hook && res && res.ok) refreshDebounced();
+          return res;
+        });
+      };
+    }
+
+    if (window.XMLHttpRequest){
+      var _open = XMLHttpRequest.prototype.open, _send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(m,u){
+        this.__rv_hook = shouldHook(u, m);
+        return _open.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function(b){
+        if (this.__rv_hook){
+          this.addEventListener('load', function(){
+            if (this.status >= 200 && this.status < 300) refreshDebounced();
+          });
+        }
+        return _send.apply(this, arguments);
+      };
+    }
+  })();
+
+  // ===== 3) Saat modal tampil / elemen muncul terlambat =====
+  if (window.jQuery){
+    $(document).on('shown.bs.modal', '.modal', function(){ refreshDebounced(); });
+  }
+  try{
+    var mo = new MutationObserver(function(){
+      var box = findBox();
+      if (box && !box.__rv_inited){
+        box.__rv_inited = true;
+        refreshDebounced();
+      }
+    });
+    mo.observe(document.documentElement, {childList:true, subtree:true});
+  }catch(_){}
+
+  // initial refresh ringan (ambil data terbaru jika ada)
+  refreshDebounced();
 })();
 </script>
