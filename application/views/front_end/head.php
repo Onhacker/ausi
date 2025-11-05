@@ -168,7 +168,6 @@
   .navigation-menu .submenu li a{
     border-radius:10px; padding:.5rem .6rem;
   }
-  
   </style>
 
   <script>
