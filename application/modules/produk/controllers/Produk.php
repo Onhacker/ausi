@@ -133,6 +133,95 @@ public function scan_qr(){
         redirect('produk/receipt/'.(int)$order_id);
         exit;
     }
+public function rate(){
+    $this->_nocache_headers();
+    if (strtoupper($this->input->method(true)) !== 'POST') {
+        return $this->_json(['success'=>false,'pesan'=>'Method not allowed'], 405);
+    }
+
+    $id     = (int)$this->input->post('id');
+    $stars  = (int)$this->input->post('stars');
+    $review = trim((string)($this->input->post('review', true) ?? ''));
+
+    if ($id <= 0 || $stars < 1 || $stars > 5) {
+        return $this->_json(['success'=>false,'pesan'=>'Input tidak valid'], 400);
+    }
+    // batasin panjang review biar aman
+    if (mb_strlen($review) > 1000) $review = mb_substr($review, 0, 1000);
+
+    // Pastikan produk aktif
+    $prod = $this->db->select('id,is_active')->get_where('produk', ['id'=>$id])->row();
+    if (!$prod || (int)$prod->is_active !== 1) {
+        return $this->_json(['success'=>false,'pesan'=>'Produk tidak ditemukan/aktif'], 404);
+    }
+
+    $token = $this->_client_token();
+    $now   = date('Y-m-d H:i:s');
+
+    $this->db->trans_begin();
+
+    // Cek rating sebelumnya dari perangkat yang sama
+    $prev = $this->db->select('id,stars,review')
+        ->get_where('produk_rating', ['produk_id'=>$id, 'client_token'=>$token])
+        ->row();
+
+    if ($prev) {
+        $diff = $stars - (int)$prev->stars;
+
+        $upd = [
+            'stars'      => $stars,
+            'updated_at' => $now
+        ];
+        // update/isi review bila ada input (boleh kosong = tidak diubah)
+        if ($review !== '') { $upd['review'] = $review; $upd['review_at'] = $now; }
+
+        $this->db->where('id', (int)$prev->id)->update('produk_rating', $upd);
+
+        if ($diff !== 0) {
+            $this->db->set('rating_sum', 'rating_sum + '.(int)$diff, false)
+                     ->where('id', $id)->update('produk');
+        }
+    } else {
+        $this->db->insert('produk_rating', [
+            'produk_id'    => $id,
+            'client_token' => $token,
+            'stars'        => $stars,
+            'review'       => ($review !== '') ? $review : null,
+            'review_at'    => ($review !== '') ? $now : null,
+            'created_at'   => $now,
+            'updated_at'   => $now
+        ]);
+
+        $this->db->set('rating_sum', 'rating_sum + '.(int)$stars, false)
+                 ->set('rating_count', 'rating_count + 1', false)
+                 ->where('id', $id)->update('produk');
+    }
+
+    // Recalc avg
+    $agg = $this->db->select('rating_sum, rating_count')
+                    ->get_where('produk', ['id'=>$id])->row();
+    $avg = ($agg && (int)$agg->rating_count > 0)
+        ? round(((int)$agg->rating_sum) / (int)$agg->rating_count, 2)
+        : 0.00;
+
+    $this->db->where('id', $id)->update('produk', ['rating_avg'=>$avg]);
+
+    if ($this->db->trans_status() === false) {
+        $this->db->trans_rollback();
+        return $this->_json(['success'=>false,'pesan'=>'Gagal menyimpan rating'], 500);
+    }
+    $this->db->trans_commit();
+
+    return $this->_json([
+        'success' => true,
+        'pesan'   => 'Terima kasih! Rating tersimpan.',
+        'avg'     => (float)$avg,
+        'count'   => (int)($agg->rating_count ?? 0),
+        'stars'   => $stars
+    ], 200);
+}
+
+
 
   public function index(){
     $this->_nocache_headers();
@@ -309,21 +398,45 @@ public function subkategori($kategori_id = null){
 }
 
 
-    public function detail($slug = null){
-        $this->_private_cache_headers(60);
-        if (!$slug) show_404();
-        $rec  = $this->fm->web_me();
-        $prod = $this->pm->get_by_slug($slug);
-        if (!$prod) show_404();
+public function detail($slug = null){
+    $this->_private_cache_headers(60);
+    if (!$slug) show_404();
 
-        $data["rec"]       = $rec;
-        $data["title"]     = $prod->nama." | ".$rec->nama_website;
-        $data["deskripsi"] = word_limiter(strip_tags($prod->deskripsi ?: $prod->nama), 30);
-        $data["prev"]      = base_url($prod->gambar ?: "assets/images/icon_app.png");
-        $data["product"]   = $prod;
+    $rec  = $this->fm->web_me();
+    $prod = $this->pm->get_by_slug($slug);
+    if (!$prod) show_404();
 
-        $this->load->view('produk_detail_view', $data);
+    // Fallback: jika kolom agregat tidak tersedia di select model, hitung cepat
+    if (!isset($prod->rating_avg) || !isset($prod->rating_count)) {
+        $agg = $this->db->select('AVG(stars) AS avg_val, COUNT(*) AS cnt', false)
+        ->from('produk_rating')
+        ->where('produk_id', (int)$prod->id)
+        ->get()->row();
+        $prod->rating_avg   = $agg ? (float)$agg->avg_val : 0.0;
+        $prod->rating_count = $agg ? (int)$agg->cnt      : 0;
     }
+
+    // Ambil ulasan untuk halaman detail (terbaru dulu; batasi 50 agar ringan)
+    $reviews = $this->db->select('stars, review, COALESCE(review_at, created_at) AS ts', false)
+    ->from('produk_rating')
+    ->where('produk_id', (int)$prod->id)
+    ->where("review IS NOT NULL AND TRIM(review) <> ''", null, false)
+    ->order_by('COALESCE(review_at, created_at)', 'DESC', false)
+    ->limit(50)
+    ->get()->result();
+
+    $data = [
+        "rec"       => $rec,
+        "title"     => $prod->nama,
+        "deskripsi" => (($prod->deskripsi ?: $prod->nama)),
+        "prev"      => base_url($prod->gambar ?: "assets/images/icon_app.png"),
+        "product"   => $prod,
+        "reviews"   => $reviews,
+    ];
+
+    $this->load->view('produk_detail_view', $data);
+}
+
 
     public function detail_modal(){
         $this->_nocache_headers();
@@ -344,6 +457,51 @@ public function subkategori($kategori_id = null){
     }
 
     /* ----------------- Cart Actions ------------------ */
+
+public function review_list(){
+    // optional: amankan akses non-ajax
+    // if (!$this->input->is_ajax_request()) { show_404(); return; }
+
+    $id     = (int)($this->input->post('id') ?? $this->input->get('id'));
+    $offset = max(0, (int)($this->input->post('offset') ?? $this->input->get('offset')));
+    $limit  = min(20, max(1, (int)($this->input->post('limit') ?? $this->input->get('limit'))));
+
+    if (!$id) {
+        $payload = ['success'=>false,'pesan'=>'Produk tidak valid'];
+        if ($this->config->item('csrf_protection')) $payload['csrf'] = $this->_csrf();
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode($payload));
+    }
+
+    // pastikan model sudah diload: $this->load->model('Produk_model','pm'); di __construct
+    $rows  = $this->pm->get_reviews($id, $limit, $offset);
+    $total = $this->pm->count_reviews($id);
+
+    $out = [];
+    foreach ($rows as $r){
+        $tscol = $r->ts ?? null;
+        $ts = $tscol ? (is_numeric($tscol) ? (int)$tscol : strtotime($tscol)) : time();
+        $out[] = [
+            'stars'  => (int)$r->stars,
+            'review' => (string)($r->review ?? ''),
+            'ts_fmt' => date('d M Y', $ts),
+        ];
+    }
+
+    $payload = ['success'=>true,'rows'=>$out,'total'=>(int)$total];
+    if ($this->config->item('csrf_protection')) $payload['csrf'] = $this->_csrf();
+
+    return $this->output->set_content_type('application/json')
+        ->set_output(json_encode($payload));
+}
+
+private function _csrf(){
+    return [
+        'name' => $this->security->get_csrf_token_name(),
+        'hash' => $this->security->get_csrf_hash(),
+    ];
+}
+
 
     public function add_to_cart(){
         $this->_nocache_headers();
@@ -372,6 +530,7 @@ public function subkategori($kategori_id = null){
         $cart_id = $this->_get_active_cart_id();
         if ($cart_id) {
             $ok    = $this->cm->add_item($cart_id, (int)$row->id, $qty, (int)$row->harga);
+            if ($ok) { $this->_touch_meja_session(); }
             $count = (int)$this->cm->count_items($cart_id);
 
             // meta meja
@@ -619,10 +778,17 @@ public function leave_table(){
     redirect('produk');
 }
 
+    private function _touch_meja_session(){
+    if ($this->session->userdata('guest_meja_kode')) {
+        $this->session->set_userdata('scan_ts', time());
+    }
+}
+
+
     /** Submit order → buat pesanan & item dari cart */
   public function submit_order(){
     $this->_nocache_headers();
-
+    $this->_maybe_expire_meja_session(120);
     $nama    = trim($this->input->post('nama', true) ?: '');
     $catatan = trim($this->input->post('catatan', true) ?: '');
 

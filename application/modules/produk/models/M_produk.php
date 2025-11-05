@@ -33,6 +33,25 @@ class M_produk extends CI_Model {
         $this->db->where('p.is_active', 1);
         return $this->db->get()->row();
     }
+public function get_reviews($product_id, $limit = 5, $offset = 0){
+    return $this->db
+        ->select('stars, review, COALESCE(review_at, created_at) AS ts', false)
+        ->from('produk_rating')
+        ->where('produk_id', (int)$product_id)
+        // kalau mau hanya yang ada teks, buka baris di bawah:
+        // ->where("COALESCE(review,'') !=", '', false)
+        ->order_by('COALESCE(review_at, created_at)', 'DESC', false) // atau cukup ->order_by('ts', 'DESC', false)
+        ->limit($limit, $offset)
+        ->get()->result();
+}
+
+public function count_reviews($product_id){
+    $this->db->from('produk_rating')->where('produk_id', (int)$product_id);
+    // cocokkan filter dengan get_reviews():
+    // $this->db->where("COALESCE(review,'') !=", '', false);
+    return (int)$this->db->count_all_results();
+}
+
 
     // ================== helpers ==================
     private function _base_select(){
