@@ -227,7 +227,7 @@ if (is_file($img_path)) {
 
 
 <!-- ====== RUNNING TEXT UJI COBA + COUNTDOWN (STICKY) ====== -->
-<style>
+<!-- <style>
   .beta-ticker{
     position:sticky;
     top:0;
@@ -347,7 +347,7 @@ if (is_file($img_path)) {
   tick(); // run pertama
   intId = setInterval(tick, 1000); // update tiap detik
 })();
-</script>
+</script> -->
 
 <!-- ====== /RUNNING TEXT ====== -->
 
