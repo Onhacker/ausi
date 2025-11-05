@@ -26,16 +26,16 @@
 	#modalProduk.modal {
 		overflow-y: auto;
 	}
-/* Kunci tampilan "Review" agar tidak ikut bold */
-.product-info a.rate-link{
-  font-weight: 500 !important;       /* atau 400 sesuai selera */
-}
-.product-info a.rate-link:hover,
-.product-info a.rate-link:focus,
-.product-info a.rate-link:active,
-.product-info a.rate-link:visited{
-  font-weight: 500 !important;
-}
+	/* Kunci tampilan "Review" agar tidak ikut bold */
+	.product-info a.rate-link{
+		font-weight: 500 !important;       /* atau 400 sesuai selera */
+	}
+	.product-info a.rate-link:hover,
+	.product-info a.rate-link:focus,
+	.product-info a.rate-link:active,
+	.product-info a.rate-link:visited{
+		font-weight: 500 !important;
+	}
 
 </style>
 
@@ -65,6 +65,18 @@
 		max-width: 100%;
 		height: auto;
 	}
+
+	/* Spinner kecil untuk tombol */
+	.spinner-border{
+		display:inline-block;width:.9rem;height:.9rem;
+		border:.15rem solid currentColor;border-right-color:transparent;
+		border-radius:50%;animation:spin .6s linear infinite;
+		vertical-align:-0.2em;margin-right:.4rem;
+	}
+	@keyframes spin{to{transform:rotate(360deg)}}
+	/* Saat loading, nonaktifkan interaksi */
+	#btnLihatSelengkapnya.is-loading{ pointer-events:none; opacity:.8; }
+
 </style>
 
 <!-- ===== Modal Detail Produk ===== -->
@@ -83,48 +95,51 @@
 				<!-- Pastikan footer sudah kiri–kanan -->
 				<div class="modal-footer d-flex justify-content-between align-items-center w-100">
 					<button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-					<a id="btnLihatSelengkapnya" href="#" class="btn btn-blue" rel="noopener">
-						selengkapnya
-					</a>
-				</div>
-
+					<a id="btnLihatSelengkapnya" href="#" class="btn btn-blue"
+					rel="noopener" data-loading-label="Membuka…">
+					<span class="spinner-border d-none" aria-hidden="true"></span>
+					<span class="btn-text">selengkapnya</span>
+				</a>
 
 			</div>
+
+
 		</div>
 	</div>
-	<script type="text/javascript">
-		function modalSkeleton(){
-			return `
-			<div class="px-2">
-			<div class="skel-thumb skel-shimmer" style="aspect-ratio:4/3;border-radius:12px;"></div>
-			<div class="mt-3 skel-line w80 skel-shimmer"></div>
-			<div class="skel-line w60 skel-shimmer"></div>
-			<div class="mt-2 skel-line w80 skel-shimmer"></div>
-			<div class="skel-line w40 skel-shimmer"></div>
-			</div>`;
-		}
-		/* Pastikan modal ditempel ke body & z-index aman */
-		$('#modalProduk').on('show.bs.modal', function(){
-			if (this.parentElement !== document.body) document.body.appendChild(this);
-		});
-		const SITE_PRODUK_DETAIL = "<?= rtrim(site_url('produk/detail'), '/') ?>";
+</div>
+<script type="text/javascript">
+	function modalSkeleton(){
+		return `
+		<div class="px-2">
+		<div class="skel-thumb skel-shimmer" style="aspect-ratio:4/3;border-radius:12px;"></div>
+		<div class="mt-3 skel-line w80 skel-shimmer"></div>
+		<div class="skel-line w60 skel-shimmer"></div>
+		<div class="mt-2 skel-line w80 skel-shimmer"></div>
+		<div class="skel-line w40 skel-shimmer"></div>
+		</div>`;
+	}
+	/* Pastikan modal ditempel ke body & z-index aman */
+	$('#modalProduk').on('show.bs.modal', function(){
+		if (this.parentElement !== document.body) document.body.appendChild(this);
+	});
+	const SITE_PRODUK_DETAIL = "<?= rtrim(site_url('produk/detail'), '/') ?>";
 
-function slugifyNamaProduk(nama){
-  return (nama || '')
-    .toString()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-}
+	function slugifyNamaProduk(nama){
+		return (nama || '')
+		.toString()
+		.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.replace(/[^a-z0-9\s-]/g, '')
+		.trim()
+		.replace(/\s+/g, '-')
+		.replace(/-+/g, '-');
+	}
 
-function bindDetailModal(){
-  $('#grid-products')
-    .off('click', '.btn-detail')
-    .on('click', '.btn-detail', function(e){
-      e.preventDefault();
+	function bindDetailModal(){
+		$('#grid-products')
+		.off('click', '.btn-detail')
+		.on('click', '.btn-detail', function(e){
+			e.preventDefault();
 
       // slug awal dari tombol
       let slug = ($(this).data('slug') || '').toString().trim();
@@ -139,10 +154,10 @@ function bindDetailModal(){
       // fetch konten modal
       $.getJSON("<?= site_url('produk/detail_modal'); ?>", { slug })
       .done(function(r){
-        if (!r || !r.success){
-          $('#modalProdukBody').html('<div class="text-danger p-3">Gagal memuat detail.</div>');
-          return;
-        }
+      	if (!r || !r.success){
+      		$('#modalProdukBody').html('<div class="text-danger p-3">Gagal memuat detail.</div>');
+      		return;
+      	}
 
         // update judul & isi
         if (r.title) $('#modalProdukTitle').text(r.title);
@@ -155,27 +170,65 @@ function bindDetailModal(){
 
         if (r.detail_url){
           finalHref = r.detail_url; // diasumsikan sudah absolute/relative siap pakai
-        } else {
-          const respSlug = (r.slug || r.link_seo || '').toString().trim();
-          if (respSlug){
-            finalHref = SITE_PRODUK_DETAIL + '/' + encodeURIComponent(respSlug);
-          } else if (r.nama || r.nama_produk || r.title){
-            const s = slugifyNamaProduk(r.nama || r.nama_produk || r.title);
-            finalHref = SITE_PRODUK_DETAIL + '/' + encodeURIComponent(s);
-          }
-        }
+      } else {
+      	const respSlug = (r.slug || r.link_seo || '').toString().trim();
+      	if (respSlug){
+      		finalHref = SITE_PRODUK_DETAIL + '/' + encodeURIComponent(respSlug);
+      	} else if (r.nama || r.nama_produk || r.title){
+      		const s = slugifyNamaProduk(r.nama || r.nama_produk || r.title);
+      		finalHref = SITE_PRODUK_DETAIL + '/' + encodeURIComponent(s);
+      	}
+      }
 
-        if (finalHref){
-          $('#btnLihatSelengkapnya').attr('href', finalHref);
-        }
-      })
+      if (finalHref){
+      	$('#btnLihatSelengkapnya').attr('href', finalHref);
+      }
+  })
       .fail(function(){
-        $('#modalProdukBody').html('<div class="text-danger p-3">Koneksi bermasalah.</div>');
+      	$('#modalProdukBody').html('<div class="text-danger p-3">Koneksi bermasalah.</div>');
       });
-    });
-}
-		function safeQty(val){
-			const n = Number(val);
-			return Number.isFinite(n) && n > 0 ? n : 1;
+  });
+	}
+	function safeQty(val){
+		const n = Number(val);
+		return Number.isFinite(n) && n > 0 ? n : 1;
+	}
+</script>
+
+<script>
+	(function(){
+		var btn = document.getElementById('btnLihatSelengkapnya');
+		if(!btn) return;
+
+		function setBtnLoading(on){
+			var sp  = btn.querySelector('.spinner-border');
+			var txt = btn.querySelector('.btn-text');
+			if(on){
+				btn.classList.add('is-loading','disabled');
+				btn.setAttribute('aria-disabled','true');
+				sp.classList.remove('d-none');
+				if(!btn.dataset.originalLabel){ btn.dataset.originalLabel = (txt.textContent || '').trim(); }
+				txt.textContent = btn.dataset.loadingLabel || 'Memuat…';
+			}else{
+				btn.classList.remove('is-loading','disabled');
+				btn.removeAttribute('aria-disabled');
+				sp.classList.add('d-none');
+				if(btn.dataset.originalLabel){ txt.textContent = btn.dataset.originalLabel; }
+			}
 		}
-	</script>
+
+  // Klik: tampilkan loading. Jika target _blank, kembalikan setelah sebentar.
+  btn.addEventListener('click', function(){
+  	setBtnLoading(true);
+    // Jika buka tab baru, jangan “nyangkut” loading-nya
+    if (btn.target === '_blank'){
+    	setTimeout(function(){ setBtnLoading(false); }, 1500);
+    }
+});
+
+  // Opsional: bila modal ditutup, reset loading
+  if (window.jQuery){
+  	$('#modalProduk').on('hidden.bs.modal', function(){ setBtnLoading(false); });
+  }
+})();
+</script>

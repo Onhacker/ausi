@@ -112,6 +112,16 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
   @media (min-width: 992px){
     .cart-fab{ width:52px; height:52px; }
   }
+
+  .spinner-border{
+  display:inline-block;width:1rem;height:1rem;
+  border:.15rem solid currentColor;border-right-color:transparent;
+  border-radius:50%;animation:spin .6s linear infinite;vertical-align:-0.2em;
+  margin-right:.4rem;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#btn-add-cart-detail.is-loading{ pointer-events:none; opacity:.9; }
+
 </style>
 
 <div class="container-fluid pd-wrap">
@@ -141,7 +151,7 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
 
               <!-- kategori -->
               <?php if ($katNama): ?>
-                <a href="<?= site_url('produk').'?kategori='.$product->kategori_id; ?>" class="text-primary font-weight-bold">
+                <a href="<?= site_url('produk').'?kategori='.$product->kategori_id; ?>" class="text-blue font-weight-bold">
                   <?= html_escape($katNama); ?>
                 </a>
               <?php endif; ?>
@@ -160,7 +170,7 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
                   <span class="avg-label"><?= number_format($ratingAvg,1,',','.'); ?></span>/5 ·
                   <span class="count-label"><?= (int)$ratingCount; ?></span> ulasan
                 </div>
-                <span class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i> Beri rating</span>
+                <span class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i>Beri rating</span>
               </div>
 
               <!-- harga -->
@@ -210,12 +220,19 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
                   <span ><i class="mdi mdi-arrow-left"></i></span>
                   <span class="btn-text">Kembali</span>
                 </a>
- -->
-                <button type="button" class="btn btn-block btn-danger my-1" id="btn-add-cart-detail" <?= $stok <= 0 ? 'disabled' : ''; ?>>
-                  <span ><i class="mdi mdi-cart"></i>+ Keranjang</span>
-                  <span class="btn-text">Keranjang</span>
-                </button>
+              -->
+              <button type="button"
+              class="btn btn-block btn-danger my-1"
+              id="btn-add-cart-detail"
+              data-loading-label="Menambahkan…"
+              <?= $stok <= 0 ? 'disabled' : ''; ?>>
+              <span class="spinner-border d-none" aria-hidden="true"></span>
+              <i class="mdi mdi-cart mr-1 icon-default" aria-hidden="true"></i>+ Keranjang
+              <span class="btn-text">+ Keranjang</span>
+            </button>
+
               </div>
+
 
               <!-- Ulasan -->
               <h5 id="ulasan" class="mt-3 mb-2">Ulasan</h5>
@@ -813,5 +830,49 @@ fetch(REV_URL, {
   // batch pertama
   loadMore();
   moreBtn && moreBtn.addEventListener('click', loadMore);
+})();
+</script>
+<script>
+(function(){
+  var btn = document.getElementById('btn-add-cart-detail');
+  if(!btn) return;
+
+  function setBtnLoading(on){
+    var sp  = btn.querySelector('.spinner-border');
+    var txt = btn.querySelector('.btn-text');
+    if(on){
+      if(btn.hasAttribute('disabled')) return; // sudah nonaktif
+      btn.classList.add('is-loading','disabled');
+      btn.setAttribute('aria-disabled','true');
+      sp.classList.remove('d-none');
+      if(!btn.dataset.originalText){ btn.dataset.originalText = txt ? (txt.textContent||'').trim() : ''; }
+      if(txt) txt.textContent = btn.dataset.loadingLabel || 'Menambahkan…';
+    }else{
+      btn.classList.remove('is-loading','disabled');
+      btn.removeAttribute('aria-disabled');
+      sp.classList.add('d-none');
+      if(txt && btn.dataset.originalText){ txt.textContent = btn.dataset.originalText; }
+    }
+  }
+  // Ekspos bila ingin dipanggil dari AJAX-mu:
+  window.setCartDetailLoading = setBtnLoading;
+
+  // Klik: tampilkan loading; matikan sendiri dari AJAX-mu ketika selesai
+  btn.addEventListener('click', function(){
+    if (btn.hasAttribute('disabled') || btn.classList.contains('disabled')) return;
+    setBtnLoading(true);
+
+    // --- Integrasikan di kode add-to-cart kamu ---
+    // Contoh pola umum:
+    // postJSON('<?= site_url('cart/add') ?>', {id: PRODUCT_ID, qty: 1})
+    //   .then(function(res){ /* sukses */ })
+    //   .catch(function(){ /* gagal */ })
+    //   .finally(function(){ setBtnLoading(false); });
+  });
+
+  // Optional: reset saat modal ditutup
+  if (window.jQuery){
+    $('#modalProduk').on('hidden.bs.modal', function(){ setBtnLoading(false); });
+  }
 })();
 </script>
