@@ -72,7 +72,7 @@
 
   /* ============ Wrapper header ============ */
   #topnav{
-   z-index:5000;
+   z-index:5000000;
     /*color:var(--hdr-text);*/
     /*background:linear-gradient(155deg,var(--hdr-bg1),var(--hdr-bg2));*/
     /*box-shadow:var(--hdr-shadow);*/
