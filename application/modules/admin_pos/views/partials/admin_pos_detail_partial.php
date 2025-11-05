@@ -66,7 +66,7 @@ foreach ($tokens as $t) {
     if (preg_match('/^(cash)$/', $t)) { $hasCash = true; break; }
 }
 
-$canAssignKurir = ($is_delivery && $status === 'pending' && $status === 'verifikasi' && $hasCash && !$hasKurir);
+$canAssignKurir = ($is_delivery && $status === 'verifikasi' && $hasCash && !$hasKurir);
 
 // daftar kurir dari controller (boleh kosong)
 $kurirs = $kurirs ?? [];
