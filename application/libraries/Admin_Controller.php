@@ -42,6 +42,7 @@ class Admin_Controller extends MX_Controller {
     public function render($data){
         // Tetap panggil validasi internal Anda (boleh jadi redundant, aman)
         $this->om->validasiOnLogin();
+        $data["force_landscape"] = true;
         $this->load->view('backend/admin_template', $data);
     }
 

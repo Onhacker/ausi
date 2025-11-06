@@ -5,6 +5,17 @@ $web = $this->om->web_me();
 $us = $this->om->user();
 
 ?>
+<?php
+  // Opsi A (disarankan): pass dari controller
+  $force_landscape = isset($force_landscape) ? (bool)$force_landscape : false;
+
+  // Opsi B (otomatis via prefix url): aktifkan jika tak mau pass dari controller
+  if (!isset($force_landscape)) {
+    $seg1 = $this->uri->segment(1); // admin_pos, admin_billiard, dst.
+    $force_landscape = (strpos((string)$seg1, 'admin_') === 0);
+  }
+?>
+<body class="<?= $force_landscape ? 'force-landscape' : '' ?>">
 <head>
     <meta charset="utf-8" />
     <title><?php echo $subtitle ?></title>
