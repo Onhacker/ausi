@@ -602,7 +602,7 @@ ease; */
   font-size:11px;
   font-weight:600;
   line-height:1.2;
-  margin-top:2px;
+  margin-top:8px;
 }
 
 </style>
@@ -636,17 +636,17 @@ ease; */
   #quickmobilem .quicksection{ display:block; width:100%; margin:-8px 0 18px; }
   #quickmobilem .quicksection + .quicksection{
     border-top:1px dashed rgba(0,0,0,.08);
-    padding-top:12px;
+    padding-top:8px;
   }
 
   #quickmobilem .section-icon{ font-size:1.1rem; }
 
   /* Grid 4 kolom (selalu 4) */
   #quickmobilem .quicksection-items{
-    display:flex; flex-wrap:wrap; margin:-8px;   /* gutters */
+    display:flex; flex-wrap:wrap; margin:-8px;  
   }
   #quickmobilem .quicksection-items .quickmobilem-item{
-    padding:1px; box-sizing:border-box;
+    padding:8px; box-sizing:border-box;
     flex:0 0 25% !important;
     max-width:25% !important;
     width:25% !important;
@@ -659,7 +659,7 @@ ease; */
 #quickmobilem .quicksection-title{
   display:flex; align-items:center; gap:.5rem;
   font-weight:800; font-size:1.05rem; margin:0px 2px 12px;
-  justify-content:center;     /* ⬅️ judul ke tengah */
+  justify-content:left;     /* ⬅️ judul ke tengah */
   text-align:center;
 }
 #quickmobilem .section-icon{ font-size:1.1rem; }
@@ -822,16 +822,73 @@ ease; */
 <!-- ===== /QUICK MENU ===== -->
 
 
-          <div class="sheet-close-wrap text-center">
-            <button type="button"
-                id="btnSlideDownClose"
-                class="btn btn-sheet-close"
-                data-dismiss="modal"
-                aria-label="Tutup menu">
-              <i class="fas fa-chevron-down" aria-hidden="true"></i>
-            </button>
-          </div>
+          <div class="sheet-footer">
+  <div class="sheet-grab" aria-hidden="true"></div>
 
+  <button type="button"
+          id="btnSlideDownClose"
+          class="sheet-close-btn"
+          data-dismiss="modal"
+          aria-label="Tutup">
+    <i class="mdi mdi-chevron-down"></i><span>Tutup</span>
+  </button>
+
+  <div class="sheet-credit">Developed by <strong>Onhacker</strong></div>
+</div>
+<style type="text/css">
+  .sheet-footer{
+  position: sticky; bottom: 0; z-index: 1;
+  /*padding: 10px 16px calc(12px + env(safe-area-inset-bottom));*/
+  background: rgba(255,255,255,.75);
+  backdrop-filter: saturate(160%) blur(8px);
+  -webkit-backdrop-filter: saturate(160%) blur(8px);
+  border-top: 1px solid rgba(2,6,23,.06);
+  text-align: center;
+}
+.sheet-grab{
+  width: 56px; height: 5px; border-radius: 999px;
+  margin: 2px auto 10px;
+  background: rgba(2,6,23,.15);
+}
+.sheet-close-btn{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(2,6,23,.08);
+  background: linear-gradient(180deg,#fff,#f6f7fb);
+  color: #0f172a; font-weight: 700;
+  box-shadow: 0 8px 20px rgba(2,6,23,.08), 0 1px 0 rgba(255,255,255,.7) inset;
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.sheet-close-btn i{ font-size: 18px; line-height: 1; }
+.sheet-close-btn:hover{ transform: translateY(1px); box-shadow: 0 6px 16px rgba(2,6,23,.14), 0 1px 0 rgba(255,255,255,.6) inset; }
+.sheet-close-btn:active{ transform: translateY(2px) scale(.98); }
+.sheet-close-btn:focus{ outline: none; box-shadow: 0 0 0 4px rgba(37,99,235,.18), 0 8px 20px rgba(2,6,23,.1); }
+
+.sheet-credit{
+  margin-top: 8px; font-size: .82rem; color: #64748b; letter-spacing: .01em;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark){
+  .sheet-footer{
+    /*background: rgba(17,24,39,.75);*/
+    border-top-color: rgba(255,255,255,.06);
+  }
+  .sheet-grab{ background: rgba(255,255,255,.18); }
+  .sheet-close-btn{
+    background: linear-gradient(180deg,#1f2937,#111827);
+    color: #e5e7eb; border-color: rgba(255,255,255,.08);
+    box-shadow: 0 10px 24px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.06) inset;
+  }
+  .sheet-close-btn:focus{ box-shadow: 0 0 0 4px rgba(96,165,250,.25), 0 10px 24px rgba(0,0,0,.45); }
+  .sheet-credit{ color:#9ca3af; }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce){
+  .sheet-close-btn{ transition: none; }
+}
+
+</style>
         </div><!-- /.menu-list -->
       </div><!-- /.modal-body -->
     </div><!-- /.modal-content -->

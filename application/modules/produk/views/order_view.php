@@ -154,7 +154,7 @@
                   <i class="mdi mdi-account" aria-hidden="true"></i>
                 </span>
               </div>
-              <input type="text" class="form-control" name="nama" placeholder="Nama Wajib" autocomplete="off" required aria-describedby="nama-addon">
+              <input type="text" class="form-control" name="nama" placeholder="Nama Wajib" autocomplete="on" required aria-describedby="nama-addon">
             </div>
           </div>
           <div class="form-group col-md-6">
@@ -212,7 +212,7 @@
     <span class="help-icon pretty"
           data-toggle="tooltip"
           data-placement="right"
-          title="Jika diisi, kami kirim struk & info promo menarik ke email ini.">?</span>
+          title="Jika diisi, kami info promo menarik ke email ini.">?</span>
   </label>
   <input type="email"
          class="form-control"
