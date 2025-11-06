@@ -60,6 +60,16 @@
   if(!$("#recommended").length){
     $("<input>",{type:"hidden",id:"recommended",name:"recommended",value:"0"}).appendTo("#filter-form");
   }
+  if(!$("#trend").length){
+    $("<input>",{type:"hidden",id:"trend",name:"trend",value:""}).appendTo("#filter-form");
+  }
+  if(!$("#trend_days").length){
+    $("<input>",{type:"hidden",id:"trend_days",name:"trend_days",value:""}).appendTo("#filter-form");
+  }
+  if(!$("#trend_min").length){
+    $("<input>",{type:"hidden",id:"trend_min",name:"trend_min",value:""}).appendTo("#filter-form");
+  }
+
 
   let $subWrap=$("#subcat-wrap");
   if(!$subWrap.length){
@@ -145,21 +155,6 @@
     }else{alert((title?title+": ":"")+(text||""));}
   }
   // baru: tandai #grandong di URL TANPA scroll
-function scrollToGrid(){
-  const url = new URL(window.location.href);
-  if (url.hash !== '#grandong') {
-    url.hash = 'grandong';
-    history.replaceState(history.state, "", url.toString()); // update hash tanpa gerakin layar
-  }
-  // opsional: kasih fokus tanpa scroll (diamankan untuk Safari lawas)
-  const el = document.getElementById("grandong");
-  if (el) {
-    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex","-1");
-    const x = window.scrollX, y = window.scrollY;
-    try { el.focus({preventScroll:true}); } 
-    catch(e){ el.focus(); window.scrollTo(x,y); }
-  }
-}
 
 function scrollToGrid(){
   const url = new URL(window.location.href);
@@ -212,23 +207,30 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     }).first();
   }
 
-  function serializeFilters(page=1){
-    const q=$("#q").val()||"";
-    const kategori=$("#kategori").val()||"";
-    const sub_kategori=$("#sub_kategori").val()||"";
-    const sort=$("#sort").val()||"random";
-    const recommended=isRecOn()?1:0;
-    const per_page=12;
+ function serializeFilters(page=1){
+  const q=$("#q").val()||"";
+  const kategori=$("#kategori").val()||"";
+  const sub_kategori=$("#sub_kategori").val()||"";
+  const sort=$("#sort").val()||"random";
+  const recommended=isRecOn()?1:0;
+  const per_page=12;
 
-    const url=new URL(window.location.href);
-    let seed=url.searchParams.get("seed");
-    if(!seed&&sort==="random"){
-      seed=String(Math.random()*1e9|0);
-      url.searchParams.set("seed",seed);
-      history.replaceState({},"",url.toString());
-    }
-    return{q,kategori,sub_kategori,sort,page,per_page,seed,recommended};
+  // trending
+  const trend=$("#trend").val()||"";
+  const trend_days=$("#trend_days").val()||"";
+  const trend_min=$("#trend_min").val()||"";
+
+  // seed utk random
+  const url=new URL(window.location.href);
+  let seed=url.searchParams.get("seed");
+  if(!seed&&sort==="random"){
+    seed=String(Math.random()*1e9|0);
+    url.searchParams.set("seed",seed);
+    history.replaceState({},"",url.toString());
   }
+  return{q,kategori,sub_kategori,sort,page,per_page,seed,recommended,trend,trend_days,trend_min};
+}
+
 
   function loadProducts(page=1,pushUrl=true){
     loading(true);
@@ -243,17 +245,25 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
       $grid.html(r.items_html);
       $pagi.html(r.pagination_html);
 
-      if(pushUrl){
-        const url=new URL(window.location.href);
-        url.searchParams.set("q",params.q);
-        url.searchParams.set("kategori",params.kategori);
-        url.searchParams.set("sub",params.sub_kategori);
-        url.searchParams.set("sort",params.sort);
-        url.searchParams.set("page",r.page);
-        url.searchParams.set("seed",params.seed);
-        if(params.recommended){ url.searchParams.set("rec","1"); } else { url.searchParams.delete("rec"); }
-        history.pushState(params,"",url.toString());
-      }
+  if(pushUrl){
+  const url=new URL(window.location.href);
+  url.searchParams.set("q",params.q);
+  url.searchParams.set("kategori",params.kategori);
+  url.searchParams.set("sub",params.sub_kategori);
+  url.searchParams.set("sort",params.sort);
+  url.searchParams.set("page",r.page);
+  url.searchParams.set("seed",params.seed);
+  if(params.recommended){ url.searchParams.set("rec","1"); } else { url.searchParams.delete("rec"); }
+
+  // ⬇️ taruh di sini
+  if(params.trend){ url.searchParams.set("trend", params.trend); } else { url.searchParams.delete("trend"); }
+  if(params.trend_days){ url.searchParams.set("trend_days", params.trend_days); } else { url.searchParams.delete("trend_days"); }
+  if(params.trend_min){ url.searchParams.set("trend_min", params.trend_min); } else { url.searchParams.delete("trend_min"); }
+
+  history.pushState(params,"",url.toString());
+}
+
+
 
       bindAddToCart();
       bindPagination();
@@ -317,9 +327,19 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
   }
 
   function setSortLabel(val){
-    const map={random:"For You","new":"Terbaru",bestseller:"Terlaris",price_low:"Harga Rendah",price_high:"Harga Tinggi",sold_out:"Habis"};
-    $("#sortBtnLabel").text(map[val]||"Urutkan");
+  const map={random:"For You","new":"Terbaru",bestseller:"Terlaris",price_low:"Harga Rendah",price_high:"Harga Tinggi",sold_out:"Habis",trending:"Trending"};
+  let txt=map[val]||"Urutkan";
+
+  if(val==="trending"){
+    const t=($("#trend").val()||"").toLowerCase();
+    const d=parseInt($("#trend_days").val()||"0",10);
+    if(t==="today"||d===1) txt="Trending (Hari ini)";
+    else if(t==="week"||d===7) txt="Trending (7 hari)";
+    else if(t==="month"||d===30) txt="Trending (30 hari)";
   }
+  $("#sortBtnLabel").text(txt);
+}
+
 
   function markActiveKategori(){
   const rec = ($("#recommended").val() === "1");
@@ -405,6 +425,10 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     $("#sub_kategori").val("");
     $("#recommended").val("0"); // RESET rec
     $("#sort").val("random");
+    $("#trend").val("");
+    $("#trend_days").val("");
+    $("#trend_min").val("");
+
     setSortLabel("random");
     markActiveKategori();
 
@@ -418,18 +442,35 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     loadProducts(1);
   });
 
-  $(document).on("click",".sort-opt",function(e){
-    e.preventDefault();
-    const val=$(this).data("sort");
-    $("#sort").val(val);
-    setSortLabel(val);
-    if(val==="random"){
-      const url=new URL(window.location.href);
-      url.searchParams.delete("seed");
-      history.replaceState({},"",url.toString());
-    }
-    loadProducts(1);
-  });
+ $(document).on("click",".sort-opt",function(e){
+  e.preventDefault();
+  const val=$(this).data("sort");
+  $("#sort").val(val);
+
+  // default: kosongkan trend
+  $("#trend").val("");
+  $("#trend_days").val("");
+  $("#trend_min").val("");
+
+  // kalau trending, set preset dari data-trend
+  if(val==="trending"){
+    const preset=String($(this).data("trend")||"week"); // default 7 hari
+    $("#trend").val(preset);
+    if(preset==="today"){ $("#trend_days").val("1"); }
+    else if(preset==="week"){ $("#trend_days").val("7"); }
+    else if(preset==="month"){ $("#trend_days").val("30"); }
+    $("#trend_min").val("1.0"); // default skor minimal
+  }
+
+  setSortLabel(val);
+  if(val==="random"){
+    const url=new URL(window.location.href);
+    url.searchParams.delete("seed");
+    history.replaceState({},"",url.toString());
+  }
+  loadProducts(1);
+});
+
 
   /* === Quickmenu click: dukung Recomended === */
   $("#quickmenu").on("click",".quickmenu-item",function(e){
@@ -441,13 +482,21 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
                      ($(this).find('.menu-label').text().trim().toLowerCase()==='recomended');
 
     if(isRecBtn){
-      setRec(true);           // aktifkan rec
-      markActiveKategori();   // highlight rec item
-      hideSubcats();          // subkategori disembunyikan saat rec
-      loadProducts(1);
-      scrollToGrid();
-      return;
-    }
+  setRec(true);
+  // preset trending biar label & URL konsisten
+  $("#sort").val("trending");
+  $("#trend").val("week");        // pilih: today/week/month
+  $("#trend_days").val("7");
+  $("#trend_min").val("1.0");
+  setSortLabel("trending");
+
+  markActiveKategori();
+  hideSubcats();
+  loadProducts(1);
+  scrollToGrid();
+  return;
+}
+
 
     // kategori biasa → matikan rec
     setRec(false);
@@ -570,6 +619,9 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     if(url.searchParams.has("kategori")) $("#kategori").val(url.searchParams.get("kategori"));
     if(url.searchParams.has("sub")) $("#sub_kategori").val(url.searchParams.get("sub"));
     if(url.searchParams.has("sort"))$("#sort").val(url.searchParams.get("sort"));
+    if(url.searchParams.has("trend"))      $("#trend").val(url.searchParams.get("trend"));
+    if(url.searchParams.has("trend_days")) $("#trend_days").val(url.searchParams.get("trend_days"));
+    if(url.searchParams.has("trend_min"))  $("#trend_min").val(url.searchParams.get("trend_min"));
 
     // RECOMMENDED from URL (?rec=1 / ?recommended=1)
     if(url.searchParams.get("rec")==="1" || url.searchParams.get("recommended")==="1"){
@@ -579,6 +631,7 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     }
 
     setSortLabel($("#sort").val()||"random");
+
     markActiveKategori();
 
     const katInit=$("#kategori").val();
@@ -638,6 +691,10 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     $("#sub_kategori").val(s.sub_kategori||"");
     $("#sort").val(s.sort||"random");
     $("#recommended").val(s.recommended? "1":"0");
+    $("#trend").val(s.trend||"");
+    $("#trend_days").val(s.trend_days||"");
+    $("#trend_min").val(s.trend_min||"");
+
     setSortLabel($("#sort").val());
     markActiveKategori();
 

@@ -44,42 +44,48 @@
       })();
     </script>
   </div>
+
+
 <?php else: ?>
 
-
   <?php
-    $BESTSELLER_MIN = 1;
-    $NEW_DAYS       = 3;
+    // ==== PARAM DISPLAY ====
+    $BESTSELLER_MIN = 10;   // batas lifetime "Terlaris"
+    $TRENDING_MIN   = 3.0;  // batas skor "Hot" (terlaris_score)
+    $NEW_DAYS       = 3;    // hari dianggap "Terbaru"
     $nowTs          = time();
   ?>
 
   <?php foreach ($products as $p):
+    // --- dasar produk ---
     $img     = $p->gambar ? (strpos($p->gambar,'http')===0 ? $p->gambar : base_url($p->gambar)) : base_url('assets/images/products/no-image.png');
     $stok    = (int)($p->stok ?? 0);
     $slug    = $p->link_seo;
     $soldout = ($stok === 0);
 
-    $soldAll   = isset($p->sold_all)   ? (int)$p->sold_all   : null;
-    $sold30    = isset($p->sold)       ? (int)$p->sold       : null;
-    $soldMonth = isset($p->sold_month) ? (int)$p->sold_month : null;
+    // --- terjual & trending dari tabel produk langsung ---
+    $basisLaris   = (int)($p->terlaris ?? 0);                // lifetime counter
+    $trendingScore= (float)($p->terlaris_score ?? 0.0);      // skor trending (decay)
+    $isBestseller = ($basisLaris >= $BESTSELLER_MIN);
+    $isTrending   = ($trendingScore >= $TRENDING_MIN);
 
+    // --- "Terbaru" ---
     $createdAt = !empty($p->created_at) ? strtotime($p->created_at) : null;
     $isNew     = $createdAt ? (($nowTs - $createdAt) <= ($NEW_DAYS * 86400)) : false;
 
-    $basisLaris = ($soldAll !== null) ? $soldAll : (($soldMonth !== null) ? $soldMonth : (($sold30 !== null) ? $sold30 : null));
-    $isHot      = ($basisLaris !== null && $basisLaris >= $BESTSELLER_MIN);
-
+    // --- tentukan ribbon ---
     $ribbon = null;
     if (!$soldout) {
-      if ($isHot)       $ribbon = ['class'=>'hot', 'text'=>'Terlaris'];
-      elseif ($isNew)   $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
+      if ($isBestseller)      $ribbon = ['class'=>'hot',     'text'=>'Terlaris'];
+      elseif ($isTrending)    $ribbon = ['class'=>'hot',     'text'=>'Hot'];
+      elseif ($isNew)         $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
     }
 
-    $ratingAvg   = isset($p->rating_avg)   ? (float)$p->rating_avg   : null;
-    $ratingCount = isset($p->rating_count) ? (int)$p->rating_count   : 0;
-    $rating      = ($ratingAvg !== null) ? max(0,min(5,$ratingAvg)) : null;
+    // --- rating ---
+    $ratingAvg     = isset($p->rating_avg)   ? (float)$p->rating_avg   : null;
+    $ratingCount   = isset($p->rating_count) ? (int)$p->rating_count   : 0;
+    $rating        = ($ratingAvg !== null) ? max(0,min(5,$ratingAvg)) : null;
     $ratingRounded = ($rating !== null) ? (round($rating * 2) / 2) : null;
-
     $full = $half = $empty = 0;
     if ($ratingRounded !== null) {
       $full  = (int)floor($ratingRounded);
@@ -91,7 +97,7 @@
       <div class="card-box product-box">
         <div class="product-img-bg">
           <a href="javascript:void(0)" class="btn-detail d-block" data-slug="<?= html_escape($slug); ?>">
-            <img src="<?= $img; ?>" alt="<?= html_escape($p->nama); ?>" class="img-fluid">
+            <img src="<?= $img; ?>" alt="<?= html_escape($p->nama); ?>" class="img-fluid" loading="lazy" decoding="async">
           </a>
 
           <?php if ($soldout): ?>
@@ -112,12 +118,12 @@
             </a>
           </h5>
 
-          <!-- AREA RATING (klik bintang atau teks "Beri rating") -->
+          <!-- AREA RATING -->
           <div class="d-flex align-items-center"
                data-rate-box
                data-id="<?= (int)$p->id; ?>"
                data-name="<?= html_escape($p->nama); ?>">
-            <div class="star-meter" aria-label="Rating: <?= $rating ? number_format($rating,1,',','.') : '0.0'; ?>/5">
+            <div class="star-meter" aria-label="Rating: <?= $rating !== null ? number_format($rating,1,',','.') : '0.0'; ?>/5">
               <?php if ($ratingRounded !== null): ?>
                 <?php for ($i=0; $i<$full; $i++): ?><i class="mdi mdi-star full"></i><?php endfor; ?>
                 <?php if ($half): ?><i class="mdi mdi-star-half-full full"></i><?php endif; ?>
@@ -130,9 +136,9 @@
           </div>
 
           <div class="sold-label">
-            <?= $rating ? number_format($rating,1,',','.') : '0.0' ?>/5
-            <?= $ratingCount ? ' · '.$ratingCount.' ulasan' : '' ?>
-            <?php if ($basisLaris !== null): ?> · <?= number_format($basisLaris,0,',','.'); ?> terjual<?php endif; ?>
+            <?= $rating !== null ? number_format($rating,1,',','.') : '0.0' ?>/5
+            <?= $ratingCount ? ' · '.$ratingCount.' komen' : '' ?>
+            <?php if ($basisLaris > 0): ?> · <?= number_format($basisLaris,0,',','.'); ?> terjual<?php endif; ?>
           </div>
 
           <style type="text/css">
@@ -171,4 +177,5 @@
     </div>
   <?php endforeach; ?>
 <?php endif; ?>
+
 <?php $this->load->view("partials/form_rating") ?>

@@ -50,148 +50,180 @@ public function get_reviews($produk_id, $limit = 10, $offset = 0){
     }
 
     // ================== helpers ==================
-    private function _base_select(){
+   private function _base_select(){
         $this->db->from('produk p');
         $this->db->select('p.*, kp.nama as kategori_nama, kp.slug as kategori_slug');
         $this->db->join('kategori_produk kp', 'kp.id = p.kategori_id', 'left');
 
-        // JOIN subkategori (asumsi p.sub_kategori_id ADA di tabel produk)
-        // 🔧 FIX: Hapus koma di akhir select agar tidak jadi "..., sub_slug, FROM ..."
+        // Sub-kategori
         $this->db->select('kps.nama as sub_nama, kps.slug as sub_slug');
         $this->db->join('kategori_produk_sub kps', 'kps.id = p.sub_kategori_id', 'left');
+
+        // Map p.terlaris --> alias lama agar view tetap bekerja tanpa ubahan
+        $this->db->select('COALESCE(p.terlaris,0) AS sold_all',  false);
+        $this->db->select('COALESCE(p.terlaris,0) AS sold',      false);
+        $this->db->select('COALESCE(p.terlaris,0) AS sold_month',false);
     }
 
     private function _base_filters($filters){
-        $this->db->from('produk p');
-        $this->db->join('kategori_produk kp', 'kp.id = p.kategori_id', 'left');
-        $this->db->join('kategori_produk_sub kps', 'kps.id = p.sub_kategori_id', 'left');
+    $this->db->from('produk p');
+    $this->db->join('kategori_produk kp', 'kp.id = p.kategori_id', 'left');
+    $this->db->join('kategori_produk_sub kps', 'kps.id = p.sub_kategori_id', 'left');
 
-        $this->db->where('p.is_active', 1);
-        $this->db->where('(kp.is_active IS NULL OR kp.is_active = 1)');
-        $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
+    $this->db->where('p.is_active', 1);
+    $this->db->where('(kp.is_active IS NULL OR kp.is_active = 1)');
+    $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
 
-        if (!empty($filters['q'])){
-            $q = trim($filters['q']);
-            $this->db->group_start()
-                ->like('p.nama', $q)
-                ->or_like('kp.nama', $q)
-                ->or_like('p.kata_kunci', $q)
-            ->group_end();
-        }
-
-        if (!empty($filters['kategori'])){
-            $k = $filters['kategori'];
-            if (ctype_digit((string)$k)) $this->db->where('p.kategori_id', (int)$k);
-            else $this->db->where('kp.slug', $k);
-        }
-
-        if (!empty($filters['sub_kategori'])){
-            $s = $filters['sub_kategori'];
-            if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
-            else $this->db->where('kps.slug', $s);
-        }
-
-        if (!empty($filters['sold_out'])){
-            $this->db->where('p.stok', 0);
-        }
-
-        // NEW: filter Recomended (prefix 'p.' biar nggak ambigu)
-        if (!empty($filters['recomended'])) {
-            $this->db->where('p.recomended', 1);
-        }
+    // Keyword
+    if (!empty($filters['q'])){
+        $q = trim($filters['q']);
+        $this->db->group_start()
+            ->like('p.nama', $q)
+            ->or_like('kp.nama', $q)
+            ->or_like('kps.nama', $q)
+            ->or_like('p.kata_kunci', $q)
+        ->group_end();
     }
+
+    // Recommended
+    $isRec = !empty($filters['recomended']);
+    if ($isRec) {
+        $this->db->where('p.recomended', 1);
+    }
+
+    // Kategori/Sub (skip saat recommended)
+    if (!$isRec && !empty($filters['kategori'])){
+        $k = $filters['kategori'];
+        if (ctype_digit((string)$k)) $this->db->where('p.kategori_id', (int)$k);
+        else $this->db->where('kp.slug', $k);
+    }
+    if (!$isRec && !empty($filters['sub_kategori'])){
+        $s = $filters['sub_kategori'];
+        if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
+        else $this->db->where('kps.slug', $s);
+    }
+
+    if (!empty($filters['sold_out'])){
+        $this->db->where('p.stok', 0);
+    }
+
+    // 🔥 Trending window (tambahkan di base_filters juga!)
+    if (!empty($filters['trending'])) {
+        $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;
+        $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;
+
+        $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+        $this->db->where(
+            '(TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, p.created_at), NOW()) <= '.(int)$days.')',
+            null,
+            false
+        );
+    }
+}
+
 
 
     private function _apply_filters($filters){
-        $this->db->where('p.is_active', 1);
-        $this->db->where('(kp.is_active IS NULL OR kp.is_active = 1)');
-        $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
+    $this->db->where('p.is_active', 1);
+    $this->db->where('(kp.is_active IS NULL OR kp.is_active = 1)');
+    $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
 
-        if (!empty($filters['q'])){
-            $q = trim($filters['q']);
-            $this->db->group_start()
-                ->like('p.nama', $q)
-                ->or_like('kp.nama', $q)
-                ->or_like('p.kata_kunci', $q)
-            ->group_end();
-        }
-
-        if (!empty($filters['kategori'])){
-            $k = $filters['kategori'];
-            if (ctype_digit((string)$k)) $this->db->where('p.kategori_id', (int)$k);
-            else $this->db->where('kp.slug', $k);
-        }
-
-        if (!empty($filters['sub_kategori'])){
-            $s = $filters['sub_kategori'];
-            if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
-            else $this->db->where('kps.slug', $s);
-        }
-
-        if (!empty($filters['sold_out'])){
-            $this->db->where('p.stok', 0);
-        }
-
-        // NEW: filter Recomended (pakai alias tabel)
-        if (!empty($filters['recomended'])) {
-            $this->db->where('p.recomended', 1);
-        }
+    // ===== Keyword =====
+    if (!empty($filters['q'])){
+        $q = trim($filters['q']);
+        $this->db->group_start()
+            ->like('p.nama', $q)
+            ->or_like('kp.nama', $q)
+            ->or_like('kps.nama', $q)      // + subkategori (opsional, tapi membantu)
+            ->or_like('p.kata_kunci', $q)
+        ->group_end();
     }
+
+    // ===== Recommended =====
+    $isRec = !empty($filters['recomended']); // kolom memang "recomended" (1 'm')
+    if ($isRec) {
+        $this->db->where('p.recomended', 1);
+    }
+
+    // ===== Kategori/Sub (di-skip bila recommended aktif) =====
+    if (!$isRec && !empty($filters['kategori'])){
+        $k = $filters['kategori'];
+        if (ctype_digit((string)$k)) $this->db->where('p.kategori_id', (int)$k);
+        else $this->db->where('kp.slug', $k);
+    }
+
+    if (!$isRec && !empty($filters['sub_kategori'])){
+        $s = $filters['sub_kategori'];
+        if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
+        else $this->db->where('kps.slug', $s);
+    }
+
+    // ===== Sold out =====
+    if (!empty($filters['sold_out'])){
+        $this->db->where('p.stok', 0);
+    }
+
+    // ===== Trending window (opsional, aktif jika filters['trending']) =====
+    if (!empty($filters['trending'])) {
+        $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;  // skor min
+        $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;   // jendela hari
+
+        // skor minimal (pakai raw supaya fungsi COALESCE tidak di-backtick)
+        $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+
+        // hanya yang skornya diupdate dalam <= $days hari terakhir
+        $this->db->where(
+            '(TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, p.created_at), NOW()) <= '.(int)$days.')',
+            null,
+            false
+        );
+    }
+}
+
 
 
     private function _apply_sort($sort, $filters = []){
-        // Subquery penjualan SELAMANYA (tanpa batas waktu)
-        $subAll = "
-            SELECT pi.produk_id, SUM(pi.qty) AS sold_all
-            FROM pesanan_item pi
-            JOIN pesanan pe ON pe.id = pi.pesanan_id
-            WHERE pe.status IN ('paid','verifikasi')
-            GROUP BY pi.produk_id
-        ";
+    switch ($sort) {
+        case 'random':
+            // random deterministik berbasis seed
+            $seed = isset($filters['rand_seed']) && $filters['rand_seed'] !== ''
+                ? (string)$filters['rand_seed'] : date('Ymd');
+            $seed_sql = $this->db->escape_str($seed);
 
-        switch ($sort) {
-            case 'random':
-                $seed = isset($filters['rand_seed']) && $filters['rand_seed'] !== ''
-                    ? (string)$filters['rand_seed'] : date('Ymd');
-                $seed_sql = $this->db->escape_str($seed);
-
-                // Urutan acak deterministik + fallback id desc
-                $this->db->order_by("CRC32(CONCAT(p.id,'-{$seed_sql}'))", 'ASC', false);
-                $this->db->order_by('p.id','DESC');
-
-                // Bawa total penjualan selamanya
-                $this->db->select('COALESCE(a.sold_all,0) AS sold_all', false);
-                $this->db->select('COALESCE(a.sold_all,0) AS sold', false);
-                $this->db->select('COALESCE(a.sold_all,0) AS sold_month', false);
-                $this->db->join("($subAll) a", 'a.produk_id = p.id', 'left', false);
-                break;
+            $this->db->order_by("CRC32(CONCAT(p.id,'-{$seed_sql}'))", 'ASC', false);
+            $this->db->order_by('p.id','DESC'); // fallback stabil
+            break;
 
             case 'bestseller':
-                $this->db->select('COALESCE(a.sold_all,0) AS sold_all', false);
-                $this->db->select('COALESCE(a.sold_all,0) AS sold', false);
-                $this->db->select('COALESCE(a.sold_all,0) AS sold_month', false);
-                $this->db->join("($subAll) a", 'a.produk_id = p.id', 'left', false);
+    // Terlaris sepanjang waktu (stabil)
+            $this->db->order_by('p.terlaris','DESC');
+            $this->db->order_by('p.created_at','DESC');
+            $this->db->order_by('p.id','DESC');
+            break;
 
-                $this->db->order_by('sold_all','DESC');
-                $this->db->order_by('p.created_at','DESC');
-                $this->db->order_by('p.id','DESC');
-                break;
+            case 'trending':
+    // Sedang naik daun (dinamis). Fallback ke terlaris bila score 0/null.
+                    $this->db->order_by('COALESCE(p.terlaris_score,0)','DESC', false);
+            $this->db->order_by('p.terlaris','DESC');      // tie-breaker
+            $this->db->order_by('p.created_at','DESC');
+            $this->db->order_by('p.id','DESC');
+            break;
 
-            case 'price_low':
-                $this->db->order_by('p.harga','ASC');  break;
+        case 'price_low':
+            $this->db->order_by('p.harga','ASC');  break;
 
-            case 'price_high':
-                $this->db->order_by('p.harga','DESC'); break;
+        case 'price_high':
+            $this->db->order_by('p.harga','DESC'); break;
 
-            case 'sold_out':
-                $this->db->order_by('p.nama','ASC');   break;
+        case 'sold_out':
+            $this->db->order_by('p.nama','ASC');   break;
 
-            case 'new':
-            default:
-                $this->db->order_by('p.created_at','DESC');
-                $this->db->order_by('p.id','DESC');
-        }
+        case 'new':
+        default:
+            $this->db->order_by('p.created_at','DESC');
+            $this->db->order_by('p.id','DESC');
     }
+}
 
     public function get_order_with_items($id){
         $order = $this->db->get_where('pesanan',['id'=>(int)$id])->row();

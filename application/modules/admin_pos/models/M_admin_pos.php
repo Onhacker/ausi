@@ -411,7 +411,7 @@ class M_admin_pos extends CI_Model {
             $ok = $this->db->where('id', $id)->update('pesanan', $upd);
             if ($ok){
                 $ok_count++;
-
+                $this->_bump_terlaris_for_order($id);
                 // Arsipkan ke *_paid
                 $this->_archive_paid($id);
 
@@ -861,6 +861,40 @@ public function get_order_any($id){
   if ($live) return $live;
   return $this->get_order_with_items_archived($id); // bikin versi baca dari *_paid
 }
+
+
+private function _bump_terlaris_for_order($pesanan_id){
+    $pesanan_id = (int)$pesanan_id;
+
+    // bisa kamu pindah ke config
+    $decay   = 0.97; // ~3% turun per hari
+    $capDays = 90;   // batasi dampak decay max 90 hari (opsional)
+
+    $sql = "
+        UPDATE produk p
+        JOIN (
+          SELECT produk_id, SUM(qty) AS s
+          FROM pesanan_item
+          WHERE pesanan_id = ?
+          GROUP BY produk_id
+          HAVING s > 0
+        ) x ON x.produk_id = p.id
+        SET
+          -- lifetime counter (aman terhadap NULL)
+          p.terlaris = COALESCE(p.terlaris, 0) + x.s,
+
+          -- trending score dengan exponential decay harian
+          p.terlaris_score = (
+            COALESCE(p.terlaris_score, 0) *
+            POW(?, GREATEST(0,
+                LEAST(?, TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, NOW()), NOW()))
+            ))
+          ) + x.s,
+          p.terlaris_score_updated_at = NOW()
+    ";
+    $this->db->query($sql, [$pesanan_id, $decay, $capDays]);
+}
+
 
 
 }

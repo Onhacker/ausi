@@ -50,25 +50,40 @@ if (!empty($kategoris)) {
           </button>
 
           <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownSortBtn">
-            <a class="dropdown-item sort-opt" data-sort="random" href="javascript:void(0)">
-              <i class="fas fa-thumbs-up me-2"></i> For You
-            </a>
-            <a class="dropdown-item sort-opt" data-sort="new" href="javascript:void(0)">
-              <i class="fas fa-clock me-2"></i> Terbaru
-            </a>
-            <a class="dropdown-item sort-opt" data-sort="bestseller" href="javascript:void(0)">
-              <i class="fas fa-star me-2"></i> Terlaris
-            </a>
-            <a class="dropdown-item sort-opt" data-sort="price_low" href="javascript:void(0)">
-              <i class="fas fa-arrow-down me-2"></i> Harga Rendah
-            </a>
-            <a class="dropdown-item sort-opt" data-sort="price_high" href="javascript:void(0)">
-              <i class="fas fa-arrow-up me-2"></i> Harga Tinggi
-            </a>
-            <a class="dropdown-item sort-opt" data-sort="sold_out" href="javascript:void(0)">
-              <i class="fas fa-ban me-2"></i> Habis
-            </a>
-          </div>
+  <a class="dropdown-item sort-opt" data-sort="random" href="javascript:void(0)">
+    <i class="fas fa-thumbs-up me-2"></i> For You
+  </a>
+  <a class="dropdown-item sort-opt" data-sort="new" href="javascript:void(0)">
+    <i class="fas fa-clock me-2"></i> Terbaru
+  </a>
+
+  <!-- ⬇️ Tambahan: Trending -->
+  <div class="dropdown-divider"></div>
+  <a class="dropdown-item sort-opt" data-sort="trending" data-trend="today" href="javascript:void(0)">
+    <i class="fas fa-bolt me-2"></i> Trending • Hari ini
+  </a>
+  <a class="dropdown-item sort-opt" data-sort="trending" data-trend="week" href="javascript:void(0)">
+    <i class="fas fa-bolt me-2"></i> Trending • 7 hari
+  </a>
+  <a class="dropdown-item sort-opt" data-sort="trending" data-trend="month" href="javascript:void(0)">
+    <i class="fas fa-bolt me-2"></i> Trending • 30 hari
+  </a>
+  <div class="dropdown-divider"></div>
+
+  <a class="dropdown-item sort-opt" data-sort="bestseller" href="javascript:void(0)">
+    <i class="fas fa-star me-2"></i> Terlaris
+  </a>
+  <a class="dropdown-item sort-opt" data-sort="price_low" href="javascript:void(0)">
+    <i class="fas fa-arrow-down me-2"></i> Harga Rendah
+  </a>
+  <a class="dropdown-item sort-opt" data-sort="price_high" href="javascript:void(0)">
+    <i class="fas fa-arrow-up me-2"></i> Harga Tinggi
+  </a>
+  <a class="dropdown-item sort-opt" data-sort="sold_out" href="javascript:void(0)">
+    <i class="fas fa-ban me-2"></i> Habis
+  </a>
+</div>
+
         </div>
       </div>
     </div>
