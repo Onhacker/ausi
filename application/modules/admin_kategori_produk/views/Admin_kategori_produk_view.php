@@ -12,7 +12,7 @@
 </style>
 <div class="container-fluid">
   <div class="row">
-    <div class="col-12">
+    <!-- <div class="col-12">
       <div class="page-title-box">
         <div class="page-title-right">
           <ol class="breadcrumb m-0">
@@ -21,11 +21,12 @@
         </div>
         <h4 class="page-title"><?= $subtitle; ?></h4>
       </div>
-    </div>
+    </div> -->
   </div>
 
   <div class="row"><div class="col-12">
     <div class="card"><div class="card-body">
+       <h4 class="header-title"><?= $subtitle; ?></h4>
 
   <!--    <ul class="nav nav-tabs mb-3" role="tablist">
   <li class="nav-item">

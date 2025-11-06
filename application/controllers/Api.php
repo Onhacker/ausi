@@ -365,6 +365,13 @@ public function get_menu_mobile()
             'icon'    => 'mdi mdi-table-chair',
             'require' => ['admin_meja'],
         ],
+        [
+            'id'      => 'admin_meja_billiard',
+            'label'   => 'Meja Billiard',
+            'url'     => site_url('admin_meja_billiard'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['admin_meja_billiard'],
+        ],
     ];
 
     // Filter berdasarkan hak akses aktual user

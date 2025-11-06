@@ -1,7 +1,7 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <div class="row"><div class="col-12">
+  <!-- <div class="row"><div class="col-12">
     <div class="page-title-box">
       <div class="page-title-right">
         <ol class="breadcrumb m-0">
@@ -10,27 +10,41 @@
       </div>
       <h4 class="page-title"><?= $title; ?></h4>
     </div>
-  </div></div>
-<div class="mb-2 d-flex align-items-center button-list flex-wrap justify-content-start">
-  <a href="<?= site_url('billiard') ?>" class="btn btn-blue btn-sm mr-2">
-    <span class="btn-label"><i class="fe-plus-circle"></i></span>Booking
-  </a>
-  <button type="button" onclick="reload_billiard_table('user')" class="btn btn-warning btn-sm mr-2">
-    <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-  </button>
-  <select id="filter-status" class="form-control form-control-sm" style="width:240px">
-    <option value="all" selected>Semua status</option>
-    <option value="draft">Draft</option>
-    <option value="menunggu_bayar">Menunggu Bayar</option>
-    <option value="verifikasi">Verifikasi</option>
-    <option value="terkonfirmasi">Terkonfirmasi</option>
-    <option value="batal">Batal</option>
-    <option value="free">Free</option>
-  </select>
-</div>
+  </div></div> -->
+
 
 
   <div class="card"><div class="card-body">
+    <h4 class="header-title">POS Billiard</h4>
+    <!-- Toolbar -->
+          <div class="row mb-2">
+            <div class="col-12">
+              <form class="form-inline">
+                <!-- Refresh -->
+             <a href="<?= site_url('billiard') ?>" class="btn btn-blue btn-sm mb-2 mr-2">
+              <span class="btn-label"><i class="fe-plus-circle"></i></span>Booking
+            </a>
+            <button type="button" onclick="reload_billiard_table('user')" class="btn btn-warning mb-2 btn-sm mr-2">
+              <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
+            </button>
+                  <!-- Filter status (custom-select bawaan template) -->
+                  <div class="form-group mb-2 mr-2">
+                    <label for="filter-status" class="sr-only">Status</label>
+                    <select id="filter-status" class="form-control form-control-sm" style="width:240px">
+                      <option value="all" selected>Semua status</option>
+                      <option value="draft">Draft</option>
+                      <option value="menunggu_bayar">Menunggu Bayar</option>
+                      <option value="verifikasi">Verifikasi</option>
+                      <option value="terkonfirmasi">Terkonfirmasi</option>
+                      <option value="batal">Batal</option>
+                      <option value="free">Free</option>
+                    </select>
+                  </div>
+           
+              </form>
+            </div>
+          </div>
+          <!-- /Toolbar -->
     <table id="table_billiard" class="table table-striped table-bordered w-100">
       <thead>
         <tr>

@@ -2,7 +2,7 @@
 
 <div class="container-fluid">
   <div class="row">
-    <div class="col-12">
+  <!--   <div class="col-12">
       <div class="page-title-box">
         <div class="page-title-right">
           <ol class="breadcrumb m-0">
@@ -11,7 +11,7 @@
         </div>
         <h4 class="page-title"><?= $subtitle; ?></h4>
       </div>
-    </div>
+    </div> -->
   </div>
 
   <!-- Bar tombol -->
@@ -19,9 +19,10 @@
     <div class="col-12">
       <div class="card">
         <div class="card-body">
+          <h4 class="header-title"><?= $subtitle; ?></h4>
 
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <div class="button-list">
+            <div class="button-list mb-1">
               <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fe-plus-circle"></i></span>Tambah
               </button>

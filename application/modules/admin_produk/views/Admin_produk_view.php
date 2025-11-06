@@ -3,7 +3,7 @@
 
 <div class="container-fluid">
   <div class="row">
-    <div class="col-12">
+   <!--  <div class="col-12">
       <div class="page-title-box">
         <div class="page-title-right">
           <ol class="breadcrumb m-0">
@@ -12,52 +12,55 @@
         </div>
         <h4 class="page-title"><?= $subtitle; ?></h4>
       </div>
-    </div>
+    </div> -->
   </div>
 
   <div class="row"><div class="col-12">
     <div class="card"><div class="card-body">
+       <h4 class="header-title"><?= $subtitle; ?></h4>
 
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <div class="button-list">
-          <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light">
-            <span class="btn-label"><i class="fe-plus-circle"></i></span>Tambah
-          </button>
+    <div class="d-flex align-items-center flex-column flex-md-row mb-2">
+  <!-- Kiri: tombol-tombol -->
+  <div class="button-list d-flex flex-wrap">
+    <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
+      <span class="btn-label"><i class="fe-plus-circle"></i></span>Tambah
+    </button>
 
-          <!-- Jika sebelumnya sudah ditambah -->
-          <button type="button" onclick="set_andalan()" class="btn btn-warning btn-rounded btn-sm waves-effect waves-light">
-            <span class="btn-label"><i class="fe-star"></i></span>Set Andalan
-          </button>
+    <button type="button" onclick="set_andalan()" class="btn btn-warning btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
+      <span class="btn-label"><i class="fe-star"></i></span>Set Andalan
+    </button>
 
-          <button type="button" onclick="reload_table()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
-            <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-          </button>
-          <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
-            <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
-          </button>
-        </div>
+    <button type="button" onclick="reload_table()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
+      <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
+    </button>
 
-        <!-- Filter Kategori: kanan -->
-        <div class="ml-auto" style="min-width:280px; max-width:420px;">
-          <div class="input-group input-group-sm">
-            <div class="input-group-prepend">
-              <span class="input-group-text"><i class="fe-layers"></i></span>
-            </div>
-            <select id="filter_kategori" class="form-control">
-              <option value="">— Semua Kategori —</option>
-              <?php
-              $kats_filter = $this->db->order_by('nama','asc')->get('kategori_produk')->result();
-              foreach($kats_filter as $kf){
-                echo '<option value="'.(int)$kf->id.'">'.htmlspecialchars($kf->nama, ENT_QUOTES, 'UTF-8').'</option>';
-              }
-              ?>
-            </select>
-            <div class="input-group-append">
-              <button class="btn btn-outline-secondary" type="button" id="btn-clear-kat" title="Reset">×</button>
-            </div>
-          </div>
-        </div>
+    <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
+      <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
+    </button>
+  </div>
+
+  <!-- Kanan: filter kategori (di desktop terdorong ke kanan; di mobile turun & full width) -->
+  <div class="ml-md-auto mt-2 mt-md-0" style="min-width:280px; max-width:420px; width:100%;">
+    <div class="input-group input-group-sm">
+      <div class="input-group-prepend">
+        <span class="input-group-text"><i class="fe-layers"></i></span>
       </div>
+      <select id="filter_kategori" class="form-control">
+        <option value="">— Semua Kategori —</option>
+        <?php
+          $kats_filter = $this->db->order_by('nama','asc')->get('kategori_produk')->result();
+          foreach($kats_filter as $kf){
+            echo '<option value="'.(int)$kf->id.'">'.htmlspecialchars($kf->nama, ENT_QUOTES, 'UTF-8').'</option>';
+          }
+        ?>
+      </select>
+      <div class="input-group-append">
+        <button class="btn btn-outline-secondary" type="button" id="btn-clear-kat" title="Reset">&times;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
       <table id="datable_1" class="table table-striped table-bordered w-100">

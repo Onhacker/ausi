@@ -1,7 +1,8 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <div class="row"><div class="col-12">
+ <!--  <div class="row">
+    <div class="col-12">
     <div class="page-title-box">
       <div class="page-title-right">
         <ol class="breadcrumb m-0">
@@ -10,21 +11,23 @@
       </div>
       <h4 class="page-title"><?= $title; ?></h4>
     </div>
-  </div></div>
-
+  </div>
+</div> -->
+ <div class="card"><div class="card-body">
+   <h4 class="header-title"><?= $subtitle; ?></h4>
   <div class="mb-2 d-flex align-items-center flex-wrap">
-    <button type="button" class="btn btn-blue btn-sm mr-2" onclick="open_form()">
+    <button type="button" class="btn btn-blue btn-sm mb-2 mr-2" onclick="open_form()">
       <span class="btn-label"><i class="fe-plus-circle"></i></span>Tambah
     </button>
 
-    <button type="button" onclick="reload_pengeluaran('user')" class="btn btn-warning btn-sm mr-2">
+    <button type="button" onclick="reload_pengeluaran('user')" class="btn btn-warning btn-sm mb-2 mr-2">
       <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
     </button>
 
-    <input type="date" id="filter-from" class="form-control form-control-sm mr-2" style="width:160px">
-    <input type="date" id="filter-to"   class="form-control form-control-sm mr-2" style="width:160px">
+    <input type="date" id="filter-from" class="form-control form-control-sm mb-2 mr-2" style="width:160px">
+    <input type="date" id="filter-to"   class="form-control form-control-sm mb-2 mr-2" style="width:160px">
 
-    <select id="filter-kategori" class="form-control form-control-sm mr-2" style="width:180px">
+    <select id="filter-kategori" class="form-control form-control-sm mr-2 mb-2" style="width:180px">
       <option value="all" selected>Semua Kategori</option>
       <option value="Umum">Umum</option>
       <option value="Bahan Baku">Bahan Baku</option>
@@ -33,7 +36,7 @@
       <option value="Lain-lain">Lain-lain</option>
     </select>
 
-    <select id="filter-metode" class="form-control form-control-sm" style="width:140px">
+    <select id="filter-metode" class="form-control form-control-sm mb-2" style="width:140px">
       <option value="all" selected>Semua Metode</option>
       <option value="cash">Cash</option>
       <option value="qris">QRIS</option>
@@ -41,7 +44,7 @@
     </select>
   </div>
 
-  <div class="card"><div class="card-body">
+ 
     <table id="table_pengeluaran" class="table table-striped table-bordered w-100">
       <thead>
         <tr>

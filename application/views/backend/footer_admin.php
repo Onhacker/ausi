@@ -107,7 +107,7 @@ if (!function_exists('nav_class')) {
 <nav class="navbar fixed-bottom navbar-light bg-white shadow-sm d-lg-none navbar-bottom px-0">
   <div class="w-100 d-flex justify-content-between text-center position-relative mx-0 px-0">
 
-    <div class="nav-item">
+   <!--  <div class="nav-item">
       <a href="<?= base_url() ?>" class="<?= nav_class($uri, ['', 'home']) ?>">
         <i class="fas fa-home d-block mb-1"></i>
         <span class="small">Beranda</span>
@@ -119,16 +119,16 @@ if (!function_exists('nav_class')) {
         <i class="far fa-calendar-alt d-block mb-1"></i>
         <span class="small">Jadwal</span>
       </a>
-    </div>
+    </div> -->
 
     <div class="space-left"></div>
 
     <?php $web = $this->om->web_me();
     if (!function_exists('user_can_mod')) $this->load->helper('menu');
 
-    $can_scan   = function_exists('user_can_mod') ? user_can_mod(['admin_scan','scan','checkin/checkout']) : false;
-    $target_url = $can_scan ? base_url('admin_scan') : base_url('booking');
-    $center_on  = uri_is($uri, $can_scan ? ['admin_scan'] : ['booking']);
+    $can_scan   = function_exists('user_can_mod') ? user_can_mod(['admin_pos','scan','checkin/checkout']) : false;
+    $target_url = $can_scan ? base_url('admin_pos') : base_url('booking');
+    $center_on  = uri_is($uri, $can_scan ? ['admin_pos'] : ['booking']);
     ?>
     <a href="<?= $target_url ?>"
        class="center-button <?= $center_on ? 'text-white' : '' ?>"
@@ -143,18 +143,18 @@ if (!function_exists('nav_class')) {
 
     <div class="space-right"></div>
 
-    <div class="nav-item">
+   <!--  <div class="nav-item">
       <a href="<?= base_url('hal/struktur') ?>" class="<?= nav_class($uri, ['hal/struktur*']) ?>">
         <i class="fas fa-sitemap d-block mb-1"></i>
         <span class="small">Struktur</span>
       </a>
     </div>
-
+ -->
     <?php
       // Semua halaman yang “mewakili” Menu → bikin aktif ikon Menu
       $menu_patterns = [
         'admin_permohonan','admin_profil/detail_profil','booking',
-        'admin_dashboard/monitor','admin_scan','admin_user','hal/kontak',
+        'admin_dashboard/monitor','admin_pos','admin_user','hal/kontak',
         'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*'
       ];
     ?>
@@ -322,7 +322,11 @@ if (!function_exists('nav_class')) {
       <i class="mdi mdi-table-chair"></i><span>Meja</span>
     </a>
   <?php endif; ?>
-
+<?php if (user_can_mod(['admin_meja_billiard'])): ?>
+    <a id="quick-meja-link" href="<?= site_url('admin_meja_billiard') ?>" class="menu-item">
+      <i class="mdi mdi-table-chair"></i><span>Meja Billiard</span>
+    </a>
+  <?php endif; ?>
 </div>
 
       </div>
@@ -391,7 +395,7 @@ if (!function_exists('nav_class')) {
     // admin_unit_tujuan:   { a: document.getElementById("quick-unit-tujuan-link") },
     // admin_instansi_ref:  { a: document.getElementById("quick-instansi-ref-link") },
     // admin_permohonan:    { a: document.getElementById("quick-data-link") },
-    // admin_scan:          { a: document.getElementById("quick-scan-link") },
+    // admin_pos:          { a: document.getElementById("quick-scan-link") },
     // 'admin_dashboard': { a: document.getElementById("quick-dashboard-link") },
     // 'admin_dashboard/monitor': { a: document.getElementById("quick-dashboard-monitor-link") },
   };

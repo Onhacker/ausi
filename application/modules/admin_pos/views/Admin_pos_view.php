@@ -40,7 +40,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-body">
-
+          <h4 class="header-title">POS Cafe</h4>
           <!-- Toolbar -->
           <div class="row mb-2">
             <div class="col-12">

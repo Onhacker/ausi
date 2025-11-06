@@ -1,7 +1,8 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <div class="row"><div class="col-12">
+  <div class="row">
+    <!-- <div class="col-12">
     <div class="page-title-box">
       <div class="page-title-right">
         <ol class="breadcrumb m-0">
@@ -10,11 +11,14 @@
       </div>
       <h4 class="page-title"><?= $title; ?></h4>
     </div>
-  </div></div>
+  </div> -->
+</div>
 
   <!-- ===== FILTER ===== -->
   <div class="card mb-3">
     <div class="card-body">
+       <h4 class="header-title"><?= $title; ?></h4>
+
       <div class="form-row">
         <div class="form-group col-md-2">
           <label class="mb-1">Periode</label>
@@ -60,13 +64,13 @@
         </div>
 
         <div class="form-group col-12 d-flex flex-wrap align-items-center justify-content-end btn-wrap">
-          <button type="button" class="btn btn-primary btn-sm mr-2" id="btn-apply">
+          <button type="button" class="btn btn-primary btn-sm mb-2 mr-2" id="btn-apply">
             <span class="btn-label"><i class="fe-filter"></i></span> Lihat
           </button>
-          <button type="button" class="btn btn-secondary btn-sm mr-2" id="btn-reset">
+          <button type="button" class="btn btn-secondary btn-sm mb-2 mr-2" id="btn-reset">
             <i class="fe-rotate-ccw"></i> Reset Form
           </button>
-          <button type="button" onclick="reload_rating('user')" class="btn btn-warning btn-sm">
+          <button type="button" onclick="reload_rating('user')" class="btn btn-warning btn-sm mb-2">
             <span class="btn-label"><i class="fe-refresh-ccw"></i></span> Refresh Data
           </button>
         </div>

@@ -1,7 +1,7 @@
 <div class="container-fluid">
   <!-- start page title -->
   <div class="row">
-    <div class="col-12">
+    <!-- <div class="col-12">
       <div class="page-title-box">
         <div class="page-title-right">
           <ol class="breadcrumb m-0">
@@ -11,7 +11,7 @@
         </div>
         <h4 class="page-title"><?= $subtitle ?></h4>
       </div>
-    </div>
+    </div> -->
   </div>
 
   <!-- FORM IDENTITAS + PENGATURAN -->
@@ -19,6 +19,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-body">
+       <h4 class="header-title"><?= $title; ?></h4>
 
           <form id="form_app" method="post" enctype="multipart/form-data">
             <?php

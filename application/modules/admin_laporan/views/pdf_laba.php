@@ -87,7 +87,7 @@ $hasBil = !empty($sumBil['by_method']);
 <?php endif; ?>
 
 <br>
-
+<!-- 
 <table width="100%" cellspacing="0" cellpadding="5" border="1">
   <tr style="background-color:#f2f3f4; font-weight:bold">
     <td width="60%">Kursi Pijat</td>
@@ -102,7 +102,7 @@ $hasBil = !empty($sumBil['by_method']);
     <td align="right"><?= $idr($sumKP['total'] ?? 0) ?></td>
   </tr>
 </table>
-<br>
+<br> -->
 <div style="margin-top:6px;color:#666;font-size:10pt;">
   <em>Catatan:</em>
   <ul style="margin:6px 0 0 18px; padding:0;">

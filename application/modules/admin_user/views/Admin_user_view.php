@@ -4,23 +4,25 @@
 <div class="container-fluid">
     <!-- start page title -->
     <div class="row">
-        <div class="col-12">
+        <!-- <div class="col-12">
             <div class="page-title-box">
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <!-- <li class="breadcrumb-item"><a href="javascript: void(0);"><?php echo $title ?></a></li> -->
+                       
                         <li class="breadcrumb-item active"><?php echo $subtitle ?></li>
                     </ol>
                 </div>
                 <h4 class="page-title"><?php echo $subtitle ?></h4>
             </div>
-        </div>
+        </div> -->
     </div>     
 
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
+       <h4 class="header-title"><?= $title; ?></h4>
+                  
                      <div class="button-list">
                         <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light">
                             <span class="btn-label"><i class="fe-user-plus"></i></span>Invite User
