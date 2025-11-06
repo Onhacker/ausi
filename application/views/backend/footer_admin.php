@@ -229,114 +229,178 @@ if (!function_exists('nav_class')) {
 
 <div class="menu-list">
 
-  <!-- Profil (public) -->
-  <a href="<?= base_url('admin_profil/detail_profil') ?>" class="menu-item">
-    <span class="emoji" aria-hidden="true">👤</span><span>Profil</span>
-  </a>
+  <?php
+    // helper visibilitas grup
+    $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
+    $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
+    $showPijat     = user_can_mod(['admin_kursi_pijat']);
+    $showKeuLap    = user_can_mod(['admin_pengeluaran']) || user_can_mod(['admin_laporan']) || user_can_mod(['admin_laporan/index']);
+    $showMaster    = user_can_mod(['admin_produk']) || user_can_mod(['admin_kategori_produk']) || user_can_mod(['admin_kurir']) || user_can_mod(['admin_unit_lain']);
+    $showAdmin     = user_can_mod(['admin_user']) || user_can_mod(['admin_setting_web']) || user_can_mod(['admin_pengumuman']);
+  ?>
 
-  <!-- Produk -->
-  <?php if (user_can_mod(['admin_produk'])): ?>
-    <a id="quick-produk-link" href="<?= site_url('admin_produk') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">📦</span><span>Produk</span>
+  <!-- ========== Akun & Ringkasan ========== -->
+  <div class="menu-group" role="group" aria-label="Akun & Ringkasan">
+    <div class="menu-title">Akun &amp; Ringkasan</div>
+
+    <!-- Profil (public) -->
+    <a href="<?= base_url('admin_profil/detail_profil') ?>" class="menu-item">
+      <span class="emoji" aria-hidden="true">👤</span><span>Profil</span>
     </a>
+
+    <!-- Statistik -->
+    
+  </div>
+
+  <!-- ========== Caffe ========== -->
+  <?php if ($showCaffe): ?>
+  <div class="menu-group" role="group" aria-label="Caffe">
+    <div class="menu-title">Caffe</div>
+
+    <?php if (user_can_mod(['admin_pos'])): ?>
+      <a id="quick-pos-link" href="<?= site_url('admin_pos') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">☕️</span><span>POS Caffe</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_pos_riwayat'])): ?>
+      <a id="quick-riwayat-caffe-link" href="<?= site_url('admin_pos_riwayat') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Caffe</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_meja'])): ?>
+      <a id="quick-meja-link" href="<?= site_url('admin_meja') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🪑</span><span>Meja</span>
+      </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <!-- POS Caffe -->
-  <?php if (user_can_mod(['admin_pos'])): ?>
-    <a id="quick-pos-link" href="<?= site_url('admin_pos') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">☕️</span><span>POS Caffe</span>
-    </a>
+  <!-- ========== Billiard ========== -->
+  <?php if ($showBilliard): ?>
+  <div class="menu-group" role="group" aria-label="Billiard">
+    <div class="menu-title">Billiard</div>
+
+    <?php if (user_can_mod(['admin_billiard'])): ?>
+      <a id="quick-billiard-link" href="<?= site_url('admin_billiard') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎱</span><span>POS Billiard</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_riwayat_billiard'])): ?>
+      <a id="quick-riwayat-billiard-link" href="<?= site_url('admin_riwayat_billiard') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Billiard</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_meja_billiard'])): ?>
+      <a id="quick-meja-billiard-link" href="<?= site_url('admin_meja_billiard') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎱</span><span>Meja Billiard</span>
+      </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <!-- POS Billiard -->
-  <?php if (user_can_mod(['admin_billiard'])): ?>
-    <a id="quick-billiard-link" href="<?= site_url('admin_billiard') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🎱</span><span>POS Billiard</span>
-    </a>
+  <!-- ========== Kursi Pijat ========== -->
+  <?php if ($showPijat): ?>
+  <div class="menu-group" role="group" aria-label="Kursi Pijat">
+    <div class="menu-title">Kursi Pijat</div>
+
+    <?php if (user_can_mod(['admin_kursi_pijat'])): ?>
+      <a id="quick-kursi-pijat-link" href="<?= site_url('admin_kursi_pijat') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">💺</span><span>POS Kursi Pijat</span>
+      </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <?php if (user_can_mod(['admin_kursi_pijat'])): ?>
-    <a id="quick-kursi-pijat-link" href="<?= site_url('admin_kursi_pijat') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">💺</span><span>POS Kursi Pijat</span>
-    </a>
+  <!-- ========== Keuangan & Laporan ========== -->
+  <?php if ($showKeuLap): ?>
+  <div class="menu-group" role="group" aria-label="Keuangan & Laporan">
+    <div class="menu-title">Keuangan &amp; Laporan</div>
+
+    <?php if (user_can_mod(['admin_pengeluaran'])): ?>
+      <a id="quick-pengeluaran-link" href="<?= site_url('admin_pengeluaran') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">💸</span><span>Pengeluaran</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_laporan','admin_laporan/index'])): ?>
+      <a id="quick-laporan-link" href="<?= site_url('admin_laporan') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">📊</span><span>Laporan</span>
+      </a>
+    <?php endif; ?>
+    <?php if (user_can_mod(['admin_laporan/chart','dashboard'])): ?>
+      <a id="quick-statistik-link" href="<?= site_url('admin_laporan/chart') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">📈</span><span>Statistik</span>
+      </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <!-- Pengeluaran -->
-  <?php if (user_can_mod(['admin_pengeluaran'])): ?>
-    <a id="quick-pengeluaran-link" href="<?= site_url('admin_pengeluaran') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">💸</span><span>Pengeluaran</span>
-    </a>
+  <!-- ========== Master Data ========== -->
+  <?php if ($showMaster): ?>
+  <div class="menu-group" role="group" aria-label="Master Data">
+    <div class="menu-title">Master Data</div>
+
+    <?php if (user_can_mod(['admin_produk'])): ?>
+      <a id="quick-produk-link" href="<?= site_url('admin_produk') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">📦</span><span>Produk</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_kategori_produk'])): ?>
+      <a id="quick-kategori-link" href="<?= site_url('admin_kategori_produk') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🏷️</span><span>Kategori Produk</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_kurir'])): ?>
+      <a id="quick-kurir-link" href="<?= site_url('admin_kurir') ?>" class="menu-item">
+        <span class="emoji" data-anim="cart" aria-hidden="true">🛵</span><span>Kurir</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_unit_lain'])): ?>
+      <a id="quick-unit-lain-link" href="<?= site_url('admin_unit_lain') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🧩</span><span>Unit Lain</span>
+      </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <!-- Riwayat Caffe -->
-  <?php if (user_can_mod(['admin_pos_riwayat'])): ?>
-    <a id="quick-riwayat-caffe-link" href="<?= site_url('admin_pos_riwayat') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Caffe</span>
-    </a>
+  <!-- ========== Pengaturan & Admin ========== -->
+  <?php if ($showAdmin): ?>
+  <div class="menu-group" role="group" aria-label="Pengaturan & Admin">
+    <div class="menu-title">Pengaturan &amp; Admin</div>
+
+    <?php if (user_can_mod(['admin_user'])): ?>
+      <a id="quick-user-link" href="<?= site_url('admin_user') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">👥</span><span>Manajemen User</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_setting_web'])): ?>
+      <a id="quick-setting-link" href="<?= site_url('admin_setting_web') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">⚙️</span><span>Pengaturan Sistem</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_pengumuman'])): ?>
+      <a id="quick-pengumuman-link" href="<?= site_url('admin_pengumuman') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">📣</span><span>Pengumuman</span>
+      </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <!-- Riwayat Billiard -->
-  <?php if (user_can_mod(['admin_riwayat_billiard'])): ?>
-    <a id="quick-riwayat-billiard-link" href="<?= site_url('admin_riwayat_billiard') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Billiard</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Laporan -->
-  <?php if (user_can_mod(['admin_laporan','admin_laporan/index'])): ?>
-    <a id="quick-laporan-link" href="<?= site_url('admin_laporan') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">📊</span><span>Laporan</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Manajemen User -->
-  <?php if (user_can_mod(['admin_user'])): ?>
-    <a id="quick-user-link" href="<?= site_url('admin_user') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">👥</span><span>Manajemen User</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Pengaturan Sistem -->
-  <?php if (user_can_mod(['admin_setting_web'])): ?>
-    <a id="quick-setting-link" href="<?= site_url('admin_setting_web') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">⚙️</span><span>Pengaturan Sistem</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Kategori Produk -->
-  <?php if (user_can_mod(['admin_kategori_produk'])): ?>
-    <a id="quick-kategori-link" href="<?= site_url('admin_kategori_produk') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🏷️</span><span>Kategori Produk</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Unit Lain -->
-  <?php if (user_can_mod(['admin_unit_lain'])): ?>
-    <a id="quick-unit-lain-link" href="<?= site_url('admin_unit_lain') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🧩</span><span>Unit Lain</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Pengumuman -->
-  <?php if (user_can_mod(['admin_pengumuman'])): ?>
-    <a id="quick-pengumuman-link" href="<?= site_url('admin_pengumuman') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">📣</span><span>Pengumuman</span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Meja -->
-  <?php if (user_can_mod(['admin_meja'])): ?>
-    <a id="quick-meja-link" href="<?= site_url('admin_meja') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🪑</span><span>Meja</span>
-    </a>
-  <?php endif; ?>
-
-  <?php if (user_can_mod(['admin_meja_billiard'])): ?>
-    <a id="quick-meja-billiard-link" href="<?= site_url('admin_meja_billiard') ?>" class="menu-item">
-      <span class="emoji" aria-hidden="true">🎱</span><span>Meja Billiard</span>
-    </a>
-  <?php endif; ?>
 </div>
+<style>
+  .menu-group + .menu-group { margin-top: 12px; }
+  .menu-title { font-weight:600; font-size:.95rem; padding:6px 8px; opacity:.8; }
+</style>
+
 </div></div>
     </div>
   </div>
