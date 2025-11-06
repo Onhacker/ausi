@@ -36,6 +36,10 @@ $grandTotal = (isset($order->grand_total) && $order->grand_total !== null)
 
 // Support logo opsional, isi $store->logo_url jika ada
 $logoUrl = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
+$paidLabel = isset($paid_label) && trim($paid_label) !== ''
+  ? $paid_label
+  : (trim((string)($order->paid_method ?? '')) ?: '—');
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -146,6 +150,11 @@ $logoUrl = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_ur
       <div class="label">Mode</div>
       <div class="value"><?= esc(ucfirst($mode)) ?></div>
     </div>
+    <div class="row">
+  <div class="label">Metode</div>
+  <div class="value"><?= esc($paidLabel) ?></div>
+</div>
+
     <div class="row">
       <div class="label">Meja</div>
       <div class="value"><?= esc($meja) ?></div>

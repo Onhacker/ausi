@@ -2,34 +2,45 @@
 /** @var object $order */
 /** @var array  $items */
 /** @var int|null $active_cat */
-$id      = (int)($order->id ?? 0);
-$nomor   = $order->nomor ?? $id;
-$modeRaw = strtolower(trim((string)($order->mode ?? '-')));
-$modeLabel = ($modeRaw==='dinein' || $modeRaw==='dine-in') ? 'Dine-in'
-           : ($modeRaw==='delivery' ? 'Delivery' : 'Walk-in');
-
-$meja    = $order->meja_nama ?: ($order->meja_kode ?: '—');
-$nama    = trim((string)($order->nama ?? ''));
-$cat     = ($active_cat === 1 || $active_cat === 2) ? (int)$active_cat : null;
-$label   = $cat===1 ? 'Kitchen (Makanan)' : ($cat===2 ? 'Bar (Minuman)' : 'Semua Item');
-$catatan = trim((string)($order->catatan ?? ''));
-
-$showMeja    = ($modeRaw==='dinein' || $modeRaw==='dine-in');
-$isDelivery  = ($modeRaw === 'delivery');
-$customer_phone = trim((string)($order->customer_phone ?? ''));
-$alamat_kirim   = trim((string)($order->alamat_kirim ?? ''));
 
 function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+function msisdn($p){
+  $d = preg_replace('/\D+/', '', (string)$p);
+  if ($d === '') return '';
+  if (strpos($d,'62')===0) return $d;
+  if ($d[0]==='0') return '62'.substr($d,1);
+  if ($d[0]==='8') return '62'.$d;
+  return $d;
+}
+
+$id        = (int)($order->id ?? 0);
+$nomor     = ($order->nomor ?? '') !== '' ? $order->nomor : $id;
+$modeRaw   = strtolower(trim((string)($order->mode ?? '-')));
+$modeLabel = ($modeRaw==='dinein' || $modeRaw==='dine-in') ? 'Dine-in' : ($modeRaw==='delivery' ? 'Delivery' : 'Walk-in');
+
+$meja   = $order->meja_nama ?: ($order->meja_kode ?: '—');
+$nama   = trim((string)($order->nama ?? ''));
+$cat    = ($active_cat === 1 || $active_cat === 2) ? (int)$active_cat : null;
+$label  = $cat===1 ? 'Kitchen (Makanan)' : ($cat===2 ? 'Bar (Minuman)' : 'Semua Item');
+$catatan= trim((string)($order->catatan ?? ''));
+
+$showMeja     = ($modeRaw==='dinein' || $modeRaw==='dine-in');
+$isDelivery   = ($modeRaw === 'delivery');
+$phoneRaw     = trim((string)($order->customer_phone ?? ''));
+$waNumber     = $phoneRaw !== '' ? msisdn($phoneRaw) : '';
+$alamat_kirim = trim((string)($order->alamat_kirim ?? ''));
+
+// (opsional) tampilkan paid method ringkas jika ada
+$paidRaw   = trim((string)($order->paid_method ?? ''));
+$paidLabel = $paidRaw !== '' ? $paidRaw : '—';
 ?>
 
 <style>
   /* ===== Order Header (compact, modern) ===== */
   .order-card{
-    position:relative;
-    display:flex; gap:.9rem; align-items:flex-start;
+    position:relative; display:flex; gap:.9rem; align-items:flex-start;
     padding:.65rem .75rem; border:1px solid #e9ecef; border-radius:14px;
-    background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.04);
-    margin-bottom:.6rem;
+    background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:.6rem;
   }
   .order-left{ display:flex; gap:.6rem; align-items:flex-start; min-width:0; flex:1; }
   .order-icon{
@@ -40,29 +51,23 @@ function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
   .order-icon.dine{ background:linear-gradient(135deg,#ef4444,#dc2626); }
   .order-icon.delivery{ background:linear-gradient(135deg,#0ea5e9,#0284c7); }
   .order-icon.walkin{ background:linear-gradient(135deg,#6b7280,#4b5563); }
-  .order-main{ min-width:0; }
-  .order-title{
-    margin:0 0 .1rem; font-weight:800; font-size:1rem; color:#111827; letter-spacing:.2px;
-  }
+
+  .order-title{ margin:0 0 .1rem; font-weight:800; font-size:1rem; color:#111827; letter-spacing:.2px; }
   .order-meta{ margin:0; color:#6b7280; font-size:.85rem; }
   .order-meta b{ color:#374151; }
+
   .order-badges{ margin-top:.35rem; display:flex; gap:.35rem; flex-wrap:wrap; }
-  .pill{ display:inline-block; padding:.2rem .5rem; border-radius:999px;
-         font-size:.72rem; border:1px solid #e1e5ea; background:#f8f9fb; color:#374151; }
+  .pill{ display:inline-block; padding:.2rem .5rem; border-radius:999px; font-size:.72rem; border:1px solid #e1e5ea; background:#f8f9fb; color:#374151; }
   .pill.mode{ border-color:transparent; color:#fff; }
   .pill.mode.dine{ background:#ef4444; }
   .pill.mode.delivery{ background:#0ea5e9; }
   .pill.mode.walkin{ background:#6b7280; }
 
-  .order-actions{
-    display:flex; gap:.4rem; flex-wrap:wrap; align-items:center;
-  }
+  .order-actions{ display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
   .btn-xxs{ padding:.25rem .5rem; font-size:.78rem; border-radius:10px; }
 
   /* Detail pelanggan mini box */
-  .cust-box{
-    margin-top:.5rem; border:1px dashed #e5e7eb; background:#fcfcfd; border-radius:10px; padding:.5rem .6rem;
-  }
+  .cust-box{ margin-top:.5rem; border:1px dashed #e5e7eb; background:#fcfcfd; border-radius:10px; padding:.5rem .6rem; }
   .cust-row{ font-size:.85rem; color:#374151; }
   .cust-muted{ color:#6b7280; }
 
@@ -74,7 +79,7 @@ function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 <div class="order-card">
   <!-- kiri -->
   <div class="order-left">
-    <div class="order-icon <?= $modeRaw==='dinein' || $modeRaw==='dine-in' ? 'dine' : ($modeRaw==='delivery' ? 'delivery' : 'walkin') ?>">
+    <div class="order-icon <?= ($modeRaw==='dinein'||$modeRaw==='dine-in') ? 'dine' : ($modeRaw==='delivery' ? 'delivery' : 'walkin') ?>">
       <?php if ($modeRaw==='dinein' || $modeRaw==='dine-in'): ?>
         <i class="dripicons-basket"></i>
       <?php elseif ($modeRaw==='delivery'): ?>
@@ -86,14 +91,12 @@ function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
     <div class="order-main">
       <h3 class="order-title">Order #<?= esc($nomor) ?></h3>
+
       <p class="order-meta">
         Mode: <b><?= esc($modeLabel) ?></b>
-        <?php if ($showMeja): ?>
-          <span class="mx-1">•</span> Meja: <b><?= esc($meja) ?></b>
-        <?php endif; ?>
-        <?php if ($nama !== ''): ?>
-          <span class="mx-1">•</span> Nama: <b><?= esc($nama) ?></b>
-        <?php endif; ?>
+        <?php if ($showMeja): ?><span class="mx-1">•</span> Meja: <b><?= esc($meja) ?></b><?php endif; ?>
+        <?php if ($nama !== ''): ?><span class="mx-1">•</span> Nama: <b><?= esc($nama) ?></b><?php endif; ?>
+        <?php if ($paidRaw !== ''): ?><span class="mx-1">•</span> Metode: <b><?= esc($paidLabel) ?></b><?php endif; ?>
       </p>
 
       <?php if ($catatan !== ''): ?>
@@ -103,26 +106,32 @@ function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
       <?php endif; ?>
 
       <div class="order-badges">
-        <span class="pill mode <?= $modeRaw==='dinein' || $modeRaw==='dine-in' ? 'dine' : ($modeRaw==='delivery' ? 'delivery' : 'walkin') ?>">
+        <span class="pill mode <?= ($modeRaw==='dinein'||$modeRaw==='dine-in') ? 'dine' : ($modeRaw==='delivery' ? 'delivery' : 'walkin') ?>">
           <?= esc($modeLabel) ?>
         </span>
         <span class="pill"><?= esc($label) ?></span>
       </div>
 
-      <?php if ($nama !== '' || $customer_phone !== '' || $isDelivery): ?>
+      <?php if ($nama !== '' || $phoneRaw !== '' || $isDelivery): ?>
         <div class="cust-box">
           <div class="cust-row"><b>Detail Pelanggan</b></div>
           <?php if ($nama !== ''): ?>
             <div class="cust-row"><span class="cust-muted">Nama:</span> <?= esc($nama) ?></div>
           <?php endif; ?>
-          <?php if ($customer_phone !== ''):
-                $phoneDigits = preg_replace('/\s+/', '', $customer_phone); ?>
+
+          <?php if ($phoneRaw !== ''): ?>
+            <?php $waLink = $waNumber !== '' ? 'https://wa.me/'.esc($waNumber) : ''; ?>
             <div class="cust-row d-flex align-items-center flex-wrap" style="gap:.4rem;">
               <span class="cust-muted">HP/WA:</span>
-              <a href="https://wa.me/<?= esc($phoneDigits) ?>" target="_blank" rel="noopener"><?= esc($customer_phone) ?></a>
-              <button type="button" class="btn btn-outline-secondary btn-xxs js-copy" data-copy="<?= esc($phoneDigits) ?>">Salin</button>
+              <?php if ($waLink): ?>
+                <a href="<?= $waLink ?>" target="_blank" rel="noopener"><?= esc($phoneRaw) ?></a>
+              <?php else: ?>
+                <span><?= esc($phoneRaw) ?></span>
+              <?php endif; ?>
+              <button type="button" class="btn btn-outline-secondary btn-xxs js-copy" data-copy="<?= esc($waNumber ?: preg_replace('/\s+/', '', $phoneRaw)) ?>">Salin</button>
             </div>
           <?php endif; ?>
+
           <?php if ($isDelivery): ?>
             <div class="cust-row" style="margin-top:.25rem;">
               <span class="cust-muted">Alamat Kirim:</span>
@@ -136,12 +145,10 @@ function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
   <!-- kanan (aksi) -->
   <div class="order-actions">
-    <button type="button" class="btn btn-primary btn-xxs"
-            onclick="printStrukInlinex(<?= (int)$id ?>, '58')">
+    <button type="button" class="btn btn-primary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '58')" aria-label="Cetak struk 58mm">
       <i class="fe-printer"></i> 58mm
     </button>
-    <button type="button" class="btn btn-secondary btn-xxs"
-            onclick="printStrukInlinex(<?= (int)$id ?>, '80')">
+    <button type="button" class="btn btn-secondary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '80')" aria-label="Cetak struk 80mm">
       <i class="fe-printer"></i> 80mm
     </button>
   </div>
@@ -169,18 +176,36 @@ function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 </div>
 
 <script>
-  // Copy nomor HP → clipboard (Swal kalau ada)
+  // Buka struk termal (embed) di window kecil
+  function printStrukInlinex(id, paper){
+    var p = (paper === '80') ? '80' : '58';
+    var url = "<?= site_url('admin_pos/print_struk_termalx/') ?>"+ id + "?paper=" + p + "&embed=1";
+    var w = window.open(url, "print_"+id, "width=520,height=760,menubar=0,location=0,toolbar=0,status=0");
+    if (w) { w.focus(); }
+  }
+
+  // Copy nomor HP → clipboard (SweetAlert toast bila tersedia)
   document.addEventListener('click', function(e){
-    const btn = e.target.closest('.js-copy');
+    var btn = e.target.closest('.js-copy');
     if(!btn) return;
-    const text = btn.getAttribute('data-copy') || '';
+    var text = btn.getAttribute('data-copy') || '';
     if(!text) return;
-    navigator.clipboard.writeText(text).then(()=>{
-      if(window.Swal){
-        Swal.fire({icon:'success', title:'Disalin!', text:'Nomor sudah disalin ke clipboard.', timer:1200, showConfirmButton:false});
-      }else{
-        alert('Nomor disalin.');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showCopied, showCopied);
+    } else {
+      // fallback legacy
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      showCopied();
+    }
+    function showCopied(){
+      if (window.Swal) {
+        Swal.fire({toast:true, position:'top', icon:'success', title:'Nomor tersalin', showConfirmButton:false, timer:1200});
+      } else {
+        // hindari alert blocking UX
+        console.log('Nomor disalin:', text);
       }
-    });
+    }
   });
 </script>

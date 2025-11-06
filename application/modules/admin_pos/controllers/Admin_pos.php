@@ -989,6 +989,11 @@ public function print_struk_termalx($id = null)
 }
 
 
+// Pretty label metode bayar (pakai helper privat yg sudah ada)
+$paid_label = method_exists($this, '_pretty_paid_method')
+  ? $this->_pretty_paid_method($bundle['order']->paid_method ?? '')
+  : (string)($bundle['order']->paid_method ?? '');
+
     // Info toko
     $web = $this->om->web_me();
     $store = [
@@ -1006,6 +1011,7 @@ public function print_struk_termalx($id = null)
         'total'      => (int)$bundle['total'],
         'store'      => (object)$store,
         'printed_at' => date('Y-m-d H:i:s'),
+         'paid_label' => $paid_label,  
     ];
 
     $html = $this->load->view('strukx', $data, true);
