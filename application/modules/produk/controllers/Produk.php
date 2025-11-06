@@ -533,7 +533,14 @@ public function review_list(){
     // optional: amankan akses non-ajax
     // if (!$this->input->is_ajax_request()) { show_404(); return; }
 
-    $id     = (int)($this->input->post('id') ?? $this->input->get('id'));
+    // $id     = (int)($this->input->post('id') ?? $this->input->get('id'));
+    $id = (int)(
+        $this->input->post('produk_id')
+        ?? $this->input->post('id')
+        ?? $this->input->get('produk_id')
+        ?? $this->input->get('id')
+        ?? 0
+    );
     $offset = max(0, (int)($this->input->post('offset') ?? $this->input->get('offset')));
     $limit  = min(20, max(1, (int)($this->input->post('limit') ?? $this->input->get('limit'))));
 

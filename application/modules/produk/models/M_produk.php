@@ -33,21 +33,23 @@ class M_produk extends CI_Model {
         $this->db->where('p.is_active', 1);
         return $this->db->get()->row();
     }
-public function get_reviews($produk_id, $limit = 10, $offset = 0){
-        return $this->db->select('stars, nama, review, COALESCE(review_at, created_at) AS ts', false)
-            ->from('produk_rating')
-            ->where('produk_id', (int)$produk_id)
-            ->where("review IS NOT NULL AND TRIM(review) <> ''", null, false)
-            ->order_by('COALESCE(review_at, created_at)', 'DESC', false)
-            ->limit((int)$limit, (int)$offset)
-            ->get()->result();
-    }
+public function get_reviews($produk_id, $limit = 3, $offset = 0){
+    return $this->db->select('pr.stars, pr.nama, pr.review, COALESCE(pr.review_at, pr.created_at) AS ts', false)
+        ->from('produk_rating pr')
+        ->where('pr.produk_id', (int)$produk_id)
+        ->where("pr.review IS NOT NULL AND TRIM(pr.review) <> ''", null, false)
+        ->order_by('COALESCE(pr.review_at, pr.created_at)', 'DESC', false)
+        ->limit((int)$limit, (int)$offset)
+        ->get()->result();
+}
 
-    public function count_reviews($produk_id){
-        return (int)$this->db->where('produk_id', (int)$produk_id)
-            ->where("review IS NOT NULL AND TRIM(review) <> ''", null, false)
-            ->count_all_results('produk_rating');
-    }
+public function count_reviews($produk_id){
+    return (int)$this->db->from('produk_rating pr')
+        ->where('pr.produk_id', (int)$produk_id)
+        ->where("pr.review IS NOT NULL AND TRIM(pr.review) <> ''", null, false)
+        ->count_all_results();
+}
+
 
     // ================== helpers ==================
    private function _base_select(){

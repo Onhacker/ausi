@@ -209,211 +209,154 @@ function _rv_mask_name($name){
 </script>
 <script>
 (function(){
-  if (window.__RV_MODAL_SYNC__) return;
-  window.__RV_MODAL_SYNC__ = true;
-
-  var PROD_ID = <?= (int)$product->id ?>;
-  var REV_URL = "<?= site_url('produk/review_list'); ?>";
-
-  // CSRF mengikuti konfigurasi CI
+  // ====== CSRF (CodeIgniter) ======
   var CSRF = <?php
     if ($this->config->item('csrf_protection')) {
       echo json_encode([
         'name' => $this->security->get_csrf_token_name(),
         'hash' => $this->security->get_csrf_hash()
       ]);
-    } else { echo 'null'; }
+    } else {
+      echo 'null';
+    }
   ?>;
 
-  /* ===== Helpers ===== */
+  // Helper kecil
   function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
   function nl2br(s){ return esc(s).replace(/\r?\n/g,'<br>'); }
-  function initials(name){
-    name=(name||'').trim(); if(!name) return '?';
-    var p=name.split(/\s+/);
-    return (p[0]&&p[0][0]?p[0][0]:'?') + ((p[1]&&p[1][0])?p[1][0]:'');
-  }
-  function mask(name){
-    name=(name||'').trim(); if(!name) return 'Anonim';
-    return name.split(/\s+/).map(p => (p[0]||'?').toUpperCase()+'***').join(' ');
-  }
-  function starHtml(n){
-    n=parseInt(n||0,10); var h='';
-    for (var i=1;i<=5;i++) h += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>';
-    return h;
-  }
-  function findBox(){
-    // utamakan modal yang sedang tampil
-    return document.querySelector('.modal.show .modal-product .reviews-box')
-        || document.querySelector('.modal-product .reviews-box')
-        || document.querySelector('.reviews-box');
-  }
+  function initials(name){ name=(name||'').trim(); if(!name) return '?'; var p=name.split(/\s+/); return (p[0]?.[0]||'?') + (p[1]?.[0]||''); }
+  function mask(name){ name=(name||'').trim(); if(!name) return 'Anonim'; return name.split(/\s+/).map(p => (p[0]||'?').toUpperCase()+'***').join(' '); }
+  function starHtml(n){ n=parseInt(n||0,10); var h=''; for (var i=1;i<=5;i++) h += '<i class="mdi '+(i<=n?'mdi-star full':'mdi-star-outline')+'"></i>'; return h; }
 
-  /* ===== Render (wipe & replace) ===== */
-  var LAST_TOKEN = 0;
-  function renderReviews(rows, total, token){
-    if (token !== LAST_TOKEN) return; // abaikan hasil lama
-    var BOX = findBox(); if (!BOX) return;
+  // ====== Init khusus per modal ======
+  function initReviewsForModal(modal){
+    if (!modal || modal.__rvInited) return;
+    var box = modal.querySelector('.modal-product .reviews-box');
+    var rate = modal.querySelector('.modal-product [data-rate-box]');
+    if (!box || !rate) return;
 
-    var footer = BOX.querySelector('.reviews-footer');
+    modal.__rvInited = true;
 
-    // hapus semua selain footer → cegah dobel
-    Array.from(BOX.childNodes).forEach(function(n){
-      if (!footer || n !== footer) BOX.removeChild(n);
-    });
+    var PROD_ID = parseInt(rate.getAttribute('data-id'),10) || 0;
+    var REV_URL = "<?= site_url('produk/review_list'); ?>";
 
-    var anchor = footer || null;
+    var LAST_TOKEN = 0, INFLIGHT = false, LAST_DONE_AT = 0, TMR = null;
 
-    if (!rows || !rows.length){
-      var empty = document.createElement('div');
-      empty.className = 'text-muted';
-      empty.textContent = 'Belum ada ulasan.';
-      BOX.insertBefore(empty, anchor);
-    } else {
-      var frag = document.createDocumentFragment();
-      rows.slice(0,3).forEach(function(r){
-        var rawName = (r && (r.nama||r.name||r.customer_name||r.user_name||'')) || '';
-        var when    = (r && (r.ts_fmt||r.created_fmt||r.created_at_fmt||r.created_at||r.ts||'')) || '';
-        var wrap = document.createElement('div');
-        wrap.className = 'review-item';
-        wrap.innerHTML =
-          '<div class="review-avatar">'+esc(initials(rawName))+'</div>'+
-          '<div class="flex-fill">'+
-            '<div class="review-head">'+
-              '<span class="review-name">'+esc(mask(rawName))+'</span>'+
-              '<span class="review-meta">'+esc(when)+'</span>'+
-            '</div>'+
-            '<div class="review-stars">'+starHtml(r && r.stars)+'</div>'+
-            (r && r.review ? '<div class="review-text">'+nl2br(r.review)+'</div>' : '')+
-          '</div>';
-        frag.appendChild(wrap);
+    function render(rows, total, token){
+      if (token !== LAST_TOKEN) return;
+      var footer = box.querySelector('.reviews-footer');
+
+      if (!Array.isArray(rows)) return;
+
+      var tot = parseInt(total||0,10);
+      if (rows.length === 0 && tot > 0) return; // ada data tapi salah param? jangan wipe UI
+
+      // wipe & replace aman (hanya anak element, bukan node teks)
+      Array.from(box.children).forEach(function(n){
+        if (!footer || n !== footer) n.remove();
       });
-      BOX.insertBefore(frag, anchor);
-    }
 
-    // update label jumlah ulasan (di area modal saja)
-    var scope = BOX.closest('.modal-product') || document;
-    scope.querySelectorAll('.count-label').forEach(function(el){
-      el.textContent = parseInt(total||0,10);
-    });
-  }
+      var anchor = footer || null;
 
-  /* ===== Single-flight refresh (maks 1 request aktif/terjadwal) ===== */
-  var TMR = null, INFLIGHT = false, SCHEDULED = false;
-  var LAST_DONE_AT = 0;  // cap waktu fetch terakhir selesai
-
-  function refreshNow(){
-    if (INFLIGHT){ return; }          // jangan jalankan fetch kedua
-    INFLIGHT = true; SCHEDULED = false;
-
-    var token = ++LAST_TOKEN;
-
-    var fd = new FormData();
-    fd.append('id', PROD_ID);
-    fd.append('offset', 0);
-    fd.append('limit', 3);
-    if (CSRF){ fd.append(CSRF.name, CSRF.hash); }
-
-    fetch(REV_URL, {
-      method:'POST',
-      headers:{'X-Requested-With':'XMLHttpRequest'},
-      body: fd
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(res){
-      if (!res || !res.success) return;
-      if (res.csrf && CSRF){ CSRF.name=res.csrf.name; CSRF.hash=res.csrf.hash; }
-      renderReviews(res.rows||[], res.total||0, token);
-    })
-    .catch(function(){ /* diam */ })
-    .finally(function(){
-      INFLIGHT = false;
-      LAST_DONE_AT = Date.now();
-    });
-  }
-
-  function refreshOnce(){
-    if (SCHEDULED || INFLIGHT) return;
-    // throttle: cegah fetch kedua beruntun setelah fetch baru saja selesai
-    if (Date.now() - LAST_DONE_AT < 300) return;
-    SCHEDULED = true;
-    clearTimeout(TMR);
-    TMR = setTimeout(refreshNow, 150);
-  }
-
-  /* ===== Trigger dari form rating/ulasan ===== */
-  ['rv-prepended','reviews:refresh','rating:success','rating:saved','review:success','review:saved','ulasan:updated']
-    .forEach(function(ev){
-      document.addEventListener(ev, function(e){
-        var id = e && e.detail && (e.detail.produk_id || e.detail.produkId || e.detail.id);
-        if (!id || parseInt(id,10) === PROD_ID) refreshOnce();
-      });
-    });
-
-  /* ===== Intercept POST penyimpanan rating/ulasan (bukan review_list) ===== */
-  (function(){
-    if (window.__RV_FETCH_WRAP_DONE__) return;
-    window.__RV_FETCH_WRAP_DONE__ = true;
-
-    // pastikan "review_list" tidak ikut match
-    var SAVE_RE = /\/produk\/(?![^?#]*review_list)[^?#]*(rating|review(?!_list)|ulasan|rate|nilai|kirim|save)/i;
-
-    function shouldHook(url, method){
-      return method && method.toUpperCase()==='POST' && SAVE_RE.test(String(url||''));
-    }
-
-    if (window.fetch){
-      var _fetch = window.fetch;
-      window.fetch = function(input, init){
-        var url = (typeof input==='string') ? input : (input && input.url) || '';
-        var method = (init && init.method) || (typeof input!=='string' && input && input.method) || 'GET';
-        var hook = shouldHook(url, method);
-        return _fetch(input, init).then(function(res){
-          if (hook && res && res.ok) refreshOnce();
-          return res;
+      if (rows.length === 0){
+        var empty = document.createElement('div');
+        empty.className = 'text-muted';
+        empty.textContent = 'Belum ada ulasan.';
+        box.insertBefore(empty, anchor);
+      } else {
+        var frag = document.createDocumentFragment();
+        rows.slice(0,3).forEach(function(r){
+          var rawName = (r && (r.nama||r.name||r.customer_name||r.user_name||'')) || '';
+          var when    = (r && (r.ts_fmt||r.created_fmt||r.created_at_fmt||r.created_at||r.ts||'')) || '';
+          var wrap = document.createElement('div');
+          wrap.className = 'review-item';
+          wrap.innerHTML =
+            '<div class="review-avatar">'+esc(initials(rawName))+'</div>'+
+            '<div class="flex-fill">'+
+              '<div class="review-head">'+
+                '<span class="review-name">'+esc(mask(rawName))+'</span>'+
+                '<span class="review-meta">'+esc(when)+'</span>'+
+              '</div>'+
+              '<div class="review-stars">'+starHtml(r && r.stars)+'</div>'+
+              (r && r.review ? '<div class="review-text">'+nl2br(r.review)+'</div>' : '')+
+            '</div>';
+          frag.appendChild(wrap);
         });
-      };
-    }
-
-    if (window.XMLHttpRequest){
-      var _open = XMLHttpRequest.prototype.open, _send = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.open = function(m,u){ this.__rv_hook = shouldHook(u, m); return _open.apply(this, arguments); };
-      XMLHttpRequest.prototype.send = function(b){
-        if (this.__rv_hook){
-          this.addEventListener('load', function(){
-            if (this.status >= 200 && this.status < 300) refreshOnce();
-          });
-        }
-        return _send.apply(this, arguments);
-      };
-    }
-  })();
-
-  /* ===== Saat modal tampil / node baru muncul ===== */
- if (window.jQuery){
-  $(document).on('shown.bs.modal', '.modal', function(){
-    // Hanya refresh jika modal ini memang punya kotak ulasan
-    var box = this.querySelector('.modal-product .reviews-box');
-    if (box && !box.__rv_inited){
-      box.__rv_inited = true;
-      refreshOnce();
-    }
-  });
-}
-
-  try{
-    var mo = new MutationObserver(function(){
-      var box = findBox();
-      if (box && !box.__rv_inited){
-        box.__rv_inited = true;
-        refreshOnce();
+        box.insertBefore(frag, anchor);
       }
-    });
-    mo.observe(document.documentElement, {childList:true, subtree:true});
-  }catch(_){}
 
-  // initial satu kali saja (kalau modal sudah terpasang di DOM)
-  if (findBox()) refreshOnce();
+      if (!isNaN(tot)){
+        modal.querySelectorAll('.count-label').forEach(function(el){ el.textContent = tot; });
+      }
+    }
+
+    function refreshNow(){
+      if (INFLIGHT || !PROD_ID) return;
+      INFLIGHT = true;
+
+      var token = ++LAST_TOKEN;
+      var fd = new FormData();
+      fd.append('produk_id', PROD_ID); // kunci utama
+      fd.append('id', PROD_ID);        // kompat
+      fd.append('offset', 0);
+      fd.append('limit', 3);
+      if (CSRF){ fd.append(CSRF.name, CSRF.hash); }
+
+      fetch(REV_URL, {
+        method: 'POST',
+        headers: { 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' },
+        body: fd
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (!res || !res.success) return;
+        if (res.csrf && CSRF){ CSRF.name=res.csrf.name; CSRF.hash=res.csrf.hash; }
+        render(res.rows || [], res.total || 0, token);
+      })
+      .catch(function(){ /* diam */ })
+      .finally(function(){ INFLIGHT=false; LAST_DONE_AT = Date.now(); });
+    }
+
+    function refreshOnce(){
+      if (INFLIGHT) return;
+      if (Date.now() - LAST_DONE_AT < 300) return;
+      clearTimeout(TMR);
+      TMR = setTimeout(refreshNow, 150);
+    }
+
+    // Event lokal (kalau ada aksi simpan rating/ulasan)
+    modal.addEventListener('reviews:refresh', function(e){
+      var id = e && e.detail && (e.detail.produk_id || e.detail.id);
+      if (!id || parseInt(id,10) === PROD_ID) refreshOnce();
+    });
+
+    // Kickoff untuk modal aktif
+    refreshOnce();
+
+    // Cleanup saat modal ditutup (optional)
+    modal.addEventListener('hidden.bs.modal', function(){
+      modal.__rvInited = false;
+    });
+  }
+
+  // Bootstrap/jQuery: init ketika modal tampil
+  if (window.jQuery){
+    $(document).on('shown.bs.modal', '.modal', function(){
+      if (this.querySelector('.modal-product')) initReviewsForModal(this);
+    });
+  } else {
+    // Fallback tanpa jQuery: observer sederhana
+    try{
+      var mo = new MutationObserver(function(){
+        document.querySelectorAll('.modal.show').forEach(initReviewsForModal);
+      });
+      mo.observe(document.documentElement, {childList:true, subtree:true});
+    }catch(_){}
+  }
+
+  // Kalau markup modal sudah ada & sudah "show" saat injected
+  document.querySelectorAll('.modal.show').forEach(initReviewsForModal);
+
 })();
 </script>
 
