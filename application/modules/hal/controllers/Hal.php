@@ -30,7 +30,7 @@ class Hal extends MX_Controller {
 
 	}
 
-	function app(){
+	function download_app(){
 		// $this->load->model('M_billiard','mbi');
 		$data["rec"] = $this->fm->web_me();
 		$data["title"] = "Download Aplikasi";
