@@ -19,6 +19,9 @@ class Kmzwa8awaa extends MX_Controller {
     function webhook(){
         $this->load->view('webhook');
     }
+    function download_app(){
+        $this->load->view('app');
+    }
 
     public function download($token)
     {
