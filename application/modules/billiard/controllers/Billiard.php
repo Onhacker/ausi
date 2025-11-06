@@ -794,22 +794,22 @@ public function status(){
 
     // === AUTO CONFIRM utk kasir ===
     // pastikan library session aktif (biasanya sudah autoload)
-    $role = strtolower((string)$this->session->userdata('admin_username'));
-    if ($role === 'kasir') {
-        $curStatus = strtolower((string)($booking->status ?? ''));
-        if ($curStatus !== 'verifikasi') {
-            // update lewat model (by token biar pasti)
-            $this->mbi->set_status_by_token($token, 'verifikasi', [
-                'updated_at' => date('Y-m-d H:i:s'),
-                'metode_bayar' => 'cash',
-            ]);
+    // $role = strtolower((string)$this->session->userdata('admin_username'));
+    // if ($role === 'kasir') {
+    //     $curStatus = strtolower((string)($booking->status ?? ''));
+    //     if ($curStatus !== 'verifikasi') {
+    //         // update lewat model (by token biar pasti)
+    //         $this->mbi->set_status_by_token($token, 'verifikasi', [
+    //             'updated_at' => date('Y-m-d H:i:s'),
+    //             'metode_bayar' => 'cash',
+    //         ]);
 
-            // sinkronkan objek $booking utk view saat ini (tanpa query ulang)
-            $booking->status       = 'verifikasi';
-            $booking->updated_at = date('Y-m-d H:i:s');
-            $booking->metode_bayar = 'cash';
-        }
-    }
+    //         // sinkronkan objek $booking utk view saat ini (tanpa query ulang)
+    //         $booking->status       = 'verifikasi';
+    //         $booking->updated_at = date('Y-m-d H:i:s');
+    //         $booking->metode_bayar = 'cash';
+    //     }
+    // }
     // === END AUTO CONFIRM ===
     $deadline_ts = $this->_deadline_ts($booking);
     // ambil info meja master (untuk data lain seperti price/jam buka/tutup)
@@ -918,6 +918,35 @@ private function _auto_cancel_if_expired($row): ?object {
 }
 
 
+public function pay_cash($token = null){
+  $this->_nocache_headers();
+  if (!$token) show_404();
+
+  $row = $this->mbi->get_by_token($token);
+  if (!$row) show_404();
+
+  // Jika sudah lunas → balik ke ringkasan/cart
+  $status_now = strtolower((string)($row->status ?? ''));
+  if ($status_now === 'terkonfirmasi') {
+    return redirect('billiard/cart?t=' . rawurlencode($row->access_token));
+  }
+
+  // Samakan perilaku dengan transfer/QRIS:
+  // - Promosikan dari draft -> verifikasi
+  // - Set metode_bayar = cash
+  // - TIDAK auto-konfirmasi/lunas
+  $needPromote    = ($status_now === 'draft');
+  $needSyncMethod = (strtolower((string)($row->metode_bayar ?? '')) !== 'cash');
+
+  if ($needPromote || $needSyncMethod) {
+    $this->_set_verifikasi((int)$row->id_pesanan, 'cash'); // kode_unik=0, grand_total=subtotal
+    $row = $this->mbi->get_by_token($token);
+    if (!$row) show_404();
+  }
+
+  // Arahkan balik ke cart (kasir bisa proses manual di kasir)
+  return redirect('billiard/cart?t=' . rawurlencode($row->access_token));
+}
 
 /** Halaman info kedaluwarsa sederhana */
 public function expired(){
@@ -1495,8 +1524,14 @@ $subtotal = $effRate * $durasi;
     return $this->_json(["success"=>false,"title"=>"Slot Bentrok","pesan"=>"Slot diambil pengguna lain tepat saat konfirmasi. Silakan atur ulang."]);
   }
 
-  $status = ($metode === 'cash') ? 'terkonfirmasi' : 'verifikasi';
-  $this->mbi->update_by_token($token, ['metode_bayar'=>$metode,'status'=>$status]);
+  // Semua metode diset ke 'verifikasi' (tidak ada auto-terkonfirmasi untuk cash)
+$status = 'verifikasi';
+$this->mbi->update_by_token($token, [
+  'metode_bayar' => $metode,
+  'status'       => $status,
+  'updated_at'   => date('Y-m-d H:i:s'),
+]);
+
 
   // WA otomat (ringkas)
   $this->_wa_ringkasan($rec, $metode, $status);

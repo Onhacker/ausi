@@ -30,6 +30,16 @@
     'debit'         => ['Kartu Debit', 'mdi-credit-card-outline'],
     'kartu'         => ['Kartu', 'mdi-credit-card-outline'],
   ];
+  $admin_user = strtolower((string)($this->session->userdata('admin_username') ?? ''));
+  $is_kasir   = ($admin_user === 'kasir');
+
+  // tombol pay muncul bila status draft & ada token (untuk kasir maupun non-session)
+  $allow_statuses = ['draft'];
+  $show_pay_buttons = isset($booking)
+  && !empty($booking->access_token)
+  && isset($booking->status)
+  && in_array(strtolower((string)$booking->status), $allow_statuses, true);
+
   [$pay_text, $pay_icon] = $pay_map[$pay_raw] ?? ['-', 'mdi-credit-card-outline'];
 
   $tgl_disp = '';
@@ -53,12 +63,6 @@
   $hide_cancel = in_array($st_raw, ['terkonfirmasi','verifikasi'], true);
 
   // tombol pay?
-  $allow_statuses = ['draft'];
-  $show_pay_buttons = isset($booking)
-    && !empty($booking->access_token)
-    && isset($booking->status)
-    && in_array(strtolower((string)$booking->status), $allow_statuses, true)
-    && ($this->session->userdata("admin_username") <> "kasir");
 
   // deadline bayar
   if (isset($rec) && isset($rec->late_min)) {
@@ -303,7 +307,8 @@
                     </td>
                   </tr>
 
-                  <?php if ($is_terkonfirmasi): ?>
+                 <?php if (in_array($st_raw, ['verifikasi','terkonfirmasi'], true)): ?>
+
                   <tr>
                     <th>Metode Pembayaran</th>
                     <td>
@@ -489,7 +494,18 @@
     const dl = Number(root.dataset.deadlineMs || 0);
     const diff = dl - Date.now();
     cd.textContent = fmt(diff);
-    if (diff <= 0) clearInterval(t);
+    if (diff <= 0) {
+  clearInterval(t);
+  cd.textContent = '00:00';
+  root.classList.remove('alert-info');
+  root.classList.add('alert-danger');
+  root.innerHTML = 'Batas waktu pembayaran habis. Silakan buat ulang booking.';
+  document.querySelectorAll('.js-pay').forEach(btn => {
+    btn.setAttribute('disabled','disabled');
+    btn.classList.add('disabled');
+  });
+}
+
   }
 
   const t = setInterval(tick, 1000);
@@ -757,10 +773,9 @@
 
     // Kalau kamu mau live update di tabel tiket juga, kita bisa update innerText Total Bayar:
     // (opsional, aman kalau kolomnya ada)
-    const totalBayarCells = document.querySelectorAll('[data-totalbayar-cell]');
-    totalBayarCells.forEach(function(cell){
-      cell.querySelector('.totalBayarVal').textContent = 'Rp '+rpStr(calcGrand);
-    });
+    const valEl = document.querySelector('.totalBayarVal');
+if (valEl) { valEl.textContent = 'Rp '+rpStr(calcGrand); }
+
   }
 
   ['input','change'].forEach(ev=>{
