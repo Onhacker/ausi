@@ -35,6 +35,67 @@ $us = $this->om->user();
 <link href="<?php echo base_url('assets/admin') ?>/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
 <link href="<?php echo base_url(); ?>assets/admin/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />
 <script src="<?php echo base_url("assets/admin") ?>/js/jquery-3.1.1.min.js"></script>
+<style>
+/* Overlay hanya tampil saat PORTRAIT di halaman yg dipaksa landscape */
+body.force-landscape #rotate-overlay{ display:none; }
+@media (orientation: portrait){
+  body.force-landscape #rotate-overlay{
+    display:flex; position:fixed; inset:0;
+    align-items:center; justify-content:center;
+    background:#0b3b6d; color:#fff; z-index:999999;
+    padding:24px; text-align:center;
+  }
+  /* nonaktifkan interaksi konten di balik overlay */
+  body.force-landscape #app, 
+  body.force-landscape .page,
+  body.force-landscape .content {
+    filter: blur(1px);
+    pointer-events:none;
+    user-select:none;
+  }
+}
+#rotate-overlay .box{
+  max-width: 460px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 16px;
+  padding: 20px;
+}
+#rotate-overlay .emoji{ font-size: 42px; margin-bottom: 8px; display:block; }
+</style>
+
+<?php if (!empty($force_landscape)): ?>
+  <div id="rotate-overlay" aria-hidden="true">
+    <div class="box">
+      <span class="emoji">🔄</span>
+      <div>Silakan putar perangkat ke posisi <b>landscape</b> untuk halaman admin.</div>
+    </div>
+  </div>
+<?php endif; ?>
+<?php if (!empty($force_landscape)): ?>
+<script>
+(function(){
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (typeof navigator !== 'undefined' && navigator.standalone);
+
+  async function tryLockLandscape(){
+    if (!('orientation' in screen) || !screen.orientation.lock) return;
+    try { await screen.orientation.lock('landscape'); } catch(_) {}
+  }
+
+  // coba otomatis saat PWA/standalone
+  if (isStandalone) {
+    window.addEventListener('load', () => setTimeout(tryLockLandscape, 100));
+  }
+  // pastikan sekali lagi setelah gesture user
+  window.addEventListener('click', function once(){
+    tryLockLandscape();
+    window.removeEventListener('click', once);
+  }, {once:true});
+})();
+</script>
+<?php endif; ?>
 
 <style type="text/css">
     html {
