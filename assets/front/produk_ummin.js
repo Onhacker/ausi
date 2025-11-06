@@ -327,15 +327,15 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
   }
 
   function setSortLabel(val){
-  const map={random:"For You","new":"Terbaru",bestseller:"Terlaris",price_low:"Harga Rendah",price_high:"Harga Tinggi",sold_out:"Habis",trending:"Trending"};
+  const map={random:"Untukmu","new":"Terbaru",bestseller:"Terlaris",price_low:"Harga Rendah",price_high:"Harga Tinggi",sold_out:"Habis",trending:"Favorit"};
   let txt=map[val]||"Urutkan";
 
   if(val==="trending"){
     const t=($("#trend").val()||"").toLowerCase();
     const d=parseInt($("#trend_days").val()||"0",10);
-    if(t==="today"||d===1) txt="Trending (Hari ini)";
-    else if(t==="week"||d===7) txt="Trending (7 hari)";
-    else if(t==="month"||d===30) txt="Trending (30 hari)";
+    if(t==="today"||d===1) txt="Favorit (Hari ini)";
+    else if(t==="week"||d===7) txt="Favorit (7 hari)";
+    else if(t==="month"||d===30) txt="Favorit (30 hari)";
   }
   $("#sortBtnLabel").text(txt);
 }

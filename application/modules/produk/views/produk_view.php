@@ -51,7 +51,7 @@ if (!empty($kategoris)) {
 
           <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownSortBtn">
   <a class="dropdown-item sort-opt" data-sort="random" href="javascript:void(0)">
-    <i class="fas fa-thumbs-up me-2"></i> For You
+    <i class="fas fa-thumbs-up me-2"></i> Untukmu
   </a>
   <a class="dropdown-item sort-opt" data-sort="new" href="javascript:void(0)">
     <i class="fas fa-clock me-2"></i> Terbaru
@@ -60,13 +60,13 @@ if (!empty($kategoris)) {
   <!-- ⬇️ Tambahan: Trending -->
   <div class="dropdown-divider"></div>
   <a class="dropdown-item sort-opt" data-sort="trending" data-trend="today" href="javascript:void(0)">
-    <i class="fas fa-bolt me-2"></i> Trending • Hari ini
+    <i class="fas fa-bolt me-2"></i> Favorit • Hari ini
   </a>
   <a class="dropdown-item sort-opt" data-sort="trending" data-trend="week" href="javascript:void(0)">
-    <i class="fas fa-bolt me-2"></i> Trending • 7 hari
+    <i class="fas fa-bolt me-2"></i> Favorit • 7 hari
   </a>
   <a class="dropdown-item sort-opt" data-sort="trending" data-trend="month" href="javascript:void(0)">
-    <i class="fas fa-bolt me-2"></i> Trending • 30 hari
+    <i class="fas fa-bolt me-2"></i> Favorit • 30 hari
   </a>
   <div class="dropdown-divider"></div>
 
