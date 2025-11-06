@@ -1292,30 +1292,29 @@ $respPayload = [
   'message'  => 'Pesanan dibuat (status pending)',
   'redirect' => site_url('produk/order_success/'.$nomor)
 ];
-@session_write_close();
-// 🔔 TRIGGER background worker (tanpa cron)
-// 🔔 TRIGGER background worker (tanpa cron)
+// === setelah beres insert & $respPayload dibuat ===
+@session_write_close(); // lepas lock session biar request klien cepat selesai
+
 try {
+    // 1) Coba jalankan worker via CLI (non-blocking)
     $spawned = $this->_spawn_cli('produk post_submit_notify', [$order_id]);
 
+    // 2) Kalau CLI tidak bisa (exec diblokir), fallback ke HTTP non-blocking
     if (!$spawned) {
-        // Fallback NON-BLOCKING via HTTP (tetap tanpa cron)
-        $secret = 'YOUR_STRONG_SECRET';
-        $okHttp = $this->_spawn_http_bg('/index.php/produk/post_submit_notify/'.$order_id.'?secret='.rawurlencode($secret));
-        if (!$okHttp) {
-            log_message('error','post_submit_notify: all spawn methods failed (CLI+HTTP). Skipped to keep fast response.');
+        $secret = (string)config_item('post_notify_secret'); // <-- AMBIL DARI CONFIG
+        if ($secret !== '') {
+            $this->_spawn_http_bg('/index.php/produk/post_submit_notify/'.$order_id.'?secret='.rawurlencode($secret));
+        } else {
+            log_message('error','post_submit_notify: secret kosong; skip HTTP spawn');
         }
     }
 } catch (\Throwable $e) {
     log_message('error','spawn notify fail: '.$e->getMessage());
 }
 
-
-// ⏩ Kembalikan respon ke klien CEPAT (tanpa flush aneh-aneh)
-
-
+// 3) Kembalikan respon ke klien (cepat)
 return $this->output->set_content_type('application/json')
-                    ->set_output(json_encode(['success'=>true] + $respPayload));
+    ->set_output(json_encode(['success'=>true] + $respPayload));
 
     // return $this->_json_ok([
     //     'order_id' => (int)$order_id,
@@ -1328,27 +1327,64 @@ return $this->output->set_content_type('application/json')
 
 private function _spawn_http_bg($path) : bool
 {
-    // contoh: $path = '/index.php/produk/post_submit_notify/123?secret=...'
-    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$port   = ($scheme === 'https') ? 443 : 80;
-$target = (($scheme === 'https') ? 'ssl://' : '').$host; // ganti ssl:// -> tls://
+    // --- Host dari config (lebih aman ketimbang HTTP_HOST) ---
+    $base = rtrim((string)config_item('base_url') ?: '', '/');
+    $cfgHost = parse_url($base, PHP_URL_HOST) ?: '';
+    $cfgPort = (int)(parse_url($base, PHP_URL_PORT) ?: 0);
+    $rawHost = $_SERVER['HTTP_HOST'] ?? ($cfgHost ?: 'localhost');
 
+    // Sanitasi host: hanya huruf/angka/titik/dash/colon
+    if (!preg_match('/^[A-Za-z0-9\.\-:]+$/', $rawHost)) { $rawHost = $cfgHost ?: 'localhost'; }
 
-    $fp = @fsockopen($target, $port, $errno, $errstr, 1.0);
-    if (!$fp) { log_message('error', "spawn_http_bg fsockopen fail: $errno $errstr"); return false; }
+    // Pecah host:port
+    $host = $rawHost; $hostPort = null;
+    if (strpos($rawHost, ':') !== false) { [$host, $hp] = explode(':', $rawHost, 2); $hostPort = (int)$hp; }
 
-    stream_set_blocking($fp, false); // jangan tunggu respon
+    // --- Deteksi HTTPS (juga dari proxy) ---
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+          || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+    $port  = $hostPort ?: ($cfgPort ?: ($https ? 443 : 80));
+    $schemePrefix = $https ? 'tls://' : '';
+
+    // --- Sanitasi path: wajib absolut & no whitespace ---
+    $path = (string)$path;
+    if ($path === '' || $path[0] !== '/') { $path = '/'.ltrim($path, "/ \t\r\n"); }
+    if (preg_match('/\s/', $path)) { $path = preg_replace('/\s+/', '', $path); }
+
+    // --- TLS/SNI context (verify dimatikan untuk loopback ke diri sendiri) ---
+    $ctx = null;
+    if ($https) {
+        $ctx = stream_context_create([
+            'ssl' => [
+                'SNI_enabled'      => true,
+                'peer_name'        => $host,
+                'verify_peer'      => false,
+                'verify_peer_name' => false,
+            ]
+        ]);
+    }
+
+    $fp = @stream_socket_client(
+        "{$schemePrefix}{$host}:{$port}",
+        $errno, $errstr, 1.0,
+        STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
+        $ctx
+    );
+    if (!$fp) { log_message('error', "spawn_http_bg connect fail: $errno $errstr"); return false; }
+
+    stream_set_blocking($fp, false);
     stream_set_timeout($fp, 0, 200000); // 200ms
 
     $req  = "GET {$path} HTTP/1.0\r\n";
-    $req .= "Host: {$host}\r\n";
+    $req .= "Host: {$rawHost}\r\n";
     $req .= "Connection: Close\r\n\r\n";
 
     @fwrite($fp, $req);
     @fclose($fp);
     return true;
 }
+
 
 public function post_submit_notify($order_id = null, $secret = null)
 {

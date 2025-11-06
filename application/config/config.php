@@ -80,6 +80,7 @@ $config['url_suffix'] = '';
 |
 */
 $config['language']	= 'english';
+$config['post_notify_secret'] = 'ganti_dengan_string_acak_yang_panjang';
 
 /*
 |--------------------------------------------------------------------------
