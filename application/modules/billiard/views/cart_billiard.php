@@ -115,6 +115,44 @@
     </div>
   <?php endif; ?>
 
+ <!-- =================== BLOK AKSI BAYAR / COUNTDOWN =================== -->
+  <?php if ($show_pay_buttons): ?>
+  <div class="row">
+    <div class="col-12">
+      <div class="card-box">
+        <div class="card-body">
+
+          <div id="pay-deadline"
+               class="text-dark alert alert-info"
+               data-deadline-ms="<?= $deadline_ts * 1000 ?>">
+            Pilih salah satu metode di bawah ya.
+            <span class="d-block d-lg-inline">
+              Pembayaran harus selesai sebelum
+              <strong><?= date('H:i', $deadline_ts) ?> WITA</strong><br>
+              Waktu pembayaran sisa (<span id="countdown">--:--</span>).
+            </span>
+          </div>
+
+          <div class="pay-actions d-flex flex-wrap" style="gap:14px 16px;">
+            <a class="btn btn-primary btn-sm js-pay"
+               href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
+               data-method="qris">
+              <i class="mdi mdi-qrcode-scan"></i> QRIS
+            </a>
+
+            <a class="btn btn-info btn-sm js-pay"
+               href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
+               data-method="transfer">
+              <i class="mdi mdi-bank-transfer"></i> TRANSFER
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+  
   <!-- =============== CARD RINGKASAN (TICKET STYLE) =============== -->
   <div class="row">
     <div class="col-12">
@@ -259,43 +297,7 @@
   <!-- ============= /CARD RINGKASAN ============= -->
 
 
-  <!-- =================== BLOK AKSI BAYAR / COUNTDOWN =================== -->
-  <?php if ($show_pay_buttons): ?>
-  <div class="row">
-    <div class="col-12">
-      <div class="card-box">
-        <div class="card-body">
-
-          <div id="pay-deadline"
-               class="text-dark alert alert-info"
-               data-deadline-ms="<?= $deadline_ts * 1000 ?>">
-            Pilih salah satu metode di bawah ya.
-            <span class="d-block d-lg-inline">
-              Pembayaran harus selesai sebelum
-              <strong><?= date('H:i', $deadline_ts) ?> WITA</strong><br>
-              Waktu pembayaran sisa (<span id="countdown">--:--</span>).
-            </span>
-          </div>
-
-          <div class="pay-actions d-flex flex-wrap" style="gap:14px 16px;">
-            <a class="btn btn-primary btn-sm js-pay"
-               href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
-               data-method="qris">
-              <i class="mdi mdi-qrcode-scan"></i> QRIS
-            </a>
-
-            <a class="btn btn-info btn-sm js-pay"
-               href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
-               data-method="transfer">
-              <i class="mdi mdi-bank-transfer"></i> TRANSFER
-            </a>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
+ 
   <!-- ================= /BLOK AKSI BAYAR ================= -->
 
   <!-- Tombol Batalkan Booking -->
