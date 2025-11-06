@@ -30,7 +30,7 @@ if (!function_exists('nav_class')) {
 
 <style>
   .navbar-bottom {
-    height: 65px;
+    /*height: 65px;*/
     border-top: 1px solid #dee2e6;
     background-color: #fff;
     box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
@@ -121,9 +121,9 @@ if (!function_exists('nav_class')) {
       </a>
     </div> -->
 
-    <div class="space-left"></div>
+    <!-- <div class="space-left"></div> -->
 
-    <?php $web = $this->om->web_me();
+  <!--   <?php $web = $this->om->web_me();
     if (!function_exists('user_can_mod')) $this->load->helper('menu');
 
     $can_scan   = function_exists('user_can_mod') ? user_can_mod(['admin_pos','scan','checkin/checkout']) : false;
@@ -140,8 +140,8 @@ if (!function_exists('nav_class')) {
              style="width:50px;height:50px;object-fit:contain;margin-top:0;">
       </div>
     </a>
-
-    <div class="space-right"></div>
+ -->
+    <!-- <div class="space-right"></div> -->
 
    <!--  <div class="nav-item">
       <a href="<?= base_url('hal/struktur') ?>" class="<?= nav_class($uri, ['hal/struktur*']) ?>">
@@ -161,7 +161,7 @@ if (!function_exists('nav_class')) {
     <div class="nav-item">
       <a href="#" class="<?= nav_class($uri, $menu_patterns) ?>" data-toggle="modal" data-target="#kontakModal">
         <i class="fas fa-bars d-block mb-1"></i>
-        <span class="small">Menu</span>
+        <span class="small"></span>
       </a>
     </div>
 
@@ -215,121 +215,129 @@ if (!function_exists('nav_class')) {
       </div>
 
       <div class="modal-body p-0">
-        <div class="menu-list">
+        <style>
+  /* biar emoji rapi sejajar teks */
+  .menu-item .emoji{
+    font-size: 1.25rem;
+    width: 1.6em;
+    display: inline-block;
+    text-align: center;
+    margin-right: 8px;
+    transform: translateY(-1px);
+  }
+</style>
+
+<div class="menu-list">
 
   <!-- Profil (public) -->
   <a href="<?= base_url('admin_profil/detail_profil') ?>" class="menu-item">
-    <i class="mdi mdi-account-circle-outline"></i><span>Profil</span>
+    <span class="emoji" aria-hidden="true">👤</span><span>Profil</span>
   </a>
-
 
   <!-- Produk -->
   <?php if (user_can_mod(['admin_produk'])): ?>
     <a id="quick-produk-link" href="<?= site_url('admin_produk') ?>" class="menu-item">
-      <i class="mdi mdi-package-variant-closed"></i><span>Produk</span>
+      <span class="emoji" aria-hidden="true">📦</span><span>Produk</span>
     </a>
   <?php endif; ?>
 
   <!-- POS Caffe -->
   <?php if (user_can_mod(['admin_pos'])): ?>
     <a id="quick-pos-link" href="<?= site_url('admin_pos') ?>" class="menu-item">
-      <i class="mdi mdi-coffee-outline"></i><span>POS Caffe</span>
+      <span class="emoji" aria-hidden="true">☕️</span><span>POS Caffe</span>
     </a>
   <?php endif; ?>
 
   <!-- POS Billiard -->
   <?php if (user_can_mod(['admin_billiard'])): ?>
     <a id="quick-billiard-link" href="<?= site_url('admin_billiard') ?>" class="menu-item">
-      <i class="mdi mdi-billiards"></i><span>POS Billiard</span>
+      <span class="emoji" aria-hidden="true">🎱</span><span>POS Billiard</span>
     </a>
   <?php endif; ?>
 
   <?php if (user_can_mod(['admin_kursi_pijat'])): ?>
-    <a id="quick-billiard-link" href="<?= site_url('admin_kursi_pijat') ?>" class="menu-item">
-      <i class="mdi mdi-seat-recline-extra"></i><span>POS Kursi Pijat</span>
+    <a id="quick-kursi-pijat-link" href="<?= site_url('admin_kursi_pijat') ?>" class="menu-item">
+      <span class="emoji" aria-hidden="true">💺</span><span>POS Kursi Pijat</span>
     </a>
   <?php endif; ?>
 
   <!-- Pengeluaran -->
   <?php if (user_can_mod(['admin_pengeluaran'])): ?>
     <a id="quick-pengeluaran-link" href="<?= site_url('admin_pengeluaran') ?>" class="menu-item">
-      <i class="mdi mdi-cash-minus"></i><span>Pengeluaran</span>
+      <span class="emoji" aria-hidden="true">💸</span><span>Pengeluaran</span>
     </a>
   <?php endif; ?>
 
   <!-- Riwayat Caffe -->
   <?php if (user_can_mod(['admin_pos_riwayat'])): ?>
     <a id="quick-riwayat-caffe-link" href="<?= site_url('admin_pos_riwayat') ?>" class="menu-item">
-      <i class="mdi mdi-history"></i><span>Riwayat Caffe</span>
+      <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Caffe</span>
     </a>
   <?php endif; ?>
 
   <!-- Riwayat Billiard -->
   <?php if (user_can_mod(['admin_riwayat_billiard'])): ?>
     <a id="quick-riwayat-billiard-link" href="<?= site_url('admin_riwayat_billiard') ?>" class="menu-item">
-      <i class="mdi mdi-history"></i><span>Riwayat Billiard</span>
+      <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Billiard</span>
     </a>
   <?php endif; ?>
 
   <!-- Laporan -->
   <?php if (user_can_mod(['admin_laporan','admin_laporan/index'])): ?>
     <a id="quick-laporan-link" href="<?= site_url('admin_laporan') ?>" class="menu-item">
-      <i class="mdi mdi-file-chart"></i><span>Laporan</span>
+      <span class="emoji" aria-hidden="true">📊</span><span>Laporan</span>
     </a>
   <?php endif; ?>
 
   <!-- Manajemen User -->
   <?php if (user_can_mod(['admin_user'])): ?>
     <a id="quick-user-link" href="<?= site_url('admin_user') ?>" class="menu-item">
-      <i class="mdi mdi-account-cog"></i><span>Manajemen User</span>
+      <span class="emoji" aria-hidden="true">👥</span><span>Manajemen User</span>
     </a>
   <?php endif; ?>
 
   <!-- Pengaturan Sistem -->
   <?php if (user_can_mod(['admin_setting_web'])): ?>
     <a id="quick-setting-link" href="<?= site_url('admin_setting_web') ?>" class="menu-item">
-      <i class="mdi mdi-cog-outline"></i><span>Pengaturan Sistem</span>
+      <span class="emoji" aria-hidden="true">⚙️</span><span>Pengaturan Sistem</span>
     </a>
   <?php endif; ?>
 
   <!-- Kategori Produk -->
   <?php if (user_can_mod(['admin_kategori_produk'])): ?>
     <a id="quick-kategori-link" href="<?= site_url('admin_kategori_produk') ?>" class="menu-item">
-      <i class="mdi mdi-tag-multiple-outline"></i><span>Kategori Produk</span>
+      <span class="emoji" aria-hidden="true">🏷️</span><span>Kategori Produk</span>
     </a>
   <?php endif; ?>
-
 
   <!-- Unit Lain -->
   <?php if (user_can_mod(['admin_unit_lain'])): ?>
     <a id="quick-unit-lain-link" href="<?= site_url('admin_unit_lain') ?>" class="menu-item">
-      <i class="mdi mdi-domain-plus"></i><span>Unit Lain</span>
+      <span class="emoji" aria-hidden="true">🧩</span><span>Unit Lain</span>
     </a>
   <?php endif; ?>
-
- 
 
   <!-- Pengumuman -->
   <?php if (user_can_mod(['admin_pengumuman'])): ?>
     <a id="quick-pengumuman-link" href="<?= site_url('admin_pengumuman') ?>" class="menu-item">
-      <i class="mdi mdi-bullhorn-outline"></i><span>Pengumuman</span>
+      <span class="emoji" aria-hidden="true">📣</span><span>Pengumuman</span>
     </a>
   <?php endif; ?>
 
   <!-- Meja -->
   <?php if (user_can_mod(['admin_meja'])): ?>
     <a id="quick-meja-link" href="<?= site_url('admin_meja') ?>" class="menu-item">
-      <i class="mdi mdi-table-chair"></i><span>Meja</span>
+      <span class="emoji" aria-hidden="true">🪑</span><span>Meja</span>
     </a>
   <?php endif; ?>
-<?php if (user_can_mod(['admin_meja_billiard'])): ?>
-    <a id="quick-meja-link" href="<?= site_url('admin_meja_billiard') ?>" class="menu-item">
-      <i class="mdi mdi-table-chair"></i><span>Meja Billiard</span>
+
+  <?php if (user_can_mod(['admin_meja_billiard'])): ?>
+    <a id="quick-meja-billiard-link" href="<?= site_url('admin_meja_billiard') ?>" class="menu-item">
+      <span class="emoji" aria-hidden="true">🎱</span><span>Meja Billiard</span>
     </a>
   <?php endif; ?>
 </div>
 
-      </div>
     </div>
   </div>
 </div>
