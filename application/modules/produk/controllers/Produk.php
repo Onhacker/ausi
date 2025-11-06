@@ -1292,30 +1292,28 @@ $respPayload = [
   'message'  => 'Pesanan dibuat (status pending)',
   'redirect' => site_url('produk/order_success/'.$nomor)
 ];
-
+@session_write_close();
+// 🔔 TRIGGER background worker (tanpa cron)
 // 🔔 TRIGGER background worker (tanpa cron)
 try {
-    // Rute CLI: controller + method
-    // Contoh: php index.php produk post_submit_notify 123
     $spawned = $this->_spawn_cli('produk post_submit_notify', [$order_id]);
+
     if (!$spawned) {
-        // Fallback terakhir (optional): kalau exec dilarang, masih bisa jalan sinkron
-        // tapi ini yang bikin lambat. Boleh kamu disable kalau mau benar-benar lepas.
-        try {
-            if ($mode === 'delivery') {
-                $ord2 = $this->db->get_where('pesanan', ['id'=>$order_id])->row();
-                if ($ord2 && !empty($ord2->customer_phone)) { $this->_wa_notify_delivery_submit($ord2, null); }
-            }
-            if ($email !== '') { $this->_email_order_confirmation($order_id); }
-        } catch (\Throwable $e) {
-            log_message('error','fallback notify error: '.$e->getMessage());
+        // Fallback NON-BLOCKING via HTTP (tetap tanpa cron)
+        $secret = 'YOUR_STRONG_SECRET';
+        $okHttp = $this->_spawn_http_bg('/index.php/produk/post_submit_notify/'.$order_id.'?secret='.rawurlencode($secret));
+        if (!$okHttp) {
+            log_message('error','post_submit_notify: all spawn methods failed (CLI+HTTP). Skipped to keep fast response.');
         }
     }
 } catch (\Throwable $e) {
     log_message('error','spawn notify fail: '.$e->getMessage());
 }
 
+
 // ⏩ Kembalikan respon ke klien CEPAT (tanpa flush aneh-aneh)
+
+
 return $this->output->set_content_type('application/json')
                     ->set_output(json_encode(['success'=>true] + $respPayload));
 
@@ -1327,37 +1325,55 @@ return $this->output->set_content_type('application/json')
     //     'redirect' => site_url('produk/order_success/'.$nomor) // <— pakai nomor
     // ]);
 }
+
+private function _spawn_http_bg($path) : bool
+{
+    // contoh: $path = '/index.php/produk/post_submit_notify/123?secret=...'
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$port   = ($scheme === 'https') ? 443 : 80;
+$target = (($scheme === 'https') ? 'ssl://' : '').$host; // ganti ssl:// -> tls://
+
+
+    $fp = @fsockopen($target, $port, $errno, $errstr, 1.0);
+    if (!$fp) { log_message('error', "spawn_http_bg fsockopen fail: $errno $errstr"); return false; }
+
+    stream_set_blocking($fp, false); // jangan tunggu respon
+    stream_set_timeout($fp, 0, 200000); // 200ms
+
+    $req  = "GET {$path} HTTP/1.0\r\n";
+    $req .= "Host: {$host}\r\n";
+    $req .= "Connection: Close\r\n\r\n";
+
+    @fwrite($fp, $req);
+    @fclose($fp);
+    return true;
+}
+
 public function post_submit_notify($order_id = null, $secret = null)
 {
-    // Amankan: hanya CLI atau pakai secret
     if (!$this->input->is_cli_request() && $secret !== 'YOUR_STRONG_SECRET') { show_404(); }
 
     $order_id = (int)$order_id;
-    if ($order_id <= 0) { return; }
+    if ($order_id <= 0) { $this->output->set_status_header(204); return; }
 
-    // Ambil order
     $ord = $this->db->get_where('pesanan', ['id'=>$order_id])->row();
-    if (!$ord) { return; }
+    if ($ord) {
+        try {
+            if (strtolower($ord->mode ?? '') === 'delivery' && !empty($ord->customer_phone)) {
+                $this->_wa_notify_delivery_submit($ord, null);
+            }
+        } catch (\Throwable $e) { log_message('error','post_submit_notify WA error: '.$e->getMessage()); }
 
-    try {
-        // WA hanya kalau delivery + ada nomor
-        if (strtolower($ord->mode ?? '') === 'delivery' && !empty($ord->customer_phone)) {
-            // items=null -> helper ambil sendiri dari DB
-            $this->_wa_notify_delivery_submit($ord, null);
-        }
-    } catch (\Throwable $e) {
-        log_message('error', 'post_submit_notify WA error: '.$e->getMessage());
+        try {
+            if (!empty($ord->email)) { $this->_email_order_confirmation($order_id); }
+        } catch (\Throwable $e) { log_message('error','post_submit_notify MAIL error: '.$e->getMessage()); }
     }
 
-    try {
-        // Email bila ada
-        if (!empty($ord->email)) {
-            $this->_email_order_confirmation($order_id);
-        }
-    } catch (\Throwable $e) {
-        log_message('error', 'post_submit_notify MAIL error: '.$e->getMessage());
-    }
+    $this->output->set_status_header(204); // No Content
+    return;
 }
+
 private function _spawn_cli($route, array $args = []): bool
 {
     // Tentukan binary php CLI (boleh ganti ke config)
