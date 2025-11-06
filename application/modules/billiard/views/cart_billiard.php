@@ -116,43 +116,87 @@
   <?php endif; ?>
 
  <!-- =================== BLOK AKSI BAYAR / COUNTDOWN =================== -->
-  <?php if ($show_pay_buttons): ?>
+ <?php if ($show_pay_buttons): ?>
+  <style>
+    /* Tata letak tombol biar rapi & responsif */
+    .pay-actions { gap: 12px 14px; }
+    .pay-actions .btn-pay {
+      flex: 1 1 160px;           /* lebar fleksibel */
+      min-width: 140px;          /* batas minimum */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+    .pay-summary {
+      border: 1px dashed rgba(0,0,0,.12);
+      border-radius: .5rem;
+      padding: .75rem 1rem;
+      background: #fcfcfd;
+    }
+    @media (min-width: 992px){
+      .pay-head { display:flex; align-items:center; justify-content:space-between; }
+    }
+  </style>
+
   <div class="row">
     <div class="col-12">
       <div class="card-box">
         <div class="card-body">
 
-          <div id="pay-deadline"
-               class="text-dark alert alert-info"
-               data-deadline-ms="<?= $deadline_ts * 1000 ?>">
-            Pilih salah satu metode di bawah ya.
-            <span class="d-block d-lg-inline">
-              Pembayaran harus selesai sebelum
-              <strong><?= date('H:i', $deadline_ts) ?> WITA</strong><br>
-              Waktu pembayaran sisa (<span id="countdown">--:--</span>).
-            </span>
+          <div class="pay-head mb-3">
+            <div class="pay-summary mr-lg-3 mb-2 mb-lg-0">
+              <div class="text-muted small mb-1">Total Bayar</div>
+              <div class="h3 m-0">
+                <strong class="totalBayarVal">Rp <?= number_format($grand_total,0,',','.') ?></strong>
+              </div>
+            </div>
+
+            <div id="pay-deadline"
+                 class="text-dark alert alert-info mb-0"
+                 data-deadline-ms="<?= $deadline_ts * 1000 ?>">
+              Pilih salah satu metode di bawah.
+              <span class="d-block d-lg-inline">
+                Bayar sebelum <strong><?= date('H:i', $deadline_ts) ?> WITA</strong> —
+                sisa waktu
+                <strong><span id="countdown" aria-live="polite">--:--</span></strong>.
+              </span>
+            </div>
           </div>
 
-          <div class="pay-actions d-flex flex-wrap" style="gap:14px 16px;">
-            <a class="btn btn-primary btn-sm js-pay"
+          <div class="pay-actions d-flex flex-wrap">
+            <?php if ($is_kasir): ?>
+              <a class="btn btn-success btn-sm btn-pay js-pay"
+                 href="<?= site_url('billiard/pay_cash/'.rawurlencode($booking->access_token)) ?>"
+                 data-method="cash" aria-label="Bayar Tunai (kasir)">
+                <i class="mdi mdi-cash mr-1"></i> TUNAI
+              </a>
+            <?php endif; ?>
+
+            <a class="btn btn-primary btn-sm btn-pay js-pay"
                href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
-               data-method="qris">
-              <i class="mdi mdi-qrcode-scan"></i> QRIS
+               data-method="qris" aria-label="Bayar via QRIS">
+              <i class="mdi mdi-qrcode-scan mr-1"></i> QRIS
             </a>
 
-            <a class="btn btn-info btn-sm js-pay"
+            <a class="btn btn-info btn-sm btn-pay js-pay"
                href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
-               data-method="transfer">
-              <i class="mdi mdi-bank-transfer"></i> TRANSFER
+               data-method="transfer" aria-label="Bayar via Transfer Bank">
+              <i class="mdi mdi-bank-transfer mr-1"></i> TRANSFER
             </a>
+          </div>
+
+          <div class="text-muted small mt-2">
+            Nominal sudah termasuk <em>kode unik</em> bila ada.
           </div>
 
         </div>
       </div>
     </div>
   </div>
-  <?php endif; ?>
-  
+<?php endif; ?>
+
   <!-- =============== CARD RINGKASAN (TICKET STYLE) =============== -->
   <div class="row">
     <div class="col-12">
@@ -224,7 +268,7 @@
                   </tr>
 
                   <tr>
-                    <th>Subtotal Asli (informasi)</th>
+                    <th>Subtotal</th>
                     <td>Rp <?= number_format($subtotal_now,0,',','.') ?></td>
                   </tr>
 
