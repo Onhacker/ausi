@@ -794,22 +794,22 @@ public function status(){
 
     // === AUTO CONFIRM utk kasir ===
     // pastikan library session aktif (biasanya sudah autoload)
-    $role = strtolower((string)$this->session->userdata('admin_username'));
-    if ($role === 'kasir') {
-        $curStatus = strtolower((string)($booking->status ?? ''));
-        if ($curStatus !== 'verifikasi') {
-            // update lewat model (by token biar pasti)
-            $this->mbi->set_status_by_token($token, 'verifikasi', [
-                'updated_at' => date('Y-m-d H:i:s'),
-                'metode_bayar' => 'cash',
-            ]);
+    // $role = strtolower((string)$this->session->userdata('admin_username'));
+    // if ($role === 'kasir') {
+    //     $curStatus = strtolower((string)($booking->status ?? ''));
+    //     if ($curStatus !== 'verifikasi') {
+    //         // update lewat model (by token biar pasti)
+    //         $this->mbi->set_status_by_token($token, 'verifikasi', [
+    //             'updated_at' => date('Y-m-d H:i:s'),
+    //             'metode_bayar' => 'cash',
+    //         ]);
 
-            // sinkronkan objek $booking utk view saat ini (tanpa query ulang)
-            $booking->status       = 'verifikasi';
-            $booking->updated_at = date('Y-m-d H:i:s');
-            $booking->metode_bayar = 'cash';
-        }
-    }
+    //         // sinkronkan objek $booking utk view saat ini (tanpa query ulang)
+    //         $booking->status       = 'verifikasi';
+    //         $booking->updated_at = date('Y-m-d H:i:s');
+    //         $booking->metode_bayar = 'cash';
+    //     }
+    // }
     // === END AUTO CONFIRM ===
     $deadline_ts = $this->_deadline_ts($booking);
     // ambil info meja master (untuk data lain seperti price/jam buka/tutup)
