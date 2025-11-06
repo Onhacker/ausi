@@ -1285,159 +1285,15 @@ public function leave_table(){
    
 
 }
-// Siapkan payload untuk respon cepat
-$respPayload = [
-  'order_id' => (int)$order_id,
-  'nomor'    => $nomor ?: $order_id,
-  'message'  => 'Pesanan dibuat (status pending)',
-  'redirect' => site_url('produk/order_success/'.$nomor)
-];
-// === setelah beres insert & $respPayload dibuat ===
-@session_write_close(); // lepas lock session biar request klien cepat selesai
 
-try {
-    // 1) Coba jalankan worker via CLI (non-blocking)
-    $spawned = $this->_spawn_cli('produk post_submit_notify', [$order_id]);
-
-    // 2) Kalau CLI tidak bisa (exec diblokir), fallback ke HTTP non-blocking
-    if (!$spawned) {
-        $secret = (string)config_item('post_notify_secret'); // <-- AMBIL DARI CONFIG
-        if ($secret !== '') {
-            $this->_spawn_http_bg('/index.php/produk/post_submit_notify/'.$order_id.'?secret='.rawurlencode($secret));
-        } else {
-            log_message('error','post_submit_notify: secret kosong; skip HTTP spawn');
-        }
-    }
-} catch (\Throwable $e) {
-    log_message('error','spawn notify fail: '.$e->getMessage());
+    return $this->_json_ok([
+        'order_id' => (int)$order_id,
+        'nomor'    => $nomor ?: $order_id,
+        'message'  => 'Pesanan dibuat (status pending)',
+        // 'redirect' => site_url('produk/order_success/'.$order_id)
+        'redirect' => site_url('produk/order_success/'.$nomor) // <— pakai nomor
+    ]);
 }
-
-// 3) Kembalikan respon ke klien (cepat)
-return $this->output->set_content_type('application/json')
-    ->set_output(json_encode(['success'=>true] + $respPayload));
-
-    // return $this->_json_ok([
-    //     'order_id' => (int)$order_id,
-    //     'nomor'    => $nomor ?: $order_id,
-    //     'message'  => 'Pesanan dibuat (status pending)',
-    //     // 'redirect' => site_url('produk/order_success/'.$order_id)
-    //     'redirect' => site_url('produk/order_success/'.$nomor) // <— pakai nomor
-    // ]);
-}
-
-private function _spawn_http_bg($path) : bool
-{
-    // --- Host dari config (lebih aman ketimbang HTTP_HOST) ---
-    $base = rtrim((string)config_item('base_url') ?: '', '/');
-    $cfgHost = parse_url($base, PHP_URL_HOST) ?: '';
-    $cfgPort = (int)(parse_url($base, PHP_URL_PORT) ?: 0);
-    $rawHost = $_SERVER['HTTP_HOST'] ?? ($cfgHost ?: 'localhost');
-
-    // Sanitasi host: hanya huruf/angka/titik/dash/colon
-    if (!preg_match('/^[A-Za-z0-9\.\-:]+$/', $rawHost)) { $rawHost = $cfgHost ?: 'localhost'; }
-
-    // Pecah host:port
-    $host = $rawHost; $hostPort = null;
-    if (strpos($rawHost, ':') !== false) { [$host, $hp] = explode(':', $rawHost, 2); $hostPort = (int)$hp; }
-
-    // --- Deteksi HTTPS (juga dari proxy) ---
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-          || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-
-    $port  = $hostPort ?: ($cfgPort ?: ($https ? 443 : 80));
-    $schemePrefix = $https ? 'tls://' : '';
-
-    // --- Sanitasi path: wajib absolut & no whitespace ---
-    $path = (string)$path;
-    if ($path === '' || $path[0] !== '/') { $path = '/'.ltrim($path, "/ \t\r\n"); }
-    if (preg_match('/\s/', $path)) { $path = preg_replace('/\s+/', '', $path); }
-
-    // --- TLS/SNI context (verify dimatikan untuk loopback ke diri sendiri) ---
-    $ctx = null;
-    if ($https) {
-        $ctx = stream_context_create([
-            'ssl' => [
-                'SNI_enabled'      => true,
-                'peer_name'        => $host,
-                'verify_peer'      => false,
-                'verify_peer_name' => false,
-            ]
-        ]);
-    }
-
-    $fp = @stream_socket_client(
-        "{$schemePrefix}{$host}:{$port}",
-        $errno, $errstr, 1.0,
-        STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
-        $ctx
-    );
-    if (!$fp) { log_message('error', "spawn_http_bg connect fail: $errno $errstr"); return false; }
-
-    stream_set_blocking($fp, false);
-    stream_set_timeout($fp, 0, 200000); // 200ms
-
-    $req  = "GET {$path} HTTP/1.0\r\n";
-    $req .= "Host: {$rawHost}\r\n";
-    $req .= "Connection: Close\r\n\r\n";
-
-    @fwrite($fp, $req);
-    @fclose($fp);
-    return true;
-}
-
-
-public function post_submit_notify($order_id = null, $secret = null)
-{
-    if (!$this->input->is_cli_request() && $secret !== 'YOUR_STRONG_SECRET') { show_404(); }
-
-    $order_id = (int)$order_id;
-    if ($order_id <= 0) { $this->output->set_status_header(204); return; }
-
-    $ord = $this->db->get_where('pesanan', ['id'=>$order_id])->row();
-    if ($ord) {
-        try {
-            if (strtolower($ord->mode ?? '') === 'delivery' && !empty($ord->customer_phone)) {
-                $this->_wa_notify_delivery_submit($ord, null);
-            }
-        } catch (\Throwable $e) { log_message('error','post_submit_notify WA error: '.$e->getMessage()); }
-
-        try {
-            if (!empty($ord->email)) { $this->_email_order_confirmation($order_id); }
-        } catch (\Throwable $e) { log_message('error','post_submit_notify MAIL error: '.$e->getMessage()); }
-    }
-
-    $this->output->set_status_header(204); // No Content
-    return;
-}
-
-private function _spawn_cli($route, array $args = []): bool
-{
-    // Tentukan binary php CLI (boleh ganti ke config)
-    $php = 'php';
-    if (defined('PHP_BINARY') && PHP_BINARY && stripos(PHP_BINARY, 'php') !== false) {
-        $php = PHP_BINARY; // gunakan kalau memang menunjuk php CLI
-    }
-    if ($cfg = @ini_get('user_ini.cache_ttl')) { /* no-op: hanya pemicu autoload ini_get */ }
-
-    $idx = FCPATH.'index.php';
-
-    // Pecah "produk post_submit_notify" jadi ["produk","post_submit_notify"]
-    $parts = preg_split('/\s+/', trim($route));
-    $cmd   = escapeshellcmd($php).' '.escapeshellarg($idx);
-    foreach ($parts as $seg) { if ($seg!=='') $cmd .= ' '.escapeshellarg($seg); }
-    foreach ($args as $a)    { $cmd .= ' '.escapeshellarg((string)$a); }
-    $cmd .= ' >/dev/null 2>&1 &';
-
-    $disabled = array_map('trim', explode(',', (string)ini_get('disable_functions')));
-    if (!in_array('exec', $disabled, true)) { @exec($cmd); return true; }
-
-    if (function_exists('popen'))     { $h=@popen($cmd,'r'); if ($h){ @pclose($h); return true; } }
-    if (function_exists('proc_open')) { $p=@proc_open($cmd,[], $pipes); if (is_resource($p)){ @proc_close($p); return true; } }
-
-    log_message('error','_spawn_cli: semua metode exec/popen/proc_open terblokir');
-    return false;
-}
-
 
 /**
  * Kirim WA ke customer ketika order delivery BERHASIL dibuat.
@@ -1636,10 +1492,9 @@ private function _ensure_default_delivery_mode(){
         $this->session->set_userdata('cart__mode', 'delivery');
     }
 }
-private function _email_order_confirmation($order_id)
-{
-    // === Data order ===
-    $order = $this->db->get_where('pesanan', ['id' => $order_id])->row();
+private function _email_order_confirmation($order_id){
+    // Ambil data order + item
+    $order = $this->db->get_where('pesanan', ['id'=>$order_id])->row();
     if (!$order || empty($order->email)) return;
 
     $items = $this->db->select('nama, qty, harga, subtotal')
@@ -1647,108 +1502,40 @@ private function _email_order_confirmation($order_id)
                       ->where('pesanan_id', $order_id)
                       ->order_by('id','asc')->get()->result();
 
-    // === Config SMTP (sama seperti smtp_test()) ===
-    $rec = $this->db->get_where('identitas', ['id_identitas' => 1])->row();
-    if (!$rec || empty($rec->smtp_active)) { log_message('error','Email order: SMTP belum aktif'); return; }
+    // Identitas/app name
+    $web = $this->fm->web_me();
+    $app = !empty($web->namaweb) ? $web->namaweb : 'Ausi Billiard & Café';
 
-    $app_name    = !empty($rec->nama_website) ? $rec->nama_website : 'Aplikasi';
-    $smtp_host   = (string)($rec->smtp_host ?? '');
-    $smtp_user   = (string)($rec->smtp_user ?? '');
-    $smtp_pass   = (string)($rec->smtp_pass ?? '');
-    $smtp_port   = (int)($rec->smtp_port ?? 0);
-    $smtp_crypto = (string)($rec->smtp_crypto ?? '');   // '', 'ssl', 'tls'
-    $from_email  = (string)($rec->smtp_from ?? $smtp_user);
-    $from_name   = (string)($rec->smtp_from_name ?? $app_name);
-
-    if ($smtp_host === '' || $smtp_user === '' || $smtp_pass === '' || $smtp_port <= 0) {
-        log_message('error','Email order: Konfigurasi SMTP belum lengkap');
-        return;
-    }
-
-    // === Pilih view: mail_order jika ada, kalau tidak fallback ke mail_notif ===
-    $viewFile = 'front_end/mail_notif';
-    $viewPath = APPPATH.'views/'.$viewFile.'.php';
-    if (!is_file($viewPath)) {
-        log_message('error', 'Email order: view '.$viewFile.' tidak ditemukan, fallback ke front_end/mail_notif');
-        $viewFile = 'front_end/mail_notif'; // pastikan ini ada
-    }
-
-    // === Render template ===
+    // Payload utk template email (mode ORDER)
     $payload = [
-        'app_name'     => $app_name,
+        'mail_mode'    => 'order',          // <--- penting
+        'is_update'    => false,
+        'app_name'     => $app,
         'order'        => $order,
         'items'        => $items,
         'redirect_url' => site_url('produk/order_success/'.$order->nomor),
-        'pdf_url'      => null,
-        'qr_url'       => null,
-        // 'mail_mode'  => 'order', 'is_update' => false, // kalau pakai mail_notif lama, boleh aktifkan
+        'pdf_url'      => null,             // kalau nanti ada struk PDF, isi di sini
+        'qr_url'       => null,             // opsional: link QR order kalau ada
     ];
 
-    // Penting: render di dalam try supaya kalau view error tidak bikin 500
-    try {
-        $html = $this->load->view($viewFile, $payload, true);
-    } catch (\Throwable $e) {
-        log_message('error', 'Email order: gagal render view '.$viewFile.' => '.$e->getMessage());
-        return; // jangan teruskan biar tidak 500
-    }
+    // Render HTML dari view
+    $html = $this->load->view('front_end/mail_notif', $payload, true);
 
+    // Kirim via CI Email
     $this->load->library('email');
 
-    // Helper 1x attempt dengan port/crypto tertentu
-    $sendAttempt = function($port, $crypto) use ($smtp_host,$smtp_user,$smtp_pass,$from_email,$from_name,$order,$app_name,$html,$rec) {
-        $cfg = [
-            'protocol'    => 'smtp',
-            'smtp_host'   => $smtp_host,                // tanpa ssl:// prefix
-            'smtp_user'   => $smtp_user,
-            'smtp_pass'   => $smtp_pass,
-            'smtp_port'   => (int)$port,
-            'smtp_crypto' => ($crypto ? strtolower($crypto) : null), // null = non TLS
-            'mailtype'    => 'html',
-            'charset'     => 'utf-8',
-            'newline'     => "\r\n",
-            'crlf'        => "\r\n",
-            'wordwrap'    => true,
-            'validate'    => true,
-            'smtp_timeout'=> 6,
-        ];
-        $this->email->initialize($cfg);
-        $this->email->clear(true);
+    // Tentukan alamat FROM
+    $fromEmail = !empty($web->email) ? $web->email : ('no-reply@'.parse_url(base_url(), PHP_URL_HOST));
+    $fromName  = $app;
 
-        $this->email->from($from_email, $from_name);
-        $this->email->to($order->email);
-        if (!empty($rec->email)) $this->email->bcc($rec->email); // opsional arsip toko
+    $this->email->from($fromEmail, $fromName);
+    $this->email->to($order->email);
+    $this->email->subject('Konfirmasi Pesanan #'.$order->nomor.' - '.$app);
+    $this->email->message($html);
 
-        $this->email->subject('Konfirmasi Pesanan #'.$order->nomor.' - '.$app_name);
-        $this->email->message($html);
-
-        log_message('debug', 'ORDER MAIL try: host='.$smtp_host.' port='.$port.' crypto='.($crypto?:'-'));
-        return $this->email->send(false);
-    };
-
-    // === Kirim: coba setting DB dulu → fallback 465<->587 bila gagal ===
-    try {
-        $sent = $sendAttempt($smtp_port, $smtp_crypto);
-
-        if (!$sent) {
-            if ((int)$smtp_port === 465 || strtolower($smtp_crypto) === 'ssl') {
-                $sent = $sendAttempt(587, 'tls'); // fallback 465→587
-            } elseif ((int)$smtp_port === 587 || strtolower($smtp_crypto) === 'tls') {
-                $sent = $sendAttempt(465, 'ssl'); // opsi fallback 587→465
-            }
-        }
-
-        if (!$sent) {
-            $dbg = $this->email->print_debugger(['headers','subject','body']);
-            log_message('error', 'EMAIL order failed: '.$dbg);
-        }
-    } catch (\Throwable $e) {
-        log_message('error', 'Email order exception: '.$e->getMessage());
-    } finally {
-        $this->email->clear(true);
-    }
+    // Jangan bikin fatal kalau gagal
+    try { $this->email->send(); } catch (\Throwable $e) { log_message('error', 'Email order gagal: '.$e->getMessage()); }
 }
-
-
 
    public function set_mode_walkin(){
     // Hapus jejak meja agar pasti walkin
