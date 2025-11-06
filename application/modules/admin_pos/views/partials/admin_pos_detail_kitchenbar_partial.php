@@ -176,36 +176,25 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
 </div>
 
 <script>
-  // Buka struk termal (embed) di window kecil
-  function printStrukInlinex(id, paper){
-    var p = (paper === '80') ? '80' : '58';
-    var url = "<?= site_url('admin_pos/print_struk_termalx/') ?>"+ id + "?paper=" + p + "&embed=1";
-    var w = window.open(url, "print_"+id, "width=520,height=760,menubar=0,location=0,toolbar=0,status=0");
-    if (w) { w.focus(); }
-  }
+  // Buka struk dan langsung panggil print (fallback kalau autoprint di view belum ada)
+  function printStrukInlinex(id, paper, autoClose){
+    var p   = (paper === '80') ? '80' : '58';
+    var url = "<?= site_url('admin_pos/print_struk_termalx/') ?>" + id
+            + "?paper=" + p + "&embed=1&autoprint=1" + (autoClose ? "&autoclose=1" : "");
 
-  // Copy nomor HP → clipboard (SweetAlert toast bila tersedia)
-  document.addEventListener('click', function(e){
-    var btn = e.target.closest('.js-copy');
-    if(!btn) return;
-    var text = btn.getAttribute('data-copy') || '';
-    if(!text) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(showCopied, showCopied);
-    } else {
-      // fallback legacy
-      var ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      showCopied();
-    }
-    function showCopied(){
-      if (window.Swal) {
-        Swal.fire({toast:true, position:'top', icon:'success', title:'Nomor tersalin', showConfirmButton:false, timer:1200});
-      } else {
-        // hindari alert blocking UX
-        console.log('Nomor disalin:', text);
-      }
-    }
-  });
+    var w = window.open(url, "print_"+id, "width=520,height=760,menubar=0,location=0,toolbar=0,status=0");
+    if (!w) return; // popup diblok
+
+    // Fallback: kalau view belum punya autoprint, coba print setelah ready
+    var tried = false;
+    var iv = setInterval(function(){
+      if (!w || w.closed) { clearInterval(iv); return; }
+      try {
+        if (w.document && w.document.readyState === 'complete' && !tried){
+          tried = true; clearInterval(iv);
+          try { w.focus(); w.print(); if (autoClose) w.close(); } catch(e){}
+        }
+      } catch(e){} // cross-origin guard
+    }, 250);
+  }
 </script>
