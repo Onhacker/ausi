@@ -324,14 +324,18 @@
           </div>
           <!-- /ticketArea -->
 
-          <div class="mt-1 no-shot">
-            <button type="button" class="btn btn-blue" id="btnScreenshot">
-              <i class="mdi mdi-camera"></i> Screenshot
-            </button>
-            <div class="text-muted small mt-1">
-              Simpan ringkasan ini sebagai bukti booking.
+          <!-- >>> tombol Screenshot: hanya saat LUNAS <<< -->
+          <?php if ($is_terkonfirmasi): ?>
+            <div class="mt-1 no-shot">
+              <button type="button" class="btn btn-blue" id="btnScreenshot">
+                <i class="mdi mdi-camera"></i> Screenshot
+              </button>
+              <div class="text-muted small mt-1">
+                Simpan ringkasan ini sebagai bukti booking.
+              </div>
             </div>
-          </div>
+          <?php endif; ?>
+
 
 
         </div><!-- /card-body -->
@@ -439,8 +443,9 @@
 <script src="<?php echo base_url('assets/admin') ?>/js/sw.min.js"></script>
 
 <!-- html2canvas (cukup sekali) -->
-<script src="<?php echo base_url("assets/js/canva.js") ?>"></script>
-
+<?php if ($is_terkonfirmasi): ?>
+  <script src="<?php echo base_url("assets/js/canva.js") ?>"></script>
+<?php endif; ?>
 
 <?php $this->load->view("front_end/footer.php"); ?>
 
