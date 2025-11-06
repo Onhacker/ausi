@@ -77,16 +77,6 @@
   $tanggal_val = $booking->tanggal ?? '';
   $tanggal_display = $tgl_disp ?: ($tanggal_val ? date('d/m/Y', strtotime($tanggal_val)) : '-');
 ?>
-<?php
-$isKasir = strtolower((string)$this->session->userdata('admin_username')) === 'kasir';
-
-// tombol tampil di status draft & verifikasi (kasir auto-promote ke verifikasi)
-$allow_statuses = ['draft','verifikasi'];
-$show_pay_buttons = isset($booking)
-  && !empty($booking->access_token)
-  && isset($booking->status)
-  && in_array(strtolower((string)$booking->status), $allow_statuses, true);
-?>
 
 <div class="container-fluid">
 
@@ -271,53 +261,41 @@ $show_pay_buttons = isset($booking)
 
   <!-- =================== BLOK AKSI BAYAR / COUNTDOWN =================== -->
   <?php if ($show_pay_buttons): ?>
-<div class="row">
-  <div class="col-12">
-    <div class="card-box">
-      <div class="card-body">
+  <div class="row">
+    <div class="col-12">
+      <div class="card-box">
+        <div class="card-body">
 
-        <div id="pay-deadline"
-             class="text-dark alert alert-info"
-             data-deadline-ms="<?= $deadline_ts * 1000 ?>">
-          Pilih salah satu metode di bawah ya.
-          <span class="d-block d-lg-inline">
-            Pembayaran harus selesai sebelum
-            <strong><?= date('H:i', $deadline_ts) ?> WITA</strong><br>
-            Waktu pembayaran sisa (<span id="countdown">--:--</span>).
-          </span>
+          <div id="pay-deadline"
+               class="text-dark alert alert-info"
+               data-deadline-ms="<?= $deadline_ts * 1000 ?>">
+            Pilih salah satu metode di bawah ya.
+            <span class="d-block d-lg-inline">
+              Pembayaran harus selesai sebelum
+              <strong><?= date('H:i', $deadline_ts) ?> WITA</strong><br>
+              Waktu pembayaran sisa (<span id="countdown">--:--</span>).
+            </span>
+          </div>
+
+          <div class="pay-actions d-flex flex-wrap" style="gap:14px 16px;">
+            <a class="btn btn-primary btn-sm js-pay"
+               href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
+               data-method="qris">
+              <i class="mdi mdi-qrcode-scan"></i> QRIS
+            </a>
+
+            <a class="btn btn-info btn-sm js-pay"
+               href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
+               data-method="transfer">
+              <i class="mdi mdi-bank-transfer"></i> TRANSFER
+            </a>
+          </div>
+
         </div>
-
-        <div class="pay-actions d-flex flex-wrap" style="gap:14px 16px;">
-          <!-- Selalu tampil untuk siapa pun -->
-          <a class="btn btn-primary btn-sm js-pay"
-             href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
-             data-method="qris">
-            <i class="mdi mdi-qrcode-scan"></i> QRIS
-          </a>
-
-          <a class="btn btn-info btn-sm js-pay"
-             href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
-             data-method="transfer">
-            <i class="mdi mdi-bank-transfer"></i> TRANSFER
-          </a>
-
-          <!-- Hanya untuk kasir: tampilkan CASH -->
-          <?php if ($isKasir): ?>
-          <a class="btn btn-success btn-sm js-pay"
-             href="#"
-             data-method="cash"
-             data-token="<?= html_escape($booking->access_token) ?>">
-            <i class="mdi mdi-cash"></i> CASH
-          </a>
-          <?php endif; ?>
-        </div>
-
       </div>
     </div>
   </div>
-</div>
-<?php endif; ?>
-
+  <?php endif; ?>
   <!-- ================= /BLOK AKSI BAYAR ================= -->
 
   <!-- Tombol Batalkan Booking -->
@@ -472,94 +450,43 @@ $show_pay_buttons = isset($booking)
   document.addEventListener('click',function(e){
     const el=e.target.closest('.js-pay'); if(!el) return;
     e.preventDefault();
-
     const method=(el.dataset.method||'').toLowerCase();
     const href=el.getAttribute('href')||'#';
-    const token=el.dataset.token||'<?= html_escape($booking->access_token ?? "") ?>';
-
     const labelMap={cash:'TUNAI',qris:'QRIS',transfer:'TRANSFER'};
     const noteMap={
-      cash:'Pembayaran dilakukan di kasir. Setujui untuk menandai booking **lunas**.',
+      cash:'Bayarnya langsung di kasir ya. Gas?',
       qris:'Setelah lanjut, jangan tutup halaman sampai transaksi selesai.',
       transfer:'Nanti dapat nomor rekening untuk transfer. Oke?'
     };
-
     const title=`Pilih ${labelMap[method]||'metode ini'}?`;
 
-    const doRedirect = ()=>{ window.location.href = href; };
-
-    const doCash = async ()=>{
-      try{
-        // konfirmasi dulu
-        const ok = typeof Swal==='undefined'
-          ? confirm(title+'\n\n'+(noteMap[method]||''))
-          : (await Swal.fire({
-              title, html:`<div class="text-start">${noteMap[method]||''}</div>`,
-              icon:'question', showCancelButton:true, confirmButtonText:'Lanjut', cancelButtonText:'Batal', reverseButtons:true
-            })).isConfirmed;
-
-        if(!ok) return;
-
-        if(typeof Swal!=='undefined'){
-          Swal.fire({title:'Memproses...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
-        }
-
-        const fd=new FormData();
-        fd.append('t', token);
-        fd.append('metode_bayar','cash');
-
-        const r=await fetch('<?= site_url('billiard/konfirmasi') ?>',{method:'POST',body:fd});
-        const j=await r.json();
-
-        if(typeof Swal!=='undefined') Swal.close();
-
-        if(j.success){
-          if(typeof Swal!=='undefined'){
-            await Swal.fire({title:j.title||'Terkonfirmasi', html:(j.pesan||''), icon:'success'});
-          }else{
-            alert((j.title?j.title+'\n':'')+(j.pesan||''));
-          }
-          if(j.redirect_url) location.href=j.redirect_url;
-        }else{
-          if(typeof Swal!=='undefined'){
-            Swal.fire({title:(j.title||'Gagal'), html:(j.pesan||''), icon:'error'});
-          }else{
-            alert((j.title?j.title+'\n':'')+(j.pesan||''));
-          }
-        }
-      }catch(err){
-        if(typeof Swal!=='undefined'){
-          Swal.close();
-          Swal.fire({title:'Error',text:'Koneksi bermasalah',icon:'error'});
-        }else{
-          alert('Koneksi bermasalah');
-        }
+    if(typeof Swal==='undefined'){
+      if(confirm(title+'\n\n'+(noteMap[method]||''))){
+        window.location.href=href;
       }
-    };
-
-    // QRIS/Transfer → redirect biasa (seperti sebelumnya)
-    if(method==='qris' || method==='transfer'){
-      if(typeof Swal==='undefined'){
-        if(confirm(title+'\n\n'+(noteMap[method]||''))) doRedirect();
-        return;
-      }
-      Swal.fire({
-        title, html:`<div class="text-start">${noteMap[method]||''}</div>`,
-        icon:'question', showCancelButton:true, confirmButtonText:'Lanjut', cancelButtonText:'Batal', reverseButtons:true
-      }).then(res=>{
-        if(res.isConfirmed){
-          Swal.fire({title:'Mengalihkan...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
-          doRedirect();
-        }
-      });
       return;
     }
 
-    // CASH (khusus kasir)
-    if(method==='cash'){ doCash(); return; }
+    Swal.fire({
+      title,
+      html:`<div class="text-start">${noteMap[method]||''}</div>`,
+      icon:'question',
+      showCancelButton:true,
+      confirmButtonText:'Lanjut',
+      cancelButtonText:'Batal',
+      reverseButtons:true
+    }).then(res=>{
+      if(res.isConfirmed){
+        Swal.fire({
+          title:'Mengalihkan...',
+          allowOutsideClick:false,
+          didOpen:()=>Swal.showLoading()
+        });
+        window.location.href=href;
+      }
+    });
   });
 })();
-
 
 // ================== FORM UBAH JADWAL (AJAX) ==================
 (function(){
