@@ -54,6 +54,10 @@ class Admin_kursi_pijat extends Admin_Controller {
     public function get_data(){
         $list = $this->dm->get_data();
         $data = [];
+
+    // ✅ cek role admin dari session
+        $isAdmin = ($this->session->userdata('admin_username') === 'admin');
+
         foreach ($list as $r) {
             $label = ($r->status==='selesai'?'Lunas':($r->status==='batal'?'Batal':'Belum Bayar'));
             $badge = ($r->status==='selesai'?'success':($r->status==='batal'?'danger':'warning'));
@@ -66,6 +70,11 @@ class Admin_kursi_pijat extends Admin_Controller {
             ? ' <button type="button" class="btn btn-sm btn-danger ms-1" onclick="batal('.(int)$r->id_transaksi.')"><i class="fe-x-circle"></i></button>'
             : '';
 
+        // ✅ tombol hapus hanya untuk admin
+            $btnHapus = $isAdmin
+            ? ' <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="hapus('.(int)$r->id_transaksi.')"><i class="fe-trash-2"></i></button>'
+            : '';
+
             $row = [
                 'cek'    => '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id_transaksi.'"><label></label></div>',
                 'no'     => '',
@@ -74,19 +83,20 @@ class Admin_kursi_pijat extends Admin_Controller {
                 'sesi'   => (int)$r->sesi.'x',
                 'total'  => $this->_rupiah($r->total_harga),
                 'status' => '<span class="badge badge-'.$badge.'">'.$label.'</span>',
-                'aksi'   => $btnEdit.$btnBayar.$btnBatal,
-            ];
-            $data[] = $row;
-        }
-
-        $out = [
-            "draw"            => (int)$this->input->post('draw'),
-            "recordsTotal"    => $this->dm->count_all(),
-            "recordsFiltered" => $this->dm->count_filtered(),
-            "data"            => $data,
+            'aksi'   => $btnEdit.$btnBayar.$btnBatal.$btnHapus, // ⬅️ disisipkan di sini
         ];
-        $this->output->set_content_type('application/json')->set_output(json_encode($out));
+        $data[] = $row;
     }
+
+    $out = [
+        "draw"            => (int)$this->input->post('draw'),
+        "recordsTotal"    => $this->dm->count_all(),
+        "recordsFiltered" => $this->dm->count_filtered(),
+        "data"            => $data,
+    ];
+    $this->output->set_content_type('application/json')->set_output(json_encode($out));
+}
+
 
     /** Ambil satu baris */
     public function get_one($id){
@@ -213,17 +223,68 @@ class Admin_kursi_pijat extends Admin_Controller {
     }
 
     /** Delete bulk */
-    public function hapus_data(){
-        $ids = $this->input->post('id');
-        if (!is_array($ids) || count($ids) === 0) {
-            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Tidak ada data"]); return;
-        }
-        $ok = true;
-        foreach ($ids as $id) {
-            $id = (int)$id; if ($id <= 0) continue;
-            $ok = $ok && $this->db->delete('kursi_pijat_transaksi',['id_transaksi'=>$id]);
-        }
-        echo json_encode($ok ? ["success"=>true,"title"=>"Berhasil","pesan"=>"Data berhasil dihapus"]
-                             : ["success"=>false,"title"=>"Gagal","pesan"=>"Sebagian data gagal dihapus"]);
+   public function hapus_data(){
+    // 🔒 Hanya admin yang boleh menghapus
+    if ($this->session->userdata('admin_session') !== 'admin') {
+        $this->output->set_status_header(403);
+        $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success" => false,
+                "title"   => "Ditolak",
+                "pesan"   => "Hanya admin yang boleh menghapus data."
+            ]));
+        return;
     }
+
+    $ids = $this->input->post('id');
+
+    if (!is_array($ids) || count($ids) === 0) {
+        $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success"=>false,"title"=>"Gagal","pesan"=>"Tidak ada data"
+            ]));
+        return;
+    }
+
+    // Sanitasi & unik: hanya integer > 0
+    $ids = array_values(array_unique(array_filter(array_map(function($x){
+        return (int)$x;
+    }, $ids), function($v){ return $v > 0; })));
+
+    if (empty($ids)) {
+        $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success"=>false,"title"=>"Gagal","pesan"=>"ID tidak valid"
+            ]));
+        return;
+    }
+
+    // Transaksi: cek jumlah baris yang benar-benar terhapus
+    $this->db->trans_begin();
+
+    $this->db->where_in('id_transaksi', $ids)
+             ->delete('kursi_pijat_transaksi');
+
+    $affected = $this->db->affected_rows();
+
+    if ($this->db->trans_status() === false) {
+        $this->db->trans_rollback();
+        $res = ["success"=>false, "title"=>"Gagal", "pesan"=>"Terjadi kesalahan saat menghapus."];
+    } else {
+        // Commit dulu; hapus yang tidak ada ID-nya bukan error DB
+        $this->db->trans_commit();
+
+        if ($affected === 0) {
+            $res = ["success"=>false, "title"=>"Gagal", "pesan"=>"Data tidak ditemukan atau sudah dihapus."];
+        } elseif ($affected < count($ids)) {
+            $res = ["success"=>false, "title"=>"Sebagian", "pesan"=>"Sebagian data gagal dihapus."];
+        } else {
+            $res = ["success"=>true, "title"=>"Berhasil", "pesan"=>"Data berhasil dihapus"];
+        }
+    }
+
+    $this->output->set_content_type('application/json')
+        ->set_output(json_encode($res));
+}
+
 }

@@ -28,9 +28,11 @@
               <button type="button" onclick="refresh()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
               </button>
+              <?php if ($this->session->userdata("admin_username") == "admin") {?>
               <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
               </button>
+            <?php } ?>
             </div>
 
             <div class="d-flex align-items-center gap-2 ms-auto">
