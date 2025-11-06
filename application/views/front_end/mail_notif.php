@@ -1,25 +1,49 @@
 <?php
-/** @var array $this -> view payload dari controller:
- *  $is_update(bool), $kode,$nama,$instansi_asal,$unit_tujuan,$nama_petugas_instansi,
- *  $tanggal (d-m-Y), $jam, $keperluan, $redirect_url, $pdf_url, $qr_url, $app_name
+/**
+ * Template email KHUSUS ORDER (tanpa booking).
+ *
+ * Kebutuhan variabel:
+ *  - $app_name   : string nama aplikasi/toko
+ *  - $order      : object pesanan (kolom: nomor, nama, email, customer_phone, mode, alamat_kirim,
+ *                  total, delivery_fee, kode_unik, grand_total, created_at, meja_nama, meja_kode)
+ *  - $items      : array objek item (nama, qty, harga, subtotal)
+ *  - $redirect_url (opsional): url detail/status pesanan
+ *  - $pdf_url      (opsional): url struk/pdf
+ *  - $qr_url       (opsional): url QR (jika ada)
  */
-$esc = function($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
-$is_update = !empty($is_update);
-$app = $app_name ?? 'Aplikasi';
-$badge = $is_update ? 'Perubahan Booking' : 'Konfirmasi Booking';
+$esc    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+$app    = $app_name ?? 'Ausi Billiard & Café';
+$o      = $order ?? (object)[];
+$mode   = strtolower((string)($o->mode ?? ''));
+$isDel  = ($mode === 'delivery');
+$isDi   = ($mode === 'dinein');
+$modeTx = $isDel ? 'Delivery' : ($isDi ? 'Dine-in' : 'Walk-in');
+
+$telp   = $o->customer_phone ?? '';
+$email  = $o->email ?? '';
+$alamat = $isDel ? ($o->alamat_kirim ?? '') : '';
+
+$createdAt = !empty($o->created_at) ? strtotime($o->created_at) : time();
+$tgl = date('d-m-Y', $createdAt);
+$jam = date('H:i',    $createdAt);
+
+$subtotal    = (int)($o->total ?? 0);
+$ongkir      = (int)($o->delivery_fee ?? 0);
+$kode_unik   = (int)($o->kode_unik ?? 0);
+$grand_total = (int)($o->grand_total ?? ($subtotal + max(0,$ongkir) + $kode_unik));
+
+$rupiah = function($n){ $n=(int)$n; return 'Rp '.number_format($n,0,',','.'); };
 ?>
 <!doctype html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title><?= $esc($badge) ?> – <?= $esc($app) ?></title>
+<title><?= $esc('Konfirmasi Pesanan – '.$app) ?></title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  /* gaya inline-friendly utk email client */
   body{margin:0;background:#f5f7fb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111}
-  .wrap{width:100%;padding:24px 0;}
-  .container{max-width:620px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;
-    box-shadow:0 4px 18px rgba(0,0,0,.06)}
+  .wrap{width:100%;padding:24px 0}
+  .container{max-width:620px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.06)}
   .header{padding:18px 24px;background:#111;color:#fff}
   .header h1{margin:0;font-size:18px;letter-spacing:.3px}
   .badge{display:inline-block;margin-top:8px;background:#0ea5e9;color:#fff;padding:4px 10px;border-radius:999px;font-size:12px}
@@ -29,6 +53,10 @@ $badge = $is_update ? 'Perubahan Booking' : 'Konfirmasi Booking';
   .kv td{padding:8px 0;vertical-align:top;border-bottom:1px solid #eee;font-size:14px}
   .kv td.k{width:38%;color:#555}
   .kv td.v{width:62%;color:#111;font-weight:600}
+  .items{width:100%;border-collapse:collapse;margin-top:8px}
+  .items th,.items td{font-size:13px;padding:8px;border-bottom:1px solid #eee;text-align:left}
+  .items th{text-transform:uppercase;letter-spacing:.02em;background:#fafafa}
+  .items td.r{text-align:right;font-weight:600}
   .cta{margin:24px 0 8px}
   .btn{display:inline-block;text-decoration:none;background:#111;color:#fff;padding:12px 18px;border-radius:10px;font-weight:600}
   .btn + .btn{margin-left:10px}
@@ -44,47 +72,83 @@ $badge = $is_update ? 'Perubahan Booking' : 'Konfirmasi Booking';
     <div class="container">
       <div class="header">
         <h1><?= $esc($app) ?></h1>
-        <span class="badge"><?= $esc($badge) ?></span>
+        <span class="badge">Konfirmasi Pesanan</span>
       </div>
 
       <div class="content">
         <p class="lead">
-          Halo <strong><?= $esc($nama ?? '-') ?></strong>,<br>
-          <?= $is_update
-              ? 'Anda telah melakukan <strong>perubahan</strong> data booking kunjungan. Berikut detail terbarunya:'
-              : 'Pengajuan kunjungan Anda telah <strong>BERHASIL</strong> didaftarkan. Berikut detailnya:' ?>
+          Halo <strong><?= $esc($o->nama ?? '-') ?></strong>,<br>
+          Pesanan Anda telah <strong>BERHASIL</strong> dibuat. Berikut ringkasannya:
         </p>
 
         <table class="kv" role="presentation" cellpadding="0" cellspacing="0">
-          <tr><td class="k">Kode Booking</td><td class="v"><?= $esc($kode ?? '-') ?></td></tr>
-          <tr><td class="k">Nama Tamu</td><td class="v"><?= $esc($nama ?? '-') ?></td></tr>
-          <tr><td class="k">Instansi Asal</td><td class="v"><?= $esc($instansi_asal ?? '-') ?></td></tr>
-          <tr><td class="k">Unit Tujuan</td><td class="v"><?= $esc($unit_tujuan ?? '-') ?></td></tr>
-          <tr><td class="k">Pejabat Unit</td><td class="v"><?= $esc($nama_petugas_instansi ?? '-') ?></td></tr>
-          <tr><td class="k">Tanggal</td><td class="v"><?= $esc($tanggal ?? '-') ?></td></tr>
-          <tr><td class="k">Jam</td><td class="v"><?= $esc($jam ?? '-') ?></td></tr>
-          <tr><td class="k">Keperluan</td><td class="v"><?= $esc($keperluan ?? '-') ?></td></tr>
+          <tr><td class="k">Nomor Pesanan</td><td class="v"><?= $esc($o->nomor ?? '-') ?></td></tr>
+          <tr><td class="k">Tanggal</td><td class="v"><?= $esc($tgl) ?> <?= $esc($jam) ?></td></tr>
+          <tr><td class="k">Mode</td><td class="v"><?= $esc($modeTx) ?></td></tr>
+          <?php if ($isDi): ?>
+            <tr><td class="k">Tempat</td><td class="v">
+              <?php
+                $m = trim((string)($o->meja_nama ?? $o->meja_kode ?? '-'));
+                echo $esc($m !== '' ? $m : '-');
+              ?>
+            </td></tr>
+          <?php endif; ?>
+          <tr><td class="k">Atas Nama</td><td class="v"><?= $esc($o->nama ?? '-') ?></td></tr>
+          <?php if (!empty($telp)): ?>
+            <tr><td class="k">Telepon</td><td class="v"><?= $esc($telp) ?></td></tr>
+          <?php endif; ?>
+          <?php if (!empty($email)): ?>
+            <tr><td class="k">Email</td><td class="v"><?= $esc($email) ?></td></tr>
+          <?php endif; ?>
+          <?php if ($isDel && !empty($alamat)): ?>
+            <tr><td class="k">Alamat</td><td class="v"><?= $esc($alamat) ?></td></tr>
+          <?php endif; ?>
+          <?php if (!empty($o->catatan)): ?>
+            <tr><td class="k">Catatan</td><td class="v"><?= $esc($o->catatan) ?></td></tr>
+          <?php endif; ?>
         </table>
 
+        <?php if (!empty($items) && is_array($items)): ?>
+          <table class="items" role="presentation" cellpadding="0" cellspacing="0">
+            <thead>
+              <tr><th>Produk</th><th>Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>
+            </thead>
+            <tbody>
+              <?php foreach($items as $it): ?>
+                <tr>
+                  <td><?= $esc($it->nama ?? '-') ?></td>
+                  <td><?= (int)($it->qty ?? 0) ?></td>
+                  <td class="r"><?= $esc($rupiah($it->harga ?? 0)) ?></td>
+                  <td class="r"><?= $esc($rupiah($it->subtotal ?? 0)) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              <tr><td colspan="3" class="r">Subtotal</td><td class="r"><?= $esc($rupiah($subtotal)) ?></td></tr>
+              <?php if ($isDel): ?>
+                <tr><td colspan="3" class="r">Ongkir</td><td class="r"><?= $esc($ongkir==1 ? 'GRATIS' : $rupiah($ongkir)) ?></td></tr>
+              <?php endif; ?>
+              <tr><td colspan="3" class="r">Kode Unik</td><td class="r"><?= $esc($rupiah($kode_unik)) ?></td></tr>
+              <tr><td colspan="3" class="r" style="font-weight:800">Total Bayar</td><td class="r" style="font-weight:800"><?= $esc($rupiah($grand_total)) ?></td></tr>
+            </tbody>
+          </table>
+        <?php endif; ?>
+
         <?php if (!empty($qr_url)): ?>
-        <div class="qr">
-          <img src="<?= $esc($qr_url) ?>" alt="QR Kode Booking">
-          <div class="note">Tunjukkan kode/QR ini ke petugas saat kunjungan.</div>
-        </div>
+          <div class="qr">
+            <img src="<?= $esc($qr_url) ?>" alt="QR Pesanan">
+            <div class="note">Tunjukkan kode/QR ini saat pengambilan atau kepada kurir.</div>
+          </div>
         <?php endif; ?>
 
         <div class="cta">
           <?php if (!empty($redirect_url)): ?>
-            <a class="btn" href="<?= $esc($redirect_url) ?>" target="_blank" rel="noopener">Lihat Detail Booking</a>
+            <a class="btn" href="<?= $esc($redirect_url) ?>" target="_blank" rel="noopener">Lihat Status Pesanan</a>
           <?php endif; ?>
           <?php if (!empty($pdf_url)): ?>
-            <a class="btn" href="<?= $esc($pdf_url) ?>" target="_blank" rel="noopener">Download Kode (PDF)</a>
+            <a class="btn" href="<?= $esc($pdf_url) ?>" target="_blank" rel="noopener">Unduh Struk (PDF)</a>
           <?php endif; ?>
         </div>
 
-        <p class="note">
-          Simpan kontak kami agar tautan di email dapat diklik langsung. Email ini dikirim otomatis oleh sistem <?= $esc($app) ?>.
-        </p>
+        <p class="note">Email ini dikirim otomatis oleh sistem <?= $esc($app) ?>. Mohon simpan email ini sebagai bukti pesanan Anda.</p>
       </div>
 
       <div class="footer">

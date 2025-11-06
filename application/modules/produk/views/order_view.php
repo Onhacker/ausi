@@ -154,19 +154,9 @@
                   <i class="mdi mdi-account" aria-hidden="true"></i>
                 </span>
               </div>
-              <input type="text" class="form-control" name="nama" placeholder="Nama pelanggan" autocomplete="off" required aria-describedby="nama-addon">
+              <input type="text" class="form-control" name="nama" placeholder="Nama Wajib" autocomplete="off" required aria-describedby="nama-addon">
             </div>
           </div>
-
-          <div class="form-group col-md-6">
-            <label for="catatan">Catatan</label>
-            <textarea class="form-control" id="catatan" name="catatan" rows="2" placeholder="Tanpa gula / pedas / bungkus / dll" autocomplete="off" maxlength="255" aria-describedby="catatanHelp"></textarea>
-            <small id="catatanHelp" class="form-text">
-              <span class="hint">Maks. 255 karakter</span>
-              <span><span id="catatan-count">0</span>/255</span>
-            </small>
-          </div>
-
           <div class="form-group col-md-6">
             <style>
               .help-icon.pretty{
@@ -205,15 +195,43 @@
               title="Masukkan No. WA untuk menerima struk, detail pembayaran, dan info pesanan lainnya.">
               ?
             </span>
-          </label>
+              </label>
 
-          <input type="tel"
-          class="form-control"
-          name="phone"
-          placeholder="08xxxxxxxxxx"
-          autocomplete="tel"
-          required>
-        </div>
+              <input type="tel"
+              class="form-control"
+              name="phone"
+              placeholder="08xxxxxxxxxx"
+              autocomplete="tel"
+              required>
+            </div>
+
+            <!-- EMAIL (opsional) -->
+<div class="form-group col-md-6">
+  <label class="d-flex align-items-center">
+    <span>Email <small class="text-muted ml-1">(opsional)</small></span>
+    <span class="help-icon pretty"
+          data-toggle="tooltip"
+          data-placement="right"
+          title="Jika diisi, kami kirim struk & info promo menarik ke email ini.">?</span>
+  </label>
+  <input type="email"
+         class="form-control"
+         name="email"
+         placeholder="nama@contoh.com"
+         autocomplete="email">
+</div>
+
+
+          <div class="form-group col-md-6">
+            <label for="catatan">Catatan</label>
+            <textarea class="form-control" id="catatan" name="catatan" rows="2" placeholder="Tanpa gula / pedas / bungkus / dll" autocomplete="off" maxlength="255" aria-describedby="catatanHelp"></textarea>
+            <small id="catatanHelp" class="form-text">
+              <span class="hint">Maks. 255 karakter</span>
+              <span><span id="catatan-count">0</span>/255</span>
+            </small>
+          </div>
+
+          
 
 
             <?php if ($mode === 'delivery'): ?>
@@ -256,44 +274,47 @@
       $nama:    $form.find('input[name="nama"]'),
       $catatan: $form.find('textarea[name="catatan"]'),
       $phone:   $form.find('input[name="phone"]'),
+      $email:   $form.find('input[name="email"]'),
       $alamat:  $form.find('textarea[name="alamat"]'),
       $ongkir:  $form.find('input[name="ongkir"]')
     };
   }
 
   function loadDraft() {
-    try{
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return;
-      const d = JSON.parse(raw)||{};
-      const { $nama, $catatan, $phone, $alamat, $ongkir } = getFormElems();
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw)||{};
+    const { $nama, $catatan, $phone, $alamat, $ongkir, $email } = getFormElems();
 
-      // ⟵ TIDAK mengisi catatan dari draft
-      if (d.nama != null)    $nama.val(d.nama);
-      if (MODE==='delivery'){
-        if (d.phone != null)  $phone.val(d.phone);
-        if (d.alamat != null) $alamat.val(d.alamat);
-        if (IS_KASIR && d.ongkir != null) $ongkir.val(d.ongkir);
-      }
+    if (d.nama != null)     $nama.val(d.nama);
+    if (d.email != null)    $email.val(d.email);  // <-- NEW
 
-      // Hanya untuk refresh counter catatan (tidak mengubah nilai)
-      $catatan.trigger('input');
-    }catch(e){}
-  }
-
-  function saveDraft() {
-    const { $nama, $phone, $alamat, $ongkir } = getFormElems();
-    const data = {
-      nama:    ($nama.val()||'').trim()
-      // ⟵ catatan sengaja TIDAK disimpan
-    };
     if (MODE==='delivery'){
-      data.phone  = ($phone.val()||'').trim();
-      data.alamat = ($alamat.val()||'').trim();
-      if (IS_KASIR) data.ongkir = ($ongkir.val()||'').trim();
+      if (d.phone != null)  $phone.val(d.phone);
+      if (d.alamat != null) $alamat.val(d.alamat);
+      if (IS_KASIR && d.ongkir != null) $ongkir.val(d.ongkir);
     }
-    try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); }catch(e){}
+    $catatan.trigger('input');
+  }catch(e){}
+}
+
+function saveDraft() {
+  const { $nama, $phone, $alamat, $ongkir, $email } = getFormElems();
+  const data = {
+    nama:  ($nama.val()||'').trim(),
+    email: ($email.val()||'').trim()  // <-- NEW
+  };
+  if (MODE==='delivery'){
+    data.phone  = ($phone.val()||'').trim();
+    data.alamat = ($alamat.val()||'').trim();
+    if (IS_KASIR) data.ongkir = ($ongkir.val()||'').trim();
   }
+  try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); }catch(e){}
+}
+
+
+
 
   function scheduleSaveDraft(){
     if (saveTimer) clearTimeout(saveTimer);
@@ -343,7 +364,9 @@ function buildSteps(mode){
   // ====== Submit flow ======
   $('#btn-order').on('click', function(){
 
-    const { $form, $nama, $catatan, $phone, $alamat, $ongkir } = getFormElems();
+    const { $form, $nama, $catatan, $phone, $alamat, $ongkir, $email } = getFormElems(); // <-- tambahkan $email
+    const email = ($email.val() || '').trim();
+
     const fd    = new FormData($form[0]);
 
     const nama    = ($nama.val() || '').trim();
@@ -427,6 +450,7 @@ function buildSteps(mode){
           <div><b>Telepon</b>: ${$('<div>').text(phone).html()}</div>
           <div><b>Alamat</b>: ${$('<div>').text(alamat).html()}</div>
         ` : ''}
+         ${email ? `<div><b>Email</b>: ${$('<div>').text(email).html()}</div>` : ''} 
         ${catatan ? `<div><b>Catatan</b>: ${$('<div>').text(catatan).html()}</div>` : ''}
         <div><b>Atas Nama</b>: ${$('<div>').text(nama).html()}</div>
       </div>
@@ -456,6 +480,7 @@ function buildSteps(mode){
 
    
       const steps = buildSteps(MODE);
+      if (email) steps.push('Siapkan email konfirmasi… ✉️');
         // buka loader progres bertahap
         startProgressLoader(steps, 900); // <-- NEW (ganti Swal.fire "Lagi diproses...")
       $.ajax({
@@ -798,6 +823,9 @@ function finishAllProgressSteps(){
     $(document).ready(updateCount);
     $cat.on('input', updateCount);
   })();
+</script>
+<script>
+  $(function(){ $('[data-toggle="tooltip"]').tooltip({ trigger:'hover focus' }); });
 </script>
 
 

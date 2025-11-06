@@ -791,22 +791,22 @@ private function _wa_paid_notice(array $paid_ids){
             $linkStruk  = site_url('produk/receipt/'.$kodeTampil);
             $namaSapaan = trim($o->nama ?: "kak");
 
-            $msg  = "Halo {$namaSapaan},\n\n";
-            $msg .= "✨ *PEMBAYARAN DITERIMA* ✅\n";
-            $msg .= "Pesanan #{$kodeTampil} pada {$waktu}\n";
+            $msg  = "Halo {$namaSapaan}, 👋\n\n";
+            $msg .= "✨ *PEMBAYARAN SUDAH DITERIMA!* ✅\n";
+            $msg .= "Pesanan *#{$kodeTampil}* pada *{$waktu}*\n";
             $msg .= "──────────────────\n";
-            $msg .= "Total Bayar : *".$this->_idr($total)."*\n";
-            $msg .= "Metode      : {$metode}\n";
+            $msg .= "💰 Total Bayar : *".$this->_idr($total)."*\n";
+            $msg .= "💳 Metode : {$metode}\n";
             $msg .= "──────────────────\n";
-            $msg .= "Pembayaran telah kami terima 👍\n\n";
+            $msg .= "Pembayaran kamu sudah kami terima. Terima kasih sudah bertransaksi di *{$toko}*! 🙌\n\n";
 
-            $msg .= "Struk / Detail:\n{$linkStruk}\n\n";
+            $msg .= "🧾 Struk digital bisa dilihat di sini:\n{$linkStruk}\n\n";
 
-            $msg .= "klo mau struk fisik, langsung ke kasir kak.";
-            $msg .= "Terima kasih sudah bertransaksi di {$toko} 🙌\n\n";
+            $msg .= "Kalau mau struk fisik, silakan ke kasir ya, Kak 💁‍♀️\n";
+            $msg .= "Jangan lupa kasih rating & ulasan biar kami makin semangat! ⭐\n\n";
 
-            $msg .= "Simpan kontak ini agar link bisa diklik 📲\n";
-            $msg .= "Pesan ini dikirim otomatis oleh sistem {$toko}. Mohon jangan balas pesan ini.\n";
+            $msg .= "Simpan kontak ini biar link bisa langsung diklik 📲\n";
+            $msg .= "_Pesan ini dikirim otomatis oleh sistem {$toko}, mohon tidak dibalas._\n";
 
 
         // kirim via gateway WA kamu
