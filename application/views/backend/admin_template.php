@@ -3,12 +3,8 @@
 <?php 
 $web = $this->om->web_me();
 $us = $this->om->user();
-if (!isset($force_landscape)) {
-  $seg1 = strtolower($this->uri->segment(1) ?? '');
-  $force_landscape = (strpos($seg1, 'admin_') === 0);
-}
-?>
 
+?>
 <head>
     <meta charset="utf-8" />
     <title><?php echo $subtitle ?></title>
@@ -50,7 +46,7 @@ if (!isset($force_landscape)) {
 
   /* rapikan ruang di bawah header */
   #topnav{ margin-bottom: 0 !important; }
-  #topnav .navbar-custom{ margin-bottom: 0 !important; background: linear-gradient(360deg, #795548 0, #FF5722 100%) !important; box-shadow: none !important; }
+  #topnav .navbar-custom{ margin-bottom: 0 !important; box-shadow: none !important; }
   #topnav .topbar-menu{
     margin: 0 !important;
     padding: .25rem 0 !important; /* lebih tipis */
@@ -88,54 +84,7 @@ if (!isset($force_landscape)) {
 </style>
 </head>
 <?php $this->load->view("global") ?>
-<body class="menubar-gradient unsticky-header gradient-topbar topbar-dark"
-      <?= !empty($force_landscape) ? 'data-admin-landscape="1"' : '' ?>>
-
-<?php if (!empty($force_landscape)): ?>
-<style>
-  /* === Overlay hanya aktif saat PORTRAIT & hanya jika body punya data-admin-landscape === */
-  .als-rotate-overlay{
-    display:none; position:fixed; inset:0; z-index:2147483647; /* di atas semua */
-    background:#0b3b6d; color:#fff; align-items:center; justify-content:center;
-    text-align:center; padding:24px;
-  }
-  .als-rotate-overlay .als-box{
-    max-width:460px; background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.25); border-radius:16px; padding:20px;
-  }
-  .als-rotate-overlay .als-emoji{ font-size:42px; margin-bottom:8px; display:block; }
-
-  @media (orientation: portrait){
-    body[data-admin-landscape="1"] .als-rotate-overlay{ display:flex; }
-  }
-</style>
-
-<script>
-(function(){
-  function ensureOverlay(){
-     if (document.querySelector('.als-rotate-overlay')) return;
-     var ov = document.createElement('div');
-     ov.className = 'als-rotate-overlay';
-     ov.setAttribute('aria-hidden','true');
-     ov.innerHTML = '<div class="als-box"><span class="als-emoji">🔄</span><div>Silakan putar perangkat ke <b>landscape</b> untuk halaman admin.</div></div>';
-     document.body.appendChild(ov);
-  }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', ensureOverlay);
-  } else { ensureOverlay(); }
-
-  // Opsional: coba kunci orientasi saat PWA/standalone (tidak mengubah CSS apa pun)
-  var isStandalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  async function tryLock(){
-    try{
-      if (screen.orientation && screen.orientation.lock) { await screen.orientation.lock('landscape'); }
-    }catch(e){}
-  }
-  if (isStandalone) window.addEventListener('load', function(){ setTimeout(tryLock, 120); });
-  window.addEventListener('click', function once(){ tryLock(); window.removeEventListener('click', once); }, {once:true});
-})();
-</script>
-<?php endif; ?>
+<body class="menubar-gradient unsticky-header gradient-topbar topbar-dark ">
 
     <div id="preloader">
         <div id="status">
@@ -268,7 +217,7 @@ if (!isset($force_landscape)) {
 <?php $this->load->view("backend/footer_admin.php"); ?>
 
 
-<footer class="footer d-none d-md-block mb-3">
+<footer class="footer d-none d-md-block">
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-6">

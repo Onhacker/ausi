@@ -29,7 +29,7 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
 <div class="container-fluid pd-wrap">
 
   <!-- page title -->
-  <div class="hero-title" role="banner" aria-label="Judul situs">
+  <div class="hero-title  ausi-hero-center" role="banner" aria-label="Judul situs">
     <?php $this->load->view("front_end/back") ?>
     <h1 class="text"><?php echo $title ?></h1>
     <span class="accent" aria-hidden="true"></span>
@@ -72,8 +72,12 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
                   <span class="avg-label"><?= number_format($ratingAvg,1,',','.'); ?></span>/5 ·
                   <span class="count-label"><?= (int)$ratingCount; ?></span> ulasan
                 </div>
-                <span class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i>Beri rating</span>
+
+                <!-- Dulu: <span class="rate-link">…Beri rating</span> -->
+                <!-- Sekarang: disembunyikan tapi tetap ada supaya bisa di-trigger dari tombol baru -->
+                <span class="rate-link rate-link-hidden d-none">Beri rating</span>
               </div>
+
 
               <!-- harga -->
               <div class="pd-price mb-2">
@@ -137,17 +141,23 @@ $_empty = 5 - $_full - ($_half ? 1 : 0);
 
 
               <!-- Ulasan -->
-              <h5 id="ulasan" class="mt-3 mb-2">Ulasan</h5>
+             <!-- Ulasan -->
+<div class="d-flex align-items-center justify-content-between mt-3 mb-2">
+  <h4 id="ulasan" class="mb-0">Ulasan</h4>
+  <button type="button" class="btn btn-blue btn-sm" id="btn-open-rating">
+    Tulis Ulasan
+  </button>
+</div>
 
-              <div class="rv-list" id="rv-list">
-                <div id="rv-skel" class="text-muted">Memuat ulasan…</div>
-              </div>
+<div class="rv-list" id="rv-list">
+  <div id="rv-skel" class="text-muted">Memuat ulasan…</div>
+</div>
 
-              <div class="text-center mt-2">
-                <button class="btn btn-outline-secondary btn-sm" id="btn-more-rev">
-                  Muat lebih banyak
-                </button>
-              </div>
+<div class="text-center mt-2">
+  <button class="btn btn-outline-secondary btn-sm" id="btn-more-rev">
+    Muat lebih banyak
+  </button>
+</div>
 
 
             </div>
@@ -703,3 +713,26 @@ function flashAdded(btn){
 }
 
 </script>
+<script>
+(function(){
+  var btn = document.getElementById('btn-open-rating');
+  if (!btn) return;
+
+  btn.addEventListener('click', function(){
+    // cari kotak rate yang lama
+    var box = document.querySelector('[data-rate-box-detail]');
+    if (!box) return;
+
+    // prioritaskan trigger ke rate-link lama (hidden),
+    // bila tak ada, jatuhkan ke star-meter.
+    var hidden = box.querySelector('.rate-link-hidden');
+    if (hidden) {
+      hidden.click();
+    } else {
+      var star = box.querySelector('.star-meter');
+      if (star) star.click();
+    }
+  });
+})();
+</script>
+
