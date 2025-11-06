@@ -365,38 +365,39 @@ public function rate(){
     $allowedSort = ['random','new','price_low','price_high','sold_out','bestseller','trending'];
     $sort = in_array($sort_in, $allowedSort, true) ? $sort_in : 'random';
 
-    // ====== TRENDING FILTER ======
-    // ?trend=1|today|week|month  atau manual ?trend_days=7&trend_min=1.0
-    $trend_param    = strtolower((string)($this->input->get('trend', true) ?: ''));
-    $trend_days_in  = (int)($this->input->get('trend_days', true) ?: 0);
-    $trend_min_in   = (float)($this->input->get('trend_min',  true) ?: 0);
+   // ====== TRENDING FILTER ======
+$trend_param    = strtolower((string)($this->input->get('trend', true) ?: ''));
+$trend_days_in  = (int)($this->input->get('trend_days', true) ?: 0);
+$trend_min_in   = (float)($this->input->get('trend_min',  true) ?: 0);
 
-    $trend_flag = 0;          // nonaktif default
-    $trend_days = 14;         // window default 14 hari
-    $trend_min  = 1.0;        // skor minimal default
+$trend_flag = 0;        // nonaktif default
+$trend_days = 14;       // window default
+$trend_min  = 1.0;      // skor minimal default
 
-    if (
-        $trend_param === '1' || $trend_param === 'true' || $trend_param === 'yes' ||
-        in_array($trend_param, ['today','week','month'], true) ||
-        $trend_days_in > 0 || $trend_min_in > 0 || $recommended
-    ){
-        $trend_flag = 1;
-    }
+if (
+    $trend_param === '1' || $trend_param === 'true' || $trend_param === 'yes' ||
+    in_array($trend_param, ['today','week','month'], true) ||
+    $trend_days_in > 0 || $trend_min_in > 0
+){
+    $trend_flag = 1;
+}
 
-    switch ($trend_param) {
-        case 'today': $trend_days = 1;  break;
-        case 'week':  $trend_days = 7;  break;
-        case 'month': $trend_days = 30; break;
-    }
-    if ($trend_days_in > 0) $trend_days = min(90, max(1, $trend_days_in));
-    if ($trend_min_in  > 0) $trend_min  = max(0.01, $trend_min_in);
+switch ($trend_param) {
+    case 'today': $trend_days = 1;  break;
+    case 'week':  $trend_days = 7;  break;
+    case 'month': $trend_days = 30; break;
+}
+if ($trend_days_in > 0) $trend_days = min(90, max(1, $trend_days_in));
+if ($trend_min_in  > 0) $trend_min  = max(0.01, $trend_min_in);
 
-    // Kalau RECOMMENDED aktif → abaikan kategori & sub, dan default sort → trending
-    if ($recommended) {
-        $kategori = '';
-        $sub = '';
-        if ($sort === 'random') $sort = 'trending';
-    }
+// Kalau RECOMMENDED aktif → abaikan kategori & sub. TAPI JANGAN memaksa sort = trending
+if ($recommended) {
+    $kategori = '';
+    $sub = '';
+    // Matikan trending kalau masih nyala dari URL lama
+    $trend_flag = 0;
+}
+
 
     // ==== seed hanya untuk random ====
     $seed = '';

@@ -88,10 +88,20 @@ public function count_reviews($produk_id){
     }
 
     // Recommended
-    $isRec = !empty($filters['recomended']);
-    if ($isRec) {
+   // ===== Recommended =====
+$isRec = !empty($filters['recomended']); // param bernama 'recomended' (1 'm')
+if ($isRec) {
+    // fallback aman: pilih kolom yang ada di DB
+    if ($this->db->field_exists('recomended', 'produk')) {
         $this->db->where('p.recomended', 1);
+    } elseif ($this->db->field_exists('recommended', 'produk')) {
+        $this->db->where('p.recommended', 1);
+    } else {
+        // kalau dua-duanya tidak ada, paksa 0 hasil (hindari error)
+        $this->db->where('1=', '0', false);
     }
+}
+
 
     // Kategori/Sub (skip saat recommended)
     if (!$isRec && !empty($filters['kategori'])){
@@ -142,10 +152,20 @@ public function count_reviews($produk_id){
     }
 
     // ===== Recommended =====
-    $isRec = !empty($filters['recomended']); // kolom memang "recomended" (1 'm')
-    if ($isRec) {
+    // ===== Recommended =====
+$isRec = !empty($filters['recomended']); // param bernama 'recomended' (1 'm')
+if ($isRec) {
+    // fallback aman: pilih kolom yang ada di DB
+    if ($this->db->field_exists('recomended', 'produk')) {
         $this->db->where('p.recomended', 1);
+    } elseif ($this->db->field_exists('recommended', 'produk')) {
+        $this->db->where('p.recommended', 1);
+    } else {
+        // kalau dua-duanya tidak ada, paksa 0 hasil (hindari error)
+        $this->db->where('1=', '0', false);
     }
+}
+
 
     // ===== Kategori/Sub (di-skip bila recommended aktif) =====
     if (!$isRec && !empty($filters['kategori'])){

@@ -235,6 +235,10 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
   function loadProducts(page=1,pushUrl=true){
     loading(true);
     const params=serializeFilters(page);
+      // kompat backend lama yang baca ?rec=1
+params.rec = params.recommended ? 1 : 0;
+// optional: bust cache
+params._ = Date.now();
 
     $.getJSON(CFG.list_ajax,params)
     .done(function(r){
@@ -481,17 +485,31 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     const isRecBtn = ($(this).data("recommended")==="1" || $(this).data("recommended")==1) ||
                      ($(this).find('.menu-label').text().trim().toLowerCase()==='recomended');
 
-    if(isRecBtn){
+// === Quickmenu click: dukung Recommended (Andalang) TANPA trending ===
+if (isRecBtn){
   setRec(true);
-  // preset trending biar label & URL konsisten
-  $("#sort").val("trending");
-  $("#trend").val("week");        // pilih: today/week/month
-  $("#trend_days").val("7");
-  $("#trend_min").val("1.0");
-  setSortLabel("trending");
 
+  // kalau sebelumnya user lagi di 'trending', kembalikan ke 'random'
+  if (($("#sort").val() || "") === "trending") {
+    $("#sort").val("random");
+  }
+
+  // kosongkan semua parameter trending
+  $("#trend").val("");
+  $("#trend_days").val("");
+  $("#trend_min").val("");
+
+  setSortLabel($("#sort").val() || "random");
   markActiveKategori();
   hideSubcats();
+
+  // bersihkan param trending di URL saat ini (non-push)
+  const url = new URL(window.location.href);
+  url.searchParams.delete("trend");
+  url.searchParams.delete("trend_days");
+  url.searchParams.delete("trend_min");
+  history.replaceState({}, "", url.toString());
+
   loadProducts(1);
   scrollToGrid();
   return;
