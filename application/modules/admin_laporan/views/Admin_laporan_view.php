@@ -27,9 +27,13 @@
         <select id="preset" class="form-control form-control-sm">
           <option value="today">Hari ini</option>
           <option value="yesterday">Kemarin</option>
+          <?php if ($this->session->userdata("admin_username") == "admin") {?>
+           
+        
           <option value="this_week">Minggu ini</option>
           <option value="this_month">Bulan ini</option>
           <option value="range">Rentang Tanggal</option>
+           <?php  } ?>
         </select>
       </div>
 
