@@ -196,6 +196,34 @@ $canAssignKurir = (
         </span>
       </div>
     </div>
+    <?php if ($customer_phone !== ''): ?>
+  <div class="dropdown d-inline-block">
+    <button type="button" class="btn btn-sm btn-success dropdown-toggle mb-2"
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="mdi mdi-whatsapp"></i> WA Pengingat
+    </button>
+    <div class="dropdown-menu dropdown-menu-right">
+      <?php if (in_array($status, ['pending','verifikasi'], true)): ?>
+        <a class="dropdown-item" href="#"
+           onclick="waReminder(<?= $idForPrint ?>,'payment');return false;">
+          Pengingat Pembayaran
+        </a>
+      <?php endif; ?>
+
+      <?php if ($is_delivery): ?>
+        <a class="dropdown-item" href="#"
+           onclick="waReminder(<?= $idForPrint ?>,'delivery');return false;">
+          Pengingat Pengantaran
+        </a>
+      <?php endif; ?>
+
+    <!--   <a class="dropdown-item" href="#"
+         onclick="waReminder(<?= $idForPrint ?>,'thanks');return false;">
+        Ucapan Terima Kasih / Minta Rating
+      </a> -->
+    </div>
+  </div>
+<?php endif; ?>
 
     <div class="text-right">
       <?php if ($is_delivery): ?>
@@ -495,4 +523,153 @@ $canAssignKurir = (
     setTimeout(()=>{ $(this).text('Salin').prop('disabled', false); }, 1500);
   });
 })();
+
+ /* ==== GLOBAL CSRF utk AJAX ==== */
+  window.CSRF_NAME = "<?= isset($this->security) ? $this->security->get_csrf_token_name() : 'csrf_test_name' ?>";
+  window.CSRF_HASH = "<?= isset($this->security) ? $this->security->get_csrf_hash() : '' ?>";
+
+  /* ==== Helper Swal loading ==== */
+  function swalLoading(title, html){
+    Swal.fire({
+      title: title || 'Memproses...',
+      html:  html  || '',
+      allowOutsideClick: false,
+      allowEscapeKey:   false,
+      didOpen: () => { Swal.showLoading(); }
+    });
+  }
+
+  /* ====== Kirim WA Pengingat (SweetAlert) ====== */
+  window.waReminder = function(orderId, type){
+    var labels = {
+      payment : 'Pengingat Pembayaran',
+      delivery: 'Pengingat Pengantaran',
+      thanks  : 'Ucapan Terima Kasih'
+    };
+    var label = labels[type] || 'Kirim Pesan';
+
+    Swal.fire({
+      icon: 'question',
+      title: label,
+      text: 'Kirim pesan WhatsApp ke customer sekarang?',
+      showCancelButton: true,
+      confirmButtonText: 'Kirim',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    }).then(function(res){
+      if (!res.isConfirmed) return;
+
+      swalLoading('Mengirim...', 'Mohon tunggu');
+      $.ajax({
+        url: "<?= site_url('admin_pos/wa_reminder'); ?>",
+        method: "POST",
+        dataType: "json",
+        data: (function(){
+          var d = { order_id: orderId, type: type };
+          if (window.CSRF_NAME) d[window.CSRF_NAME] = window.CSRF_HASH;
+          return d;
+        })()
+      })
+      .done(function(r){
+        // perbarui CSRF bila server kirimkan
+        if (r && r.csrf) { window.CSRF_NAME = r.csrf.name; window.CSRF_HASH = r.csrf.hash; }
+        Swal.close();
+
+        if (r && r.ok){
+          Swal.fire({ icon:'success', title:'Terkirim', text:'Pesan WhatsApp berhasil dikirim.' });
+          return;
+        }
+
+        if (r && r.preview_ctc){
+          // Gateway WA non-aktif → tawarkan kirim manual via wa.me
+          Swal.fire({
+            icon: 'info',
+            title: 'Kirim manual via WhatsApp',
+            html: `
+              <div class="text-left">
+                <p>Gateway WhatsApp tidak aktif. Klik tombol di bawah untuk membuka WhatsApp dengan pesan siap kirim.</p>
+                <label class="small text-muted d-block mb-1">Preview Pesan</label>
+                <textarea class="form-control" rows="6" readonly>${(r.preview_text||'').replace(/</g,'&lt;')}</textarea>
+              </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Buka WhatsApp',
+            cancelButtonText: 'Tutup',
+            width: 600
+          }).then(function(x){
+            if (x.isConfirmed) window.open(r.preview_ctc, '_blank');
+          });
+          return;
+        }
+
+        Swal.fire({ icon:'error', title:'Gagal', text: (r && r.msg) ? r.msg : 'Gagal mengirim pesan.' });
+      })
+      .fail(function(){
+        Swal.close();
+        Swal.fire({ icon:'error', title:'Gagal', text:'Tidak dapat menghubungi server.' });
+      });
+    });
+  };
+
+  /* ====== Ganti alert() di assignKurirNow jadi Swal ====== */
+  (function(){
+    var _assignKurirNow = window.assignKurirNow; // simpan original
+    window.assignKurirNow = function(orderId, courierId, btn){
+      var $modal   = $('#modalAssignKurir');
+      var $overlay = $modal.find('.assign-loading');
+      var $btn     = $(btn || null);
+
+      $overlay.removeClass('d-none');
+      var oldHtml=null;
+      if ($btn.length){ oldHtml = $btn.html(); $btn.prop('disabled', true).html('<span class="spin" style="width:16px;height:16px;border-width:2px;margin-right:6px;"></span>Memproses'); }
+
+      $.ajax({
+        url: "<?= site_url('admin_pos/assign_courier'); ?>",
+        method: "POST",
+        dataType: "json",
+        data: (function(){
+          var d = { order_id: orderId, courier_id: courierId };
+          // pakai var lokal dari IIFE-mu jika ada, fallback global
+          d[(typeof CSRF_NAME!=='undefined'?CSRF_NAME:window.CSRF_NAME)] = (typeof CSRF_HASH!=='undefined'?CSRF_HASH:window.CSRF_HASH);
+          return d;
+        })()
+      })
+      .done(function(res){
+        if (res && res.ok){
+          var nama = res.data && res.data.nama ? res.data.nama : 'Kurir';
+          var telp = res.data && res.data.phone ? String(res.data.phone) : '';
+          var telpPlain = telp.replace(/\s+/g,'');
+          var html = ' <i class="fe-user-check"></i> Kurir: <strong>';
+          if (telp){ html += '<a href="tel:'+telpPlain+'">'+$('<div>').text(nama).html()+'</a>'; }
+          else { html += $('<div>').text(nama).html(); }
+          html += '</strong>';
+          $('#kurirMeta').html(html).show();
+          $('#btnAssignKurirHeader').remove();
+          $('#modalAssignKurir').modal('hide');
+          Swal.fire({icon:'success', title:'Berhasil', text:'Kurir ditugaskan.'});
+        } else {
+          Swal.fire({icon:'error', title:'Gagal', text: (res && res.msg) ? res.msg : 'Tidak bisa menugaskan kurir.'});
+        }
+      })
+      .fail(function(){
+        Swal.fire({icon:'error', title:'Gagal', text:'Terjadi kesalahan jaringan/server.'});
+      })
+      .always(function(){
+        $overlay.addClass('d-none');
+        if ($btn.length){ $btn.prop('disabled', false).html(oldHtml || 'Tugaskan'); }
+      });
+    };
+  })();
+
+  /* ====== Toast kecil untuk tombol Salin ====== */
+  $(document).on('click', '.js-copy', function(){
+    var val = $(this).data('copy') || '';
+    if (!val) return;
+    var ta = document.createElement('textarea');
+    ta.value = val; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    Swal.fire({toast:true, position:'top', icon:'success', title:'Nomor tersalin', showConfirmButton:false, timer:1300});
+  });
+
 </script>

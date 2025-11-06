@@ -814,6 +814,85 @@ private function _wa_paid_notice(array $paid_ids){
     }
 }
 
+public function wa_reminder(){
+    $order_id = (int)$this->input->post('order_id', true);
+    $type     = strtolower(trim((string)$this->input->post('type', true)));
+
+    if ($order_id <= 0 || !in_array($type, ['payment','delivery','thanks'], true)) {
+        return $this->_json_err('Parameter tidak valid', 422);
+    }
+
+    $o = $this->db->get_where('pesanan', ['id'=>$order_id])->row();
+    if (!$o) return $this->_json_err('Order tidak ditemukan', 404);
+
+    $phoneRaw = trim((string)($o->customer_phone ?? ''));
+    if ($phoneRaw === '') return $this->_json_err('Nomor HP customer kosong', 422);
+
+    $msisdn = $this->_msisdn($phoneRaw);
+    if ($msisdn === '') return $this->_json_err('Nomor HP tidak valid', 422);
+
+    // Info toko
+    $ident = $this->db->get('identitas')->row();
+    $toko  = trim((string)($ident->nama_website ?? $ident->nama ?? 'AUSI BILLIARD & CAFE'));
+    if ($toko === '') $toko = 'AUSI BILLIARD & CAFE';
+
+    // Data order
+    $kodeTampil = ($o->nomor !== '' ? $o->nomor : $o->id);
+    $total      = (int)($o->grand_total ?? $o->total ?? 0);
+    $waktu      = !empty($o->created_at) ? date('d/m/Y H:i', strtotime($o->created_at)) : date('d/m/Y H:i');
+
+    // Link terkait
+    $linkPay   = site_url('produk/order_success/'.$kodeTampil);
+    $linkStruk = site_url('produk/receipt/'.$kodeTampil);
+    $reviewUrl = site_url('review');
+
+    $namaSapaan = trim($o->nama ?: "kak");
+
+    // Susun pesan berdasarkan tipe
+    switch ($type){
+        case 'payment':
+            $msg  = "Halo {$namaSapaan}, 👋\n\n";
+            $msg .= "Pengingat pembayaran untuk pesanan *#{$kodeTampil}* ({$waktu}).\n";
+            $msg .= "Total yang perlu dibayar: *".$this->_idr($total)."*.\n";
+            $msg .= "Selesaikan di sini ya:\n{$linkPay}\n\n";
+            $msg .= "_Catatan: jika memilih *tunai*, kode unik tidak ikut ditagihkan._\n";
+            $msg .= "Terima kasih 🙏";
+            break;
+
+        case 'delivery':
+            $addr  = trim((string)($o->alamat_kirim ?? ''));
+            $kurir = '';
+            if (!empty($o->courier_name)) {
+                $kurir = "Kurir: {$o->courier_name}".(!empty($o->courier_phone) ? " ({$o->courier_phone})" : "");
+            }
+            $msg  = "Halo {$namaSapaan}, 👋\n\n";
+            $msg .= "Pengingat: pesanan *#{$kodeTampil}* dari *{$toko}* sedang diproses untuk *diantar*.\n";
+            if ($addr !== '') $msg .= "Alamat: {$addr}\n";
+            if ($kurir !== '') $msg .= "{$kurir}\n";
+            $msg .= "Jika ada update lokasi/patokan, balas pesan ini ya. Terima kasih 🙏";
+            break;
+
+        default: // thanks
+            $msg  = "Terima kasih, {$namaSapaan}! 🙌\n\n";
+            $msg .= "Pesanan *#{$kodeTampil}* sudah kami proses. Semoga cocok ya.\n";
+            $msg .= "Struk digital: {$linkStruk}\n";
+            $msg .= "Bantu kami lebih baik dengan memberi rating ⭐ di sini:\n{$reviewUrl}\n\n";
+            $msg .= "Sampai jumpa lagi di *{$toko}*!";
+    }
+
+    // Kirim via gateway WA jika tersedia
+    $ok = $this->_wa_try($msisdn, $msg);
+
+    // Fallback link wa.me untuk klik manual dari UI
+    $ctc = 'https://wa.me/'.$msisdn.'?text='.rawurlencode($msg);
+
+    return $this->_json([
+        'ok'           => (bool)$ok,
+        'to'           => $msisdn,
+        'preview_text' => $msg,
+        'preview_ctc'  => $ctc
+    ]);
+}
 
 
 
