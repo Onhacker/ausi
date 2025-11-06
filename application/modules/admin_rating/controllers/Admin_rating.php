@@ -69,15 +69,19 @@ class Admin_rating extends Admin_Controller {
                 $created   = $r->created_at ? date('d-m-Y H:i', strtotime($r->created_at)) : '-';
 
                 // actions
-                $idInt = (int)$r->id;
-                $btnEdit = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="open_edit('.$idInt.')"><i class="fe-edit"></i></button>';
+                                $unameLower = strtolower((string)$this->session->userdata('admin_username'));
+                $isAdmin    = ($unameLower === 'admin');
 
-                $unameLower = strtolower((string)$this->session->userdata('admin_username'));
-                $btnDelete  = ($unameLower === 'admin')
-                    ? '<button type="button" class="btn btn-sm btn-danger" onclick="do_delete('.$idInt.')"><i class="fe-trash-2"></i></button>'
-                    : '<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Hanya admin dapat menghapus"><i class="fe-lock"></i></button>';
+                $btnEdit = $isAdmin
+                  ? '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="open_edit('.$idInt.')"><i class="fe-edit"></i></button>'
+                  : '<button type="button" class="btn btn-sm btn-outline-secondary mr-1" disabled title="Hanya admin dapat mengubah"><i class="fe-lock"></i></button>';
+
+                $btnDelete = $isAdmin
+                  ? '<button type="button" class="btn btn-sm btn-danger" onclick="do_delete('.$idInt.')"><i class="fe-trash-2"></i></button>'
+                  : '<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Hanya admin dapat menghapus"><i class="fe-lock"></i></button>';
 
                 $aksi = '<div class="btn-group btn-group-sm" role="group">'.$btnEdit.$btnDelete.'</div>';
+
 
                 $row = [];
                 $row['id']         = $idInt;
