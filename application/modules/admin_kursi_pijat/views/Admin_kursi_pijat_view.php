@@ -44,8 +44,10 @@
           </div>
           <small id="price_hint" class="text-dark"></small>
           <hr>
-          
-          <table id="datable_1" class="table table-striped table-bordered w-100">
+            <div class="table-responsive">
+          <!-- <table id="datable_1" class="table table-striped table-bordered w-100"> -->
+          <table id="datable_1" class="table table-sm table-striped table-bordered w-100">
+
             <thead>
               <tr>
                 <th class="text-center" width="5%">
@@ -63,7 +65,7 @@
               </tr>
             </thead>
           </table>
-
+</div>
         </div>
       </div>
     </div>

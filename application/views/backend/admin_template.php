@@ -71,11 +71,10 @@ $us = $this->om->user();
 }
 
 .gradient-topbar #topnav {
-    background: linear-gradient(360deg, #FF9800 0, #FFC107 100%) !important;
+    background: linear-gradient(360deg, #795548 0, #FF5722 100%) !important;
     -webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
     box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
 }
-
 /*.page-title-box .page-title {
     line-height: 25px !important;}
 
