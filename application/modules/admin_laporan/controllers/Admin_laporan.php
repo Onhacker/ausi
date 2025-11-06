@@ -345,18 +345,58 @@ public function print_laba(){
     private function _idr($n){ return 'Rp '.number_format((int)$n,0,',','.'); }
 
     private function _period_label(array $f){
-        $tz = new DateTimeZone('Asia/Makassar');
-        $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz) ?: new DateTime($f['date_from'], $tz);
-        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'],   $tz) ?: new DateTime($f['date_to'],   $tz);
-        $pmap = [
-            'today'      => 'Hari ini',
-            'yesterday'  => 'Kemarin',
-            'this_week'  => 'Minggu ini',
-            'this_month' => 'Bulan ini',
-            'range'      => 'Periode khusus'
-        ];
-        return ($pmap[$f['preset']] ?? 'Periode') . ' (' . $df->format('d/m/Y H:i') . ' — ' . $dt->format('d/m/Y H:i') . ')';
+    $f  = $this->_enforce_period_acl($f); // ⬅️ penting
+    $tz = new DateTimeZone('Asia/Makassar');
+
+    // parsing aman (fallback jika format bukan 'Y-m-d H:i:s')
+    $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz) ?: new DateTime($f['date_from'], $tz);
+    $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'],   $tz) ?: new DateTime($f['date_to'],   $tz);
+
+    $pmap = [
+        'today'      => 'Hari ini',
+        'yesterday'  => 'Kemarin',
+        'this_week'  => 'Minggu ini',
+        'this_month' => 'Bulan ini',
+        'range'      => 'Periode khusus'
+    ];
+    return ($pmap[$f['preset']] ?? 'Periode') . ' (' . $df->format('d/m/Y H:i') . ' — ' . $dt->format('d/m/Y H:i') . ')';
+}
+/** 🔒 Paksa batas periode sesuai role.
+ *  Admin: bebas.
+ *  Non-admin: hanya 'today' & 'yesterday'. Selain itu akan dipaksa 'today'.
+ */
+private function _enforce_period_acl(array $f): array
+{
+    $isAdmin = ($this->session->userdata('admin_username') === 'admin');
+    $preset  = $f['preset'] ?? 'today';
+
+    // Admin: tak perlu ubah apa pun
+    if ($isAdmin) {
+        return $f;
     }
+
+    // Non-admin: hanya boleh today / yesterday
+    if ($preset !== 'today' && $preset !== 'yesterday') {
+        $preset = 'today';
+    }
+
+    $tz  = new DateTimeZone('Asia/Makassar');
+    $now = new DateTime('now', $tz);
+
+    if ($preset === 'yesterday') {
+        $start = (clone $now)->setTime(0,0,0)->modify('-1 day');
+        $end   = (clone $start)->setTime(23,59,59);
+    } else { // today
+        $start = (clone $now)->setTime(0,0,0);
+        $end   = (clone $now)->setTime(23,59,59);
+    }
+
+    $f['preset']    = $preset;
+    $f['date_from'] = $start->format('Y-m-d H:i:s');
+    $f['date_to']   = $end->format('Y-m-d H:i:s');
+    return $f;
+}
+
 
 
     private function _pdf($title, $html, $filename='laporan.pdf'){
