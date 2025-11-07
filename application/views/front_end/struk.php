@@ -251,64 +251,89 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   const HR1 = '-'.repeat(COLS) + '\n';
   const HR2 = '='.repeat(COLS) + '\n';
   // Lebar dot head printer (umum): 80mm ≈ 576, 58mm ≈ 384
-const DOT_WIDTH = <?= ($paperWidthMM === 80) ? 576 : 384 ?>;
+// Lebar dot head printer (umum): 80mm ≈ 576, 58mm ≈ 384
+const DOT_WIDTH = (()=>{
+  const qsW = Number(new URLSearchParams(location.search).get('logow') || '');
+  return (qsW>0 ? qsW : (<?= ($paperWidthMM === 80) ? 576 : 384 ?>));
+})();
 
-// Konversi image URL -> ESC/POS raster (GS v 0)
+// Robust loader: dukung data:, same-origin (pakai fetch+cookie), dan CORS
 async function escposImageFromUrl(url, maxDots, center=true){
   if (!url) return '';
   try{
-    const img = new Image();
-    img.crossOrigin = 'anonymous'; // butuh CORS jika beda domain
-    img.src = url;
-    await new Promise((res, rej)=>{
-      img.onload = res; img.onerror = rej;
-    });
+    let src = url;
+    const abs = new URL(url, location.href);
+    const sameOrigin = abs.origin === location.origin;
+    const isDataURL = url.startsWith('data:');
 
-    // scale ke lebar maxDots (tetap jaga rasio)
-    const scale = Math.min(1, maxDots / img.naturalWidth);
-    const w = Math.min(maxDots, Math.floor(img.naturalWidth * scale));
-    const h = Math.max(1, Math.floor(img.naturalHeight * scale));
-
-    // gambar ke canvas
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    const g = c.getContext('2d');
-    g.drawImage(img, 0, 0, w, h);
-
-    const id = g.getImageData(0, 0, w, h).data;
-    const bytesPerRow = Math.ceil(w / 8);
-    const total = bytesPerRow * h;
-    const buf = new Uint8Array(total);
-
-    // threshold b/w sederhana
-    for (let y=0; y<h; y++){
-      for (let x=0; x<w; x++){
-        const i = (y*w + x)*4;
-        const r=id[i], g1=id[i+1], b=id[i+2];
-        const lum = 0.299*r + 0.587*g1 + 0.114*b;
-        const bit = (lum < 160) ? 1 : 0; // <160 = hitam
-        if (bit){
-          const byteIndex = y*bytesPerRow + (x>>3);
-          buf[byteIndex] |= (0x80 >> (x & 7));
-        }
+    // Mixed-content guard: jika page https tapi logo http → coba upgrade ke https
+    if (location.protocol === 'https:' && abs.protocol === 'http:') {
+      try {
+        const httpsUrl = 'https://' + abs.host + abs.pathname + abs.search + abs.hash;
+        await fetch(httpsUrl, { method:'HEAD' });
+        src = httpsUrl;
+      } catch(e) {
+        // biarkan src tetap, mungkin server tdk support https
       }
     }
 
-    // header GS v 0 m xL xH yL yH (m=0)
+    // Siapkan image source
+    let imgSrc = src;
+    if (!isDataURL && sameOrigin) {
+      // pakai fetch agar include cookie/session
+      const r = await fetch(src, { credentials:'include' });
+      if (!r.ok) throw new Error('fetch logo failed: '+r.status);
+      const blob = await r.blob();
+      imgSrc = URL.createObjectURL(blob);
+    }
+
+    // load ke <img>
+    const img = new Image();
+    if (!isDataURL && !sameOrigin) img.crossOrigin = 'anonymous'; // perlu ACAO di server logo
+    img.src = imgSrc;
+    await new Promise((res, rej)=>{ img.onload = res; img.onerror = rej; });
+
+    // skala & rasterize
+    const scale = Math.min(1, maxDots / img.naturalWidth || 1);
+    const w = Math.max(1, Math.min(maxDots, Math.floor((img.naturalWidth||maxDots) * scale)));
+    const h = Math.max(1, Math.floor((img.naturalHeight||maxDots) * scale));
+
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const id = ctx.getImageData(0, 0, w, h).data;
+    const bytesPerRow = Math.ceil(w / 8);
+    const buf = new Uint8Array(bytesPerRow * h);
+
+    // threshold sederhana (bisa turunkan 160 -> 140 kalau gambar terlalu gelap)
+    for (let y=0; y<h; y++){
+      for (let x=0; x<w; x++){
+        const i = (y*w + x)*4;
+        const lum = 0.299*id[i] + 0.587*id[i+1] + 0.114*id[i+2];
+        if (lum < 160) buf[y*bytesPerRow + (x>>3)] |= (0x80 >> (x & 7));
+      }
+    }
+
+    // GS v 0 m xL xH yL yH + data
     const xL = bytesPerRow & 0xFF, xH = (bytesPerRow>>8) & 0xFF;
     const yL = h & 0xFF,          yH = (h>>8) & 0xFF;
-    let out = '';
-    if (center) out += CTR; else out += LEFT;
-    out += GS + 'v' + '0' + '\x00' + String.fromCharCode(xL,xH,yL,yH);
-    // data
+
+    let out = center ? CTR : LEFT;
+    out += GS + 'v' + '0' + '\x00' + String.fromCharCode(xL, xH, yL, yH);
     for (let i=0; i<buf.length; i++) out += String.fromCharCode(buf[i]);
     out += '\n' + LEFT;
+
+    // bersihkan blob URL jika dipakai
+    if (!isDataURL && sameOrigin) try{ URL.revokeObjectURL(imgSrc); }catch(e){}
     return out;
   }catch(e){
-    // Gagal load (CORS, dll) -> skip logo, tetap aman
-    return '';
+    console.warn('Logo raster failed:', e);
+    return ''; // jangan blokir cetak
   }
 }
+
 
   function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
   function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
