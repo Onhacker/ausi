@@ -196,9 +196,9 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   <div class="center small muted" style="margin-top:6px;">Dev By Onhacker</div>
 </div>
 <?php
-// --- SIAPKAN DATA URL LOGO (base64) DI PHP, BUKAN DI <script> ---
+// === Siapkan data URL logo (base64) agar aman untuk RawBT ===
 $logoData = '';
-$logoPath = FCPATH.'assets/images/logo_admin.png'; // ganti sesuai file/logo-mu
+$logoPath = FCPATH.'assets/images/logo_admin.png'; // ganti sesuai lokasi logomu
 if (is_file($logoPath)) {
   $mime = function_exists('mime_content_type') ? mime_content_type($logoPath) : 'image/png';
   if (!$mime) $mime = 'image/png';
@@ -222,7 +222,7 @@ if (is_file($logoPath)) {
     alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
     telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
     nomor      : <?= json_encode($nomor) ?>,
-    // PENTING: kirim SATU nilai saja (base64 kalau ada, fallback ke $logoUrl)
+    // logo: pakai base64 (jika tersedia), fallback ke $logoUrl
     logo_url   : <?= json_encode($logoData ?: ($logoUrl ?? '')) ?>,
 
     waktu      : <?= json_encode($waktu) ?>,
@@ -260,78 +260,24 @@ if (is_file($logoPath)) {
   const HR1 = '-'.repeat(COLS) + '\n';
   const HR2 = '='.repeat(COLS) + '\n';
 
-  // Lebar dot head: bisa override &logow=512
-  const DOT_WIDTH = (()=>{
-    const qsW = Number(new URLSearchParams(location.search).get('logow') || '');
-    return (qsW>0 ? qsW : (<?= ($paperWidthMM === 80) ? 576 : 384 ?>));
-  })();
+  // ==== CUT commands + kalibrasi ====
+  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF); // full+feed
+  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF); // partial+feed
+  let CUT_FEED_N  = Number(qs.get('cutn') || 7);   // default 7
+  let TRAIL_LINES = Number(qs.get('trail') || 3);  // default 3
+  const MODE_QS   = (qs.get('cutmode')||'partial').toLowerCase();
+  if (!(CUT_FEED_N>0)) CUT_FEED_N = 7;
+  if (!(TRAIL_LINES>=0)) TRAIL_LINES = 3;
+  const CUT_COMMAND = (MODE_QS==='full') ? CUT_FULL_FEED_N(CUT_FEED_N)
+                                         : CUT_PART_FEED_N(CUT_FEED_N);
 
-  // Loader logo robust (data:, same-origin+cookie, CORS)
-  async function escposImageFromUrl(url, maxDots, center=true){
-    if (!url) return '';
-    try{
-      let src = url;
-      const abs = new URL(url, location.href);
-      const sameOrigin = abs.origin === location.origin;
-      const isDataURL = url.startsWith('data:');
-
-      if (location.protocol === 'https:' && abs.protocol === 'http:') {
-        try {
-          const httpsUrl = 'https://' + abs.host + abs.pathname + abs.search + abs.hash;
-          await fetch(httpsUrl, { method:'HEAD' });
-          src = httpsUrl;
-        }catch(e){}
-      }
-
-      let imgSrc = src;
-      if (!isDataURL && sameOrigin) {
-        const r = await fetch(src, { credentials:'include' });
-        if (!r.ok) throw new Error('fetch logo failed: '+r.status);
-        const blob = await r.blob();
-        imgSrc = URL.createObjectURL(blob);
-      }
-
-      const img = new Image();
-      if (!isDataURL && !sameOrigin) img.crossOrigin = 'anonymous';
-      img.src = imgSrc;
-      await new Promise((res, rej)=>{ img.onload = res; img.onerror = rej; });
-
-      const scale = Math.min(1, maxDots / (img.naturalWidth||maxDots));
-      const w = Math.max(1, Math.min(maxDots, Math.floor((img.naturalWidth||maxDots) * scale)));
-      const h = Math.max(1, Math.floor((img.naturalHeight||maxDots) * scale));
-
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-
-      const id = ctx.getImageData(0, 0, w, h).data;
-      const bytesPerRow = Math.ceil(w / 8);
-      const buf = new Uint8Array(bytesPerRow * h);
-
-      for (let y=0; y<h; y++){
-        for (let x=0; x<w; x++){
-          const i = (y*w + x)*4;
-          const lum = 0.299*id[i] + 0.587*id[i+1] + 0.114*id[i+2];
-          if (lum < 160) buf[y*bytesPerRow + (x>>3)] |= (0x80 >> (x & 7));
-        }
-      }
-
-      const xL = bytesPerRow & 0xFF, xH = (bytesPerRow>>8) & 0xFF;
-      const yL = h & 0xFF,          yH = (h>>8) & 0xFF;
-
-      let out = center ? CTR : LEFT;
-      out += GS + 'v' + '0' + '\x00' + String.fromCharCode(xL, xH, yL, yH);
-      for (let i=0; i<buf.length; i++) out += String.fromCharCode(buf[i]);
-      out += '\n' + LEFT;
-
-      if (!isDataURL && sameOrigin) try{ URL.revokeObjectURL(imgSrc); }catch(e){}
-      return out;
-    }catch(e){
-      console.warn('Logo raster failed:', e);
-      return '';
-    }
-  }
+  // ==== Layout kolom (80mm/58mm) ====
+  // 80mm => 48 kolom: nama 22 | qty 5 | harga 10 | sub 11
+  // 58mm => 32 kolom: nama 16 | qty 4 | harga 6  | sub 6
+  const W_NAME  = (COLS===48)?22:16;
+  const W_QTY   = (COLS===48)?5:4;
+  const W_PRICE = (COLS===48)?10:6;
+  const W_SUB   = COLS - W_NAME - W_QTY - W_PRICE;
 
   function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
   function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
@@ -345,33 +291,142 @@ if (is_file($logoPath)) {
   }
   function formatRp(n){ return 'Rp ' + Number(n||0).toLocaleString('id-ID'); }
 
-  // ==== CUT commands + kalibrasi ====
-  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
-  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
+  // === GAMBAR / LOGO ===
+  const IMG_MODE = (qs.get('imgmode') || 'raster').toLowerCase(); // 'raster' | 'bit'
+  const DOT_WIDTH = (()=>{
+    const qsW = Number(qs.get('logow') || '');
+    return (qsW>0 ? qsW : (<?= ($paperWidthMM === 80) ? 576 : 384 ?>));
+  })();
 
-  let CUT_FEED_N  = Number(qs.get('cutn') || 7);
-  let TRAIL_LINES = Number(qs.get('trail') || 3);
-  const MODE_QS   = (qs.get('cutmode')||'partial').toLowerCase();
-  if (!(CUT_FEED_N>0)) CUT_FEED_N = 7;
-  if (!(TRAIL_LINES>=0)) TRAIL_LINES = 3;
-  const CUT_COMMAND = (MODE_QS==='full') ? CUT_FULL_FEED_N(CUT_FEED_N)
-                                         : CUT_PART_FEED_N(CUT_FEED_N);
+  async function loadImageToCanvas(url, maxDots){
+    if (!url) return null;
+    let src = url, imgSrc = url;
+    const isDataURL = url.startsWith('data:');
+    try{
+      const abs = new URL(url, location.href);
+      const sameOrigin = abs.origin === location.origin;
+      if (location.protocol==='https:' && abs.protocol==='http:') {
+        try { await fetch('https://'+abs.host+abs.pathname+abs.search+abs.hash, {method:'HEAD'}); src = 'https://'+abs.host+abs.pathname+abs.search+abs.hash; } catch(e){}
+      }
+      if (!isDataURL && sameOrigin) {
+        const r = await fetch(src, {credentials:'include'});
+        if (!r.ok) throw new Error('fetch '+r.status);
+        const b = await r.blob();
+        imgSrc = URL.createObjectURL(b);
+      }
+      const img = new Image();
+      if (!isDataURL && imgSrc.startsWith('http')) img.crossOrigin = 'anonymous';
+      img.src = imgSrc;
+      await new Promise((res, rej)=>{ img.onload=res; img.onerror=rej; });
 
-  // ==== Layout kolom ====
-  const W_NAME  = (COLS===48)?22:16;
-  const W_QTY   = (COLS===48)?5:4;
-  const W_PRICE = (COLS===48)?10:6;
-  const W_SUB   = COLS - W_NAME - W_QTY - W_PRICE;
+      const scale = Math.min(1, maxDots / (img.naturalWidth||maxDots));
+      const w = Math.max(8, Math.min(maxDots, Math.floor((img.naturalWidth||maxDots)*scale)));
+      const h = Math.max(1, Math.floor((img.naturalHeight||maxDots)*scale));
 
-  function rowHeader(){ return padR('Item', W_NAME) + padR('Qty', W_QTY) + padL('Harga', W_PRICE) + padL('Subtotal', W_SUB) + '\n'; }
-  function rowItem(name, qty, harga, sub){ return padR(name, W_NAME) + padL(qty, W_QTY) + padL(harga, W_PRICE) + padL(sub, W_SUB) + '\n'; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      if (!isDataURL && imgSrc.startsWith('blob:')) try{ URL.revokeObjectURL(imgSrc); }catch(e){}
+      return c;
+    }catch(e){
+      console.warn('loadImageToCanvas fail', e);
+      return null;
+    }
+  }
+
+  // MODE 1: GS v 0 Raster
+  async function escposImageRaster(url, maxDots, center=true){
+    const c = await loadImageToCanvas(url, maxDots);
+    if (!c) return '';
+    const w = c.width, h = c.height;
+    const ctx = c.getContext('2d');
+    const id = ctx.getImageData(0,0,w,h).data;
+    const bytesPerRow = Math.ceil(w/8);
+    const buf = new Uint8Array(bytesPerRow*h);
+
+    for (let y=0;y<h;y++){
+      for (let x=0;x<w;x++){
+        const i=(y*w+x)*4;
+        const lum = 0.299*id[i] + 0.587*id[i+1] + 0.114*id[i+2];
+        if (lum < 160) buf[y*bytesPerRow + (x>>3)] |= (0x80 >> (x & 7));
+      }
+    }
+
+    const xL = bytesPerRow & 0xFF, xH = (bytesPerRow>>8) & 0xFF;
+    const yL = h & 0xFF,          yH = (h>>8) & 0xFF;
+
+    let out = center ? CTR : LEFT;
+    out += GS+'v'+'0'+'\x00' + String.fromCharCode(xL,xH,yL,yH);
+    for (let i=0;i<buf.length;i++) out += String.fromCharCode(buf[i]);
+    out += '\n' + LEFT;
+    return out;
+  }
+
+  // MODE 2: ESC * 24-dot Bit Image (paling kompatibel)
+  async function escposImageBit(url, maxDots, center=true){
+    const c = await loadImageToCanvas(url, maxDots);
+    if (!c) return '';
+    const w8 = (c.width >> 3) << 3; // width multiple of 8
+    const h  = c.height;
+    const ctx = c.getContext('2d');
+    const id = ctx.getImageData(0,0,c.width,c.height).data;
+
+    let out = center ? CTR : LEFT;
+    // kirim per band 24 dot
+    for (let y=0; y<h; y+=24){
+      const sliceH = Math.min(24, h - y);
+      // ESC * m nL nH  (m=33 -> 24-dot, double-density), n = width (pixels)
+      const n = w8;
+      const nL = n & 0xFF, nH = (n >> 8) & 0xFF;
+      out += ESC + '*' + String.fromCharCode(33, nL, nH);
+      // untuk tiap kolom pixel (x), kirim 3 byte vertikal (24 dot)
+      for (let x=0; x<w8; x++){
+        for (let k=0; k<3; k++){
+          let byte = 0;
+          for (let b=0; b<8; b++){
+            const yy = y + k*8 + b;
+            let bit = 0;
+            if (yy < y + sliceH){
+              const i = (yy*c.width + x) * 4;
+              const lum = 0.299*id[i] + 0.587*id[i+1] + 0.114*id[i+2];
+              bit = (lum < 160) ? 1 : 0;
+            }
+            byte |= (bit << (7 - b));
+          }
+          out += String.fromCharCode(byte);
+        }
+      }
+      out += '\n'; // line feed setelah satu band
+    }
+    out += LEFT;
+    return out;
+  }
+
+  async function escposImageFromUrl(url, maxDots, center=true){
+    if (!url) return '';
+    const mode = (qs.get('imgmode') || 'raster').toLowerCase();
+    if (mode === 'bit') return escposImageBit(url, maxDots, center);
+    return escposImageRaster(url, maxDots, center);
+  }
+
+  // ==== Header Row Helpers ====
+  function rowHeader(){
+    return padR('Item', W_NAME) + padR('Qty', W_QTY) + padL('Harga', W_PRICE) + padL('Subtotal', W_SUB) + '\n';
+  }
+  function rowItem(name, qty, harga, sub){
+    return padR(name, W_NAME) + padL(qty, W_QTY) + padL(harga, W_PRICE) + padL(sub, W_SUB) + '\n';
+  }
 
   // === Builder async ===
   async function buildEscposFromOrder(o){
     let out = INIT + ESC + '2' + SIZE1X;
-    out += await escposImageFromUrl(o.logo_url, DOT_WIDTH, true); // logo dulu
 
-    // Header
+    // LOGO (lebih kompatibel: pakai &imgmode=bit di URL)
+    out += await escposImageFromUrl(o.logo_url, DOT_WIDTH, true);
+
+    // Header teks
     out += CTR + clamp(o.toko, COLS) + '\n';
     if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
     if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
@@ -410,7 +465,7 @@ if (is_file($logoPath)) {
     if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
     out += LEFT;
 
-    // Cut
+    // Potong
     out += feed(TRAIL_LINES) + CUT_COMMAND;
     return out;
   }
