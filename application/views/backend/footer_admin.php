@@ -336,8 +336,8 @@ if (!function_exists('nav_class')) {
         <span class="emoji" aria-hidden="true">📈</span><span>Statistik</span>
       </a>
     <?php endif; ?>
-    <?php if (user_can_mod(['admin_laporan/chart','dashboard'])): ?>
-      <a id="quick-statistik-link" href="<?= site_url('admin_laporan/chart') ?>" class="menu-item">
+    <?php if (user_can_mod(['admin_rating/chart','dashboard'])): ?>
+      <a id="quick-statistik-link" href="<?= site_url('admin_rating/chart') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">📈</span><span>Rating</span>
       </a>
     <?php endif; ?>
