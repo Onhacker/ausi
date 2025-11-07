@@ -333,10 +333,6 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     if (o.is_delivery && Number(o.delivery||0)>0) out += lineLR('Ongkir', formatRp(o.delivery||0)) + '\n';
     out += lineLR('Total Pembayaran', formatRp(o.grand_total || o.total || 0)) + '\n';
 
-    // Footer
-    if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
-    if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
-    out += LEFT;
 // Footer
 if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
 if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
