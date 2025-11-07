@@ -151,10 +151,9 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
       <div class="value"><?= esc(ucfirst($mode)) ?></div>
     </div>
     <div class="row">
-  <div class="label">Metode</div>
-  <div class="value"><?= esc($paidLabel) ?></div>
-</div>
-
+      <div class="label">Metode</div>
+      <div class="value"><?= esc($paidLabel) ?></div>
+    </div>
     <div class="row">
       <div class="label">Meja</div>
       <div class="value"><?= esc($meja) ?></div>
@@ -194,22 +193,6 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     </tbody>
   </table>
 
-  <!-- ===== Totals (rapi & tebal) ===== -->
-<!--   <div class="totbox">
-    <div class="totrow">
-      <div class="tlabel">Kode Unik</div>
-      <div class="tval"><?= rupiah($kodeUnik) ?></div>
-    </div>
-    <div class="totrow">
-      <div class="tlabel">Total</div>
-      <div class="tval"><?= rupiah($total) ?></div>
-    </div>
-    <div class="totrow">
-      <div class="tlabel">Total Pembayaran</div>
-      <div class="tval"><?= rupiah($grandTotal) ?></div>
-    </div>
-  </div> -->
-
   <div class="hr"></div>
 
   <!-- ===== Footer ===== -->
@@ -226,6 +209,7 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   <!-- garis putus-putus “tear line” kecil (opsional) -->
   <div class="hr" style="margin-top:10px;"></div>
 </div>
+
 <script>
 (function(){
   // ======== Query Params ========
@@ -249,17 +233,11 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     meja       : <?= json_encode($meja) ?>,
     nama       : <?= json_encode($nama) ?>,
     catatan    : <?= json_encode($catatan) ?>,
-    subtotal   : <?= (int)$total ?>,
-    kode_unik  : <?= (int)$kodeUnik ?>,
-    grand_total: <?= (int)$grandTotal ?>,
-    paid_label : <?= json_encode($paidLabel) ?>,
-    footer     : <?= json_encode((string)($store->footer ?? 'Terima kasih')) ?>,
+    printed_at : <?= json_encode($printed_at) ?>,
     items      : <?= json_encode(array_map(function($it){
                       return [
                         'nama'     => (string)($it->nama ?? '-'),
-                        'qty'      => (int)$it->qty,
-                        'harga'    => (int)$it->harga,
-                        'subtotal' => (int)$it->subtotal,
+                        'qty'      => (int)$it->qty
                       ];
                     }, $items)) ?>
   };
@@ -269,8 +247,11 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   const INIT= ESC+'@';
   const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
   const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
-  const SIZE1X = GS+'!'+'\x00', SIZE2X = GS+'!'+'\x11';
+  const SIZE1X = GS+'!'+'\x00';
   const CUT = GS+'V'+'\x00'; // di sebagian 58mm yang tanpa cutter: diabaikan
+
+  const HR1 = '-'.repeat(COLS) + '\n'; // setara .hr
+  const HR2 = '='.repeat(COLS) + '\n'; // setara .hr-strong
 
   function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
   function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
@@ -292,42 +273,60 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   }
 
   function buildEscposFromOrder(o){
-  // === KITCHEN SLIP (tanpa harga & total) ===
-  let out = '';
-  // Header toko / info order (singkat)
-  out += INIT + CTR + BOLD_ON + SIZE2X + clamp(o.toko, COLS) + '\n';
-  out += SIZE1X + BOLD_OFF;
-  out += LEFT;
-  if (o.meja)   out += `Meja: ${o.meja}\n`;
-  out += `No: ${o.nomor}${o.waktu ? '   Waktu: '+o.waktu : ''}\n`;
-  if (o.mode)   out += `Mode: ${String(o.mode).charAt(0).toUpperCase()+String(o.mode).slice(1)}\n`;
-  if (o.nama)   out += `Pelanggan: ${o.nama}\n`;
-  if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
+    // === KITCHEN SLIP persis HTML (font normal; nama & qty; garis) ===
+    let out = '';
+    out += INIT + SIZE1X;
 
-  out += '-'.repeat(COLS) + '\n';
+    // Header (brand)
+    out += CTR + '\n' + clamp(o.toko, COLS) + '\n';
+    if (o.alamat) wrapText(o.alamat).forEach(l=> out += clamp(l, COLS) + '\n');
+    if (o.telp)   out += 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
+    out += LEFT + '\n';
 
-  // Daftar item: cetak besar dan jelas untuk dapur
-  (o.items||[]).forEach(it=>{
-    const qty   = Number(it.qty||0);
-    const name  = (it.nama||'').toUpperCase();
-    const lines = wrapText(name);
+    // Meta
+    out += 'No: ' + o.nomor + '\n';
+    if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
+    if (o.mode)  out += 'Mode: ' + (String(o.mode).charAt(0).toUpperCase() + String(o.mode).slice(1)) + '\n';
+    out += 'Metode: <?= esc($paidLabel) ?>' + '\n';
+    if (o.meja)  out += 'Meja: ' + o.meja + '\n';
+    if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
+    if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
 
-    // baris pertama: [xQTY] NAMA (2x size, bold)
-    out += BOLD_ON + SIZE2X + `[x${qty}] ` + clamp(lines.shift()||'', COLS-6) + '\n';
-    out += SIZE1X + BOLD_OFF;
+    // Garis tebal (hr-strong)
+    out += HR2;
 
-    // sisa nama (jika panjang) di baris berikutnya
-    lines.forEach(l => out += '      ' + l + '\n');
+    // Header tabel (Item | Qty) + garis bawah
+    out += lineLR('Item', 'Qty') + '\n';
+    out += HR1;
 
-    // spasi antar item
-    out += '\n';
-  });
+    // Items (tiap baris nama kiri, qty kanan) + garis antar-item
+    (o.items||[]).forEach((it, idx, arr)=>{
+      const nameLines = wrapText(it.nama||'');
+      const qty = String(Number(it.qty||0));
+      // baris pertama nama & qty
+      out += lineLR(clamp(nameLines.shift()||'', COLS-4), qty) + '\n';
+      // sisa nama (jika panjang)
+      nameLines.forEach(l => out += clamp(l, COLS) + '\n');
+      // garis antar item (kecuali terakhir)
+      if (idx < arr.length - 1) out += HR1;
+    });
 
-  // Tidak ada subtotal/total/ongkir/kode unik/footer untuk kitchen
-  out += feed(2) + CUT;
-  return out;
-}
+    // Garis penutup tipis
+    out += HR1;
 
+    // Footer (seperti HTML)
+    if (<?= json_encode((string)($store->footer ?? '')) ?>){
+      out += CTR + clamp(<?= json_encode((string)($store->footer ?? '')) ?>, COLS) + '\n';
+    }
+    if (o.printed_at){
+      out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
+    }
+    out += LEFT;
+
+    // Sedikit feed di akhir (tidak mempengaruhi margin atas)
+    out += feed(2) + CUT;
+    return out;
+  }
 
   // ======== Eksekusi sesuai mode ========
   if (USE_RAWBT){
