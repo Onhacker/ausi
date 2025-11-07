@@ -234,7 +234,13 @@ if (!function_exists('nav_class')) {
     $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
     $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
     $showPijat     = user_can_mod(['admin_kursi_pijat']);
-    $showKeuLap    = user_can_mod(['admin_pengeluaran']) || user_can_mod(['admin_laporan']) || user_can_mod(['admin_laporan/index'] || user_can_mod(['admin_rating']));
+ 
+$showKeuLap =
+    user_can_mod(['admin_pengeluaran']) ||
+    user_can_mod(['admin_laporan']) ||
+    user_can_mod(['admin_laporan/index']) ||
+    user_can_mod(['admin_rating']); // <- tambahkan ini, pisahkan or-nya
+
     $showMaster    = user_can_mod(['admin_produk']) || user_can_mod(['admin_kategori_produk']) || user_can_mod(['admin_kurir']) || user_can_mod(['admin_unit_lain']);
     $showAdmin     = user_can_mod(['admin_user']) || user_can_mod(['admin_setting_web']) || user_can_mod(['admin_pengumuman']);
   ?>
@@ -336,11 +342,12 @@ if (!function_exists('nav_class')) {
         <span class="emoji" aria-hidden="true">📈</span><span>Statistik</span>
       </a>
     <?php endif; ?>
-    <?php if (user_can_mod(['admin_rating','admin_rating'])): ?>
-      <a id="quick-statistik-link" href="<?= site_url('admin_rating') ?>" class="menu-item">
-        <span class="emoji" aria-hidden="true">📈</span><span>Rating</span>
+    <?php if (user_can_mod(['admin_rating'])): ?>
+      <a id="quick-rating-link" href="<?= site_url('admin_rating') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">⭐</span><span>Rating</span>
       </a>
     <?php endif; ?>
+
   </div>
   <?php endif; ?>
 
@@ -446,36 +453,31 @@ if (!function_exists('nav_class')) {
   document.addEventListener("DOMContentLoaded", function () {
 
   // Peta id menu (DOM <a>) <-> slug izin/module
-  const QUICK = {
-    // ===== Master Data / Operasional =====
-    admin_produk:          { a: document.getElementById("quick-produk-link") },
-    admin_kategori_produk: { a: document.getElementById("quick-kategori-link") },
-    admin_meja:            { a: document.getElementById("quick-meja-link") },
+ const QUICK = {
+  // ===== Master Data / Operasional =====
+  admin_produk:          { a: document.getElementById("quick-produk-link") },
+  admin_kategori_produk: { a: document.getElementById("quick-kategori-link") },
+  admin_meja:            { a: document.getElementById("quick-meja-link") },
 
-    // ===== POS / Transaksi =====
-    admin_pos:             { a: document.getElementById("quick-pos-link") },
-    admin_billiard:        { a: document.getElementById("quick-billiard-link") },
-    admin_pengeluaran:     { a: document.getElementById("quick-pengeluaran-link") },
+  // ===== POS / Transaksi =====
+  admin_pos:             { a: document.getElementById("quick-pos-link") },
+  admin_billiard:        { a: document.getElementById("quick-billiard-link") },
+  admin_pengeluaran:     { a: document.getElementById("quick-pengeluaran-link") },
 
-    // ===== Riwayat & Laporan =====
-    admin_pos_riwayat:       { a: document.getElementById("quick-riwayat-caffe-link") },
-    admin_riwayat_billiard:  { a: document.getElementById("quick-riwayat-billiard-link") },
-    admin_laporan:           { a: document.getElementById("quick-laporan-link") },
+  // ===== Riwayat & Laporan =====
+  admin_pos_riwayat:       { a: document.getElementById("quick-riwayat-caffe-link") },
+  admin_riwayat_billiard:  { a: document.getElementById("quick-riwayat-billiard-link") },
+  admin_laporan:           { a: document.getElementById("quick-laporan-link") },
+  admin_laporan_chart:     { a: document.getElementById("quick-statistik-link") }, // Statistik
+  admin_rating:            { a: document.getElementById("quick-rating-link") },    // <-- NEW
 
-    // ===== Manajemen & Pengaturan =====
-    admin_user:          { a: document.getElementById("quick-user-link") },
-    admin_setting_web:   { a: document.getElementById("quick-setting-link") },
-    admin_unit_lain:     { a: document.getElementById("quick-unit-lain-link") },
-    admin_pengumuman:    { a: document.getElementById("quick-pengumuman-link") }
+  // ===== Manajemen & Pengaturan =====
+  admin_user:          { a: document.getElementById("quick-user-link") },
+  admin_setting_web:   { a: document.getElementById("quick-setting-link") },
+  admin_unit_lain:     { a: document.getElementById("quick-unit-lain-link") },
+  admin_pengumuman:    { a: document.getElementById("quick-pengumuman-link") }
+};
 
-    // (opsional, kalau nanti mau ditambah ke modal)
-    // admin_unit_tujuan:   { a: document.getElementById("quick-unit-tujuan-link") },
-    // admin_instansi_ref:  { a: document.getElementById("quick-instansi-ref-link") },
-    // admin_permohonan:    { a: document.getElementById("quick-data-link") },
-    // admin_pos:          { a: document.getElementById("quick-scan-link") },
-    // 'admin_dashboard': { a: document.getElementById("quick-dashboard-link") },
-    // 'admin_dashboard/monitor': { a: document.getElementById("quick-dashboard-monitor-link") },
-  };
 
   // helper untuk show/hide 1 item
   function setVis(moduleId, show){
