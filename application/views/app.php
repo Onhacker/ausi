@@ -137,7 +137,7 @@
   function setUIForOS(){
     if (isAndroid) {
       elTitle.textContent = 'Membuka Ausi di Play Store';
-      elDesc.textContent  = 'Kami akan mengarahkanmu ke Google Play Store untuk membuka aplikasi.';
+      elDesc.textContent  = 'Kami akan mengarahkanmu ke Google Play Store untuk download aplikasi.';
       linkSite.classList.remove('hide'); // tetap tampil
     } else if (isIOS) {
       elTitle.textContent = 'Menuju Beranda Ausi';
