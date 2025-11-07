@@ -228,8 +228,7 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     grand_total: <?= (int)$grandTotal ?>,
     footer     : <?= json_encode((string)($store->footer ?? '')) ?>,
     printed_at : <?= json_encode($printed_at) ?>,
-    sign       : <?= json_encode($signature) ?>,
-
+    sign       : <?= json_encode($signature ?? 'Dev By Onhacker') ?>,
     items      : <?= json_encode(array_map(function($it){
                       return [
                         'nama'     => (string)($it->nama ?? '-'),
@@ -262,22 +261,22 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   }
   function formatRp(n){ return 'Rp ' + Number(n||0).toLocaleString('id-ID'); }
 
-  // ==== CUT commands + kalibrasi ====
-  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
-  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
+  // ==== CUT commands (pakai cara kitchen) + kalibrasi ====
+  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF); // full+feed
+  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF); // partial+feed
 
-  // override via URL: ?cutn=6&trail=3&cutmode=full|partial
-  let CUT_FEED_N  = Number(qs.get('cutn') || 4);       // default 4
-  let TRAIL_LINES = Number(qs.get('trail') || 2);      // default 2
+  // default (disamakan dgn kitchen): cutn=7, trail=3, mode=partial
+  let CUT_FEED_N  = Number(qs.get('cutn') || 7);
+  let TRAIL_LINES = Number(qs.get('trail') || 3);
   const MODE_QS   = (qs.get('cutmode')||'partial').toLowerCase();
-  if (!(CUT_FEED_N>0)) CUT_FEED_N = 4;
-  if (!(TRAIL_LINES>=0)) TRAIL_LINES = 2;
+  if (!(CUT_FEED_N>0)) CUT_FEED_N = 7;
+  if (!(TRAIL_LINES>=0)) TRAIL_LINES = 3;
   const CUT_COMMAND = (MODE_QS==='full') ? CUT_FULL_FEED_N(CUT_FEED_N)
                                          : CUT_PART_FEED_N(CUT_FEED_N);
 
-  // ==== Layout kolom untuk 80mm ====
-  // 80mm => 48 kolom: nama 22 | qty 5 | harga 10 | sub 11 => total 48
-  // 58mm => 32 kolom: nama 16 | qty 4 | harga 6  | sub 6  => total 32
+  // ==== Layout kolom (80mm/58mm) ====
+  // 80mm => 48 kolom: nama 22 | qty 5 | harga 10 | sub 11
+  // 58mm => 32 kolom: nama 16 | qty 4 | harga 6  | sub 6
   const W_NAME  = (COLS===48)?22:16;
   const W_QTY   = (COLS===48)?5:4;
   const W_PRICE = (COLS===48)?10:6;
@@ -291,7 +290,7 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   }
 
   function buildEscposFromOrder(o){
-    // Init + font normal + line spacing default
+    // Init + font normal + line spacing default (tanpa newline awal)
     let out = INIT + ESC + '2' + SIZE1X;
 
     // Header
@@ -318,9 +317,7 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
       const qty = Number(it.qty||0);
       const harga = formatRp(it.harga||0);
       const sub   = formatRp(it.subtotal ?? qty*(it.harga||0));
-      // baris 1 (nama terpotong ke lebar kolom)
       out += rowItem(nameLines.shift()||'', qty, harga, sub);
-      // sisa nama (jika panjang) ditaruh di baris berikutnya (hanya di kolom nama)
       nameLines.forEach(l => { out += rowItem(l, '', '', ''); });
       if (idx < arr.length - 1) out += HR1;
     });
@@ -333,17 +330,13 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     if (o.is_delivery && Number(o.delivery||0)>0) out += lineLR('Ongkir', formatRp(o.delivery||0)) + '\n';
     out += lineLR('Total Pembayaran', formatRp(o.grand_total || o.total || 0)) + '\n';
 
-// Footer
-if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
-if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
-// >>> Tambah signature <<<
-if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
-out += LEFT;
+    // Footer + signature
+    if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
+    if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
+    if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
+    out += LEFT;
 
-// feed + cut (biarkan seperti setelanmu)
-out += feed(TRAIL_LINES) + CUT_COMMAND;
-
-    // feed pendek + cut with feed (bisa dikalibrasi via URL)
+    // === KUNCI: feed + cut with feed (default: partial, cutn=7, trail=3) ===
     out += feed(TRAIL_LINES) + CUT_COMMAND;
     return out;
   }
@@ -364,5 +357,6 @@ out += feed(TRAIL_LINES) + CUT_COMMAND;
   }
 })();
 </script>
+
 </body>
 </html>
