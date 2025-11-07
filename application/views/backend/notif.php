@@ -42,8 +42,8 @@ if (function_exists('mb_strlen')) {
 
     <!-- Notifikasi -->
     <li class="dropdown notification-list hide-on-mobile">
-      <a class="nav-link dropdown-toggle waves-effect" href="<?= site_url('home'); ?>">
-        <i class="fe-external-link" ></i> Lihat Website
+      <a class="nav-link dropdown-toggle waves-effect text-white" href="<?= site_url('home'); ?>">
+        <i class="fe-external-link "  ></i> Lihat Website
       </a>
     </li>
       
@@ -55,7 +55,7 @@ if (function_exists('mb_strlen')) {
           <img src="<?= htmlspecialchars($foto_url, ENT_QUOTES, 'UTF-8') ?>"
                onerror="this.onerror=null;this.src='<?= base_url('upload/users/onhacker_221a3f5e.jpg') ?>';"
                class="rounded-circle" id="foto_profil" height="28">
-          <span class="pro-user-name ml-1" id="nama_profil">
+          <span class="pro-user-name ml-1 text-white" id="nama_profil">
             <?= htmlspecialchars($short, ENT_QUOTES, 'UTF-8') ?> <i class="mdi mdi-chevron-down"></i>
           </span>
         </a>
