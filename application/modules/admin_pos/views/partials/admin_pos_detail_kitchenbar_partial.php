@@ -33,6 +33,9 @@ $alamat_kirim = trim((string)($order->alamat_kirim ?? ''));
 // (opsional) tampilkan paid method ringkas jika ada
 $paidRaw   = trim((string)($order->paid_method ?? ''));
 $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
+
+// siapkan href WA yang aman
+$waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
 ?>
 
 <style>
@@ -66,10 +69,19 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
   .order-actions{ display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
   .btn-xxs{ padding:.25rem .5rem; font-size:.78rem; border-radius:10px; }
 
-  /* Detail pelanggan mini box */
-  .cust-box{ margin-top:.5rem; border:1px dashed #e5e7eb; background:#fcfcfd; border-radius:10px; padding:.5rem .6rem; }
-  .cust-row{ font-size:.85rem; color:#374151; }
-  .cust-muted{ color:#6b7280; }
+  /* ===== Detail Pelanggan (label–value table) ===== */
+  .cust-box{
+    margin-top:.5rem; border:1px solid #e5e7eb; background:#fff;
+    border-radius:12px; padding:.6rem .75rem;
+  }
+  .id-table{ width:100%; border-collapse:separate; border-spacing:0 6px; }
+  .id-table th{
+    width:128px; padding:.25rem .5rem; font-weight:600; color:#6b7280;
+    text-align:left; vertical-align:top; white-space:nowrap;
+  }
+  .id-table td{ padding:.25rem .5rem; color:#111827; }
+  .id-actions{ display:inline-flex; gap:.4rem; margin-left:.5rem; flex-wrap:wrap; vertical-align:middle; }
+  .id-actions .btn-xxs{ padding:.22rem .55rem; font-size:.78rem; border-radius:10px; }
 
   /* Table compact */
   .table-compact thead th{ background:#f9fbfd; border-top:0; font-size:.85rem; }
@@ -114,30 +126,54 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
 
       <?php if ($nama !== '' || $phoneRaw !== '' || $isDelivery): ?>
         <div class="cust-box">
-          <div class="cust-row"><b>Detail Pelanggan</b></div>
-          <?php if ($nama !== ''): ?>
-            <div class="cust-row"><span class="cust-muted">Nama:</span> <?= esc($nama) ?></div>
-          <?php endif; ?>
+          <table class="id-table">
+            <?php if ($nama !== ''): ?>
+              <tr>
+                <th>Nama</th>
+                <td><?= esc($nama) ?></td>
+              </tr>
+            <?php endif; ?>
 
-          <?php if ($phoneRaw !== ''): ?>
-            <?php $waLink = $waNumber !== '' ? 'https://wa.me/'.esc($waNumber) : ''; ?>
-            <div class="cust-row d-flex align-items-center flex-wrap" style="gap:.4rem;">
-              <span class="cust-muted">HP/WA:</span>
-              <?php if ($waLink): ?>
-                <a href="<?= $waLink ?>" target="_blank" rel="noopener"><?= esc($phoneRaw) ?></a>
-              <?php else: ?>
-                <span><?= esc($phoneRaw) ?></span>
-              <?php endif; ?>
-              <button type="button" class="btn btn-outline-secondary btn-xxs js-copy" data-copy="<?= esc($waNumber ?: preg_replace('/\s+/', '', $phoneRaw)) ?>">Salin</button>
-            </div>
-          <?php endif; ?>
+            <?php if ($phoneRaw !== ''): ?>
+              <tr>
+                <th>HP/WA</th>
+                <td>
+                  <?php if ($waHref !== ''): ?>
+                    <a href="<?= esc($waHref) ?>" target="_blank" rel="noopener"><?= esc($phoneRaw) ?></a>
+                  <?php else: ?>
+                    <span><?= esc($phoneRaw) ?></span>
+                  <?php endif; ?>
+                  <span class="id-actions">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-xxs js-copy"
+                            data-copy="<?= esc($waNumber ?: preg_replace('/\s+/', '', $phoneRaw)) ?>">
+                      Salin
+                    </button>
+                    <a class="btn btn-outline-secondary btn-xxs"
+                       href="<?= $waHref !== '' ? esc($waHref) : 'javascript:void(0)' ?>"
+                       target="_blank" rel="noopener"
+                       <?= $waHref !== '' ? '' : 'aria-disabled="true" tabindex="-1" style="pointer-events:none;opacity:.6;"' ?>>
+                      WhatsApp
+                    </a>
+                  </span>
+                </td>
+              </tr>
+            <?php endif; ?>
 
-          <?php if ($isDelivery): ?>
-            <div class="cust-row" style="margin-top:.25rem;">
-              <span class="cust-muted">Alamat Kirim:</span>
-              <div><?= nl2br(esc($alamat_kirim !== '' ? $alamat_kirim : '-')) ?></div>
-            </div>
-          <?php endif; ?>
+            <?php if ($isDelivery): ?>
+              <tr>
+                <th>Alamat Kirim</th>
+                <td><div style="white-space:pre-wrap;"><?= esc($alamat_kirim !== '' ? $alamat_kirim : '-') ?></div></td>
+              </tr>
+            <?php endif; ?>
+
+            <?php if ($paidRaw !== ''): ?>
+              <tr>
+                <th>Metode</th>
+                <td><?= esc($paidLabel) ?></td>
+              </tr>
+            <?php endif; ?>
+          </table>
         </div>
       <?php endif; ?>
     </div>
@@ -145,23 +181,17 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
 
   <!-- kanan (aksi) -->
   <div class="order-actions">
-  <!--   <button type="button" class="btn btn-primary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '58')" aria-label="Cetak struk 58mm">
-      <i class="fe-printer"></i> 58mm
-    </button> -->
-    <button type="button" class="btn btn-secondary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '80')" aria-label="Cetak struk 80mm">
+    <button type="button" class="btn btn-secondary btn-xxs"
+            onclick="printStrukInlinex(<?= (int)$id ?>, '80')"
+            aria-label="Cetak struk 80mm">
       <i class="fe-printer"></i> 80mm
-    <!-- </button><button type="button" class="btn btn-outline-primary btn-xxs"
-        onclick="printStrukInlinex(<?= (int)$id ?>, '58', true, true)"
-        aria-label="Cetak struk 58mm via RawBT">
-  <i class="fe-printer"></i> 58mm BT
-</button> -->
+    </button>
 
-<button type="button" class="btn btn-outline-secondary btn-xxs"
-        onclick="printStrukInlinex(<?= (int)$id ?>, '80', true, true)"
-        aria-label="Cetak struk 80mm via RawBT">
-  <i class="fe-printer"></i> 80mm BT
-</button>
-
+    <button type="button" class="btn btn-outline-secondary btn-xxs"
+            onclick="printStrukInlinex(<?= (int)$id ?>, '80', true, true)"
+            aria-label="Cetak struk 80mm via RawBT">
+      <i class="fe-printer"></i> 80mm BT
+    </button>
   </div>
 </div>
 
@@ -216,4 +246,17 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
       }, 250);
     }
   }
+
+  // Handler tombol "Salin" untuk nomor WA/HP
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.js-copy');
+    if(!btn) return;
+    var t = btn.getAttribute('data-copy') || '';
+    if(!t) return;
+    navigator.clipboard.writeText(t).then(function(){
+      var old = btn.textContent;
+      btn.textContent = 'Tersalin';
+      setTimeout(function(){ btn.textContent = old; }, 1200);
+    }).catch(function(){});
+  });
 </script>
