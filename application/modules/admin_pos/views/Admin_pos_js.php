@@ -544,7 +544,6 @@ function ensureElapsedSpans(api){
       frame.src = url;
     }
 
-    <script>
 window.printStrukInline = function(orderId, paper, autoClose, useRawBT, opts){
   try{
     var p = (paper === '80') ? '80' : '58';
@@ -594,7 +593,6 @@ window.printStrukInline = function(orderId, paper, autoClose, useRawBT, opts){
     window.location.href = fallbackUrl;
   }
 };
-</script>
 
 
     window.printStrukInlinex = function(orderId, paper){
