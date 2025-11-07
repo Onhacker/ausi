@@ -234,7 +234,7 @@ if (!function_exists('nav_class')) {
     $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
     $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
     $showPijat     = user_can_mod(['admin_kursi_pijat']);
-    $showKeuLap    = user_can_mod(['admin_pengeluaran']) || user_can_mod(['admin_laporan']) || user_can_mod(['admin_laporan/index']);
+    $showKeuLap    = user_can_mod(['admin_pengeluaran']) || user_can_mod(['admin_laporan']) || user_can_mod(['admin_laporan/index'] || user_can_mod(['admin_rating']));
     $showMaster    = user_can_mod(['admin_produk']) || user_can_mod(['admin_kategori_produk']) || user_can_mod(['admin_kurir']) || user_can_mod(['admin_unit_lain']);
     $showAdmin     = user_can_mod(['admin_user']) || user_can_mod(['admin_setting_web']) || user_can_mod(['admin_pengumuman']);
   ?>
