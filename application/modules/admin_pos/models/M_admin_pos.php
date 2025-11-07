@@ -27,7 +27,7 @@ class M_admin_pos extends CI_Model {
     private $kasir_scope_enabled = false;
     private $kasir_days = 1;
     private $max_rows   = 100;
-
+    
     /* ===== NEW: status filter ===== */
     // null = default (exclude paid); 'all' = tanpa filter; array = where_in
     private $status_filter = null;
@@ -46,9 +46,9 @@ class M_admin_pos extends CI_Model {
         $this->max_rows = max(0,(int)$n);
     }
 
-    public function set_kasir_scope($enabled = true, $days = 3){
+    public function set_kasir_scope($enabled = true, $days = 1){
         $this->kasir_scope_enabled = (bool)$enabled;
-        $this->kasir_days = max(3, (int)$days);
+        $this->kasir_days = max(1, (int)$days);
     }
 
     public function set_item_category_filter($cat = null){
@@ -99,7 +99,7 @@ class M_admin_pos extends CI_Model {
     }
 
     /* >>>> TAMBAHAN: batasi ke jendela operasional hari-ini dari tabel identitas <<<< */
-    $this->_apply_today_window();
+    // $this->_apply_today_window();
 }
 
 
