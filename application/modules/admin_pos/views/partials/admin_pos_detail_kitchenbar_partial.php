@@ -151,6 +151,19 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
     <button type="button" class="btn btn-secondary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '80')" aria-label="Cetak struk 80mm">
       <i class="fe-printer"></i> 80mm
     </button>
+    <!-- Cetak via RawBT (Bluetooth) -->
+<button type="button" class="btn btn-outline-primary btn-xxs"
+        onclick="printStrukInlinex(<?= (int)$id ?>, '58', true, true)"
+        aria-label="Cetak struk 58mm via RawBT">
+  <i class="fe-printer"></i> 58mm BT
+</button>
+
+<button type="button" class="btn btn-outline-secondary btn-xxs"
+        onclick="printStrukInlinex(<?= (int)$id ?>, '80', true, true)"
+        aria-label="Cetak struk 80mm via RawBT">
+  <i class="fe-printer"></i> 80mm BT
+</button>
+
   </div>
 </div>
 
@@ -176,25 +189,33 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
 </div>
 
 <script>
-  // Buka struk dan langsung panggil print (fallback kalau autoprint di view belum ada)
-  function printStrukInlinex(id, paper, autoClose){
+  // id, paper('58'|'80'), autoClose[opt], useRawBT[opt]
+  function printStrukInlinex(id, paper, autoClose, useRawBT){
+    // default agar panggilan lama (2 arg) tetap berfungsi = HTML print + autoClose
+    if (typeof autoClose === 'undefined') autoClose = true;
+    if (typeof useRawBT  === 'undefined') useRawBT  = false; // default: HTML
+
     var p   = (paper === '80') ? '80' : '58';
     var url = "<?= site_url('admin_pos/print_struk_termalx/') ?>" + id
-            + "?paper=" + p + "&embed=1&autoprint=1" + (autoClose ? "&autoclose=1" : "");
+            + "?paper=" + p + "&embed=1"
+            + (useRawBT ? "&rawbt=1" : "&autoprint=1")
+            + (autoClose ? "&autoclose=1" : "");
 
     var w = window.open(url, "print_"+id, "width=520,height=760,menubar=0,location=0,toolbar=0,status=0");
     if (!w) return; // popup diblok
 
-    // Fallback: kalau view belum punya autoprint, coba print setelah ready
-    var tried = false;
-    var iv = setInterval(function(){
-      if (!w || w.closed) { clearInterval(iv); return; }
-      try {
-        if (w.document && w.document.readyState === 'complete' && !tried){
-          tried = true; clearInterval(iv);
-          try { w.focus(); w.print(); if (autoClose) w.close(); } catch(e){}
-        }
-      } catch(e){} // cross-origin guard
-    }, 250);
+    // Fallback auto-print cuma utk mode HTML
+    if (!useRawBT){
+      var tried = false;
+      var iv = setInterval(function(){
+        if (!w || w.closed) { clearInterval(iv); return; }
+        try {
+          if (w.document && w.document.readyState === 'complete' && !tried){
+            tried = true; clearInterval(iv);
+            try { w.focus(); w.print(); if (autoClose) w.close(); } catch(e){}
+          }
+        } catch(e){}
+      }, 250);
+    }
   }
 </script>

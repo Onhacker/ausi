@@ -226,5 +226,126 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   <!-- garis putus-putus “tear line” kecil (opsional) -->
   <div class="hr" style="margin-top:10px;"></div>
 </div>
+<script>
+(function(){
+  // ======== Query Params ========
+  const qs = new URLSearchParams(location.search);
+  const IS_EMBED   = qs.get('embed') === '1';
+  const AUTO_PRINT = qs.get('autoprint') === '1';
+  const AUTO_CLOSE = qs.get('autoclose') === '1';
+  const USE_RAWBT  = qs.get('rawbt') === '1';
+
+  // Lebar kolom sesuai paper (58=>32, 80=>48)
+  const COLS = <?= ($paperWidthMM === 80) ? 48 : 32 ?>;
+
+  // ======== Serialize data PHP -> JS (aman via json_encode) ========
+  const ORDER = {
+    toko       : <?= json_encode((string)($store->nama ?? '')) ?>,
+    alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
+    telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
+    nomor      : <?= json_encode($nomor) ?>,
+    waktu      : <?= json_encode($waktu) ?>,
+    mode       : <?= json_encode($mode) ?>,
+    meja       : <?= json_encode($meja) ?>,
+    nama       : <?= json_encode($nama) ?>,
+    catatan    : <?= json_encode($catatan) ?>,
+    subtotal   : <?= (int)$total ?>,
+    kode_unik  : <?= (int)$kodeUnik ?>,
+    grand_total: <?= (int)$grandTotal ?>,
+    paid_label : <?= json_encode($paidLabel) ?>,
+    footer     : <?= json_encode((string)($store->footer ?? 'Terima kasih')) ?>,
+    items      : <?= json_encode(array_map(function($it){
+                      return [
+                        'nama'     => (string)($it->nama ?? '-'),
+                        'qty'      => (int)$it->qty,
+                        'harga'    => (int)$it->harga,
+                        'subtotal' => (int)$it->subtotal,
+                      ];
+                    }, $items)) ?>
+  };
+
+  // ======== ESC/POS Helpers ========
+  const ESC = '\x1B', GS = '\x1D';
+  const INIT= ESC+'@';
+  const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
+  const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
+  const SIZE1X = GS+'!'+'\x00', SIZE2X = GS+'!'+'\x11';
+  const CUT = GS+'V'+'\x00'; // di sebagian 58mm yang tanpa cutter: diabaikan
+
+  function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
+  function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
+  function wrapText(s, width=COLS){
+    s = String(s||''); const out=[]; while(s.length>width){ out.push(s.slice(0,width)); s = s.slice(width); }
+    if(s) out.push(s); return out;
+  }
+  function lineLR(left, right){
+    left = String(left||''); right = String(right||'');
+    const space = Math.max(1, COLS - left.length - right.length);
+    return left + ' '.repeat(space) + right;
+  }
+
+  function sendToRawBT(escpos){
+    const payload = encodeURIComponent(escpos);
+    const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    try { location.href = intent; }
+    catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
+  }
+
+  function buildEscposFromOrder(o){
+    let out = '';
+    // Header toko
+    out += INIT + CTR + BOLD_ON + SIZE2X + clamp(o.toko, COLS) + '\n';
+    out += SIZE1X + BOLD_OFF;
+    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
+    if (o.telp)   out += CTR + 'Telp: ' + clamp(o.telp, COLS-6) + '\n';
+    // Meta
+    out += LEFT + `No: ${o.nomor}   Metode: ${o.paid_label||'-'}\n`;
+    if (o.waktu) out += `Waktu: ${o.waktu}\n`;
+    out += `Mode: ${String(o.mode||'-').charAt(0).toUpperCase()+String(o.mode||'-').slice(1)}   Meja: ${o.meja}\n`;
+    if (o.nama) out += `Pelanggan: ${o.nama}\n`;
+    if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
+    out += '-'.repeat(COLS) + '\n';
+
+    // Items
+    (o.items||[]).forEach(it=>{
+      const nameLines = wrapText(it.nama||'');
+      out += (nameLines.shift() || '') + '\n';
+      nameLines.forEach(l => out += '  ' + l + '\n');
+      const qtyHarga = `${Number(it.qty||0)} x ${Number(it.harga||0).toLocaleString('id-ID')}`;
+      const sub = Number(it.subtotal ?? (it.qty||0)*(it.harga||0)).toLocaleString('id-ID');
+      out += lineLR(qtyHarga, sub) + '\n';
+    });
+
+    out += '-'.repeat(COLS) + '\n';
+    // Totals
+    const totalItem = (o.items||[]).reduce((a,b)=> a + Number(b.qty||0), 0);
+    out += lineLR('TOTAL ITEM', String(totalItem)) + '\n';
+    out += lineLR('SUBTOTAL', Number(o.subtotal||0).toLocaleString('id-ID')) + '\n';
+    if (Number(o.kode_unik||0)) out += lineLR('KODE UNIK', Number(o.kode_unik).toLocaleString('id-ID')) + '\n';
+    out += lineLR('TOTAL BAYAR', Number(o.grand_total || o.subtotal || 0).toLocaleString('id-ID')) + '\n';
+
+    // Footer
+    if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n' + LEFT;
+
+    // Tambah feed agar watermark RawBT (gratis) di bawah kertas → mudah dirobek
+    out += feed(6) + CUT;
+    return out;
+  }
+
+  // ======== Eksekusi sesuai mode ========
+  if (USE_RAWBT){
+    const escpos = buildEscposFromOrder(ORDER);
+    sendToRawBT(escpos);
+    if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
+    return; // jangan autoprint HTML
+  }
+
+  if (AUTO_PRINT){
+    window.print();
+    if (AUTO_CLOSE){ setTimeout(()=>window.close(), 200); }
+  }
+})();
+</script>
+
 </body>
 </html>
