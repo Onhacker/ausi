@@ -52,7 +52,7 @@ $grandTotal    = isset($order->grand_total) && $order->grand_total !== null
                  : $grandFallback;
 
 // Support logo opsional
-$logoUrl     = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
+$logoUrl     = base_url('assets/images/logo_admin.png');
 $paidMethod  = strtolower($order->paid_method ?? '');
 $statusRaw   = strtolower($order->status ?? '');
 $statusLabel = ($statusRaw==='paid') ? 'Lunas'
@@ -198,7 +198,7 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
 <?php
 // === Siapkan data URL logo (base64) agar aman untuk RawBT ===
 $logoData = '';
-$logoPath = FCPATH.'assets/images/logo_admin.png'; // ganti sesuai lokasi logomu
+$logoPath = base_url('assets/images/logo_admin.png'); // ganti sesuai lokasi logomu
 if (is_file($logoPath)) {
   $mime = function_exists('mime_content_type') ? mime_content_type($logoPath) : 'image/png';
   if (!$mime) $mime = 'image/png';
