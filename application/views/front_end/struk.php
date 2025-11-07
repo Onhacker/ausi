@@ -471,14 +471,47 @@ if (is_file($logoPath)) {
   }
 
   // ===== Eksekusi =====
+  (function(){
+  const qs = new URLSearchParams(location.search);
+  const AUTO_CLOSE = qs.get('autoclose') === '1';
+  const USE_RAWBT  = qs.get('rawbt') === '1';
+
+  // --- param kalibrasi bisa dioper via query (?cutn=&trail=&cutmode=)
+  const COLS      = <?= ($paperWidthMM === 80) ? 48 : 32 ?>;
+  const CUTN      = Number(qs.get('cutn')   || 7);     // feed untuk cutter
+  const TRAIL     = Number(qs.get('trail')  || 3);     // feed manual sebelum cut
+  const CUTMODE   = (qs.get('cutmode') || 'partial');  // 'partial' | 'full'
+
+  // siapkan URL payload ESC/POS di server (lihat controller di bawah)
+  const payloadUrl =
+    "<?= site_url('admin_pos/rawbt_payload/') ?>" + encodeURIComponent(<?= (int)($order->id ?? 0) ?>)
+    + "?paper=<?= ($paper === '80') ? '80' : '58' ?>"
+    + "&cols=" + COLS
+    + "&cutn=" + CUTN
+    + "&trail=" + TRAIL
+    + "&cutmode=" + encodeURIComponent(CUTMODE);
+
+  // kirim ke RawBT via PrintDownloadActivity (paling robust utk biner/logo)
+  function sendToRawBtByUrl(url){
+    const intent =
+      'intent:' + encodeURI(url)
+      + '#Intent;component=ru.a402d.rawbtprinter.activity.PrintDownloadActivity;'
+      + 'package=ru.a402d.rawbtprinter;end;';
+    location.href = intent;
+  }
+
   if (USE_RAWBT){
-    const escpos = await buildEscposFromOrder(ORDER);
-    const payload = encodeURIComponent(escpos);
-    const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-    try { location.href = intent; } catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
+    sendToRawBtByUrl(payloadUrl);
     if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
     return;
   }
+
+  // fallback kalau bukan RawBT: pakai window.print()
+  if (qs.get('autoprint') === '1') {
+    window.print();
+    if (AUTO_CLOSE){ setTimeout(()=>window.close(), 200); }
+  }
+})();
 
   if (AUTO_PRINT){
     window.print();
