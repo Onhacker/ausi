@@ -219,7 +219,7 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   const AUTO_CLOSE = qs.get('autoclose') === '1';
   const USE_RAWBT  = qs.get('rawbt') === '1';
 
-  // Lebar kolom sesuai paper (58=>32, 80=>48)
+  // Lebar kolom sesuai paper (58=>32, 80=>48) — definisikan SEKALI saja
   const COLS = <?= ($paperWidthMM === 80) ? 48 : 32 ?>;
 
   // ======== Serialize data PHP -> JS (aman via json_encode) ========
@@ -243,115 +243,99 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   };
 
   // ======== ESC/POS Helpers ========
-  // ======== ESC/POS Helpers ========
-// ======== ESC/POS Helpers (REPLACE DARI SINI) ========
-const ESC = '\x1B', GS = '\x1D';
-const INIT= ESC+'@';
-const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
-const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
-const SIZE1X = GS+'!'+'\x00';
+  const ESC = '\x1B', GS = '\x1D';
+  const INIT= ESC+'@';
+  const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
+  const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
+  const SIZE1X = GS+'!'+'\x00';
 
-const COLS = <?= ($paperWidthMM === 80) ? 48 : 32 ?>;
+  // Garis (samakan dengan HTML)
+  const HR1 = '-'.repeat(COLS) + '\n'; // .hr
+  const HR2 = '='.repeat(COLS) + '\n'; // .hr-strong
 
-// Garis
-const HR1 = '-'.repeat(COLS) + '\n'; // setara .hr
-const HR2 = '='.repeat(COLS) + '\n'; // setara .hr-strong
+  function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
+  function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
+  function wrapText(s, width=COLS){
+    s = String(s||''); const out=[]; while(s.length>width){ out.push(s.slice(0,width)); s = s.slice(width); }
+    if(s) out.push(s); return out;
+  }
+  function lineLR(left, right){
+    left = String(left||''); right = String(right||'');
+    const space = Math.max(1, COLS - left.length - right.length);
+    return left + ' '.repeat(space) + right;
+  }
 
-function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
-function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
-function wrapText(s, width=COLS){
-  s = String(s||''); const out=[]; while(s.length>width){ out.push(s.slice(0,width)); s = s.slice(width); }
-  if(s) out.push(s); return out;
-}
-function lineLR(left, right){
-  left = String(left||''); right = String(right||'');
-  const space = Math.max(1, COLS - left.length - right.length);
-  return left + ' '.repeat(space) + right;
-}
+  function sendToRawBT(escpos){
+    const payload = encodeURIComponent(escpos);
+    const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    try { location.href = intent; }
+    catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
+  }
 
-function sendToRawBT(escpos){
-  const payload = encodeURIComponent(escpos);
-  const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-  try { location.href = intent; }
-  catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
-}
+  // === CUT commands ===
+  // Full cut with feed: GS V 66 n   | Partial cut with feed: GS V 65 n
+  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
+  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
 
-// === CUT commands ===
-// Full cut with feed: GS V 66 n   | Partial cut with feed: GS V 65 n
-const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
-const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
+  // Khusus iWare XS-80BT (80mm + cutter)
+  const CUT_FEED_N   = 4;   // kalau masih sisa, naikkan 5/6/7
+  const TRAIL_LINES  = 2;   // ekor manual sebelum cut
+  const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N); // partial cut with feed umumnya paling pas
 
-// Khusus iWare XS-80BT:
-const CUT_FEED_N   = 4;   // coba 4 dulu; kalau masih sisa -> 5/6/7
-const TRAIL_LINES  = 2;   // ekor manual 2 baris sebelum cut
-const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N); // partial cut with feed lebih konsisten
-// ======== ESC/POS Helpers (SAMPAI SINI) ========
+  // ======== Builder KITCHEN (persis HTML, font normal, tanpa harga/total) ========
+  function buildEscposFromOrder(o){
+    const LS_DEFAULT = ESC + '2'; // line spacing default
+    let out = '';
 
+    // Init + line spacing default + font normal (TANPA newline di awal)
+    out += INIT + LS_DEFAULT + SIZE1X;
 
+    // Header (brand) — tanpa blank line di atas
+    out += CTR + clamp(o.toko, COLS) + '\n';
+    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
+    if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
 
- function buildEscposFromOrder(o){
-  // === KITCHEN SLIP persis HTML (tanpa blank line di atas) ===
-  const LS_DEFAULT = ESC + '2'; // reset line spacing ke default
-  let out = '';
+    // Meta (seperti HTML)
+    out += LEFT;
+    out += 'No: ' + o.nomor + '\n';
+    if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
+    if (o.mode)  out += 'Mode: ' + (String(o.mode).charAt(0).toUpperCase()+String(o.mode).slice(1)) + '\n';
+    out += 'Metode: <?= esc($paidLabel) ?>' + '\n';
+    if (o.meja)  out += 'Meja: ' + o.meja + '\n';
+    if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
+    if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
 
-  // Init + line spacing default + font normal
-  out += INIT + LS_DEFAULT + SIZE1X;
+    // Garis tebal + header tabel
+    out += HR2;
+    out += lineLR('Item', 'Qty') + '\n';
+    out += HR1;
 
-  // Header (brand) — TIDAK ada newline sebelum judul
-  out += CTR + clamp(o.toko, COLS) + '\n';
-  if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
-  if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
+    // Items (nama kiri, qty kanan) + garis antar item
+    (o.items||[]).forEach((it, idx, arr)=>{
+      const nameLines = wrapText(it.nama||'');
+      const qty = String(Number(it.qty||0));
+      out += lineLR(clamp(nameLines.shift()||'', COLS-4), qty) + '\n';
+      nameLines.forEach(l => out += clamp(l, COLS) + '\n');
+      if (idx < arr.length - 1) out += HR1;
+    });
 
-  // Kembali kiri — TIDAK tambah newline di sini
-  out += LEFT;
+    // Garis penutup tipis
+    out += HR1;
 
-  // Meta (baris-baris seperti di HTML)
-  out += 'No: ' + o.nomor + '\n';
-  if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
-  if (o.mode)  out += 'Mode: ' + (String(o.mode).charAt(0).toUpperCase()+String(o.mode).slice(1)) + '\n';
-  out += 'Metode: <?= esc($paidLabel) ?>' + '\n';
-  if (o.meja)  out += 'Meja: ' + o.meja + '\n';
-  if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
-  if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
+    // Footer (seperti HTML)
+    <?php $footerText = (string)($store->footer ?? ''); ?>
+    <?php if ($footerText !== ''): ?>
+    out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
+    <?php endif; ?>
+    if (o.printed_at){
+      out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
+    }
+    out += LEFT;
 
-  // Garis tebal (hr-strong)
-  out += '='.repeat(COLS) + '\n';
-
-  // Header tabel (Item | Qty) + garis bawah tipis
-  out += lineLR('Item', 'Qty') + '\n';
-  out += '-'.repeat(COLS) + '\n';
-
-  // Items (nama kiri, qty kanan) + garis antar-item tipis
-  (o.items||[]).forEach((it, idx, arr)=>{
-    const nameLines = wrapText(it.nama||'');
-    const qty = String(Number(it.qty||0));
-    out += lineLR(clamp(nameLines.shift()||'', COLS-4), qty) + '\n';
-    nameLines.forEach(l => out += clamp(l, COLS) + '\n');
-    if (idx < arr.length - 1) out += '-'.repeat(COLS) + '\n';
-  });
-
-  // Garis penutup tipis
-  out += '-'.repeat(COLS) + '\n';
-
-  // Footer seperti HTML (kalau ada)
-  // Footer seperti HTML (kalau ada) — ini bagianmu sebelumnya
-// Footer seperti HTML (kalau ada)
-<?php $footerText = (string)($store->footer ?? ''); ?>
-<?php if ($footerText !== ''): ?>
-out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
-<?php endif; ?>
-if (o.printed_at){
-  out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
-}
-out += LEFT;
-
-// ===== KUNCI: feed pendek + cut "with feed" khusus XS-80BT =====
-out += feed(TRAIL_LINES) + CUT_COMMAND;
-return out;
-
-
-}
-
+    // Ekor + cut (khusus XS-80BT)
+    out += feed(TRAIL_LINES) + CUT_COMMAND;
+    return out;
+  }
 
   // ======== Eksekusi sesuai mode ========
   if (USE_RAWBT){
