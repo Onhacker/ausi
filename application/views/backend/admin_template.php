@@ -217,7 +217,7 @@ $us = $this->om->user();
 <?php $this->load->view("backend/footer_admin.php"); ?>
 
 
-<footer class="footer d-none d-md-block mb-4">
+<footer class="footer d-none d-md-block">
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-6">
