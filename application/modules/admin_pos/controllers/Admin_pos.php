@@ -1012,6 +1012,7 @@ $paid_label = method_exists($this, '_pretty_paid_method')
         'store'      => (object)$store,
         'printed_at' => date('Y-m-d H:i:s'),
          'paid_label' => $paid_label,  
+         'cat'        => $cat,  
     ];
 
     $html = $this->load->view('strukx', $data, true);

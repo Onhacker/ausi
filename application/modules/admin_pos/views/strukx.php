@@ -5,8 +5,8 @@
 /** @var int    $total */
 /** @var object $store */
 /** @var string $printed_at */
+/** @var int|null $cat  // 1=kitchen, 2=bar, null/else=kasir/admin */
 
-// Flag embed (untuk hide tombol cetak saat dicetak via iframe)
 $embed = isset($_GET['embed']) && $_GET['embed'] == '1';
 
 function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -34,12 +34,12 @@ $grandTotal = (isset($order->grand_total) && $order->grand_total !== null)
               ? (int)$order->grand_total
               : ($total + $kodeUnik);
 
-// Support logo opsional, isi $store->logo_url jika ada
+// Logo opsional (abaikan jika tak ada)
 $logoUrl = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
-$paidLabel = isset($paid_label) && trim($paid_label) !== ''
-  ? $paid_label
-  : (trim((string)($order->paid_method ?? '')) ?: '—');
 
+// Judul khusus Kitchen/Bar (sesuai permintaan)
+$cat = isset($cat) ? (int)$cat : null;
+$titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order Bar' : '');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -72,11 +72,9 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   .brand {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
   }
-  .brand img.logo {
-    display:block; width: 28mm; max-width: 80%; height:auto; margin-bottom:3px;
-  }
+  .brand img.logo { display:block; width: 28mm; max-width: 80%; height:auto; margin-bottom:3px; }
   .brand .name   { font-weight: 800; font-size: 12px; letter-spacing: .3px; }
-  .brand .addr   { line-height: 1.25; }
+  .brand .title  { font-weight: 700; font-size: 11px; margin-top:2px; }
 
   /* ===== Garis pemisah ===== */
   .hr { border-top: 1px dashed #000; margin: 6px 0; }
@@ -96,19 +94,11 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   .harga  { width: 20%; text-align:right;  white-space: nowrap; }
   .sub    { width: 20%; text-align:right;  white-space: nowrap; }
 
-  /* Row item dengan garis halus antar baris (tanpa makan tinta) */
+  /* Row item dengan garis halus antar baris */
   tbody tr:not(:last-child) td { border-bottom: 1px dotted #000; }
 
-  /* ===== Blok totals ===== */
+  /* ===== Blok totals (tidak ditampilkan di template ini) ===== */
   tfoot td, tfoot th { padding-top: 4px; }
-  .totline td { border-top: 1px dashed #000; padding-top:5px; }
-  .totbox {
-    border: 1px dashed #000; border-radius: 3px; padding: 6px; margin-top: 4px;
-  }
-  .totrow { display:flex; justify-content:space-between; align-items:center; }
-  .totrow + .totrow { margin-top: 4px; }
-  .totrow .tlabel { font-weight: 700; }
-  .totrow .tval   { font-weight: 800; }
 
   /* Tombol cetak hide saat print / embed */
   <?php if ($embed): ?>
@@ -126,12 +116,10 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
       <img class="logo" src="<?= esc($logoUrl) ?>" alt="Logo">
     <?php endif; ?>
     <div class="name"><?= esc($store->nama) ?></div>
-    <div class="addr small">
-      <?= esc($store->alamat) ?>
-      <?php if (!empty($store->telp)): ?>
-        <br>HP/WA: <?= esc($store->telp) ?>
-      <?php endif; ?>
-    </div>
+    <?php if ($titleLine !== ''): ?>
+      <div class="title"><?= esc($titleLine) ?></div>
+    <?php endif; ?>
+    <!-- Sesuai permintaan: alamat & no. WA toko DIHAPUS -->
   </div>
 
   <div class="hr"></div>
@@ -149,10 +137,6 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     <div class="row">
       <div class="label">Mode</div>
       <div class="value"><?= esc(ucfirst($mode)) ?></div>
-    </div>
-    <div class="row">
-      <div class="label">Metode</div>
-      <div class="value"><?= esc($paidLabel) ?></div>
     </div>
     <div class="row">
       <div class="label">Meja</div>
@@ -177,8 +161,7 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
       <tr>
         <th class="left produk">Item</th>
         <th class="qty">Qty</th>
-        <!-- <th class="harga">Harga</th> -->
-        <!-- <th class="sub">Subtotal</th> -->
+        <!-- harga & subtotal sengaja disembunyikan -->
       </tr>
     </thead>
     <tbody>
@@ -186,8 +169,6 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
         <tr>
           <td class="produk"><?= esc($it->nama ?? '-') ?></td>
           <td class="qty"><?= (int)$it->qty ?></td>
-          <!-- <td class="harga"><?= rupiah((int)$it->harga) ?></td> -->
-          <!-- <td class="sub"><?= rupiah((int)$it->subtotal) ?></td> -->
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -206,7 +187,6 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     </div>
   </div>
 
-  <!-- garis putus-putus “tear line” kecil (opsional) -->
   <div class="hr" style="margin-top:10px;"></div>
 </div>
 
@@ -219,14 +199,13 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   const AUTO_CLOSE = qs.get('autoclose') === '1';
   const USE_RAWBT  = qs.get('rawbt') === '1';
 
-  // Lebar kolom sesuai paper (58=>32, 80=>48) — definisikan SEKALI saja
+  // Lebar kolom sesuai paper (58=>32, 80=>48)
   const COLS = <?= ($paperWidthMM === 80) ? 48 : 32 ?>;
 
-  // ======== Serialize data PHP -> JS (aman via json_encode) ========
+  // ======== Serialize data PHP -> JS ========
   const ORDER = {
     toko       : <?= json_encode((string)($store->nama ?? '')) ?>,
-    alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
-    telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
+    title      : <?= json_encode($titleLine) ?>,
     nomor      : <?= json_encode($nomor) ?>,
     waktu      : <?= json_encode($waktu) ?>,
     mode       : <?= json_encode($mode) ?>,
@@ -236,8 +215,8 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     printed_at : <?= json_encode($printed_at) ?>,
     items      : <?= json_encode(array_map(function($it){
                       return [
-                        'nama'     => (string)($it->nama ?? '-'),
-                        'qty'      => (int)$it->qty
+                        'nama' => (string)($it->nama ?? '-'),
+                        'qty'  => (int)$it->qty
                       ];
                     }, $items)) ?>
   };
@@ -246,10 +225,8 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   const ESC = '\x1B', GS = '\x1D';
   const INIT= ESC+'@';
   const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
-  const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
   const SIZE1X = GS+'!'+'\x00';
 
-  // Garis (samakan dengan HTML)
   const HR1 = '-'.repeat(COLS) + '\n'; // .hr
   const HR2 = '='.repeat(COLS) + '\n'; // .hr-strong
 
@@ -272,45 +249,40 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
   }
 
-  // === CUT commands ===
-  // Full cut with feed: GS V 66 n   | Partial cut with feed: GS V 65 n
+  // === CUT commands (umum + XS-80BT) ===
   const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
   const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
+  const CUT_FEED_N   = 7;
+  const TRAIL_LINES  = 3;
+  const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N);
 
-  // Khusus iWare XS-80BT (80mm + cutter)
-  const CUT_FEED_N   = 7;   // kalau masih sisa, naikkan 5/6/7
-  const TRAIL_LINES  = 3;   // ekor manual sebelum cut
-  const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N); // partial cut with feed umumnya paling pas
-
-  // ======== Builder KITCHEN (persis HTML, font normal, tanpa harga/total) ========
+  // ======== Builder Kitchen/Bar (tanpa alamat/WA & tanpa metode bayar) ========
   function buildEscposFromOrder(o){
-    const LS_DEFAULT = ESC + '2'; // line spacing default
+    const LS_DEFAULT = ESC + '2';
     let out = '';
 
-    // Init + line spacing default + font normal (TANPA newline di awal)
+    // Init, font normal
     out += INIT + LS_DEFAULT + SIZE1X;
 
-    // Header (brand) — tanpa blank line di atas
+    // Header: Nama toko + judul (tanpa alamat/no WA)
     out += CTR + clamp(o.toko, COLS) + '\n';
-    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
-    if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
+    if (o.title) out += CTR + clamp(o.title, COLS) + '\n';
 
-    // Meta (seperti HTML)
+    // Meta
     out += LEFT;
     out += 'No: ' + o.nomor + '\n';
     if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
     if (o.mode)  out += 'Mode: ' + (String(o.mode).charAt(0).toUpperCase()+String(o.mode).slice(1)) + '\n';
-    out += 'Metode: <?= esc($paidLabel) ?>' + '\n';
     if (o.meja)  out += 'Meja: ' + o.meja + '\n';
     if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
     if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
 
-    // Garis tebal + header tabel
+    // Table header
     out += HR2;
     out += lineLR('Item', 'Qty') + '\n';
     out += HR1;
 
-    // Items (nama kiri, qty kanan) + garis antar item
+    // Items
     (o.items||[]).forEach((it, idx, arr)=>{
       const nameLines = wrapText(it.nama||'');
       const qty = String(Number(it.qty||0));
@@ -319,30 +291,27 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
       if (idx < arr.length - 1) out += HR1;
     });
 
-    // Garis penutup tipis
     out += HR1;
 
-    // Footer (seperti HTML)
+    // Footer
     <?php $footerText = (string)($store->footer ?? ''); ?>
     <?php if ($footerText !== ''): ?>
     out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
     <?php endif; ?>
-    if (o.printed_at){
-      out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
-    }
+    if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
     out += LEFT;
 
-    // Ekor + cut (khusus XS-80BT)
+    // Feed + cut
     out += feed(TRAIL_LINES) + CUT_COMMAND;
     return out;
   }
 
-  // ======== Eksekusi sesuai mode ========
+  // ======== Eksekusi ========
   if (USE_RAWBT){
     const escpos = buildEscposFromOrder(ORDER);
     sendToRawBT(escpos);
     if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
-    return; // jangan autoprint HTML
+    return;
   }
 
   if (AUTO_PRINT){
