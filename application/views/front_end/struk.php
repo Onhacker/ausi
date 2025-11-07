@@ -213,7 +213,12 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
     telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
     nomor      : <?= json_encode($nomor) ?>,
-    logo_url  : <?= json_encode($logoUrl ?? '') ?>,
+    // jika $logoUrl file lokal/server-mu:
+$logoPath = FCPATH.'assets/images/logo_admin.png'; // contoh
+$logoData = is_file($logoPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath)) : '';
+// lalu kirim ini:
+logo_url : <?= json_encode($logoData) ?>,
+
 
     waktu      : <?= json_encode($waktu) ?>,
     mode_label : <?= json_encode($modeLabel) ?>,
