@@ -243,34 +243,44 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   };
 
   // ======== ESC/POS Helpers ========
-  const ESC = '\x1B', GS = '\x1D';
-  const INIT= ESC+'@';
-  const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
-  const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
-  const SIZE1X = GS+'!'+'\x00';
-  const CUT = GS+'V'+'\x00'; // di sebagian 58mm yang tanpa cutter: diabaikan
+  // ======== ESC/POS Helpers ========
+const ESC = '\x1B', GS = '\x1D';
+const INIT= ESC+'@';
+const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
+const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
+const SIZE1X = GS+'!'+'\x00';
 
-  const HR1 = '-'.repeat(COLS) + '\n'; // setara .hr
-  const HR2 = '='.repeat(COLS) + '\n'; // setara .hr-strong
+// --- VARIASI perintah CUT (pakai yang paling stabil untukmu) ---
+const CUT_FULL        = GS + 'V' + '\x00';            // full cut (tanpa feed) — tidak semua maju sendiri
+const CUT_PART        = GS + 'V' + '\x01';            // partial cut (tanpa feed)
+const CUT_FULL_FEED   = GS + 'V' + '\x42' + '\x00';   // 'B', full cut + feed ke posisi potong
+const CUT_PART_FEED   = GS + 'V' + '\x41' + '\x00';   // 'A', partial cut + feed ke posisi potong
 
-  function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
-  function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
-  function wrapText(s, width=COLS){
-    s = String(s||''); const out=[]; while(s.length>width){ out.push(s.slice(0,width)); s = s.slice(width); }
-    if(s) out.push(s); return out;
-  }
-  function lineLR(left, right){
-    left = String(left||''); right = String(right||'');
-    const space = Math.max(1, COLS - left.length - right.length);
-    return left + ' '.repeat(space) + right;
-  }
+// --- Atur berapa baris kosong sebelum cut (3–8 baris umum) ---
+const TAIL_FEED_LINES = 5;
 
-  function sendToRawBT(escpos){
-    const payload = encodeURIComponent(escpos);
-    const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-    try { location.href = intent; }
-    catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
-  }
+const HR1 = '-'.repeat(COLS) + '\n'; // setara .hr
+const HR2 = '='.repeat(COLS) + '\n'; // setara .hr-strong
+
+function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
+function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
+function wrapText(s, width=COLS){
+  s = String(s||''); const out=[]; while(s.length>width){ out.push(s.slice(0,width)); s = s.slice(width); }
+  if(s) out.push(s); return out;
+}
+function lineLR(left, right){
+  left = String(left||''); right = String(right||'');
+  const space = Math.max(1, COLS - left.length - right.length);
+  return left + ' '.repeat(space) + right;
+}
+
+function sendToRawBT(escpos){
+  const payload = encodeURIComponent(escpos);
+  const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+  try { location.href = intent; }
+  catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
+}
+
 
  function buildEscposFromOrder(o){
   // === KITCHEN SLIP persis HTML (tanpa blank line di atas) ===
@@ -317,18 +327,23 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   out += '-'.repeat(COLS) + '\n';
 
   // Footer seperti HTML (kalau ada)
-  <?php $footerText = (string)($store->footer ?? ''); ?>
-  <?php if ($footerText !== ''): ?>
-  out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
-  <?php endif; ?>
-  if (o.printed_at){
-    out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
-  }
-  out += LEFT;
+  // Footer seperti HTML (kalau ada) — ini bagianmu sebelumnya
+<?php $footerText = (string)($store->footer ?? ''); ?>
+<?php if ($footerText !== ''): ?>
+out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
+<?php endif; ?>
+if (o.printed_at){
+  out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
+}
+out += LEFT;
 
-  // Sedikit feed di akhir (hemat kertas, tidak pengaruh ke margin atas)
-  out += '\n\n' + CUT;
-  return out;
+// ===== KUNCI: feed secukupnya sebelum cut + perintah cut "with feed" =====
+out += feed(TAIL_FEED_LINES) + CUT_FULL_FEED;
+// Jika printermu lebih cocok partial cut, pakai baris ini:
+// out += feed(TAIL_FEED_LINES) + CUT_PART_FEED;
+
+return out;
+
 }
 
 
