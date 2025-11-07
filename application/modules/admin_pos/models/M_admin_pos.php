@@ -25,7 +25,7 @@ class M_admin_pos extends CI_Model {
     private $order         = ['o.created_at'=>'DESC','o.id'=>'DESC'];
 
     private $kasir_scope_enabled = false;
-    private $kasir_days = 3;
+    private $kasir_days = 1;
     private $max_rows   = 100;
 
     /* ===== NEW: status filter ===== */
@@ -46,7 +46,7 @@ class M_admin_pos extends CI_Model {
         $this->max_rows = max(0,(int)$n);
     }
 
-    public function set_kasir_scope($enabled = true, $days = 1){
+    public function set_kasir_scope($enabled = true, $days = 3){
         $this->kasir_scope_enabled = (bool)$enabled;
         $this->kasir_days = max(3, (int)$days);
     }
