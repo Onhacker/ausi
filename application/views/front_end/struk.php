@@ -60,6 +60,8 @@ $statusLabel = ($statusRaw==='paid') ? 'Lunas'
 
 // Kode unik hanya relevan untuk non-cash
 $showKodeUnik = ($paidMethod !== 'cash' && $kodeUnik > 0);
+$signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -226,6 +228,8 @@ $showKodeUnik = ($paidMethod !== 'cash' && $kodeUnik > 0);
     grand_total: <?= (int)$grandTotal ?>,
     footer     : <?= json_encode((string)($store->footer ?? '')) ?>,
     printed_at : <?= json_encode($printed_at) ?>,
+    sign       : <?= json_encode($signature) ?>,
+
     items      : <?= json_encode(array_map(function($it){
                       return [
                         'nama'     => (string)($it->nama ?? '-'),
@@ -333,6 +337,15 @@ $showKodeUnik = ($paidMethod !== 'cash' && $kodeUnik > 0);
     if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
     if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
     out += LEFT;
+// Footer
+if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
+if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
+// >>> Tambah signature <<<
+if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
+out += LEFT;
+
+// feed + cut (biarkan seperti setelanmu)
+out += feed(TRAIL_LINES) + CUT_COMMAND;
 
     // feed pendek + cut with feed (bisa dikalibrasi via URL)
     out += feed(TRAIL_LINES) + CUT_COMMAND;
