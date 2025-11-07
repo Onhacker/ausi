@@ -7,4 +7,14 @@
       "39:95:E3:C4:30:15:16:E8:E8:42:22:C3:61:B7:FF:D6:A4:4F:1B:C7:DB:2C:88:03:99:B8:A5:68:62:A9:5F:BD"
     ]
   }
-}]
+},
+{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "id.co.ausi.twa.admin",
+      "sha256_cert_fingerprints": ["39:95:E3:C4:30:15:16:E8:E8:42:22:C3:61:B7:FF:D6:A4:4F:1B:C7:DB:2C:88:03:99:B8:A5:68:62:A9:5F:BD"]
+    }
+  }
+
+]
