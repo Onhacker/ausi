@@ -195,6 +195,17 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   <div class="hr" style="margin-top:10px;"></div>
   <div class="center small muted" style="margin-top:6px;">Dev By Onhacker</div>
 </div>
+<?php
+// --- Siapkan data URL base64 untuk logo (opsional, agar lolos CORS) ---
+$logoData = '';
+$logoPath = FCPATH.'assets/images/logo_admin.png'; // ganti sesuai filemu
+if (is_file($logoPath)) {
+  $mime = function_exists('mime_content_type') ? mime_content_type($logoPath) : 'image/png';
+  if (!$mime) $mime = 'image/png';
+  $logoData = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($logoPath));
+}
+// $logoUrl sudah ada di kodenya; kita pakai $logoData kalau tersedia, kalau tidak fallback ke $logoUrl
+?>
 
 <script>
 (async function(){
@@ -214,10 +225,8 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
     nomor      : <?= json_encode($nomor) ?>,
     // jika $logoUrl file lokal/server-mu:
-$logoPath = FCPATH.'assets/images/logo_admin.png'; // contoh
-$logoData = is_file($logoPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath)) : '';
-// lalu kirim ini:
-logo_url : <?= json_encode($logoData) ?>,
+logo_url  : <?= json_encode($logoData ?: ($logoUrl ?? '')) ?>,
+
 
 
     waktu      : <?= json_encode($waktu) ?>,
