@@ -292,45 +292,42 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   }
 
   function buildEscposFromOrder(o){
-    let out = '';
-    // Header toko
-    out += INIT + CTR + BOLD_ON + SIZE2X + clamp(o.toko, COLS) + '\n';
+  // === KITCHEN SLIP (tanpa harga & total) ===
+  let out = '';
+  // Header toko / info order (singkat)
+  out += INIT + CTR + BOLD_ON + SIZE2X + clamp(o.toko, COLS) + '\n';
+  out += SIZE1X + BOLD_OFF;
+  out += LEFT;
+  if (o.meja)   out += `Meja: ${o.meja}\n`;
+  out += `No: ${o.nomor}${o.waktu ? '   Waktu: '+o.waktu : ''}\n`;
+  if (o.mode)   out += `Mode: ${String(o.mode).charAt(0).toUpperCase()+String(o.mode).slice(1)}\n`;
+  if (o.nama)   out += `Pelanggan: ${o.nama}\n`;
+  if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
+
+  out += '-'.repeat(COLS) + '\n';
+
+  // Daftar item: cetak besar dan jelas untuk dapur
+  (o.items||[]).forEach(it=>{
+    const qty   = Number(it.qty||0);
+    const name  = (it.nama||'').toUpperCase();
+    const lines = wrapText(name);
+
+    // baris pertama: [xQTY] NAMA (2x size, bold)
+    out += BOLD_ON + SIZE2X + `[x${qty}] ` + clamp(lines.shift()||'', COLS-6) + '\n';
     out += SIZE1X + BOLD_OFF;
-    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
-    if (o.telp)   out += CTR + 'Telp: ' + clamp(o.telp, COLS-6) + '\n';
-    // Meta
-    out += LEFT + `No: ${o.nomor}   Metode: ${o.paid_label||'-'}\n`;
-    if (o.waktu) out += `Waktu: ${o.waktu}\n`;
-    out += `Mode: ${String(o.mode||'-').charAt(0).toUpperCase()+String(o.mode||'-').slice(1)}   Meja: ${o.meja}\n`;
-    if (o.nama) out += `Pelanggan: ${o.nama}\n`;
-    if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
-    out += '-'.repeat(COLS) + '\n';
 
-    // Items
-    (o.items||[]).forEach(it=>{
-      const nameLines = wrapText(it.nama||'');
-      out += (nameLines.shift() || '') + '\n';
-      nameLines.forEach(l => out += '  ' + l + '\n');
-      const qtyHarga = `${Number(it.qty||0)} x ${Number(it.harga||0).toLocaleString('id-ID')}`;
-      const sub = Number(it.subtotal ?? (it.qty||0)*(it.harga||0)).toLocaleString('id-ID');
-      out += lineLR(qtyHarga, sub) + '\n';
-    });
+    // sisa nama (jika panjang) di baris berikutnya
+    lines.forEach(l => out += '      ' + l + '\n');
 
-    out += '-'.repeat(COLS) + '\n';
-    // Totals
-    const totalItem = (o.items||[]).reduce((a,b)=> a + Number(b.qty||0), 0);
-    out += lineLR('TOTAL ITEM', String(totalItem)) + '\n';
-    out += lineLR('SUBTOTAL', Number(o.subtotal||0).toLocaleString('id-ID')) + '\n';
-    if (Number(o.kode_unik||0)) out += lineLR('KODE UNIK', Number(o.kode_unik).toLocaleString('id-ID')) + '\n';
-    out += lineLR('TOTAL BAYAR', Number(o.grand_total || o.subtotal || 0).toLocaleString('id-ID')) + '\n';
+    // spasi antar item
+    out += '\n';
+  });
 
-    // Footer
-    if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n' + LEFT;
+  // Tidak ada subtotal/total/ongkir/kode unik/footer untuk kitchen
+  out += feed(2) + CUT;
+  return out;
+}
 
-    // Tambah feed agar watermark RawBT (gratis) di bawah kertas → mudah dirobek
-    out += feed(6) + CUT;
-    return out;
-  }
 
   // ======== Eksekusi sesuai mode ========
   if (USE_RAWBT){
