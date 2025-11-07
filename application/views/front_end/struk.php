@@ -197,7 +197,7 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
 </div>
 
 <script>
-(function(){
+(async function(){
   // ===== Query Params =====
   const qs = new URLSearchParams(location.search);
   const AUTO_PRINT = qs.get('autoprint') === '1';
@@ -213,6 +213,8 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
     telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
     nomor      : <?= json_encode($nomor) ?>,
+    logo_url  : <?= json_encode($logoUrl ?? '') ?>,
+
     waktu      : <?= json_encode($waktu) ?>,
     mode_label : <?= json_encode($modeLabel) ?>,
     show_meja  : <?= $showMeja ? 'true' : 'false' ?>,
@@ -248,6 +250,65 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   // Garis
   const HR1 = '-'.repeat(COLS) + '\n';
   const HR2 = '='.repeat(COLS) + '\n';
+  // Lebar dot head printer (umum): 80mm ≈ 576, 58mm ≈ 384
+const DOT_WIDTH = <?= ($paperWidthMM === 80) ? 576 : 384 ?>;
+
+// Konversi image URL -> ESC/POS raster (GS v 0)
+async function escposImageFromUrl(url, maxDots, center=true){
+  if (!url) return '';
+  try{
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // butuh CORS jika beda domain
+    img.src = url;
+    await new Promise((res, rej)=>{
+      img.onload = res; img.onerror = rej;
+    });
+
+    // scale ke lebar maxDots (tetap jaga rasio)
+    const scale = Math.min(1, maxDots / img.naturalWidth);
+    const w = Math.min(maxDots, Math.floor(img.naturalWidth * scale));
+    const h = Math.max(1, Math.floor(img.naturalHeight * scale));
+
+    // gambar ke canvas
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0, w, h);
+
+    const id = g.getImageData(0, 0, w, h).data;
+    const bytesPerRow = Math.ceil(w / 8);
+    const total = bytesPerRow * h;
+    const buf = new Uint8Array(total);
+
+    // threshold b/w sederhana
+    for (let y=0; y<h; y++){
+      for (let x=0; x<w; x++){
+        const i = (y*w + x)*4;
+        const r=id[i], g1=id[i+1], b=id[i+2];
+        const lum = 0.299*r + 0.587*g1 + 0.114*b;
+        const bit = (lum < 160) ? 1 : 0; // <160 = hitam
+        if (bit){
+          const byteIndex = y*bytesPerRow + (x>>3);
+          buf[byteIndex] |= (0x80 >> (x & 7));
+        }
+      }
+    }
+
+    // header GS v 0 m xL xH yL yH (m=0)
+    const xL = bytesPerRow & 0xFF, xH = (bytesPerRow>>8) & 0xFF;
+    const yL = h & 0xFF,          yH = (h>>8) & 0xFF;
+    let out = '';
+    if (center) out += CTR; else out += LEFT;
+    out += GS + 'v' + '0' + '\x00' + String.fromCharCode(xL,xH,yL,yH);
+    // data
+    for (let i=0; i<buf.length; i++) out += String.fromCharCode(buf[i]);
+    out += '\n' + LEFT;
+    return out;
+  }catch(e){
+    // Gagal load (CORS, dll) -> skip logo, tetap aman
+    return '';
+  }
+}
 
   function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
   function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
@@ -289,67 +350,73 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
     return padR(name, W_NAME) + padL(qty, W_QTY) + padL(harga, W_PRICE) + padL(sub, W_SUB) + '\n';
   }
 
-  function buildEscposFromOrder(o){
-    // Init + font normal + line spacing default (tanpa newline awal)
-    let out = INIT + ESC + '2' + SIZE1X;
+  // GANTI fungsi builder jadi async + inisialisasi out sebelum logo
+async function buildEscposFromOrder(o){
+  // Init + font normal + line spacing default (tanpa newline awal)
+  let out = INIT + ESC + '2' + SIZE1X;
 
-    // Header
-    out += CTR + clamp(o.toko, COLS) + '\n';
-    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
-    if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
-    out += LEFT;
+  // Logo (jika ada) – dicetak dulu sebelum teks header
+  out += await escposImageFromUrl(o.logo_url, DOT_WIDTH, true);
 
-    // Meta
-    out += 'No: ' + o.nomor + '\n';
-    if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
-    out += 'Mode: ' + (o.mode_label||'-') + '\n';
-    if (o.show_meja && o.meja) out += 'Meja: ' + o.meja + '\n';
-    if (o.nama) out += 'Pelanggan: ' + o.nama + '\n';
+  // Header
+  out += CTR + clamp(o.toko, COLS) + '\n';
+  if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
+  if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
+  out += LEFT;
 
-    // Items header
-    out += HR2;
-    out += rowHeader();
-    out += HR1;
+  // Meta
+  out += 'No: ' + o.nomor + '\n';
+  if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
+  out += 'Mode: ' + (o.mode_label||'-') + '\n';
+  if (o.show_meja && o.meja) out += 'Meja: ' + o.meja + '\n';
+  if (o.nama) out += 'Pelanggan: ' + o.nama + '\n';
 
-    // Items
-    (o.items||[]).forEach((it, idx, arr)=>{
-      const nameLines = wrapText(it.nama||'', W_NAME);
-      const qty = Number(it.qty||0);
-      const harga = formatRp(it.harga||0);
-      const sub   = formatRp(it.subtotal ?? qty*(it.harga||0));
-      out += rowItem(nameLines.shift()||'', qty, harga, sub);
-      nameLines.forEach(l => { out += rowItem(l, '', '', ''); });
-      if (idx < arr.length - 1) out += HR1;
-    });
+  // Items header
+  out += HR2;
+  out += rowHeader();
+  out += HR1;
 
-    // Totals
-    out += HR1;
-    out += lineLR('Status Pembayaran', o.status||'-') + '\n';
-    if (o.show_kode && Number(o.kode_unik||0)) out += lineLR('Kode Unik', formatRp(o.kode_unik)) + '\n';
-    out += lineLR('Total', formatRp(o.total||0)) + '\n';
-    if (o.is_delivery && Number(o.delivery||0)>0) out += lineLR('Ongkir', formatRp(o.delivery||0)) + '\n';
-    out += lineLR('Total Pembayaran', formatRp(o.grand_total || o.total || 0)) + '\n';
+  // Items
+  (o.items||[]).forEach((it, idx, arr)=>{
+    const nameLines = wrapText(it.nama||'', W_NAME);
+    const qty = Number(it.qty||0);
+    const harga = formatRp(it.harga||0);
+    const sub   = formatRp(it.subtotal ?? qty*(it.harga||0));
+    out += rowItem(nameLines.shift()||'', qty, harga, sub);
+    nameLines.forEach(l => { out += rowItem(l, '', '', ''); });
+    if (idx < arr.length - 1) out += HR1;
+  });
 
-    // Footer + signature
-    if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
-    if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
-    if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
-    out += LEFT;
+  // Totals
+  out += HR1;
+  out += lineLR('Status Pembayaran', o.status||'-') + '\n';
+  if (o.show_kode && Number(o.kode_unik||0)) out += lineLR('Kode Unik', formatRp(o.kode_unik)) + '\n';
+  out += lineLR('Total', formatRp(o.total||0)) + '\n';
+  if (o.is_delivery && Number(o.delivery||0)>0) out += lineLR('Ongkir', formatRp(o.delivery||0)) + '\n';
+  out += lineLR('Total Pembayaran', formatRp(o.grand_total || o.total || 0)) + '\n';
 
-    // === KUNCI: feed + cut with feed (default: partial, cutn=7, trail=3) ===
-    out += feed(TRAIL_LINES) + CUT_COMMAND;
-    return out;
-  }
+  // Footer + signature
+  if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
+  if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
+  if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
+  out += LEFT;
+
+  // === feed + cut (pakai setelan kamu: partial, cutn=7, trail=3) ===
+  out += feed(TRAIL_LINES) + CUT_COMMAND;
+  return out;
+}
+
 
   // ===== Eksekusi =====
   if (USE_RAWBT){
-    const escpos = buildEscposFromOrder(ORDER);
-    const payload = encodeURIComponent(escpos);
-    const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-    try { location.href = intent; } catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
-    if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
-    return;
-  }
+  const escpos = await buildEscposFromOrder(ORDER); // <— pakai await
+  const payload = encodeURIComponent(escpos);
+  const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+  try { location.href = intent; } catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
+  if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
+  return;
+}
+
 
   if (AUTO_PRINT){
     window.print();
