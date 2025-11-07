@@ -1,20 +1,22 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "id.co.ausi.twa",
-    "sha256_cert_fingerprints": [
-      "39:95:E3:C4:30:15:16:E8:E8:42:22:C3:61:B7:FF:D6:A4:4F:1B:C7:DB:2C:88:03:99:B8:A5:68:62:A9:5F:BD"
-    ]
-  }
-},
-{
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "id.co.ausi.twa",
+      "sha256_cert_fingerprints": [
+        "39:95:E3:C4:30:15:16:E8:E8:42:22:C3:61:B7:FF:D6:A4:4F:1B:C7:DB:2C:88:03:99:B8:A5:68:62:A9:5F:BD"
+      ]
+    }
+  },
+  {
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
       "package_name": "id.co.ausi.twa.admin",
-      "sha256_cert_fingerprints": ["39:95:E3:C4:30:15:16:E8:E8:42:22:C3:61:B7:FF:D6:A4:4F:1B:C7:DB:2C:88:03:99:B8:A5:68:62:A9:5F:BD"]
+      "sha256_cert_fingerprints": [
+        "F8:71:69:28:90:F7:FE:B4:F1:4F:09:B7:EC:B2:0F:00:C8:C3:F0:E4:24:DC:B2:08:93:46:5D:17:E6:54:69:E8"
+      ]
     }
   }
-
 ]
