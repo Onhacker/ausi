@@ -48,7 +48,7 @@ class M_admin_pos extends CI_Model {
 
     public function set_kasir_scope($enabled = true, $days = 1){
         $this->kasir_scope_enabled = (bool)$enabled;
-        $this->kasir_days = max(1, (int)$days);
+        $this->kasir_days = max(3, (int)$days);
     }
 
     public function set_item_category_filter($cat = null){
