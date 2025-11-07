@@ -244,21 +244,16 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
 
   // ======== ESC/POS Helpers ========
   // ======== ESC/POS Helpers ========
+// ======== ESC/POS Helpers (REPLACE DARI SINI) ========
 const ESC = '\x1B', GS = '\x1D';
 const INIT= ESC+'@';
 const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
 const BOLD_ON= ESC+'E'+'\x01', BOLD_OFF= ESC+'E'+'\x00';
 const SIZE1X = GS+'!'+'\x00';
 
-// --- VARIASI perintah CUT (pakai yang paling stabil untukmu) ---
-const CUT_FULL        = GS + 'V' + '\x00';            // full cut (tanpa feed) — tidak semua maju sendiri
-const CUT_PART        = GS + 'V' + '\x01';            // partial cut (tanpa feed)
-const CUT_FULL_FEED   = GS + 'V' + '\x42' + '\x00';   // 'B', full cut + feed ke posisi potong
-const CUT_PART_FEED   = GS + 'V' + '\x41' + '\x00';   // 'A', partial cut + feed ke posisi potong
+const COLS = <?= ($paperWidthMM === 80) ? 48 : 32 ?>;
 
-// --- Atur berapa baris kosong sebelum cut (3–8 baris umum) ---
-const TAIL_FEED_LINES = 5;
-
+// Garis
 const HR1 = '-'.repeat(COLS) + '\n'; // setara .hr
 const HR2 = '='.repeat(COLS) + '\n'; // setara .hr-strong
 
@@ -280,6 +275,18 @@ function sendToRawBT(escpos){
   try { location.href = intent; }
   catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
 }
+
+// === CUT commands ===
+// Full cut with feed: GS V 66 n   | Partial cut with feed: GS V 65 n
+const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
+const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
+
+// Khusus iWare XS-80BT:
+const CUT_FEED_N   = 4;   // coba 4 dulu; kalau masih sisa -> 5/6/7
+const TRAIL_LINES  = 2;   // ekor manual 2 baris sebelum cut
+const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N); // partial cut with feed lebih konsisten
+// ======== ESC/POS Helpers (SAMPAI SINI) ========
+
 
 
  function buildEscposFromOrder(o){
@@ -328,6 +335,7 @@ function sendToRawBT(escpos){
 
   // Footer seperti HTML (kalau ada)
   // Footer seperti HTML (kalau ada) — ini bagianmu sebelumnya
+// Footer seperti HTML (kalau ada)
 <?php $footerText = (string)($store->footer ?? ''); ?>
 <?php if ($footerText !== ''): ?>
 out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
@@ -337,12 +345,10 @@ if (o.printed_at){
 }
 out += LEFT;
 
-// ===== KUNCI: feed secukupnya sebelum cut + perintah cut "with feed" =====
-out += feed(TAIL_FEED_LINES) + CUT_FULL_FEED;
-// Jika printermu lebih cocok partial cut, pakai baris ini:
-// out += feed(TAIL_FEED_LINES) + CUT_PART_FEED;
-
+// ===== KUNCI: feed pendek + cut "with feed" khusus XS-80BT =====
+out += feed(TRAIL_LINES) + CUT_COMMAND;
 return out;
+
 
 }
 
