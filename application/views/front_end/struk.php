@@ -196,17 +196,15 @@ $signature = 'Dev By Onhacker'; // boleh ambil dari config kalau mau
   <div class="center small muted" style="margin-top:6px;">Dev By Onhacker</div>
 </div>
 <?php
-// --- Siapkan data URL base64 untuk logo (opsional, agar lolos CORS) ---
+// --- SIAPKAN DATA URL LOGO (base64) DI PHP, BUKAN DI <script> ---
 $logoData = '';
-$logoPath = FCPATH.'assets/images/logo_admin.png'; // ganti sesuai filemu
+$logoPath = FCPATH.'assets/images/logo_admin.png'; // ganti sesuai file/logo-mu
 if (is_file($logoPath)) {
   $mime = function_exists('mime_content_type') ? mime_content_type($logoPath) : 'image/png';
   if (!$mime) $mime = 'image/png';
   $logoData = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($logoPath));
 }
-// $logoUrl sudah ada di kodenya; kita pakai $logoData kalau tersedia, kalau tidak fallback ke $logoUrl
 ?>
-
 <script>
 (async function(){
   // ===== Query Params =====
@@ -224,10 +222,8 @@ if (is_file($logoPath)) {
     alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
     telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
     nomor      : <?= json_encode($nomor) ?>,
-    // jika $logoUrl file lokal/server-mu:
-logo_url  : <?= json_encode($logoData ?: ($logoUrl ?? '')) ?>,
-
-
+    // PENTING: kirim SATU nilai saja (base64 kalau ada, fallback ke $logoUrl)
+    logo_url   : <?= json_encode($logoData ?: ($logoUrl ?? '')) ?>,
 
     waktu      : <?= json_encode($waktu) ?>,
     mode_label : <?= json_encode($modeLabel) ?>,
@@ -244,7 +240,7 @@ logo_url  : <?= json_encode($logoData ?: ($logoUrl ?? '')) ?>,
     grand_total: <?= (int)$grandTotal ?>,
     footer     : <?= json_encode((string)($store->footer ?? '')) ?>,
     printed_at : <?= json_encode($printed_at) ?>,
-    sign       : <?= json_encode($signature ?? 'Dev By Onhacker') ?>,
+    sign       : <?= json_encode(isset($signature)? $signature : 'Dev By Onhacker') ?>,
     items      : <?= json_encode(array_map(function($it){
                       return [
                         'nama'     => (string)($it->nama ?? '-'),
@@ -261,93 +257,81 @@ logo_url  : <?= json_encode($logoData ?: ($logoUrl ?? '')) ?>,
   const LEFT= ESC+'a'+'\x00', CTR= ESC+'a'+'\x01';
   const SIZE1X = GS+'!'+'\x00';
 
-  // Garis
   const HR1 = '-'.repeat(COLS) + '\n';
   const HR2 = '='.repeat(COLS) + '\n';
-  // Lebar dot head printer (umum): 80mm ≈ 576, 58mm ≈ 384
-// Lebar dot head printer (umum): 80mm ≈ 576, 58mm ≈ 384
-const DOT_WIDTH = (()=>{
-  const qsW = Number(new URLSearchParams(location.search).get('logow') || '');
-  return (qsW>0 ? qsW : (<?= ($paperWidthMM === 80) ? 576 : 384 ?>));
-})();
 
-// Robust loader: dukung data:, same-origin (pakai fetch+cookie), dan CORS
-async function escposImageFromUrl(url, maxDots, center=true){
-  if (!url) return '';
-  try{
-    let src = url;
-    const abs = new URL(url, location.href);
-    const sameOrigin = abs.origin === location.origin;
-    const isDataURL = url.startsWith('data:');
+  // Lebar dot head: bisa override &logow=512
+  const DOT_WIDTH = (()=>{
+    const qsW = Number(new URLSearchParams(location.search).get('logow') || '');
+    return (qsW>0 ? qsW : (<?= ($paperWidthMM === 80) ? 576 : 384 ?>));
+  })();
 
-    // Mixed-content guard: jika page https tapi logo http → coba upgrade ke https
-    if (location.protocol === 'https:' && abs.protocol === 'http:') {
-      try {
-        const httpsUrl = 'https://' + abs.host + abs.pathname + abs.search + abs.hash;
-        await fetch(httpsUrl, { method:'HEAD' });
-        src = httpsUrl;
-      } catch(e) {
-        // biarkan src tetap, mungkin server tdk support https
+  // Loader logo robust (data:, same-origin+cookie, CORS)
+  async function escposImageFromUrl(url, maxDots, center=true){
+    if (!url) return '';
+    try{
+      let src = url;
+      const abs = new URL(url, location.href);
+      const sameOrigin = abs.origin === location.origin;
+      const isDataURL = url.startsWith('data:');
+
+      if (location.protocol === 'https:' && abs.protocol === 'http:') {
+        try {
+          const httpsUrl = 'https://' + abs.host + abs.pathname + abs.search + abs.hash;
+          await fetch(httpsUrl, { method:'HEAD' });
+          src = httpsUrl;
+        }catch(e){}
       }
-    }
 
-    // Siapkan image source
-    let imgSrc = src;
-    if (!isDataURL && sameOrigin) {
-      // pakai fetch agar include cookie/session
-      const r = await fetch(src, { credentials:'include' });
-      if (!r.ok) throw new Error('fetch logo failed: '+r.status);
-      const blob = await r.blob();
-      imgSrc = URL.createObjectURL(blob);
-    }
-
-    // load ke <img>
-    const img = new Image();
-    if (!isDataURL && !sameOrigin) img.crossOrigin = 'anonymous'; // perlu ACAO di server logo
-    img.src = imgSrc;
-    await new Promise((res, rej)=>{ img.onload = res; img.onerror = rej; });
-
-    // skala & rasterize
-    const scale = Math.min(1, maxDots / img.naturalWidth || 1);
-    const w = Math.max(1, Math.min(maxDots, Math.floor((img.naturalWidth||maxDots) * scale)));
-    const h = Math.max(1, Math.floor((img.naturalHeight||maxDots) * scale));
-
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, w, h);
-
-    const id = ctx.getImageData(0, 0, w, h).data;
-    const bytesPerRow = Math.ceil(w / 8);
-    const buf = new Uint8Array(bytesPerRow * h);
-
-    // threshold sederhana (bisa turunkan 160 -> 140 kalau gambar terlalu gelap)
-    for (let y=0; y<h; y++){
-      for (let x=0; x<w; x++){
-        const i = (y*w + x)*4;
-        const lum = 0.299*id[i] + 0.587*id[i+1] + 0.114*id[i+2];
-        if (lum < 160) buf[y*bytesPerRow + (x>>3)] |= (0x80 >> (x & 7));
+      let imgSrc = src;
+      if (!isDataURL && sameOrigin) {
+        const r = await fetch(src, { credentials:'include' });
+        if (!r.ok) throw new Error('fetch logo failed: '+r.status);
+        const blob = await r.blob();
+        imgSrc = URL.createObjectURL(blob);
       }
+
+      const img = new Image();
+      if (!isDataURL && !sameOrigin) img.crossOrigin = 'anonymous';
+      img.src = imgSrc;
+      await new Promise((res, rej)=>{ img.onload = res; img.onerror = rej; });
+
+      const scale = Math.min(1, maxDots / (img.naturalWidth||maxDots));
+      const w = Math.max(1, Math.min(maxDots, Math.floor((img.naturalWidth||maxDots) * scale)));
+      const h = Math.max(1, Math.floor((img.naturalHeight||maxDots) * scale));
+
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const id = ctx.getImageData(0, 0, w, h).data;
+      const bytesPerRow = Math.ceil(w / 8);
+      const buf = new Uint8Array(bytesPerRow * h);
+
+      for (let y=0; y<h; y++){
+        for (let x=0; x<w; x++){
+          const i = (y*w + x)*4;
+          const lum = 0.299*id[i] + 0.587*id[i+1] + 0.114*id[i+2];
+          if (lum < 160) buf[y*bytesPerRow + (x>>3)] |= (0x80 >> (x & 7));
+        }
+      }
+
+      const xL = bytesPerRow & 0xFF, xH = (bytesPerRow>>8) & 0xFF;
+      const yL = h & 0xFF,          yH = (h>>8) & 0xFF;
+
+      let out = center ? CTR : LEFT;
+      out += GS + 'v' + '0' + '\x00' + String.fromCharCode(xL, xH, yL, yH);
+      for (let i=0; i<buf.length; i++) out += String.fromCharCode(buf[i]);
+      out += '\n' + LEFT;
+
+      if (!isDataURL && sameOrigin) try{ URL.revokeObjectURL(imgSrc); }catch(e){}
+      return out;
+    }catch(e){
+      console.warn('Logo raster failed:', e);
+      return '';
     }
-
-    // GS v 0 m xL xH yL yH + data
-    const xL = bytesPerRow & 0xFF, xH = (bytesPerRow>>8) & 0xFF;
-    const yL = h & 0xFF,          yH = (h>>8) & 0xFF;
-
-    let out = center ? CTR : LEFT;
-    out += GS + 'v' + '0' + '\x00' + String.fromCharCode(xL, xH, yL, yH);
-    for (let i=0; i<buf.length; i++) out += String.fromCharCode(buf[i]);
-    out += '\n' + LEFT;
-
-    // bersihkan blob URL jika dipakai
-    if (!isDataURL && sameOrigin) try{ URL.revokeObjectURL(imgSrc); }catch(e){}
-    return out;
-  }catch(e){
-    console.warn('Logo raster failed:', e);
-    return ''; // jangan blokir cetak
   }
-}
-
 
   function feed(n){ return '\n'.repeat(Math.max(0, n|0)); }
   function clamp(s,n){ s = String(s||''); return s.length>n ? s.slice(0,n) : s; }
@@ -361,11 +345,10 @@ async function escposImageFromUrl(url, maxDots, center=true){
   }
   function formatRp(n){ return 'Rp ' + Number(n||0).toLocaleString('id-ID'); }
 
-  // ==== CUT commands (pakai cara kitchen) + kalibrasi ====
-  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF); // full+feed
-  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF); // partial+feed
+  // ==== CUT commands + kalibrasi ====
+  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
+  const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
 
-  // default (disamakan dgn kitchen): cutn=7, trail=3, mode=partial
   let CUT_FEED_N  = Number(qs.get('cutn') || 7);
   let TRAIL_LINES = Number(qs.get('trail') || 3);
   const MODE_QS   = (qs.get('cutmode')||'partial').toLowerCase();
@@ -374,88 +357,73 @@ async function escposImageFromUrl(url, maxDots, center=true){
   const CUT_COMMAND = (MODE_QS==='full') ? CUT_FULL_FEED_N(CUT_FEED_N)
                                          : CUT_PART_FEED_N(CUT_FEED_N);
 
-  // ==== Layout kolom (80mm/58mm) ====
-  // 80mm => 48 kolom: nama 22 | qty 5 | harga 10 | sub 11
-  // 58mm => 32 kolom: nama 16 | qty 4 | harga 6  | sub 6
+  // ==== Layout kolom ====
   const W_NAME  = (COLS===48)?22:16;
   const W_QTY   = (COLS===48)?5:4;
   const W_PRICE = (COLS===48)?10:6;
   const W_SUB   = COLS - W_NAME - W_QTY - W_PRICE;
 
-  function rowHeader(){
-    return padR('Item', W_NAME) + padR('Qty', W_QTY) + padL('Harga', W_PRICE) + padL('Subtotal', W_SUB) + '\n';
+  function rowHeader(){ return padR('Item', W_NAME) + padR('Qty', W_QTY) + padL('Harga', W_PRICE) + padL('Subtotal', W_SUB) + '\n'; }
+  function rowItem(name, qty, harga, sub){ return padR(name, W_NAME) + padL(qty, W_QTY) + padL(harga, W_PRICE) + padL(sub, W_SUB) + '\n'; }
+
+  // === Builder async ===
+  async function buildEscposFromOrder(o){
+    let out = INIT + ESC + '2' + SIZE1X;
+    out += await escposImageFromUrl(o.logo_url, DOT_WIDTH, true); // logo dulu
+
+    // Header
+    out += CTR + clamp(o.toko, COLS) + '\n';
+    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
+    if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
+    out += LEFT;
+
+    // Meta
+    out += 'No: ' + o.nomor + '\n';
+    if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
+    out += 'Mode: ' + (o.mode_label||'-') + '\n';
+    if (o.show_meja && o.meja) out += 'Meja: ' + o.meja + '\n';
+    if (o.nama) out += 'Pelanggan: ' + o.nama + '\n';
+
+    // Items
+    out += HR2 + rowHeader() + HR1;
+    (o.items||[]).forEach((it, idx, arr)=>{
+      const nameLines = wrapText(it.nama||'', W_NAME);
+      const qty = Number(it.qty||0);
+      const harga = formatRp(it.harga||0);
+      const sub   = formatRp(it.subtotal ?? qty*(it.harga||0));
+      out += rowItem(nameLines.shift()||'', qty, harga, sub);
+      nameLines.forEach(l => { out += rowItem(l, '', '', ''); });
+      if (idx < arr.length - 1) out += HR1;
+    });
+
+    // Totals
+    out += HR1;
+    out += lineLR('Status Pembayaran', o.status||'-') + '\n';
+    if (o.show_kode && Number(o.kode_unik||0)) out += lineLR('Kode Unik', formatRp(o.kode_unik)) + '\n';
+    out += lineLR('Total', formatRp(o.total||0)) + '\n';
+    if (o.is_delivery && Number(o.delivery||0)>0) out += lineLR('Ongkir', formatRp(o.delivery||0)) + '\n';
+    out += lineLR('Total Pembayaran', formatRp(o.grand_total || o.total || 0)) + '\n';
+
+    // Footer + signature
+    if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
+    if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
+    if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
+    out += LEFT;
+
+    // Cut
+    out += feed(TRAIL_LINES) + CUT_COMMAND;
+    return out;
   }
-  function rowItem(name, qty, harga, sub){
-    return padR(name, W_NAME) + padL(qty, W_QTY) + padL(harga, W_PRICE) + padL(sub, W_SUB) + '\n';
-  }
-
-  // GANTI fungsi builder jadi async + inisialisasi out sebelum logo
-async function buildEscposFromOrder(o){
-  // Init + font normal + line spacing default (tanpa newline awal)
-  let out = INIT + ESC + '2' + SIZE1X;
-
-  // Logo (jika ada) – dicetak dulu sebelum teks header
-  out += await escposImageFromUrl(o.logo_url, DOT_WIDTH, true);
-
-  // Header
-  out += CTR + clamp(o.toko, COLS) + '\n';
-  if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
-  if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
-  out += LEFT;
-
-  // Meta
-  out += 'No: ' + o.nomor + '\n';
-  if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
-  out += 'Mode: ' + (o.mode_label||'-') + '\n';
-  if (o.show_meja && o.meja) out += 'Meja: ' + o.meja + '\n';
-  if (o.nama) out += 'Pelanggan: ' + o.nama + '\n';
-
-  // Items header
-  out += HR2;
-  out += rowHeader();
-  out += HR1;
-
-  // Items
-  (o.items||[]).forEach((it, idx, arr)=>{
-    const nameLines = wrapText(it.nama||'', W_NAME);
-    const qty = Number(it.qty||0);
-    const harga = formatRp(it.harga||0);
-    const sub   = formatRp(it.subtotal ?? qty*(it.harga||0));
-    out += rowItem(nameLines.shift()||'', qty, harga, sub);
-    nameLines.forEach(l => { out += rowItem(l, '', '', ''); });
-    if (idx < arr.length - 1) out += HR1;
-  });
-
-  // Totals
-  out += HR1;
-  out += lineLR('Status Pembayaran', o.status||'-') + '\n';
-  if (o.show_kode && Number(o.kode_unik||0)) out += lineLR('Kode Unik', formatRp(o.kode_unik)) + '\n';
-  out += lineLR('Total', formatRp(o.total||0)) + '\n';
-  if (o.is_delivery && Number(o.delivery||0)>0) out += lineLR('Ongkir', formatRp(o.delivery||0)) + '\n';
-  out += lineLR('Total Pembayaran', formatRp(o.grand_total || o.total || 0)) + '\n';
-
-  // Footer + signature
-  if (o.footer) out += '\n' + CTR + clamp(o.footer, COLS) + '\n';
-  if (o.printed_at) out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS-9) + '\n';
-  if (o.sign) out += CTR + clamp(o.sign, COLS) + '\n';
-  out += LEFT;
-
-  // === feed + cut (pakai setelan kamu: partial, cutn=7, trail=3) ===
-  out += feed(TRAIL_LINES) + CUT_COMMAND;
-  return out;
-}
-
 
   // ===== Eksekusi =====
   if (USE_RAWBT){
-  const escpos = await buildEscposFromOrder(ORDER); // <— pakai await
-  const payload = encodeURIComponent(escpos);
-  const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-  try { location.href = intent; } catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
-  if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
-  return;
-}
-
+    const escpos = await buildEscposFromOrder(ORDER);
+    const payload = encodeURIComponent(escpos);
+    const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    try { location.href = intent; } catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
+    if (AUTO_CLOSE){ setTimeout(()=>window.close(), 800); }
+    return;
+  }
 
   if (AUTO_PRINT){
     window.print();
