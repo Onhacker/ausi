@@ -278,7 +278,7 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
   const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
 
   // Khusus iWare XS-80BT (80mm + cutter)
-  const CUT_FEED_N   = 6;   // kalau masih sisa, naikkan 5/6/7
+  const CUT_FEED_N   = 7;   // kalau masih sisa, naikkan 5/6/7
   const TRAIL_LINES  = 3;   // ekor manual sebelum cut
   const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N); // partial cut with feed umumnya paling pas
 
