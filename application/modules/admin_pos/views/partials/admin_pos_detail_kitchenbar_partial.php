@@ -147,10 +147,10 @@ $paidLabel = $paidRaw !== '' ? $paidRaw : '—';
   <div class="order-actions">
   <!--   <button type="button" class="btn btn-primary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '58')" aria-label="Cetak struk 58mm">
       <i class="fe-printer"></i> 58mm
-    </button>
+    </button> -->
     <button type="button" class="btn btn-secondary btn-xxs" onclick="printStrukInlinex(<?= (int)$id ?>, '80')" aria-label="Cetak struk 80mm">
       <i class="fe-printer"></i> 80mm
-    </button><button type="button" class="btn btn-outline-primary btn-xxs"
+    <!-- </button><button type="button" class="btn btn-outline-primary btn-xxs"
         onclick="printStrukInlinex(<?= (int)$id ?>, '58', true, true)"
         aria-label="Cetak struk 58mm via RawBT">
   <i class="fe-printer"></i> 58mm BT

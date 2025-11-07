@@ -544,18 +544,58 @@ function ensureElapsedSpans(api){
       frame.src = url;
     }
 
-    window.printStrukInline = function(orderId, paper){
-      try{
-        paper = (paper === '80') ? '80' : '58';
-        const url = "<?= site_url('admin_pos/print_struk_termal/') ?>"
-                    + orderId + "?paper=" + paper + "&embed=1&_=" + Date.now();
-        openAndPrint(url);
-      }catch(err){
-        console.error(err);
-        const fallbackUrl = "<?= site_url('admin_pos/print_struk_termal/') ?>" + orderId + "?paper=" + paper;
-        window.location.href = fallbackUrl;
-      }
-    };
+    <script>
+window.printStrukInline = function(orderId, paper, autoClose, useRawBT, opts){
+  try{
+    var p = (paper === '80') ? '80' : '58';
+    if (typeof autoClose === 'undefined') autoClose = true;   // default: tutup otomatis
+    if (typeof useRawBT  === 'undefined') useRawBT  = false;  // default: HTML print
+    opts = opts || {};
+
+    var base = "<?= site_url('admin_pos/print_struk_termal/') ?>" + orderId +
+               "?paper=" + p + "&embed=1&_=" + Date.now();
+
+    if (useRawBT){
+      // === MODE RAWBT ===
+      var url = base + "&rawbt=1" + (autoClose ? "&autoclose=1" : "");
+      if (opts.cutn)    url += "&cutn=" + encodeURIComponent(opts.cutn);         // ex: 4..7
+      if (opts.trail!=null) url += "&trail=" + encodeURIComponent(opts.trail);   // ex: 0..3
+      if (opts.cutmode) url += "&cutmode=" + encodeURIComponent(opts.cutmode);   // 'partial'|'full'
+      if (opts.extra)   url += "&" + opts.extra;                                 // passthrough optional
+
+      var w1 = window.open(url, "print_"+orderId,
+        "width=520,height=760,menubar=0,location=0,toolbar=0,status=0");
+      if (!w1) window.location.href = url; // popup diblok → redirect
+      return;
+    }
+
+    // === MODE HTML (browser print) ===
+    var urlHtml = base + "&autoprint=1" + (autoClose ? "&autoclose=1" : "");
+    if (typeof openAndPrint === 'function'){
+      openAndPrint(urlHtml);
+    } else {
+      // fallback: autoprint manual saat ready
+      var w2 = window.open(urlHtml, "print_"+orderId,
+        "width=520,height=760,menubar=0,location=0,toolbar=0,status=0");
+      if (!w2) { window.location.href = urlHtml; return; }
+      var tried = false, iv = setInterval(function(){
+        if (!w2 || w2.closed) { clearInterval(iv); return; }
+        try{
+          if (w2.document && w2.document.readyState === 'complete' && !tried){
+            tried = true; clearInterval(iv);
+            try { w2.focus(); w2.print(); if (autoClose) w2.close(); } catch(e){}
+          }
+        }catch(e){}
+      }, 250);
+    }
+  }catch(err){
+    console.error(err);
+    var fallbackUrl = "<?= site_url('admin_pos/print_struk_termal/') ?>" + orderId + "?paper=" + ((paper==='80')?'80':'58');
+    window.location.href = fallbackUrl;
+  }
+};
+</script>
+
 
     window.printStrukInlinex = function(orderId, paper){
       try{
