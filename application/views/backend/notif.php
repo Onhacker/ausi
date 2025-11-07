@@ -46,7 +46,76 @@ if (function_exists('mb_strlen')) {
         <i class="fe-external-link "  ></i> Lihat Website
       </a>
     </li>
-      
+    <!-- Fullscreen -->
+<li class="dropdown notification-list">
+  <a class="nav-link waves-effect text-white" href="javascript:void(0)"
+     id="btn-fullscreen" aria-label="Layar penuh" title="Layar penuh">
+    <i class="fe-maximize" id="icon-fullscreen" style="font-size:18px;"></i>
+  </a>
+</li>
+<script>
+(function(){
+  var btn  = document.getElementById('btn-fullscreen');
+  var icon = document.getElementById('icon-fullscreen');
+  if(!btn || !icon) return;
+
+  // Cek dukungan API
+  var canReq = document.documentElement.requestFullscreen
+            || document.documentElement.webkitRequestFullscreen
+            || document.documentElement.mozRequestFullScreen
+            || document.documentElement.msRequestFullscreen;
+
+  var canExit = document.exitFullscreen
+             || document.webkitExitFullscreen
+             || document.mozCancelFullScreen
+             || document.msExitFullscreen;
+
+  if(!canReq || !canExit){
+    // Sembunyikan tombol bila tidak didukung (mis. iOS Safari non-video)
+    btn.parentElement.style.display = 'none';
+    return;
+  }
+
+  function isFs(){
+    return document.fullscreenElement
+        || document.webkitFullscreenElement
+        || document.mozFullScreenElement
+        || document.msFullscreenElement;
+  }
+
+  function reqFs(el){
+    (el.requestFullscreen
+      || el.webkitRequestFullscreen
+      || el.mozRequestFullScreen
+      || el.msRequestFullscreen).call(el);
+  }
+
+  function exitFs(){
+    (document.exitFullscreen
+      || document.webkitExitFullscreen
+      || document.mozCancelFullScreen
+      || document.msExitFullscreen).call(document);
+  }
+
+  function syncIcon(){
+    icon.className = isFs() ? 'fe-minimize' : 'fe-maximize';
+    icon.setAttribute('title', isFs() ? 'Keluar layar penuh' : 'Layar penuh');
+  }
+
+  btn.addEventListener('click', function(){
+    try{
+      if(isFs()) exitFs(); else reqFs(document.documentElement);
+    }catch(e){ /* diamkan saja */ }
+  }, {passive:true});
+
+  // Sinkronkan saat user keluar fullscreen via ESC, dll.
+  ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
+    .forEach(function(ev){ document.addEventListener(ev, syncIcon); });
+
+  syncIcon();
+})();
+</script>
+
 
     <!-- User / Login -->
     <?php if ($admin_login): ?>
