@@ -46,7 +46,7 @@ $us = $this->om->user();
 
   /* rapikan ruang di bawah header */
   #topnav{ margin-bottom: 0 !important; }
-  #topnav .navbar-custom{ margin-bottom: 0 !important; box-shadow: none !important; background-color: #ffffff00 !important }
+  #topnav .navbar-custom{ margin-bottom: 0 !important; box-shadow: none !important; background-color: #ffffff00 }
   #topnav .topbar-menu{
     margin: 0 !important;
     padding: .25rem 0 !important; /* lebih tipis */
