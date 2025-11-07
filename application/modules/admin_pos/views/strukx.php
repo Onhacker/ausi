@@ -272,61 +272,65 @@ $paidLabel = isset($paid_label) && trim($paid_label) !== ''
     catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
   }
 
-  function buildEscposFromOrder(o){
-    // === KITCHEN SLIP persis HTML (font normal; nama & qty; garis) ===
-    let out = '';
-    out += INIT + SIZE1X;
+ function buildEscposFromOrder(o){
+  // === KITCHEN SLIP persis HTML (tanpa blank line di atas) ===
+  const LS_DEFAULT = ESC + '2'; // reset line spacing ke default
+  let out = '';
 
-    // Header (brand)
-    out += CTR + '\n' + clamp(o.toko, COLS) + '\n';
-    if (o.alamat) wrapText(o.alamat).forEach(l=> out += clamp(l, COLS) + '\n');
-    if (o.telp)   out += 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
-    out += LEFT + '\n';
+  // Init + line spacing default + font normal
+  out += INIT + LS_DEFAULT + SIZE1X;
 
-    // Meta
-    out += 'No: ' + o.nomor + '\n';
-    if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
-    if (o.mode)  out += 'Mode: ' + (String(o.mode).charAt(0).toUpperCase() + String(o.mode).slice(1)) + '\n';
-    out += 'Metode: <?= esc($paidLabel) ?>' + '\n';
-    if (o.meja)  out += 'Meja: ' + o.meja + '\n';
-    if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
-    if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
+  // Header (brand) — TIDAK ada newline sebelum judul
+  out += CTR + clamp(o.toko, COLS) + '\n';
+  if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
+  if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
 
-    // Garis tebal (hr-strong)
-    out += HR2;
+  // Kembali kiri — TIDAK tambah newline di sini
+  out += LEFT;
 
-    // Header tabel (Item | Qty) + garis bawah
-    out += lineLR('Item', 'Qty') + '\n';
-    out += HR1;
+  // Meta (baris-baris seperti di HTML)
+  out += 'No: ' + o.nomor + '\n';
+  if (o.waktu) out += 'Waktu: ' + o.waktu + '\n';
+  if (o.mode)  out += 'Mode: ' + (String(o.mode).charAt(0).toUpperCase()+String(o.mode).slice(1)) + '\n';
+  out += 'Metode: <?= esc($paidLabel) ?>' + '\n';
+  if (o.meja)  out += 'Meja: ' + o.meja + '\n';
+  if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
+  if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
 
-    // Items (tiap baris nama kiri, qty kanan) + garis antar-item
-    (o.items||[]).forEach((it, idx, arr)=>{
-      const nameLines = wrapText(it.nama||'');
-      const qty = String(Number(it.qty||0));
-      // baris pertama nama & qty
-      out += lineLR(clamp(nameLines.shift()||'', COLS-4), qty) + '\n';
-      // sisa nama (jika panjang)
-      nameLines.forEach(l => out += clamp(l, COLS) + '\n');
-      // garis antar item (kecuali terakhir)
-      if (idx < arr.length - 1) out += HR1;
-    });
+  // Garis tebal (hr-strong)
+  out += '='.repeat(COLS) + '\n';
 
-    // Garis penutup tipis
-    out += HR1;
+  // Header tabel (Item | Qty) + garis bawah tipis
+  out += lineLR('Item', 'Qty') + '\n';
+  out += '-'.repeat(COLS) + '\n';
 
-    // Footer (seperti HTML)
-    if (<?= json_encode((string)($store->footer ?? '')) ?>){
-      out += CTR + clamp(<?= json_encode((string)($store->footer ?? '')) ?>, COLS) + '\n';
-    }
-    if (o.printed_at){
-      out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
-    }
-    out += LEFT;
+  // Items (nama kiri, qty kanan) + garis antar-item tipis
+  (o.items||[]).forEach((it, idx, arr)=>{
+    const nameLines = wrapText(it.nama||'');
+    const qty = String(Number(it.qty||0));
+    out += lineLR(clamp(nameLines.shift()||'', COLS-4), qty) + '\n';
+    nameLines.forEach(l => out += clamp(l, COLS) + '\n');
+    if (idx < arr.length - 1) out += '-'.repeat(COLS) + '\n';
+  });
 
-    // Sedikit feed di akhir (tidak mempengaruhi margin atas)
-    out += feed(2) + CUT;
-    return out;
+  // Garis penutup tipis
+  out += '-'.repeat(COLS) + '\n';
+
+  // Footer seperti HTML (kalau ada)
+  <?php $footerText = (string)($store->footer ?? ''); ?>
+  <?php if ($footerText !== ''): ?>
+  out += CTR + clamp(<?= json_encode($footerText) ?>, COLS) + '\n';
+  <?php endif; ?>
+  if (o.printed_at){
+    out += CTR + 'Dicetak: ' + clamp(o.printed_at, COLS - 9) + '\n';
   }
+  out += LEFT;
+
+  // Sedikit feed di akhir (hemat kertas, tidak pengaruh ke margin atas)
+  out += '\n\n' + CUT;
+  return out;
+}
+
 
   // ======== Eksekusi sesuai mode ========
   if (USE_RAWBT){
