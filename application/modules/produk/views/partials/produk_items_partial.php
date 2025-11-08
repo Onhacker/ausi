@@ -19,6 +19,18 @@
         .empty-state{ border-radius: 10px; }
         .empty-state__inner{ padding: 32px; }
       }
+      /* samakan basis gaya ribbon kamu */
+.corner-ribbon.trend { 
+  /* ambil style yang dulu kamu taruh di .corner-ribbon.hot */
+  background: #ff7a00; /* oranye = 'ngetren' */
+  color:#fff;
+}
+.corner-ribbon.bestseller {
+  background: #ffb300; /* emas = 'terlaris' */
+  color:#fff;
+}
+/* kalau sebelumnya ada .corner-ribbon.hot, boleh dihapus atau dibiarin aja */
+
     </style>
 
 
@@ -74,12 +86,18 @@
     $isNew     = $createdAt ? (($nowTs - $createdAt) <= ($NEW_DAYS * 86400)) : false;
 
     // --- tentukan ribbon ---
-    $ribbon = null;
-    if (!$soldout) {
-      if ($isBestseller)      $ribbon = ['class'=>'hot',     'text'=>'Terlaris'];
-      elseif ($isTrending)    $ribbon = ['class'=>'hot',     'text'=>'Hot'];
-      elseif ($isNew)         $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
-    }
+    // --- tentukan ribbon ---
+$ribbon = null;
+if (!$soldout) {
+  if ($isBestseller) {
+    $ribbon = ['class'=>'bestseller', 'text'=>'Terlaris'];
+  } elseif ($isTrending) {
+    $ribbon = ['class'=>'trend', 'text'=>'Ngetren']; // <— dulu 'hot' / 'Hot'
+  } elseif ($isNew) {
+    $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
+  }
+}
+
 
     // --- rating ---
     $ratingAvg     = isset($p->rating_avg)   ? (float)$p->rating_avg   : null;
