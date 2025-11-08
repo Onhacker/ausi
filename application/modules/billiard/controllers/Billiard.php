@@ -294,6 +294,11 @@ public function daftar_booking(){
   public function add(){
     // ambil input & normalisasi
     $in = $this->input->post(NULL, TRUE) ?: [];
+    // --- metode bayar ---
+    $method_raw = strtolower(trim((string)($in['metode_bayar'] ?? $in['payment_method'] ?? $in['pay_method'] ?? '')));
+    $uname      = strtolower((string)$this->session->userdata('admin_username'));
+// default-kan kasir ke cash jika form tidak kirim method
+    $is_cash    = ($method_raw === 'cash') || ($method_raw === '' && $uname === 'kasir');
 
     // ==== ambil voucher dari form (nama field fleksibel: voucher / voucher_code) ====
     $voucher_code_raw = strtoupper(trim((string)($in['voucher'] ?? $in['voucher_code'] ?? '')));
@@ -569,43 +574,49 @@ public function daftar_booking(){
 
     // ====== PERSIAPAN INSERT ======
     // kode unik hanya untuk transfer/QRIS; untuk voucher → 0
-    if ($use_voucher) {
-      $kode_unik   = 0;
-      $grand_total = 0; // total bayar nol
-    } else {
-      if ($this->session->userdata("admin_username") == 'kasir' ) {
-        $kode_unik = 0;
-      } else {
-        $kode_unik = random_int(1, 499);
-      }
-      $grand_total = $subtotal + $kode_unik;
-    }
+    // ====== PERSIAPAN INSERT ======
+if ($use_voucher) {
+  // Voucher: gratis
+  $kode_unik      = 0;
+  $grand_total    = 0;
+  $status_pesanan = 'free';
+} else if ($is_cash) {
+  // CASH: slot langsung tertutup
+  $kode_unik      = 0;                 // tak perlu kode unik
+  $grand_total    = $subtotal;         // bayar pas
+  $status_pesanan = 'terkonfirmasi';   // <- kunci slot sekarang
+} else {
+  // Non-cash (transfer/QRIS): tetap draft + kode unik
+  $kode_unik      = ($uname === 'kasir') ? 0 : random_int(1, 499);
+  $grand_total    = $subtotal + $kode_unik;
+  $status_pesanan = 'draft';
+}
 
-    $kode  = $this->_make_kode(8);
-    $token = bin2hex(random_bytes(24));
+$kode  = $this->_make_kode(8);
+$token = bin2hex(random_bytes(24));
 
-    // status pesanan (TIDAK menyetel metode_bayar sama sekali)
-    $status_pesanan = $use_voucher ? 'free' : 'draft';
 
     $insert = [
       'kode_booking'  => $kode,
       'access_token'  => $token,
       'status'        => $status_pesanan,
+      'metode_bayar'  => $is_cash ? 'cash' : ($method_raw !== '' ? $method_raw : NULL), // <— TAMBAH INI
       'nama'          => $nama,
       'no_hp'         => $no_hp,
       'meja_id'       => $meja_id,
       'nama_meja'     => isset($meja->nama_meja) ? $meja->nama_meja : ('MEJA #'.$meja_id),
       'tanggal'       => $tanggal,
       'jam_mulai'     => $jam_mulai,
-      'jam_selesai'   => $jam_selesai,   // sudah menyesuaikan voucher kalau ada
-      'durasi_jam'    => $durasi,        // sudah menyesuaikan voucher kalau ada
+      'jam_selesai'   => $jam_selesai,
+      'durasi_jam'    => $durasi,
       'harga_per_jam' => $harga,
-      'subtotal'      => $subtotal,       // harga asli utk laporan, ikut durasi final
+      'subtotal'      => $subtotal,
       'kode_unik'     => $kode_unik,
       'grand_total'   => $grand_total,
       'created_at'    => date('Y-m-d H:i:s'),
       'updated_at'    => date('Y-m-d H:i:s')
     ];
+
 
     $ok = $this->db->insert('pesanan_billiard', $insert);
     if (!$ok){
@@ -625,26 +636,32 @@ public function daftar_booking(){
                ]);
     }
 
-    $this->db->trans_commit();
-    // === TRANSACTION END ===
+    $label_wa = $use_voucher ? 'FREE' : ($is_cash ? 'CASH' : 'DRAFT');
 
-    // WA ringkasan (param kedua hanya label; DB tidak dipakai)
-    $newRec = $this->mbi->get_by_token($token);
-    if ($newRec) {
-      $this->_wa_ringkasan($newRec, $use_voucher ? 'FREE' : 'DRAFT', $status_pesanan);
-    }
+$this->db->trans_commit();
 
-    // redirect: jika voucher → ke halaman free; jika bukan → ke cart seperti biasa
-    return $this->_json([
-      "success"      => true,
-      "title"        => $use_voucher ? "Booking Gratis" : "Berhasil",
-      "pesan"        => $use_voucher
-                          ? "Voucher diterima. Mainnya gratis yaa 🎉"
-                          : "Booking dibuat. Kode: <b>{$kode}</b>",
-      "redirect_url" => $use_voucher
-                        ? site_url('billiard/free').'?t='.urlencode($token)
-                        : site_url('billiard/cart').'?t='.urlencode($token)
-    ]);
+$newRec = $this->mbi->get_by_token($token);
+if ($newRec) {
+  $this->_wa_ringkasan($newRec, $label_wa, $status_pesanan);
+}
+
+$msg  = $use_voucher
+        ? "Voucher diterima. Mainnya gratis yaa 🎉"
+        : ($is_cash
+            ? "Booking CASH tersimpan & SLOT sudah dikunci. Kode: <b>{$kode}</b>"
+            : "Booking dibuat. Kode: <b>{$kode}</b>");
+
+$redirect = $use_voucher
+            ? site_url('billiard/free').'?t='.urlencode($token)
+            : site_url('billiard/cart').'?t='.urlencode($token); // boleh tetap ke cart untuk cetak/lihat
+
+return $this->_json([
+  "success"      => true,
+  "title"        => $use_voucher ? "Booking Gratis" : ($is_cash ? "Berhasil (Cash)" : "Berhasil"),
+  "pesan"        => $msg,
+  "redirect_url" => $redirect
+]);
+
   }
 
 
