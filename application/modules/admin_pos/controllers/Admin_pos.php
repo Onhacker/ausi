@@ -15,14 +15,109 @@ class Admin_pos extends Admin_Controller {
         $this->cache->save('pos_ver', time(), 365*24*3600);
         $this->output->set_header('X-Cache-Purged: pos');
     }
+    // === di Admin_pos (controller) ===
+private function _ticker_close_order_text(): ?string
+{
+    // Ambil konfigurasi
+    $rec = $this->db->limit(1)->get('identitas')->row();
+    if (!$rec) return null;
 
-    public function index(){
-        $data["controller"] = get_class($this);
-        $data["title"]      = "Transaksi";
-        $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
-        $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
-        $this->render($data);
+    // TZ + label
+    $tzName = trim((string)($rec->waktu ?? '')) ?: 'Asia/Makassar';
+    try { $tz = new DateTimeZone($tzName); } catch (\Throwable $e) { $tz = new DateTimeZone('Asia/Makassar'); $tzName='Asia/Makassar'; }
+    $abbrTZ = ($tzName==='Asia/Jakarta' ? 'WIB' : ($tzName==='Asia/Makassar' ? 'WITA' : ($tzName==='Asia/Jayapura' ? 'WIT' : '')));
+
+    // Normalisasi "08.00" => "08:00"
+    $norm = function($s){
+        $s = trim((string)$s);
+        if ($s==='') return null;
+        $s = str_replace('.',':',$s);
+        if (!preg_match('/^(\d{1,2}):([0-5]\d)$/',$s,$m)) return null;
+        $h = max(0,min(23,(int)$m[1])); $i=(int)$m[2];
+        return sprintf('%02d:%02d',$h,$i);
+    };
+    $toMin = function($hhmm){ if($hhmm===null)return null; [$h,$i]=array_map('intval',explode(':',$hhmm)); return $h*60+$i; };
+    $fmtHM = function(DateTime $dt) use($abbrTZ){ return $dt->format('H.i').($abbrTZ?' '.$abbrTZ:''); };
+
+    // Ambil jam per hari
+    $days = ['sun','mon','tue','wed','thu','fri','sat'];
+    $cfg = [];
+    foreach($days as $k){
+        $cfg[$k] = [
+            'open'   => $norm($rec->{"op_{$k}_open"}   ?? null) ?: '08:00',
+            'close'  => $norm($rec->{"op_{$k}_close"}  ?? null) ?: '23:59',
+            'closed' => (int)($rec->{"op_{$k}_closed"} ?? 0) ? 1 : 0,
+        ];
     }
+
+    $now = new DateTime('now', $tz);
+    $w   = (int)$now->format('w'); // 0=Sun..6=Sat
+    $kT  = $days[$w];
+    $kY  = $days[($w+6)%7];
+
+    $oT = $toMin($cfg[$kT]['open']);   $cT = $toMin($cfg[$kT]['close']);
+    $oY = $toMin($cfg[$kY]['open']);   $cY = $toMin($cfg[$kY]['close']);
+    $wrapT = ($oT!==null && $cT!==null && $cT <= $oT);
+    $wrapY = ($oY!==null && $cY!==null && $cY <= $oY);
+    $is24T = ($oT!==null && $cT!==null && $oT===$cT); // interpretasikan 24 jam
+
+    // Tentukan window aktif (hari ini / lanjutan kemarin)
+    $nowMin = (int)$now->format('H')*60 + (int)$now->format('i');
+    $useY   = false;
+    if ($is24T) {
+        $useY = false;
+    } elseif ($wrapT && $nowMin <= $cT) {
+        $useY = true; // after-midnight milik hari-ini → pakai start kemarin
+    } elseif ($wrapY && !$cfg[$kY]['closed'] && !$wrapT && $nowMin <= $cY) {
+        $useY = true; // kemarin wrap, hari ini normal, dini hari → pakai kemarin
+    }
+
+    // Build start/end DateTime
+    $today    = $now->format('Y-m-d');
+    $yesterday= (clone $now)->modify('-1 day')->format('Y-m-d');
+    $tomorrow = (clone $now)->modify('+1 day')->format('Y-m-d');
+
+    if ($is24T) {
+        $start = new DateTime($today.' 00:00:00', $tz);
+        $end   = new DateTime($tomorrow.' 00:00:00', $tz); // eksklusif
+    } elseif ($useY) {
+        $start = new DateTime($yesterday.' '.$cfg[$kY]['open'].':00', $tz);
+        $end   = new DateTime($today   .' '.$cfg[$kY]['close'].':00', $tz);
+    } elseif ($wrapT) {
+        $start = new DateTime($today   .' '.$cfg[$kT]['open'].':00', $tz);
+        $end   = new DateTime($tomorrow.' '.$cfg[$kT]['close'].':00', $tz);
+    } else {
+        $start = new DateTime($today.' '.$cfg[$kT]['open'].':00', $tz);
+        $end   = new DateTime($today.' '.$cfg[$kT]['close'].':00', $tz);
+    }
+
+    // Apakah sekarang dalam window? (close eksklusif)
+    $inWindow = ($now >= $start && $now < $end);
+
+    // Jika tutup, tidak usah tampilkan ticker
+    if (!$inWindow || $cfg[$kT]['closed']) return null;
+
+    // Teks ticker
+    return 'Close order sampai pukul '.$fmtHM($end). " Pastikan semua pembayaran lunas dan orderan selesai sebelum close order karena halaman ini akan diberishkan ketika lewat close order";
+}
+
+// Panggil di index()
+public function index(){
+    $data["controller"] = get_class($this);
+    $data["title"]      = "POS Cafe";
+    $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+    $data["closing_ticker"] = $this->_ticker_close_order_text(); // <<< tambahkan ini
+    $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
+    $this->render($data);
+}
+
+    // public function index(){
+    //     $data["controller"] = get_class($this);
+    //     $data["title"]      = "Transaksi";
+    //     $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+    //     $data["content"]    = $this->load->view($data["controller"]."_view",$data,true);
+    //     $this->render($data);
+    // }
 
     public function set_ongkir(){
     $id  = (int)$this->input->post('id');

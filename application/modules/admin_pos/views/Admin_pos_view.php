@@ -78,6 +78,47 @@
             </div>
           </div>
           <!-- /Toolbar -->
+<?php if (!empty($closing_ticker)): ?>
+  <div class="ticker-wrap mb-2">
+    <div class="ticker-track">
+      <span class="ticker-item">
+        <i class="mdi mdi-clock-outline mr-1"></i>
+        <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
+      </span>
+      <!-- Duplikasi item agar loop terlihat mulus -->
+      <span class="ticker-item d-none d-md-inline">
+        <i class="mdi mdi-clock-outline mr-1"></i>
+        <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
+      </span>
+    </div>
+  </div>
+<?php endif; ?>
+<style>
+/* ===== Running Ticker ===== */
+.ticker-wrap{
+  position:relative;
+  overflow:hidden;
+  border-radius: .5rem;
+  border:1px solid #ffeeba;
+  background:#fff3cd;   /* alert-warning vibes */
+  color:#856404;
+}
+.ticker-track{
+  display:inline-block;
+  white-space:nowrap;
+  padding:.5rem 0;
+  animation: ticker-move 25s linear infinite;
+}
+.ticker-item{
+  display:inline-block;
+  margin:0 2rem;
+  font-weight:600;
+}
+@keyframes ticker-move{
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+</style>
 
           <!-- Tabel -->
           <table id="datable_pos" class="table table-sm table-striped table-bordered w-100">
