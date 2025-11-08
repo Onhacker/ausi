@@ -87,9 +87,13 @@ $isWrapY = ($oY !== null && $cY !== null && $cY <= $oY);
 // - Jika tidak di rentang itu, pakai window HARI INI (bisa wrap ke besok)
 $useYesterdayWindow = false;
 if ($isWrapT && $cT !== null && $nowMin <= $cT) {
-    // 00:00..close_today → window kemarin  open → today close
+    // Hari-ini wrap & sedang dini hari → pakai window KEMARIN
+    $useYesterdayWindow = true;
+} elseif ($isWrapY && $cY !== null && $nowMin <= $cY && !$isWrapT) {
+    // KEMARIN wrap, HARI INI normal, & masih dini hari → tetap pakai window KEMARIN
     $useYesterdayWindow = true;
 }
+
 
 $active = $useYesterdayWindow ? $cfgYest : $cfgToday;
 $oA = $useYesterdayWindow ? $oY : $oT;
