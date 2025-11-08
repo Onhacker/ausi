@@ -57,9 +57,9 @@
                   </button> -->
 
                   <!-- Bungkus -->
-                  <a href="<?= site_url('produk/walkin') ?>" class="btn btn-primary btn-sm waves-effect waves-light mb-2 mr-2">
+               <!--    <a href="<?= site_url('produk/walkin') ?>" class="btn btn-primary btn-sm waves-effect waves-light mb-2 mr-2">
                     <span class="btn-label"><i class="fe-shopping-bag"></i></span>Bungkus
-                  </a>
+                  </a> -->
 
                   <!-- Filter status (custom-select bawaan template) -->
                   <div class="form-group mb-2 mr-2">
