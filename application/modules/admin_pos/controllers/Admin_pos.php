@@ -947,54 +947,82 @@ public function print_struk_termalx($id = null)
 
     // ==== UPDATE status proses sesuai role ====
     if (!empty($bundle['items'])) {
-    $now = date('Y-m-d H:i:s');
+        $now = date('Y-m-d H:i:s');
 
-    if ($cat === 1) { // kitchen
-        // jika belum segel, segel sekarang
-        $row = $this->db->select('created_at,kitchen_done_at,kitchen_duration_s')
-                        ->from('pesanan')->where('id',$id)->get()->row();
-        if ($row && empty($row->kitchen_done_at)) {
-            $dur = max(0, strtotime($now) - strtotime($row->created_at));
-            $this->db->where('id',$id)->update('pesanan', [
-                'status_pesanan_kitchen' => 2,
-                'kitchen_done_at'        => $now,
-                'kitchen_duration_s'     => $dur,
-                'updated_at'             => $now,
-            ]);
-        } else {
-            // tetap pastikan status=2
-            $this->db->where('id',$id)->update('pesanan', [
-                'status_pesanan_kitchen' => 2,
-                'updated_at'             => $now,
-            ]);
-        }
-    } elseif ($cat === 2) { // bar
-        $row = $this->db->select('created_at,bar_done_at,bar_duration_s')
-                        ->from('pesanan')->where('id',$id)->get()->row();
-        if ($row && empty($row->bar_done_at)) {
-            $dur = max(0, strtotime($now) - strtotime($row->created_at));
-            $this->db->where('id',$id)->update('pesanan', [
-                'status_pesanan_bar' => 2,
-                'bar_done_at'        => $now,
-                'bar_duration_s'     => $dur,
-                'updated_at'         => $now,
-            ]);
-        } else {
-            $this->db->where('id',$id)->update('pesanan', [
-                'status_pesanan_bar' => 2,
-                'updated_at'         => $now,
-            ]);
+        if ($cat === 1) { // kitchen
+            $row = $this->db->select('created_at,kitchen_done_at,kitchen_duration_s')
+                            ->from('pesanan')->where('id',$id)->get()->row();
+            if ($row && empty($row->kitchen_done_at)) {
+                $dur = max(0, strtotime($now) - strtotime($row->created_at));
+                $this->db->where('id',$id)->update('pesanan', [
+                    'status_pesanan_kitchen' => 2,
+                    'kitchen_done_at'        => $now,
+                    'kitchen_duration_s'     => $dur,
+                    'updated_at'             => $now,
+                ]);
+            } else {
+                $this->db->where('id',$id)->update('pesanan', [
+                    'status_pesanan_kitchen' => 2,
+                    'updated_at'             => $now,
+                ]);
+            }
+        } elseif ($cat === 2) { // bar
+            $row = $this->db->select('created_at,bar_done_at,bar_duration_s')
+                            ->from('pesanan')->where('id',$id)->get()->row();
+            if ($row && empty($row->bar_done_at)) {
+                $dur = max(0, strtotime($now) - strtotime($row->created_at));
+                $this->db->where('id',$id)->update('pesanan', [
+                    'status_pesanan_bar' => 2,
+                    'bar_done_at'        => $now,
+                    'bar_duration_s'     => $dur,
+                    'updated_at'         => $now,
+                ]);
+            } else {
+                $this->db->where('id',$id)->update('pesanan', [
+                    'status_pesanan_bar' => 2,
+                    'updated_at'         => $now,
+                ]);
+            }
         }
     }
-}
 
+    // ===== Pretty label metode bayar (pakai helper privat bila ada)
+    $paid_label = method_exists($this, '_pretty_paid_method')
+      ? $this->_pretty_paid_method($bundle['order']->paid_method ?? '')
+      : (string)($bundle['order']->paid_method ?? '');
 
-// Pretty label metode bayar (pakai helper privat yg sudah ada)
-$paid_label = method_exists($this, '_pretty_paid_method')
-  ? $this->_pretty_paid_method($bundle['order']->paid_method ?? '')
-  : (string)($bundle['order']->paid_method ?? '');
+    // ===== DETEKSI CASH/TUNAI → boolean $is_cash
+    $paid_norm = strtolower(trim((string)$paid_label));
+    // hapus non-alfanumerik biar kebal spasi/tanda baca
+    $paid_norm = preg_replace('~[^a-z0-9]+~', '', $paid_norm);
 
-    // Info toko
+    // Kalau ada id metode, coba pakai juga (opsional). Asumsikan 1 = CASH jika skema kamu begitu.
+    $paid_id = null;
+    if (isset($bundle['order']->paid_method_id)) {
+        $paid_id = (string)$bundle['order']->paid_method_id;
+    } elseif (isset($bundle['order']->payment_method_id)) {
+        $paid_id = (string)$bundle['order']->payment_method_id;
+    }
+
+    $is_cash = false;
+    // Hindari false positive "cashless"
+    if (strpos($paid_norm, 'cashless') === false) {
+        $is_cash = (
+            strpos($paid_norm, 'cash') !== false ||
+            strpos($paid_norm, 'tunai') !== false ||
+            strpos($paid_norm, 'cod') !== false ||
+            strpos($paid_norm, 'bayardikasir') !== false ||
+            strpos($paid_norm, 'bayarditempat') !== false
+        );
+    }
+    if (!$is_cash && $paid_id !== null) {
+        // Jika skema angka → 1 berarti CASH
+        if (in_array($paid_id, ['1'], true)) {
+            $is_cash = true;
+        }
+    }
+
+    // ===== Info toko
     $web = $this->om->web_me();
     $store = [
         'nama'   => $web->nama_website ?? 'Nama Toko',
@@ -1005,19 +1033,21 @@ $paid_label = method_exists($this, '_pretty_paid_method')
     ];
 
     $data = [
-        'paper'      => $paper,
-        'order'      => $bundle['order'],
-        'items'      => $bundle['items'],
-        'total'      => (int)$bundle['total'],
-        'store'      => (object)$store,
-        'printed_at' => date('Y-m-d H:i:s'),
-         'paid_label' => $paid_label,  
-         'cat'        => $cat,  
+        'paper'       => $paper,
+        'order'       => $bundle['order'],
+        'items'       => $bundle['items'],
+        'total'       => (int)$bundle['total'],
+        'store'       => (object)$store,
+        'printed_at'  => date('Y-m-d H:i:s'),
+        'paid_label'  => $paid_label,   // label rapi (kalau mau dipakai di HTML)
+        'is_cash'     => $is_cash,      // ← boolean siap pakai di view
+        'cat'         => $cat,
     ];
 
     $html = $this->load->view('strukx', $data, true);
     $this->output->set_content_type('text/html; charset=UTF-8')->set_output($html);
 }
+
 
 
 

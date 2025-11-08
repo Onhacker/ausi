@@ -1,31 +1,22 @@
 <?php
-/** @var string $paper */
-/** @var object $order */
-/** @var array  $items */
-/** @var int    $total */
-/** @var object $store */
-/** @var string $printed_at */
-/** @var int|null $cat  // 1=kitchen, 2=bar, null/else=kasir/admin */
+/** @var string     $paper */
+/** @var object     $order */
+/** @var array      $items */
+/** @var int        $total */
+/** @var object     $store */
+/** @var string     $printed_at */
+/** @var bool       $is_cash   // ← dari controller: true jika pembayaran CASH/TUNAI */
+/** @var int|null   $cat       // opsional: 1=kitchen, 2=bar, null=kasir/admin */
+/** @var string     $paid_label (opsional, tidak dipakai untuk tampilan khusus CASH) */
 
+// Flag embed (untuk hide tombol cetak saat dicetak via iframe)
 $embed = isset($_GET['embed']) && $_GET['embed'] == '1';
 
 function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function rupiah($n){ return 'Rp '.number_format((int)$n,0,',','.'); }
 
-// === Helper: ambil properti pertama yang ada & tidak kosong ===
-function first_non_empty($obj, array $keys){
-  foreach($keys as $k){
-    if (isset($obj->$k) && trim((string)$obj->$k) !== '') return $obj->$k;
-  }
-  return null;
-}
-
-// === Helper: normalisasi teks (hapus non-alfanumerik, lowercase) ===
-function norm_txt($s){
-  $s = strtolower(trim((string)$s));
-  $s = preg_replace('~[^a-z0-9]+~','', $s);
-  return $s;
-}
+// Normalisasi flag cash dari controller
+$isCash = isset($is_cash) ? (bool)$is_cash : false;
 
 $paperWidthMM = ($paper === '80') ? 80 : 58; // default 58
 $w = $paperWidthMM.'mm';
@@ -49,47 +40,8 @@ $grandTotal = (isset($order->grand_total) && $order->grand_total !== null)
               ? (int)$order->grand_total
               : ($total + $kodeUnik);
 
-// ================== DETEKSI METODE PEMBAYARAN: CASH/TUNAI ==================
-// Ambil kandidat teks metode dari berbagai kemungkinan field
-$methodText = first_non_empty($order, [
-  'metode','payment_method','metode_bayar','bayar_metode','cara_bayar',
-  'metode_pembayaran','jenis_bayar','jenis_pembayaran','payment','pay_method',
-  'paytype','tipe_bayar','tipe_pembayaran','pembayaran','bayar_via','via'
-]);
-
-// Ambil kandidat id angka (opsional; diasumsikan 1 = cash jika ada)
-$methodId = first_non_empty($order, [
-  'metode_id','payment_method_id','payment_id','metode_bayar_id','jenis_bayar_id'
-]);
-
-$methodNorm = norm_txt($methodText);
-$methodIdNorm = is_null($methodId) ? null : trim((string)$methodId);
-
-// Deteksi berbasis teks (mengandung kata kunci cash/tunai/di kasir/di tempat/cod)
-$looksCashText =
-  (strpos($methodNorm, 'cash') !== false) ||
-  (strpos($methodNorm, 'tunai') !== false) ||
-  (strpos($methodNorm, 'cod') !== false) ||
-  (strpos($methodNorm, 'bayardikasir') !== false) ||
-  (strpos($methodNorm, 'bayarditempat') !== false) ||
-  (strpos($methodNorm, 'dibayardikasir') !== false) ||
-  (strpos($methodNorm, 'dibayarditempat') !== false) ||
-  (strpos($methodNorm, 'kasir') !== false && strpos($methodNorm,'bayar') !== false) ||
-  (strpos($methodNorm, 'tempat') !== false && strpos($methodNorm,'bayar') !== false);
-
-// Deteksi berbasis id (jika schema memakai angka; default anggap 1 = cash)
-$CASH_IDS = ['1', 1];
-$looksCashId = in_array($methodIdNorm, $CASH_IDS, true);
-
-// Final flag
-$isCash = $looksCashText || $looksCashId;
-
-// Logo opsional
+// Support logo opsional
 $logoUrl = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
-
-// Judul khusus Kitchen/Bar
-$cat = isset($cat) ? (int)$cat : null;
-$titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order Bar' : '');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -122,16 +74,18 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
   .brand {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
   }
-  .brand img.logo { display:block; width: 28mm; max-width: 80%; height:auto; margin-bottom:3px; }
+  .brand img.logo {
+    display:block; width: 28mm; max-width: 80%; height:auto; margin-bottom:3px;
+  }
   .brand .name   { font-weight: 800; font-size: 12px; letter-spacing: .3px; }
-  .brand .title  { font-weight: 700; font-size: 11px; margin-top:2px; }
+  .brand .addr   { line-height: 1.25; }
 
   /* ===== Garis pemisah ===== */
   .hr { border-top: 1px dashed #000; margin: 6px 0; }
   .hr-strong { border-top: 2px dashed #000; margin: 6px 0; }
 
   /* ===== Meta order ===== */
-  .row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; }
+  .row { display:flex; justify-content:space-between; align-items:flex-start; }
   .label { color:#111; }
   .value { color:#000; font-weight:600; }
 
@@ -142,6 +96,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
   .produk { width: 50%; word-break: break-word; }
   .qty    { width: 10%; text-align:center; white-space: nowrap; }
 
+  /* Row item dengan garis halus antar baris (hemat tinta) */
   tbody tr:not(:last-child) td { border-bottom: 1px dotted #000; }
 
   /* Tombol cetak hide saat print / embed */
@@ -160,10 +115,12 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
       <img class="logo" src="<?= esc($logoUrl) ?>" alt="Logo">
     <?php endif; ?>
     <div class="name"><?= esc($store->nama) ?></div>
-    <?php if ($titleLine !== ''): ?>
-      <div class="title"><?= esc($titleLine) ?></div>
-    <?php endif; ?>
-    <!-- Alamat & WA toko disembunyikan -->
+    <div class="addr small">
+      <?= esc($store->alamat) ?>
+      <?php if (!empty($store->telp)): ?>
+        <br>HP/WA: <?= esc($store->telp) ?>
+      <?php endif; ?>
+    </div>
   </div>
 
   <div class="hr"></div>
@@ -219,23 +176,12 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
 
   <div class="hr"></div>
 
-  <!-- ===== Metode Pembayaran CASH (khusus tampil jika cash) ===== -->
+  <!-- ===== Metode Pembayaran (HANYA tampil jika CASH) ===== -->
   <?php if ($isCash): ?>
     <div class="hr-strong"></div>
     <div class="row" style="font-weight:700">
       <div class="label">Metode Pembayaran</div>
       <div class="value">CASH : <?= rupiah($grandTotal) ?></div>
-    </div>
-  <?php endif; ?>
-
-  <!-- ===== Debug kecil (hanya tampilan layar; hilang saat print/embed) ===== -->
-  <?php if (!$embed): ?>
-    <div class="noprint small muted mt4">
-      Metode(raw): <b><?= esc((string)$methodText) ?></b>
-      <?php if (!is_null($methodId)) : ?>
-        &nbsp;|&nbsp; ID: <b><?= esc((string)$methodId) ?></b>
-      <?php endif; ?>
-      &nbsp;|&nbsp; Deteksi CASH: <b><?= $isCash ? 'YA' : 'TIDAK' ?></b>
     </div>
   <?php endif; ?>
 
@@ -250,6 +196,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     </div>
   </div>
 
+  <!-- garis putus-putus “tear line” kecil (opsional) -->
   <div class="hr" style="margin-top:10px;"></div>
 </div>
 
@@ -268,7 +215,8 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
   // ======== Serialize data PHP -> JS ========
   const ORDER = {
     toko       : <?= json_encode((string)($store->nama ?? '')) ?>,
-    title      : <?= json_encode($titleLine) ?>,
+    alamat     : <?= json_encode((string)($store->alamat ?? '')) ?>,
+    telp       : <?= json_encode((string)($store->telp ?? '')) ?>,
     nomor      : <?= json_encode($nomor) ?>,
     waktu      : <?= json_encode($waktu) ?>,
     mode       : <?= json_encode($mode) ?>,
@@ -307,7 +255,6 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     return left + ' '.repeat(space) + right;
   }
 
-  // Formatter rupiah sederhana
   function formatRupiah(n){
     const x = Number(n||0);
     try { return 'Rp ' + x.toLocaleString('id-ID'); }
@@ -321,24 +268,24 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     catch(e){ location.href = 'market://details?id=ru.a402d.rawbtprinter'; }
   }
 
-  // === CUT commands (umum + XS-80BT) ===
-  const CUT_FULL_FEED_N = (n) => GS + 'V' + '\x42' + String.fromCharCode(n & 0xFF);
+  // === CUT commands ===
   const CUT_PART_FEED_N = (n) => GS + 'V' + '\x41' + String.fromCharCode(n & 0xFF);
   const CUT_FEED_N   = 7;
   const TRAIL_LINES  = 3;
   const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N);
 
-  // ======== Builder Kitchen/Bar (tanpa alamat/WA & tanpa metode bayar selain cash) ========
+  // ======== Builder Thermal (tanpa harga; tampilkan pembayaran HANYA jika CASH) ========
   function buildEscposFromOrder(o){
     const LS_DEFAULT = ESC + '2';
     let out = '';
 
-    // Init, font normal
+    // Init
     out += INIT + LS_DEFAULT + SIZE1X;
 
-    // Header: Nama toko + judul
+    // Header toko
     out += CTR + clamp(o.toko, COLS) + '\n';
-    if (o.title) out += CTR + clamp(o.title, COLS) + '\n';
+    if (o.alamat) wrapText(o.alamat).forEach(l=> out += CTR + clamp(l, COLS) + '\n');
+    if (o.telp)   out += CTR + 'HP/WA: ' + clamp(o.telp, COLS-7) + '\n';
 
     // Meta
     out += LEFT;
@@ -349,12 +296,11 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     if (o.nama)  out += 'Pelanggan: ' + o.nama + '\n';
     if (o.catatan) wrapText('Catatan: '+o.catatan).forEach(l=> out += l + '\n');
 
-    // Table header
+    // Tabel item
     out += HR2;
     out += lineLR('Item', 'Qty') + '\n';
     out += HR1;
 
-    // Items
     (o.items||[]).forEach((it, idx, arr)=>{
       const nameLines = wrapText(it.nama||'');
       const qty = String(Number(it.qty||0));
@@ -365,7 +311,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
 
     out += HR1;
 
-    // Khusus CASH: tampilkan blok pembayaran & jumlah
+    // ===== Pembayaran: HANYA jika CASH =====
     if (o.is_cash){
       out += HR2;
       out += CTR + 'PEMBAYARAN: CASH' + '\n';
@@ -383,7 +329,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     out += LEFT;
 
     // Feed + cut
-    out += '\n'.repeat(3) + CUT_COMMAND;
+    out += '\n'.repeat(TRAIL_LINES) + CUT_COMMAND;
     return out;
   }
 
