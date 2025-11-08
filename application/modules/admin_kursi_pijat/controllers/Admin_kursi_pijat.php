@@ -225,7 +225,7 @@ class Admin_kursi_pijat extends Admin_Controller {
     /** Delete bulk */
    public function hapus_data(){
     // 🔒 Hanya admin yang boleh menghapus
-    if ($this->session->userdata('admin_session') !== 'admin') {
+    if ($this->session->userdata('admin_username') !== 'admin') {
         $this->output->set_status_header(403);
         $this->output->set_content_type('application/json')
             ->set_output(json_encode([
