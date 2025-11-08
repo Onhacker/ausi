@@ -939,10 +939,15 @@ public function leave_table(){
 
     // Apakah segmen aktif yang berlaku saat ini adalah window kemarin→hari ini?
     $useYesterdayWindow = false;
-    if ($isWrapT && $cT !== null && $nowMin <= $cT) {
-        // 00:00..close_today saat hari-ini wrap → masih segmen kemarin
+
+    if ($isWrapT && $cT !== null && $nowMin < $cT) {
+        // Hari-ini wrap & masih dini hari -> segmen 00:00..close hari-ini
+        $useYesterdayWindow = true;
+    } elseif ($isWrapY && $cY !== null && $nowMin < $cY && !$isWrapT) {
+        // KEMARIN wrap, HARI INI normal & masih dini hari -> pakai window KEMARIN
         $useYesterdayWindow = true;
     }
+
 
     $active = $useYesterdayWindow ? $cfg[$kYest] : $cfg[$kToday];
     $oA = $useYesterdayWindow ? $oY : $oT;
