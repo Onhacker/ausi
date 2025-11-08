@@ -78,14 +78,23 @@
             </div>
           </div>
           <!-- /Toolbar -->
+<!-- COUNTDOWN IDLE (hitungan mundur auto-reload) -->
+<div id="idle-countdown" class="idle-countdown mb-2" aria-live="polite" style="display:none">
+  Segarkan dalam: <span id="idle-countdown-text">20:00</span>
+</div>
+
+<?php
+  // (OPSIONAL) kalau kamu sudah punya perhitungan jam tutup aktif,
+  // set epoch detik di $closing_deadline_ts. Kalau belum ada, biarkan 0.
+  $closing_deadline_ts = isset($closing_deadline_ts) ? (int)$closing_deadline_ts : 0;
+?>
 <?php if (!empty($closing_ticker)): ?>
-  <div class="ticker-wrap mb-2">
+  <div class="ticker-wrap mb-2" data-close-ts="<?= (int)$closing_deadline_ts ?>">
     <div class="ticker-track">
       <span class="ticker-item">
         <i class="mdi mdi-clock-outline mr-1"></i>
         <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
       </span>
-      <!-- Duplikasi item agar loop terlihat mulus -->
       <span class="ticker-item d-none d-md-inline">
         <i class="mdi mdi-clock-outline mr-1"></i>
         <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
@@ -93,7 +102,31 @@
     </div>
   </div>
 <?php endif; ?>
+
 <style>
+  /* ===== Idle countdown ===== */
+.idle-countdown{
+  border:1px solid #e2e8f0;
+  background:#f8fafc;
+  color:#0f172a;
+  padding:.4rem .75rem;
+  border-radius:.5rem;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+
+/* (opsional) atur kecepatan ticker di sini */
+.ticker-track{
+  display:inline-block;
+  white-space:nowrap;
+  padding:.5rem 0;
+  animation: ticker-move 25s linear infinite; /* kecilkan untuk lebih cepat */
+}
+@keyframes ticker-move{
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
 /* ===== Running Ticker ===== */
 .ticker-wrap{
   position:relative;
@@ -119,6 +152,62 @@
   100% { transform: translateX(-100%); }
 }
 </style>
+<script>
+(function(){
+  // ======  A. AUTO-RELOAD TIAP 20 MENIT (TANPA LIHAT AKTIVITAS)  ======
+  const RELOAD_MS = 20 * 60 * 1000; // 20 menit (ubah di sini kalau perlu)
+  const elBox  = document.getElementById('idle-countdown');
+  const elText = document.getElementById('idle-countdown-text');
+
+  const startAt = Date.now();
+  function pad(n){ return (n<10?'0':'')+n; }
+
+  function tickReload(){
+    const now = Date.now();
+    const remain = RELOAD_MS - (now - startAt);
+
+    if (remain <= 0) {
+      location.reload(); // selalu reload tepat waktu
+      return;
+    }
+
+    // tampilkan hitung mundur
+    if (elBox && elText){
+      const s = Math.ceil(remain/1000);
+      elText.textContent = `${pad(Math.floor(s/60))}:${pad(s%60)}`;
+      if (elBox.style.display === 'none') elBox.style.display = '';
+    }
+  }
+
+  // update countdown ~4x per detik agar halus
+  setInterval(tickReload, 250);
+  tickReload();
+
+  // ======  B. TAMPILKAN TICKER HANYA ≤ 60 MENIT SEBELUM TUTUP  ======
+  const tickerWrap = document.querySelector('.ticker-wrap');
+  function evalTicker(){
+    if (!tickerWrap) return;
+
+    let closeTs = parseInt(tickerWrap.getAttribute('data-close-ts') || '', 10);
+    if (!closeTs && window.WINDOW_CLOSE_TS) closeTs = parseInt(window.WINDOW_CLOSE_TS, 10) || 0;
+
+    if (!closeTs){
+      tickerWrap.style.display = 'none';
+      return;
+    }
+
+    const nowSec = Math.floor(Date.now()/1000);
+    const diff   = closeTs - nowSec; // detik ke tutup
+
+    // tampilkan hanya bila 0 < diff ≤ 3600 (≤ 1 jam)
+    tickerWrap.style.display = (diff > 0 && diff <= 3600) ? '' : 'none';
+  }
+
+  evalTicker();
+  setInterval(evalTicker, 30000); // cek tiap 30 detik
+})();
+</script>
+
 
           <!-- Tabel -->
           <table id="datable_pos" class="table table-sm table-striped table-bordered w-100">
