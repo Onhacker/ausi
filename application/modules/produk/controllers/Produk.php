@@ -854,7 +854,7 @@ public function leave_table(){
     $this->session->set_flashdata('cart_reset_title', 'Keluar dari Meja');
     $this->session->set_flashdata('cart_reset_msg', $had
         ? 'Kamu sudah keluar dari mode Dine-in. Sekarang lanjut sebagai Delivery/Takeaway ya. 🙌'
-        : 'Kamu saat ini tidak terhubung ke meja mana pun.');
+        : 'Kamu saat ini tidak terhubung ke meja mana pun. Jangan Pindah Yaaaa');
     redirect('produk');
 }
 
