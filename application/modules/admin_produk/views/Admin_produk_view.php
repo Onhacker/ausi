@@ -33,12 +33,13 @@
     <button type="button" onclick="reload_table()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
       <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
     </button>
+<?php if ($this->session->userdata("admin_usernam") == "admin") {?>
 
     <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
       <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
     </button>
   </div>
-
+<?php } ?>
   <!-- Kanan: filter kategori (di desktop terdorong ke kanan; di mobile turun & full width) -->
   <div class="ml-md-auto mt-2 mt-md-0" style="min-width:280px; max-width:420px; width:100%;">
     <div class="input-group input-group-sm">
