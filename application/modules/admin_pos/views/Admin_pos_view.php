@@ -52,9 +52,9 @@
 
                 <?php if (!$isKB): ?>
                   <!-- Order -->
-                  <button type="button" class="btn btn-success btn-sm waves-effect waves-light mb-2 mr-2" onclick="openMejaModal()">
+                 <!--  <button type="button" class="btn btn-success btn-sm waves-effect waves-light mb-2 mr-2" onclick="openMejaModal()">
                     <span class="btn-label"><i class="fe-grid"></i></span>Order
-                  </button>
+                  </button> -->
 
                   <!-- Bungkus -->
                   <a href="<?= site_url('produk/walkin') ?>" class="btn btn-primary btn-sm waves-effect waves-light mb-2 mr-2">
