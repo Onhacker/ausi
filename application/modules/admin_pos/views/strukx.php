@@ -34,10 +34,21 @@ $grandTotal = (isset($order->grand_total) && $order->grand_total !== null)
               ? (int)$order->grand_total
               : ($total + $kodeUnik);
 
+// DETEKSI METODE PEMBAYARAN: hanya tampilkan jika CASH/TUNAI
+$payRaw = strtolower(trim((string)(
+  $order->metode
+  ?? $order->payment_method
+  ?? $order->metode_bayar
+  ?? $order->bayar_metode
+  ?? $order->cara_bayar
+  ?? ''
+)));
+$isCash = in_array($payRaw, ['cash','tunai','uang tunai','bayar cash','bayar tunai'], true);
+
 // Logo opsional (abaikan jika tak ada)
 $logoUrl = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
 
-// Judul khusus Kitchen/Bar (sesuai permintaan)
+// Judul khusus Kitchen/Bar
 $cat = isset($cat) ? (int)$cat : null;
 $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order Bar' : '');
 ?>
@@ -81,7 +92,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
   .hr-strong { border-top: 2px dashed #000; margin: 6px 0; }
 
   /* ===== Meta order ===== */
-  .row { display:flex; justify-content:space-between; align-items:flex-start; }
+  .row { display:flex; justify-content:space-between; align-items:flex-start; gap:6px; }
   .label { color:#111; }
   .value { color:#000; font-weight:600; }
 
@@ -119,7 +130,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     <?php if ($titleLine !== ''): ?>
       <div class="title"><?= esc($titleLine) ?></div>
     <?php endif; ?>
-    <!-- Sesuai permintaan: alamat & no. WA toko DIHAPUS -->
+    <!-- Alamat & WA toko disembunyikan -->
   </div>
 
   <div class="hr"></div>
@@ -176,8 +187,17 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
 
   <div class="hr"></div>
 
+  <!-- ===== Metode Pembayaran CASH (khusus tampil jika cash) ===== -->
+  <?php if ($isCash): ?>
+    <div class="hr-strong"></div>
+    <div class="row" style="font-weight:700">
+      <div class="label">Metode Pembayaran</div>
+      <div class="value">CASH : <?= rupiah($grandTotal) ?></div>
+    </div>
+  <?php endif; ?>
+
   <!-- ===== Footer ===== -->
-  <div class="center">
+  <div class="center" style="margin-top:8px;">
     <div class="small"><?= esc($store->footer) ?></div>
     <div class="small muted">Dicetak: <?= esc($printed_at) ?></div>
 
@@ -218,7 +238,9 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
                         'nama' => (string)($it->nama ?? '-'),
                         'qty'  => (int)$it->qty
                       ];
-                    }, $items)) ?>
+                    }, $items)) ?>,
+    grand_total: <?= json_encode((int)$grandTotal) ?>,
+    is_cash    : <?= $isCash ? 'true' : 'false' ?>
   };
 
   // ======== ESC/POS Helpers ========
@@ -242,6 +264,13 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     return left + ' '.repeat(space) + right;
   }
 
+  // Formatter rupiah sederhana
+  function formatRupiah(n){
+    const x = Number(n||0);
+    try { return 'Rp ' + x.toLocaleString('id-ID'); }
+    catch(e){ return 'Rp ' + String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+  }
+
   function sendToRawBT(escpos){
     const payload = encodeURIComponent(escpos);
     const intent  = `intent:${payload}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
@@ -256,7 +285,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
   const TRAIL_LINES  = 3;
   const CUT_COMMAND  = CUT_PART_FEED_N(CUT_FEED_N);
 
-  // ======== Builder Kitchen/Bar (tanpa alamat/WA & tanpa metode bayar) ========
+  // ======== Builder Kitchen/Bar (tanpa alamat/WA & tanpa metode bayar selain cash) ========
   function buildEscposFromOrder(o){
     const LS_DEFAULT = ESC + '2';
     let out = '';
@@ -293,6 +322,15 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
 
     out += HR1;
 
+    // Khusus CASH: tampilkan blok pembayaran & jumlah
+    if (o.is_cash){
+      out += HR2;
+      out += CTR + 'PEMBAYARAN: CASH' + '\n';
+      out += LEFT;
+      out += lineLR('Tagihan Tunai', formatRupiah(o.grand_total)) + '\n';
+      out += HR1;
+    }
+
     // Footer
     <?php $footerText = (string)($store->footer ?? ''); ?>
     <?php if ($footerText !== ''): ?>
@@ -302,7 +340,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     out += LEFT;
 
     // Feed + cut
-    out += feed(TRAIL_LINES) + CUT_COMMAND;
+    out += '\n'.repeat(3) + CUT_COMMAND;
     return out;
   }
 
