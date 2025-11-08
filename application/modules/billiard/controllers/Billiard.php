@@ -179,16 +179,25 @@ public function daftar_booking(){
   $yesterday = (clone $today)->modify('-1 day')->format('Y-m-d');             // cover overnight
   $upperDate = (clone $today)->modify('+'.$maxDays.' day')->format('Y-m-d');  // batas atas
 
-  // Ambil booking terkonfirmasi
-  $rows = $this->db->select('id_pesanan, meja_id, nama_meja,no_hp ,tanggal, jam_mulai, jam_selesai, durasi_jam, nama')
+  // Ambil booking: terkonfirmasi ATAU (verifikasi + cash)
+  $rows = $this->db->select('id_pesanan, meja_id, nama_meja, no_hp, tanggal, jam_mulai, jam_selesai, durasi_jam, nama, status, metode_bayar')
     ->from('pesanan_billiard')
-    ->where('status','terkonfirmasi')
+    ->group_start()
+      ->where('status','terkonfirmasi')
+      ->or_group_start()
+        ->where('status','verifikasi')
+        ->where('metode_bayar','cash')
+      ->group_end()
+    ->group_end()
     ->where('tanggal >=', $yesterday)
     ->where('tanggal <=', $upperDate)
     ->order_by('meja_id','ASC')
     ->order_by('tanggal','ASC')
     ->order_by('jam_mulai','ASC')
     ->get()->result();
+
+  // (Fallback untuk CI lama tanpa group_start): 
+  // ->where("(status='terkonfirmasi' OR (status='verifikasi' AND metode_bayar='cash'))", NULL, FALSE)
 
   // helper DateTime
   $mk_dt = function(string $d, string $t) {
@@ -223,8 +232,8 @@ public function daftar_booking(){
     $dkey = $r->tanggal;
     if (!isset($cards_by_meja[$mejaId]['days'][$dkey])){
       // label tanggal
-      $epoch = strtotime($dkey);
-      $monMap = ['Jan'=>'JAN','Feb'=>'FEB','Mar'=>'MAR','Apr'=>'APR','May'=>'MEI','Jun'=>'JUN','Jul'=>'JUL','Aug'=>'AGU','Sep'=>'SEP','Oct'=>'OKT','Nov'=>'NOV','Dec'=>'DES'];
+      $epoch  = strtotime($dkey);
+      $monMap = ['Jan'=>'JAN','Feb'=>'FEB','Mar'=>'MAR','Apr'=>'APR','May'=>'MEI','Jun'=>'JUN','Jul'=>'JUL','Aug'=>'AGU','Sep'=>'SEP','Oct'=>'OKT','Nov'=>'DES','Dec'=>'DES'];
       $monEn  = date('M',$epoch);
       $hariMap= ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 
@@ -239,15 +248,18 @@ public function daftar_booking(){
     }
 
     $cards_by_meja[$mejaId]['days'][$dkey]['bookings'][] = [
-      'id'          => (int)$r->id_pesanan,
-      'nama'        => (string)($r->nama ?? 'Booking'),
-      'tanggal'     => $r->tanggal,
-      'no_hp'     => $r->no_hp,
-      'jam_mulai'   => substr($r->jam_mulai,0,5),
-      'jam_selesai' => substr($r->jam_selesai,0,5),
-      'durasi_jam'  => (int)$r->durasi_jam,
-      'start_ts'    => $start->getTimestamp()*1000,
-      'end_ts'      => $end->getTimestamp()*1000,
+      'id'            => (int)$r->id_pesanan,
+      'nama'          => (string)($r->nama ?? 'Booking'),
+      'tanggal'       => $r->tanggal,
+      'no_hp'         => $r->no_hp,
+      'jam_mulai'     => substr($r->jam_mulai,0,5),
+      'jam_selesai'   => substr($r->jam_selesai,0,5),
+      'durasi_jam'    => (int)$r->durasi_jam,
+      'start_ts'      => $start->getTimestamp()*1000,
+      'end_ts'        => $end->getTimestamp()*1000,
+      // penting untuk badge di view:
+      'status'        => (string)$r->status,
+      'metode_bayar'  => (string)($r->metode_bayar ?? ''),
     ];
   }
 
@@ -289,6 +301,7 @@ public function daftar_booking(){
 
   $this->load->view('billiard/daftar_booking', $data);
 }
+
 
 
   public function add(){
