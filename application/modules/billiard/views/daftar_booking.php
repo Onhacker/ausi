@@ -85,6 +85,14 @@
               .status-pill.muted{background:#6b7280}
               .cd{font-weight:700}
               .ct-meta{margin-top:2px;font-size:12px;color:#6b7280}
+
+              /* ➕ Tambahan: pill untuk Verifikasi + Cash */
+              .verify-pill{
+                display:inline-flex;align-items:center;gap:6px;
+                background:#f59e0b;color:#111827;border-radius:999px;
+                padding:3px 10px;font-size:11px;font-weight:700;
+                border:1px solid rgba(0,0,0,.05)
+              }
             </style>
 
             <?php
@@ -130,6 +138,11 @@
 
                           $hp_raw     = $b['no_hp'] ?? ($b['hp'] ?? ($b['no_hp_normalized'] ?? ''));
                           $hp_masked  = mask_hp($hp_raw);
+
+                          // ➕ Tampilkan indikator hanya jika status=verifikasi & metode_bayar=cash
+                          $status_raw   = strtolower((string)($b['status'] ?? ''));
+                          $method_raw   = strtolower((string)($b['metode_bayar'] ?? ($b['payment_method'] ?? '')));
+                          $show_veri_cs = ($status_raw === 'verifikasi' && $method_raw === 'cash');
                         ?>
                         <li class="booking-item" data-start-ts="<?= $start_ts ?>" data-end-ts="<?= $end_ts ?>">
                           <div class="conversation-text">
@@ -143,6 +156,11 @@
                                   <span class="status-pill">
                                     <span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span>
                                   </span>
+                                  <?php if ($show_veri_cs): ?>
+                                    <span class="verify-pill" title="Status: verifikasi, metode bayar cash" aria-label="Verifikasi (Cash)">
+                                      Verifikasi Cash
+                                    </span>
+                                  <?php endif; ?>
                                 </div>
                               </div>
                               <div class="ct-meta">
