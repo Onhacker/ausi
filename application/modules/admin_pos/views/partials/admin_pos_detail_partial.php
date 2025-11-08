@@ -239,14 +239,14 @@ $canAssignKurir = (
         onclick="printStrukInline(<?= $idForPrint ?>, '58')">
         <i class="fe-printer"></i> Cetak 58mm
       </button><br> -->
-      <button type="button" class="btn btn-sm btn-secondary"
+     <!--  <button type="button" class="btn btn-sm btn-secondary"
       onclick="printStrukInline(<?= $idForPrint ?>, '80')">
       <i class="fe-printer"></i> Cetak 80mm
-    </button>
+    </button> -->
     <!-- (opsional) tombol BT -->
     <button type="button" class="btn btn-sm btn-outline-secondary"
     onclick="printStrukInline(<?= $idForPrint ?>, '80', true, true)">
-    <i class="fe-printer"></i> Cetak 80mm BT
+    <i class="fe-printer"></i> Cetak
   </button>
 
     </div>

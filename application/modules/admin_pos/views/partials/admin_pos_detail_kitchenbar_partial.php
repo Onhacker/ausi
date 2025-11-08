@@ -181,16 +181,16 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
 
   <!-- kanan (aksi) -->
   <div class="order-actions">
-    <button type="button" class="btn btn-secondary btn-xxs"
+   <!--  <button type="button" class="btn btn-secondary btn-xxs"
             onclick="printStrukInlinex(<?= (int)$id ?>, '80')"
             aria-label="Cetak struk 80mm">
       <i class="fe-printer"></i> 80mm
-    </button>
+    </button> -->
 
     <button type="button" class="btn btn-outline-secondary btn-xxs"
             onclick="printStrukInlinex(<?= (int)$id ?>, '80', true, true)"
             aria-label="Cetak struk 80mm via RawBT">
-      <i class="fe-printer"></i> 80mm BT
+      <i class="fe-printer"></i> Cetak
     </button>
   </div>
 </div>
