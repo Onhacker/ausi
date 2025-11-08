@@ -12,6 +12,21 @@ $embed = isset($_GET['embed']) && $_GET['embed'] == '1';
 function esc($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function rupiah($n){ return 'Rp '.number_format((int)$n,0,',','.'); }
 
+// === Helper: ambil properti pertama yang ada & tidak kosong ===
+function first_non_empty($obj, array $keys){
+  foreach($keys as $k){
+    if (isset($obj->$k) && trim((string)$obj->$k) !== '') return $obj->$k;
+  }
+  return null;
+}
+
+// === Helper: normalisasi teks (hapus non-alfanumerik, lowercase) ===
+function norm_txt($s){
+  $s = strtolower(trim((string)$s));
+  $s = preg_replace('~[^a-z0-9]+~','', $s);
+  return $s;
+}
+
 $paperWidthMM = ($paper === '80') ? 80 : 58; // default 58
 $w = $paperWidthMM.'mm';
 
@@ -34,18 +49,42 @@ $grandTotal = (isset($order->grand_total) && $order->grand_total !== null)
               ? (int)$order->grand_total
               : ($total + $kodeUnik);
 
-// DETEKSI METODE PEMBAYARAN: hanya tampilkan jika CASH/TUNAI
-$payRaw = strtolower(trim((string)(
-  $order->metode
-  ?? $order->payment_method
-  ?? $order->metode_bayar
-  ?? $order->bayar_metode
-  ?? $order->cara_bayar
-  ?? ''
-)));
-$isCash = in_array($payRaw, ['cash','tunai','uang tunai','bayar cash','bayar tunai'], true);
+// ================== DETEKSI METODE PEMBAYARAN: CASH/TUNAI ==================
+// Ambil kandidat teks metode dari berbagai kemungkinan field
+$methodText = first_non_empty($order, [
+  'metode','payment_method','metode_bayar','bayar_metode','cara_bayar',
+  'metode_pembayaran','jenis_bayar','jenis_pembayaran','payment','pay_method',
+  'paytype','tipe_bayar','tipe_pembayaran','pembayaran','bayar_via','via'
+]);
 
-// Logo opsional (abaikan jika tak ada)
+// Ambil kandidat id angka (opsional; diasumsikan 1 = cash jika ada)
+$methodId = first_non_empty($order, [
+  'metode_id','payment_method_id','payment_id','metode_bayar_id','jenis_bayar_id'
+]);
+
+$methodNorm = norm_txt($methodText);
+$methodIdNorm = is_null($methodId) ? null : trim((string)$methodId);
+
+// Deteksi berbasis teks (mengandung kata kunci cash/tunai/di kasir/di tempat/cod)
+$looksCashText =
+  (strpos($methodNorm, 'cash') !== false) ||
+  (strpos($methodNorm, 'tunai') !== false) ||
+  (strpos($methodNorm, 'cod') !== false) ||
+  (strpos($methodNorm, 'bayardikasir') !== false) ||
+  (strpos($methodNorm, 'bayarditempat') !== false) ||
+  (strpos($methodNorm, 'dibayardikasir') !== false) ||
+  (strpos($methodNorm, 'dibayarditempat') !== false) ||
+  (strpos($methodNorm, 'kasir') !== false && strpos($methodNorm,'bayar') !== false) ||
+  (strpos($methodNorm, 'tempat') !== false && strpos($methodNorm,'bayar') !== false);
+
+// Deteksi berbasis id (jika schema memakai angka; default anggap 1 = cash)
+$CASH_IDS = ['1', 1];
+$looksCashId = in_array($methodIdNorm, $CASH_IDS, true);
+
+// Final flag
+$isCash = $looksCashText || $looksCashId;
+
+// Logo opsional
 $logoUrl = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
 
 // Judul khusus Kitchen/Bar
@@ -102,14 +141,8 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
   thead th { font-weight: 700; border-bottom: 1px dashed #000; padding-bottom: 3px; }
   .produk { width: 50%; word-break: break-word; }
   .qty    { width: 10%; text-align:center; white-space: nowrap; }
-  .harga  { width: 20%; text-align:right;  white-space: nowrap; }
-  .sub    { width: 20%; text-align:right;  white-space: nowrap; }
 
-  /* Row item dengan garis halus antar baris */
   tbody tr:not(:last-child) td { border-bottom: 1px dotted #000; }
-
-  /* ===== Blok totals (tidak ditampilkan di template ini) ===== */
-  tfoot td, tfoot th { padding-top: 4px; }
 
   /* Tombol cetak hide saat print / embed */
   <?php if ($embed): ?>
@@ -172,7 +205,6 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
       <tr>
         <th class="left produk">Item</th>
         <th class="qty">Qty</th>
-        <!-- harga & subtotal sengaja disembunyikan -->
       </tr>
     </thead>
     <tbody>
@@ -193,6 +225,17 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     <div class="row" style="font-weight:700">
       <div class="label">Metode Pembayaran</div>
       <div class="value">CASH : <?= rupiah($grandTotal) ?></div>
+    </div>
+  <?php endif; ?>
+
+  <!-- ===== Debug kecil (hanya tampilan layar; hilang saat print/embed) ===== -->
+  <?php if (!$embed): ?>
+    <div class="noprint small muted mt4">
+      Metode(raw): <b><?= esc((string)$methodText) ?></b>
+      <?php if (!is_null($methodId)) : ?>
+        &nbsp;|&nbsp; ID: <b><?= esc((string)$methodId) ?></b>
+      <?php endif; ?>
+      &nbsp;|&nbsp; Deteksi CASH: <b><?= $isCash ? 'YA' : 'TIDAK' ?></b>
     </div>
   <?php endif; ?>
 
@@ -293,7 +336,7 @@ $titleLine = ($cat === 1) ? 'Struk Order Kitchen' : (($cat === 2) ? 'Struk Order
     // Init, font normal
     out += INIT + LS_DEFAULT + SIZE1X;
 
-    // Header: Nama toko + judul (tanpa alamat/no WA)
+    // Header: Nama toko + judul
     out += CTR + clamp(o.toko, COLS) + '\n';
     if (o.title) out += CTR + clamp(o.title, COLS) + '\n';
 
