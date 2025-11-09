@@ -7,6 +7,7 @@ class M_produk extends CI_Model {
 
     /** Ambil daftar kategori aktif untuk filter */
     public function get_categories(){
+        $this->db->reset_query();
         return $this->db->order_by('nama','ASC')
             ->get_where('kategori_produk', ['is_active'=>1])->result();
     }
@@ -27,6 +28,22 @@ class M_produk extends CI_Model {
         $this->db->limit((int)$limit, (int)$offset);
         return $this->db->get()->result();
     }
+// di controller (mis. Admin_produk / Front_produk), tambahkan:
+private function _db_fail_response_if_any(): void
+{
+    $err = $this->db->error();
+    if (!empty($err['code'])) {
+        log_message('error', 'DB ERROR '.$err['code'].': '.$err['message'].' | SQL: '.$this->db->last_query());
+        $this->output->set_content_type('application/json')
+            ->set_status_header(500)
+            ->set_output(json_encode([
+                'success' => false,
+                'error'   => 'Database error',
+                'code'    => $err['code'],
+            ]));
+        exit;
+    }
+}
 
 private function _apply_trending_window($filters){
     if (empty($filters['trending'])) return;

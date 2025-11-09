@@ -360,6 +360,7 @@ private function _db_fail_response_if_any(): void
    public function list_ajax(){
     $this->_nocache_headers();
     $this->_ensure_db();
+
     // ===== input dasar =====
     $q        = trim($this->input->get('q', true) ?: '');
     $sub      = $this->input->get('sub', true) ?: $this->input->get('sub_kategori', true) ?: '';
@@ -367,14 +368,13 @@ private function _db_fail_response_if_any(): void
     $sort_in  = strtolower((string)($this->input->get('sort', true) ?: 'random'));
     $page     = max(1, (int)($this->input->get('page') ?: 1));
     $per_page = max(1, min(50, (int)($this->input->get('per_page') ?: 12)));
-    $offset   = ($page - 1) * $per_page;
 
     // recommended (?rec=1 atau ?recommended=1)
     $rec_get = $this->input->get('recommended', true);
     $rec_alt = $this->input->get('rec', true);
     $recommended = ((string)$rec_get === '1' || (string)$rec_alt === '1') ? 1 : 0;
 
-    // ===== alias sort (opsional biar URL bisa pakai bhs Indonesia) =====
+    // alias sort ID -> EN
     $aliasMap = [
         'terlaris' => 'bestseller',
         'populer'  => 'bestseller',
@@ -383,46 +383,42 @@ private function _db_fail_response_if_any(): void
     ];
     $sort_in = $aliasMap[$sort_in] ?? $sort_in;
 
-    // ===== normalisasi SORT =====
-    // didukung: random/new/price_low/price_high/sold_out/bestseller/trending
+    // normalisasi sort
     $allowedSort = ['random','new','price_low','price_high','sold_out','bestseller','trending'];
     $sort = in_array($sort_in, $allowedSort, true) ? $sort_in : 'random';
 
-   // ====== TRENDING FILTER ======
-$trend_param    = strtolower((string)($this->input->get('trend', true) ?: ''));
-$trend_days_in  = (int)($this->input->get('trend_days', true) ?: 0);
-$trend_min_in   = (float)($this->input->get('trend_min',  true) ?: 0);
+    // ====== TRENDING FILTER ======
+    $trend_param    = strtolower((string)($this->input->get('trend', true) ?: ''));
+    $trend_days_in  = (int)($this->input->get('trend_days', true) ?: 0);
+    $trend_min_in   = (float)($this->input->get('trend_min',  true) ?: 0);
 
-$trend_flag = 0;        // nonaktif default
-$trend_days = 14;       // window default
-$trend_min  = 1.0;      // skor minimal default
+    $trend_flag = 0;      // nonaktif default
+    $trend_days = 14;     // window default
+    $trend_min  = 1.0;    // skor minimal default
 
-if (
-    $trend_param === '1' || $trend_param === 'true' || $trend_param === 'yes' ||
-    in_array($trend_param, ['today','week','month'], true) ||
-    $trend_days_in > 0 || $trend_min_in > 0
-){
-    $trend_flag = 1;
-}
+    if (
+        $trend_param === '1' || $trend_param === 'true' || $trend_param === 'yes' ||
+        in_array($trend_param, ['today','week','month'], true) ||
+        $trend_days_in > 0 || $trend_min_in > 0
+    ){
+        $trend_flag = 1;
+    }
+    switch ($trend_param) {
+        case 'today': $trend_days = 1;  break;
+        case 'week':  $trend_days = 7;  break;
+        case 'month': $trend_days = 30; break;
+    }
+    if ($trend_days_in > 0) $trend_days = min(90, max(1, $trend_days_in));
+    if ($trend_min_in  > 0) $trend_min  = max(0.01, $trend_min_in);
 
-switch ($trend_param) {
-    case 'today': $trend_days = 1;  break;
-    case 'week':  $trend_days = 7;  break;
-    case 'month': $trend_days = 30; break;
-}
-if ($trend_days_in > 0) $trend_days = min(90, max(1, $trend_days_in));
-if ($trend_min_in  > 0) $trend_min  = max(0.01, $trend_min_in);
+    // Kalau RECOMMENDED aktif → abaikan kategori & trending
+    if ($recommended) {
+        $kategori   = '';
+        $sub        = '';
+        $trend_flag = 0;
+    }
 
-// Kalau RECOMMENDED aktif → abaikan kategori & sub. TAPI JANGAN memaksa sort = trending
-if ($recommended) {
-    $kategori = '';
-    $sub = '';
-    // Matikan trending kalau masih nyala dari URL lama
-    $trend_flag = 0;
-}
-
-
-    // ==== seed hanya untuk random ====
+    // seed untuk random
     $seed = '';
     if ($sort === 'random') {
         $seed = (string)($this->input->get('seed', true) ?? '');
@@ -436,25 +432,33 @@ if ($recommended) {
         'sub_kategori' => $sub,
         'sold_out'     => ($sort==='sold_out') ? 1 : 0,
         'rand_seed'    => $seed,
-        'recomended'   => $recommended,
-
-        // trending window
+        'recomended'   => $recommended, // sengaja 1 'm', sesuai kolom lama
         'trending'     => $trend_flag ? 1 : 0,
         'trend_days'   => $trend_days,
         'trend_min'    => $trend_min,
     ];
 
-    // ===== hitung total & ambil data =====
-    $total       = $this->pm->count_products($filters);
+    // ===== hitung total dulu =====
+    $total = $this->pm->count_products($filters);
+    $this->_db_fail_response_if_any();
+
+    // baru hitung paging
     $total_pages = max(1, (int)ceil($total / $per_page));
     $page        = min($page, $total_pages);
     $offset      = ($page - 1) * $per_page;
 
-    $products    = $this->pm->get_products($filters, $per_page, $offset, $sort);
+    // ===== ambil data =====
+    $products = $this->pm->get_products($filters, $per_page, $offset, $sort);
+    $this->_db_fail_response_if_any();
 
     // ===== render partials =====
-    $items_html  = $this->load->view('partials/produk_items_partial', ['products'=>$products], true);
-    $pagi_html   = $this->load->view('partials/produk_pagination_partial', ['page'=>$page, 'total_pages'=>$total_pages], true);
+    $items_html = $this->load->view('partials/produk_items_partial', [
+        'products' => $products
+    ], true);
+    $pagi_html  = $this->load->view('partials/produk_pagination_partial', [
+        'page'        => $page,
+        'total_pages' => $total_pages
+    ], true);
 
     // ===== output =====
     $this->output->set_content_type('application/json')->set_output(json_encode([
