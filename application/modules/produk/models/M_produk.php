@@ -2,9 +2,21 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class M_produk extends CI_Model {
+    private function _like_ci_group(string $q)
+{
+    $esc = $this->db->escape_like_str($q);   // escape % _
+    $pat = $this->db->escape('%'.$esc.'%');  // tambahin wildcard + quotenya
+
+    $this->db->group_start()
+        ->where("p.nama COLLATE utf8mb4_unicode_ci LIKE {$pat}", null, false)
+        ->or_where("kp.nama COLLATE utf8mb4_unicode_ci LIKE {$pat}", null, false)
+        ->or_where("kps.nama COLLATE utf8mb4_unicode_ci LIKE {$pat}", null, false)
+        ->or_where("p.kata_kunci COLLATE utf8mb4_unicode_ci LIKE {$pat}", null, false)
+    ->group_end();
+}
 
     public function __construct(){ parent::__construct(); }
-
+    
     /** Ambil daftar kategori aktif untuk filter */
     public function get_categories(){
         $this->db->reset_query();
@@ -121,15 +133,10 @@ public function count_reviews($produk_id){
     $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
 
     // Keyword
-    if (!empty($filters['q'])){
-        $q = trim($filters['q']);
-        $this->db->group_start()
-            ->like('p.nama', $q)
-            ->or_like('kp.nama', $q)
-            ->or_like('kps.nama', $q)
-            ->or_like('p.kata_kunci', $q)
-        ->group_end();
-    }
+  if (!empty($filters['q'])){
+    $this->_like_ci_group(trim($filters['q']));
+}
+
 
     // Recommended
    // ===== Recommended =====
@@ -208,15 +215,12 @@ private function _trending_columns_ready(): bool
     $this->db->where('(kps.is_active IS NULL OR kps.is_active = 1)');
 
     // ===== Keyword =====
-    if (!empty($filters['q'])){
-        $q = trim($filters['q']);
-        $this->db->group_start()
-            ->like('p.nama', $q)
-            ->or_like('kp.nama', $q)
-            ->or_like('kps.nama', $q)      // + subkategori (opsional, tapi membantu)
-            ->or_like('p.kata_kunci', $q)
-        ->group_end();
-    }
+ // ===== Keyword =====
+if (!empty($filters['q'])){
+    $this->_like_ci_group(trim($filters['q']));
+}
+
+
 
     // ===== Recommended =====
     // ===== Recommended =====
@@ -235,17 +239,30 @@ if ($isRec) {
 
 
     // ===== Kategori/Sub (di-skip bila recommended aktif) =====
-    if (!$isRec && !empty($filters['kategori'])){
-        $k = $filters['kategori'];
-        if (ctype_digit((string)$k)) $this->db->where('p.kategori_id', (int)$k);
-        else $this->db->where('kp.slug', $k);
+  // ===== Kategori/Sub (di-skip bila recommended aktif) =====
+if (!$isRec && !empty($filters['kategori'])){
+    $k = (string)$filters['kategori'];
+    if (ctype_digit($k)) {
+        $this->db->where('p.kategori_id', (int)$k);
+    } else if ($this->_has_col('kategori_produk','slug')) {
+        $this->db->where('kp.slug', $k);
+    } else {
+        // fallback: cari berdasarkan nama kategori
+        $this->db->like('kp.nama', $k);
     }
+}
 
-    if (!$isRec && !empty($filters['sub_kategori'])){
-        $s = $filters['sub_kategori'];
-        if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
-        else $this->db->where('kps.slug', $s);
+if (!$isRec && !empty($filters['sub_kategori'])){
+    $s = (string)$filters['sub_kategori'];
+    if (ctype_digit($s)) {
+        $this->db->where('p.sub_kategori_id', (int)$s);
+    } else if ($this->_has_col('kategori_produk_sub','slug')) {
+        $this->db->where('kps.slug', $s);
+    } else {
+        // fallback: cari berdasarkan nama sub-kategori
+        $this->db->like('kps.nama', $s);
     }
+}
 
     // ===== Sold out =====
     if (!empty($filters['sold_out'])){
