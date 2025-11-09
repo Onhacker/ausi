@@ -563,7 +563,7 @@ public function get_dataa(){
                  .   $btnCancel           // <-- sekarang tampil juga untuk kasir
                  .   ($isAdmin ? $btnDelete : '')
                  . '</div>';
-}
+
 
     . $btnPaid
     . ($isAdmin ? $btnCancel.$btnDelete : '')
