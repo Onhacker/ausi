@@ -462,7 +462,7 @@ private function _enforce_period_acl(array $f): array
      * HALAMAN STATISTIK GRAFIK
      * ============================== */
     public function chart(){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
+        // cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         // halaman HTML yg berisi filter + container chart
         $data["controller"] = get_class($this);
         $data["title"]      = "Statistik";
