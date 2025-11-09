@@ -429,6 +429,8 @@ private function _db_fail_response_if_any()
 $seed = (string)($tmp_seed !== null ? $tmp_seed : '');
         if ($seed === '') $seed = date('Ymd'); // deterministik harian
     }
+    $this->output->set_header('X-Prod-Seed: '.$seed);
+
 
     // ===== filters utk model =====
     $filters = [

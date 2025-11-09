@@ -29,6 +29,9 @@ class M_produk extends CI_Model {
         return $this->db->get()->result();
     }
 // di controller (mis. Admin_produk / Front_produk), tambahkan:
+private function _has_col($table, $col){ 
+    return $this->db->field_exists($col, $table); 
+}
 
 private function _apply_trending_window($filters){
     if (empty($filters['trending'])) return;
@@ -77,20 +80,36 @@ public function count_reviews($produk_id){
 
 
     // ================== helpers ==================
-   private function _base_select(){
-        $this->db->from('produk p');
-        $this->db->select('p.*, kp.nama as kategori_nama, kp.slug as kategori_slug');
-        $this->db->join('kategori_produk kp', 'kp.id = p.kategori_id', 'left');
+  private function _base_select(){
+    $this->db->from('produk p');
 
-        // Sub-kategori
-        $this->db->select('kps.nama as sub_nama, kps.slug as sub_slug');
-        $this->db->join('kategori_produk_sub kps', 'kps.id = p.sub_kategori_id', 'left');
+    // fields utama produk
+    $this->db->select('p.*');
 
-        // Map p.terlaris --> alias lama agar view tetap bekerja tanpa ubahan
-        $this->db->select('COALESCE(p.terlaris,0) AS sold_all',  false);
-        $this->db->select('COALESCE(p.terlaris,0) AS sold',      false);
-        $this->db->select('COALESCE(p.terlaris,0) AS sold_month',false);
+    // join kategori
+    $this->db->join('kategori_produk kp', 'kp.id = p.kategori_id', 'left');
+    $this->db->select('kp.nama AS kategori_nama');
+    if ($this->_has_col('kategori_produk','slug')) {
+        $this->db->select('kp.slug AS kategori_slug');
+    } else {
+        $this->db->select('NULL AS kategori_slug', false);
     }
+
+    // join sub-kategori
+    $this->db->join('kategori_produk_sub kps', 'kps.id = p.sub_kategori_id', 'left');
+    $this->db->select('kps.nama AS sub_nama');
+    if ($this->_has_col('kategori_produk_sub','slug')) {
+        $this->db->select('kps.slug AS sub_slug');
+    } else {
+        $this->db->select('NULL AS sub_slug', false);
+    }
+
+    // alias kompatibilitas lama
+    $this->db->select('COALESCE(p.terlaris,0) AS sold_all',  false);
+    $this->db->select('COALESCE(p.terlaris,0) AS sold',      false);
+    $this->db->select('COALESCE(p.terlaris,0) AS sold_month',false);
+}
+
 
     private function _base_filters($filters){
     $this->db->from('produk p');
@@ -129,16 +148,31 @@ if ($isRec) {
 
 
     // Kategori/Sub (skip saat recommended)
-    if (!$isRec && !empty($filters['kategori'])){
-        $k = $filters['kategori'];
-        if (ctype_digit((string)$k)) $this->db->where('p.kategori_id', (int)$k);
-        else $this->db->where('kp.slug', $k);
+   // Kategori/Sub (skip saat recommended)
+if (!$isRec && !empty($filters['kategori'])){
+    $k = (string)$filters['kategori'];
+    if (ctype_digit($k)) {
+        $this->db->where('p.kategori_id', (int)$k);
+    } else if ($this->_has_col('kategori_produk','slug')) {
+        $this->db->where('kp.slug', $k);
+    } else {
+        // fallback: cari berdasarkan nama kategori
+        $this->db->like('kp.nama', $k);
     }
-    if (!$isRec && !empty($filters['sub_kategori'])){
-        $s = $filters['sub_kategori'];
-        if (ctype_digit((string)$s)) $this->db->where('p.sub_kategori_id', (int)$s);
-        else $this->db->where('kps.slug', $s);
+}
+
+if (!$isRec && !empty($filters['sub_kategori'])){
+    $s = (string)$filters['sub_kategori'];
+    if (ctype_digit($s)) {
+        $this->db->where('p.sub_kategori_id', (int)$s);
+    } else if ($this->_has_col('kategori_produk_sub','slug')) {
+        $this->db->where('kps.slug', $s);
+    } else {
+        // fallback: cari berdasarkan nama sub-kategori
+        $this->db->like('kps.nama', $s);
     }
+}
+
 
     if (!empty($filters['sold_out'])){
         $this->db->where('p.stok', 0);
