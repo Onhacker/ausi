@@ -16,7 +16,7 @@ class M_produk extends CI_Model {
 }
 
     public function __construct(){ parent::__construct(); }
-    
+
     /** Ambil daftar kategori aktif untuk filter */
     public function get_categories(){
         $this->db->reset_query();
@@ -58,7 +58,9 @@ private function _apply_trending_window($filters){
     $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;
     $cutoff = date('Y-m-d H:i:s', time() - ($days * 86400));
 
-    $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+    // $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+    $this->db->where('p.terlaris_score >=', (float)$min);
+
 
     $cut = $this->db->escape($cutoff);
     $this->db->where("( (p.terlaris_score_updated_at IS NOT NULL AND p.terlaris_score_updated_at >= {$cut})
@@ -311,20 +313,21 @@ $this->_apply_trending_window($filters);
             $this->db->order_by('p.id','DESC');
             break;
 
-            case 'trending':
-    // jika kolom belum ada → fallback ke terlaris (hindari 500)
+case 'trending':
     if (!$this->_trending_columns_ready()){
         $this->db->order_by('p.terlaris','DESC');
         $this->db->order_by('p.created_at','DESC');
         $this->db->order_by('p.id','DESC');
         break;
     }
-    // kolom ada → pakai score
-    $this->db->order_by('COALESCE(p.terlaris_score,0)','DESC', false);
+    // pakai kolom langsung (tanpa COALESCE) biar index kepakai
+    $this->db->order_by('p.terlaris_score','DESC');  // << ini yang dimaksud
     $this->db->order_by('p.terlaris','DESC');
     $this->db->order_by('p.created_at','DESC');
     $this->db->order_by('p.id','DESC');
     break;
+
+
 
 
         case 'price_low':
