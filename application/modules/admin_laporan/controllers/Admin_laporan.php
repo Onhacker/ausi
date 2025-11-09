@@ -7,11 +7,10 @@ class Admin_laporan extends Admin_Controller
         parent::__construct();
         $this->load->model('M_admin_laporan', 'lm');
         // kalau perlu batasi akses:
-        
+        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     }
 
     public function index(){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         $data["controller"] = get_class($this);
         $data["title"]      = "Laporan";
         $data["subtitle"]   = "Ringkasan & Cetak";
@@ -20,7 +19,6 @@ class Admin_laporan extends Admin_Controller
     }
 
     private function _sanitize_enum($v, array $allowed, $fallback){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         $v = strtolower(trim((string)$v));
         return in_array($v, $allowed, true) ? $v : $fallback;
     }
@@ -29,7 +27,6 @@ class Admin_laporan extends Admin_Controller
     /** ====== AJAX: ringkasan angka (POS / Billiard / Pengeluaran / Laba) ====== */
   // === RINGKASAN DASHBOARD (tetap: Laba = POS + Billiard - Pengeluaran) ===
 public function summary_json(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
 
     $pos  = $this->lm->sum_pos($f)        ?: ['count'=>0,'total'=>0,'by_method'=>[]];
@@ -63,7 +60,6 @@ public function summary_json(){
 
 
 public function print_kursi_pijat(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
 
     $rows = $this->lm->fetch_kursi_pijat($f);
@@ -90,7 +86,6 @@ public function print_kursi_pijat(){
 
 // === CETAK POS (pakai grand_total_net) ===
 public function print_pos(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
 
     // rakit data buat view
@@ -121,7 +116,6 @@ public function print_pos(){
 
 // === CETAK KURIR (tampilkan semua; ongkir=1 dianggap 0; skip kurir invalid) ===
 public function print_kurir(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
     $f['mode'] = 'delivery';
 
@@ -185,7 +179,6 @@ public function print_kurir(){
 
 
 public function print_billiard(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
     $data = [
         'title'  => 'Laporan Billiard (Terkonfirmasi)',
@@ -210,7 +203,6 @@ public function print_billiard(){
 
 
 public function print_pengeluaran(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
     $data = [
         'title'  => 'Laporan Pengeluaran',
@@ -235,7 +227,6 @@ public function print_pengeluaran(){
 
 
 public function print_laba(){
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
 
     $sumPos = $this->lm->sum_pos($f);
@@ -272,7 +263,6 @@ public function print_laba(){
     /* ===================== Helpers ===================== */
 
     private function _parse_filter(): array {
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         $date_from = trim((string)$this->input->get_post('date_from'));
         $date_to   = trim((string)$this->input->get_post('date_to'));
          $preset = $this->_sanitize_enum($this->input->get_post('preset'),
@@ -352,12 +342,9 @@ public function print_laba(){
     }
 
 
-    private function _idr($n){ 
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
-        return 'Rp '.number_format((int)$n,0,',','.'); }
+    private function _idr($n){ return 'Rp '.number_format((int)$n,0,',','.'); }
 
     private function _period_label(array $f){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f  = $this->_enforce_period_acl($f); // ⬅️ penting
     $tz = new DateTimeZone('Asia/Makassar');
 
@@ -380,7 +367,6 @@ public function print_laba(){
  */
 private function _enforce_period_acl(array $f): array
 {
-    cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $isAdmin = ($this->session->userdata('admin_username') === 'admin');
     $preset  = $f['preset'] ?? 'today';
 
@@ -414,7 +400,6 @@ private function _enforce_period_acl(array $f): array
 
 
     private function _pdf($title, $html, $filename='laporan.pdf'){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         $this->load->library('pdf'); // TCPDF wrapper
         
         $pdf = new Pdf('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
@@ -438,7 +423,6 @@ private function _enforce_period_acl(array $f): array
 
 
     private function _pdfx($title, $html, $filename='laporan.pdf'){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         $this->load->library('pdf'); // TCPDF wrapper
         
         $pdf = new Pdf('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
@@ -462,7 +446,6 @@ private function _enforce_period_acl(array $f): array
      * HALAMAN STATISTIK GRAFIK
      * ============================== */
     public function chart(){
-        // cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         // halaman HTML yg berisi filter + container chart
         $data["controller"] = get_class($this);
         $data["title"]      = "Statistik";
@@ -472,7 +455,6 @@ private function _enforce_period_acl(array $f): array
     }
 
     public function wablas(){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
         // halaman HTML yg berisi filter + container chart
         $data["web"] = $this->om->web_me();
         $data["controller"] = get_class($this);
