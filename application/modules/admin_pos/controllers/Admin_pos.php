@@ -351,7 +351,6 @@ public function get_dataa(){
         $isKitchen = ($uname === 'kitchen');
         $isBar     = ($uname === 'bar');
 
-
         // === Formatter METODE (hanya: Cash, QRIS, Transfer) ===
         $fmt_method = function($raw) {
             $rawStr = (string)$raw;
@@ -396,33 +395,37 @@ public function get_dataa(){
             return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem" title="'.htmlspecialchars($rawStr, ENT_QUOTES, 'UTF-8').'">'.$out.'</div>';
         };
 
-
         $list = $this->dm->get_data();
         $data = [];
+
         $ids = array_map(function($r){ return (int)$r->id; }, $list);
         $itemsByOrder = [];
         if ($isKitchen || $isBar) {
             $catId = $isKitchen ? 1 : 2;
             $itemsByOrder = $this->dm->compact_items_for_orders($ids, $catId);
         }
+
         foreach ($list as $r) {
+            // Mulai baris baru
+            $row = [];
+
             // === Mode badge ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
             switch ($mode_raw) {
                 case 'dinein':
                 case 'dine-in':  $mode_label='Makan di Tempat';  $mode_badge='badge-info';    break;
-                case 'delivery': $mode_label='Antar/ Kirim'; $mode_badge='badge-warning'; break;
+                case 'delivery': $mode_label='Antar/ Kirim';     $mode_badge='badge-warning'; break;
                 case 'walking':
                 case 'walkin':
                 case 'walk-in':
-                default:         $mode_label='Bungkus';  $mode_badge='badge-primary'; break;
+                default:         $mode_label='Bungkus';           $mode_badge='badge-primary'; break;
             }
+
             // === Info kurir (hanya untuk delivery) ===
             $kurirInfoHtml = '';
             if ($mode_raw === 'delivery') {
                 $courier_id   = (int)($r->courier_id ?? 0);
                 $courier_name = trim((string)($r->courier_name ?? ''));
-
                 if ($courier_id > 0 && $courier_name !== '') {
                     $kurirInfoHtml = '<div class="small text-success mt-1">'
                                    . '<i class="mdi mdi-account-check-outline mr-1"></i>'
@@ -444,9 +447,8 @@ public function get_dataa(){
                 $meja_html .= '<div class="text-muted small">'.htmlspecialchars($nama,ENT_QUOTES,'UTF-8').'</div>';
             }
 
-            // Waktu
-            $waktu_dt  = $r->created_at ?: date('Y-m-d H:i:s');
-            $createdTs = strtotime($waktu_dt) ?: time();
+            // Waktu (timestamp detik)
+            $createdTs = strtotime($r->created_at ?: 'now') ?: time();
 
             // Jumlah
             $jumlah = (int)($r->grand_total ?? $r->total ?? 0);
@@ -455,13 +457,13 @@ public function get_dataa(){
             if ($isKitchen) {
                 // Kitchen → pakai status_pesanan_kitchen (1/2)
                 $sp = (int)($r->status_pesanan_kitchen ?? 1);
-                if ($sp === 2) { $status_label = 'Selesai';  $badge = 'success'; }
-                else           { $status_label = 'Proses'; $badge = 'warning'; }
+                if ($sp === 2) { $status_label = 'Selesai'; $badge = 'success'; }
+                else           { $status_label = 'Proses';  $badge = 'warning'; }
             } elseif ($isBar) {
                 // Bar → pakai status_pesanan_bar (1/2)
                 $sp = (int)($r->status_pesanan_bar ?? 1);
-                if ($sp === 2) { $status_label = 'Selesai';  $badge = 'success'; }
-                else           { $status_label = 'Proses'; $badge = 'warning'; }
+                if ($sp === 2) { $status_label = 'Selesai'; $badge = 'success'; }
+                else           { $status_label = 'Proses';  $badge = 'warning'; }
             } else {
                 // Kasir / Admin → pakai status pembayaran
                 $status_raw = strtolower($r->status ?: 'pending');
@@ -479,41 +481,33 @@ public function get_dataa(){
                 elseif ($status_raw === 'sent')       $status_label = 'terkirim';
             }
 
-                $method = $r->paid_method ?: '-';
-                $createdTs = strtotime($r->created_at ?: 'now') ?: time();
+            // === Hitung "lama" (elapsed) & closed flag ===
+            $isClosed = false;
+            if ($isKitchen) {
+                $isClosed = ((int)$r->status_pesanan_kitchen === 2);
+            } elseif ($isBar) {
+                $isClosed = ((int)$r->status_pesanan_bar === 2);
+            } else {
+                $status_raw2 = strtolower((string)($r->status ?? ''));
+                $isClosed = ((int)($r->tutup_transaksi ?? 0) === 1)
+                         || in_array($status_raw2, ['paid','canceled'], true);
+            }
 
-                $isClosed = false;
-                if ($isKitchen) {
-                    $isClosed = ((int)$r->status_pesanan_kitchen === 2);
-                } elseif ($isBar) {
-                    $isClosed = ((int)$r->status_pesanan_bar === 2);
-                } else {
-                    $status_raw = strtolower((string)($r->status ?? ''));
-                    $isClosed = ((int)($r->tutup_transaksi ?? 0) === 1)
-                             || in_array($status_raw, ['paid','canceled'], true);
-                }
+            if ($isClosed) {
+                // Titik selesai terbaik
+                if     ($isKitchen && !empty($r->kitchen_done_at)) $endTs = strtotime($r->kitchen_done_at);
+                elseif ($isBar   && !empty($r->bar_done_at))       $endTs = strtotime($r->bar_done_at);
+                elseif (!empty($r->paid_at))                       $endTs = strtotime($r->paid_at);
+                elseif (!empty($r->updated_at))                    $endTs = strtotime($r->updated_at);
+                else                                               $endTs = $createdTs;
 
-                if ($isClosed) {
-                    // Titik selesai terbaik
-                    $endTs = null;
-                    if ($isKitchen && !empty($r->kitchen_done_at))      $endTs = strtotime($r->kitchen_done_at);
-                    elseif ($isBar   && !empty($r->bar_done_at))        $endTs = strtotime($r->bar_done_at);
-                    elseif (!empty($r->paid_at))                        $endTs = strtotime($r->paid_at);
-                    elseif (!empty($r->updated_at))                     $endTs = strtotime($r->updated_at);
-                    else                                                $endTs = $createdTs;
-
-                    $dur = max(0, (int)$endTs - (int)$createdTs);
-                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-                } else {
-                    // Masih berjalan → kirim data-start (detik)
-                    $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
-                }
-
-                $row['lama'] = $lamaHtml;
-
+                $dur = max(0, (int)$endTs - (int)$createdTs);
+                $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+            } else {
+                $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
+            }
 
             // ===== Kolom "Pesanan" (khusus kitchen/bar) =====
-            $pesananHtml = '';
             if ($isKitchen || $isBar) {
                 $chips = [];
                 foreach (($itemsByOrder[(int)$r->id] ?? []) as $it) {
@@ -524,84 +518,51 @@ public function get_dataa(){
                 $pesananHtml = $chips
                     ? '<div class="d-flex flex-wrap" style="gap:.25rem .25rem;">'.implode('', $chips).'</div>'
                     : '<span class="text-muted">—</span>';
-
-                $row['pesanan'] = $pesananHtml;
             }
 
+            // ===== Tombol Aksi (kasir/admin saja) =====
             $actionsHtml = '';
-            // if (!$isKitchen && !$isBar) {
-            //     $idInt = (int)$r->id;
-            //     $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
-            //     $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')"><i class="fe-x-circle"></i></button>';
-
-            //     // tombol Hapus hanya untuk admin_username = admin
-            //     $unameLower = strtolower((string)$this->session->userdata('admin_username'));
-            //     $btnDelete  = ($unameLower === 'admin')
-            //         ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>'
-            //         : '';
-
-            //     $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnCancel.$btnDelete.'</div>';
-            // }
-
             if (!$isKitchen && !$isBar) {
-    $idInt = (int)$r->id;
+                $idInt = (int)$r->id;
 
-    // tombol
-    $btnPaid = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
+                $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
+                $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')" '.($isClosed ? 'disabled' : '').'><i class="fe-x-circle"></i></button>';
 
-    // Non-admin (kasir) juga dapat Cancel; disable jika sudah closed/paid/canceled
-    $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')" '.($isClosed ? 'disabled' : '').'><i class="fe-x-circle"></i></button>';
+                $unameLower = strtolower((string)$this->session->userdata('admin_username'));
+                $isAdmin    = ($unameLower === 'admin');
+                $btnDelete  = $isAdmin ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>' : '';
 
-    // Delete tetap khusus admin
-    $btnDelete = '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>';
+                $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
+                             .   $btnPaid
+                             .   $btnCancel
+                             .   $btnDelete
+                             . '</div>';
+            }
 
-    $unameLower = strtolower((string)$this->session->userdata('admin_username'));
-    $isAdmin = ($unameLower === 'admin');
-
-    $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
-                 .   $btnPaid
-                 .   $btnCancel           // <-- sekarang tampil juga untuk kasir
-                 .   ($isAdmin ? $btnDelete : '')
-                 . '</div>';
-
-
-    . $btnPaid
-    . ($isAdmin ? $btnCancel.$btnDelete : '')
-    . '</div>';
-}
-
-
-            $row = [];
+            // ==== SUSUN ROW ====
 
             // WAJIB: simpan id untuk click-row
-            $row['id'] = (int)$r->id;  // <-- ini penting, jangan dihapus
+            $row['id'] = (int)$r->id;
 
             // 1. no
-            $row['no']    = '';
+            $row['no'] = '';
 
-            // 2. mode
+            // 2. mode (+ meta rowid untuk kebutuhan JS)
             $row['mode']  =
-    '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'.
-
-
-
-    // lalu konten mode yg lama:
-            '<div class="d-inline-block text-left">'
-            .   '<span class="badge badge-pill '.$mode_badge.'">'
-            .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
-            .   '</span>'
-            .   $kurirInfoHtml
-            . '</div>';
+                '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
+              . '<div class="d-inline-block text-left">'
+              .   '<span class="badge badge-pill '.$mode_badge.'">'
+              .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+              .   '</span>'
+              .   $kurirInfoHtml
+              . '</div>';
 
             // 3. meja
-            $row['meja']  = $meja_html;
+            $row['meja'] = $meja_html;
 
-            // 4. pesanan (kalau kitchen/bar). kalau bukan kitchen/bar tetap boleh kirim '' biar key-nya konsisten aman.
+            // 4. pesanan (kalau kitchen/bar)
             if ($isKitchen || $isBar) {
-                $row['pesanan'] = $pesananHtml;
-            } else {
-                // supaya DataTables gak error pas kolom "pesanan" ga ada di kasir? 
-                // nggak wajib kalau kolom "pesanan" memang nggak diminta di mode kasir.
+                $row['pesanan'] = $pesananHtml ?? '<span class="text-muted">—</span>';
             }
 
             // 5. waktu
@@ -620,14 +581,7 @@ public function get_dataa(){
               . '</span>';
 
             // 9. metode
-            // $row['metode'] = ($isKitchen || $isBar) ? '' : htmlspecialchars($method, ENT_QUOTES, 'UTF-8');
-            // 9. metode
-            if ($isKitchen || $isBar) {
-                $row['metode'] = '';
-            } else {
-                $row['metode'] = $fmt_method($r->paid_method ?? '');
-            }
-
+            $row['metode'] = ($isKitchen || $isBar) ? '' : $fmt_method($r->paid_method ?? '');
 
             // 10. aksi (hanya kasir/admin)
             if (!$isKitchen && !$isBar) {
@@ -635,7 +589,6 @@ public function get_dataa(){
             }
 
             $data[] = $row;
-
         }
 
         $out = [
@@ -643,9 +596,9 @@ public function get_dataa(){
             "recordsTotal"    => $this->dm->count_all(),
             "recordsFiltered" => $this->dm->count_filtered(),
             "data"            => $data,
+            "hide_price_payment" => (bool)($isKitchen || $isBar),
+            "server_now" => time(),
         ];
-        $out['hide_price_payment'] = (bool)($isKitchen || $isBar);
-        $out['server_now'] = time(); // <— TAMBAH BARIS INI
 
         return $this->output->set_content_type('application/json')->set_output(json_encode($out));
     } catch(\Throwable $e){
