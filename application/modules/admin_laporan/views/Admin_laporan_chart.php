@@ -38,8 +38,8 @@
         </div>
 
         <div class="btn-wrap text-right">
-          <button type="button" class="btn btn-primary btn-sm mb-1" id="btn-open-filter">
-            <i class="fe-settings"></i> Setel Filter
+          <button type="button" class="btn btn-blue btn-sm mb-1" id="btn-open-filter">
+            <i class="fe-settings"></i> Setel Waktu
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@
           <button type="button" class="btn btn-warning btn-sm" id="btn-reset">
             <i class="fe-rotate-ccw"></i> Reset
           </button>
-          <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
+          <button type="button" class="btn btn-primary btn-sm ml-2" id="btn-apply">
             <span class="btn-label"><i class="fe-filter"></i></span> Terapkan
           </button>
         </div>
@@ -179,6 +179,28 @@
 <script src="<?= base_url('/assets/admin/chart/accessibility.js'); ?>"></script>
 
 <script>
+  // Nama bulan Indonesia
+const NAMA_BULAN_ID = [
+  'Januari','Februari','Maret','April','Mei','Juni',
+  'Juli','Agustus','September','Oktober','November','Desember'
+];
+
+// Ubah 'YYYY-MM-DD' -> 'D <Nama Bulan> YYYY', mis. '2025-11-09' -> '9 November 2025'
+function fmtTanggalIndo(ymd){
+  if (!ymd) return '-';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) return ymd; // fallback kalau format tak sesuai
+  const y = +m[1], mo = +m[2], d = +m[3];
+  return d + ' ' + NAMA_BULAN_ID[mo-1] + ' ' + y;
+}
+
+// (Opsional, jika mau tampilkan jam juga)
+// gabung 'YYYY-MM-DD' + 'HH:MM' -> '9 November 2025 19:00'
+function fmtTanggalWaktuIndo(ymd, hhmm){
+  const tgl = fmtTanggalIndo(ymd);
+  return hhmm ? (tgl + ' ' + hhmm) : tgl;
+}
+
 (function(){
 
   /* =========================================================
@@ -301,12 +323,15 @@
   function renderCharts(res){
     // info filter aktif di header kartu atas
     if (res.filter){
-      infoRangeEl.textContent =
-        'Range: '+(res.filter.date_from || '-')+
-        ' s/d '+(res.filter.date_to || '-')+
-        ' | Mode: '+(res.filter.mode || '-')+
-        ' | Metode: '+(res.filter.metode || '-')+
-        ' | Status: '+(res.filter.status || '-');
+       const dfID = fmtTanggalIndo(res.filter.date_from);
+  const dtID = fmtTanggalIndo(res.filter.date_to);
+
+  infoRangeEl.textContent =
+    'Rentang: ' + dfID +
+    ' s/d '   + dtID +
+    ' | Mode: '   + (res.filter.mode   || '-') +
+    ' | Metode: ' + (res.filter.metode || '-') +
+    ' | Status: ' + (res.filter.status || '-');
     }
 
     if (res.total_rekap){
