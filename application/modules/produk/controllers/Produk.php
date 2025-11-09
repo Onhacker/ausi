@@ -334,7 +334,7 @@ public function rate(){
         $this->load->view('produk_view', $data);
     }
 
-private function _ensure_db(): void
+private function _ensure_db(): 
 {
     $conn = $this->db->conn_id ?? null; // mysqli object
     if (!$conn || (method_exists($conn, 'ping') && !$conn->ping())) {
@@ -342,7 +342,7 @@ private function _ensure_db(): void
         $this->db->reconnect();
     }
 }
-private function _db_fail_response_if_any(): void
+private function _db_fail_response_if_any(): 
 {
     $err = $this->db->error();
     if (!empty($err['code'])) {
@@ -421,7 +421,9 @@ private function _db_fail_response_if_any(): void
     // seed untuk random
     $seed = '';
     if ($sort === 'random') {
-        $seed = (string)($this->input->get('seed', true) ?? '');
+        // $seed = (string)($this->input->get('seed', true) ?? '');
+        $tmp_seed = $this->input->get('seed', true);
+$seed = (string)($tmp_seed !== null ? $tmp_seed : '');
         if ($seed === '') $seed = date('Ymd'); // deterministik harian
     }
 

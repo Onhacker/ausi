@@ -263,7 +263,8 @@ $this->_apply_trending_window($filters);
                 ? (string)$filters['rand_seed'] : date('Ymd');
             $seed_sql = $this->db->escape_str($seed);
 
-            $this->db->order_by("CRC32(CONCAT(p.id,'-{$seed_sql}'))", 'ASC', false);
+            // $this->db->order_by("CRC32(CONCAT(p.id,'-{$seed_sql}'))", 'ASC', false);
+            $this->db->order_by("MD5(CONCAT(p.id,'-{$seed_sql}'))", 'ASC', false);
             $this->db->order_by('p.id','DESC'); // fallback stabil
             break;
 
