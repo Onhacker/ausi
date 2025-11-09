@@ -40,10 +40,12 @@ $status = strtolower($order->status ?? '-');
 $statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
 
 // ==== KURIR (assigned) ====
-$status   = strtolower($order->status ?? '');
-$kurir_id = (int)($order->courier_id ?? 0);
-$kurir_nm = trim((string)($order->courier_name ?? ''));
-$hasKurir = ($kurir_id > 0 && $kurir_nm !== '');
+$status     = strtolower($order->status ?? '');
+$kurir_id   = (int)($order->courier_id ?? 0);
+$kurir_nm   = trim((string)($order->courier_name ?? ''));
+$kurir_telp = trim((string)($order->courier_phone ?? '')); // ← tambahkan ini jika ada di payload
+$hasKurir   = ($kurir_id > 0 && $kurir_nm !== '');
+
 
 // ==== deteksi metode bayar ====
 $pm_raw = trim((string)($order->paid_method ?? ''));
@@ -77,12 +79,13 @@ $hasDigital = (bool)array_intersect($tokens, $digSyn);
 // ==== 2 kondisi tombol ====
 // 1) delivery + verifikasi + cash
 // 2) delivery + paid + digital (transfer/QRIS)
-$canAssignKurir = (
-  $is_delivery && !$hasKurir && (
-    ($status === 'verifikasi' && $hasCash) ||
-    ($status === 'paid'       && $hasDigital)
-  )
-);
+// $canAssignKurir = (
+//   $is_delivery && !$hasKurir && (
+//     ($status === 'verifikasi' && $hasCash) ||
+//     ($status === 'paid'       && $hasDigital)
+//   )
+// );
+$canAssignKurir = ($is_delivery && !$hasKurir);
 ?>
 
 <style>
@@ -182,18 +185,19 @@ $canAssignKurir = (
 
         <!-- KURIR (badge ketika sudah ditugaskan) -->
         <span class="pill" id="kurirMeta" <?= $hasKurir ? '' : 'style="display:none"' ?>>
-          <i class="fe-user-check"></i>
-          Kurir:
-          <strong>
-            <?php if ($kurir_telp !== ''): ?>
-              <a href="tel:<?= htmlspecialchars(preg_replace('/\s+/', '', $kurir_telp), ENT_QUOTES,'UTF-8'); ?>">
-                <?= htmlspecialchars($kurir_nama, ENT_QUOTES,'UTF-8'); ?>
-              </a>
-            <?php else: ?>
-              <?= htmlspecialchars($kurir_nama, ENT_QUOTES,'UTF-8'); ?>
-            <?php endif; ?>
-          </strong>
-        </span>
+  <i class="fe-user-check"></i>
+  Kurir:
+  <strong>
+    <?php if ($kurir_telp !== ''): ?>
+      <a href="tel:<?= htmlspecialchars(preg_replace('/\s+/', '', $kurir_telp), ENT_QUOTES,'UTF-8'); ?>">
+        <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
+      </a>
+    <?php else: ?>
+      <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
+    <?php endif; ?>
+  </strong>
+</span>
+
       </div>
     </div>
     <?php if ($customer_phone !== ''): ?>
