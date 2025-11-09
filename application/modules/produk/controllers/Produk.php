@@ -334,7 +334,7 @@ public function rate(){
         $this->load->view('produk_view', $data);
     }
 
-private function _ensure_db(): 
+private function _ensure_db()
 {
     $conn = $this->db->conn_id ?? null; // mysqli object
     if (!$conn || (method_exists($conn, 'ping') && !$conn->ping())) {
@@ -342,6 +342,23 @@ private function _ensure_db():
         $this->db->reconnect();
     }
 }
+
+private function _db_fail_response_if_any()
+{
+    $err = $this->db->error();
+    if (!empty($err['code'])) {
+        log_message('error', 'DB ERROR '.$err['code'].': '.$err['message'].' | SQL: '.$this->db->last_query());
+        $this->output->set_content_type('application/json')
+            ->set_status_header(500)
+            ->set_output(json_encode([
+                'success' => false,
+                'error'   => 'Database error',
+                'code'    => $err['code'],
+            ]));
+        exit;
+    }
+}
+
 private function _db_fail_response_if_any(): 
 {
     $err = $this->db->error();
