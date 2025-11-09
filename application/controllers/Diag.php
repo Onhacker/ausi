@@ -1,7 +1,7 @@
 <?php 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Diag extends CI_Controller {
+class Diag extends MX_Controller {
   public function env() {
     $hasJson = function_exists('json_encode') ? 'ON' : 'OFF';
     $hasMb   = extension_loaded('mbstring') ? 'ON' : 'OFF';
