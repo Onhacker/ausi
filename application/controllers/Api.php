@@ -571,7 +571,7 @@ public function status()
     $resp = [
       'logged_in' => $logged,
       'name'      => $logged ? ($this->session->userdata('admin_nama') ?: 'Admin') : null,
-      'dashboard' => $logged ? site_url('admin_profil/detail_profil') : null,
+      'dashboard' => $logged ? site_url('admin_laporan/chart') : null,
     ];
 
     // JANGAN dicache
