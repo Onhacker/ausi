@@ -497,7 +497,7 @@ private function _enforce_period_acl(array $f): array
      * }
      */
     public function chart_data(){
-        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
+        // cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     $f = $this->_parse_filter();
 
     $cafeMap        = $this->lm->agg_daily_pos($f);
