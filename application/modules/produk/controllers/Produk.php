@@ -334,9 +334,32 @@ public function rate(){
         $this->load->view('produk_view', $data);
     }
 
+private function _ensure_db(): void
+{
+    $conn = $this->db->conn_id ?? null; // mysqli object
+    if (!$conn || (method_exists($conn, 'ping') && !$conn->ping())) {
+        log_message('error', 'DB connection lost, reconnecting...');
+        $this->db->reconnect();
+    }
+}
+private function _db_fail_response_if_any(): void
+{
+    $err = $this->db->error();
+    if (!empty($err['code'])) {
+        log_message('error', 'DB ERROR '.$err['code'].': '.$err['message']);
+        $this->output->set_content_type('application/json')
+            ->set_status_header(500)
+            ->set_output(json_encode([
+                'success' => false,
+                'error'   => 'Database error',
+                'code'    => $err['code'],
+            ]));
+        exit; // penting: hentikan eksekusi
+    }
+}
    public function list_ajax(){
     $this->_nocache_headers();
-
+    $this->_ensure_db();
     // ===== input dasar =====
     $q        = trim($this->input->get('q', true) ?: '');
     $sub      = $this->input->get('sub', true) ?: $this->input->get('sub_kategori', true) ?: '';

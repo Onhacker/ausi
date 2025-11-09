@@ -13,12 +13,14 @@ class M_produk extends CI_Model {
 
     /** Hitung total produk utk pagination */
     public function count_products($filters = []){
+        $this->db->reset_query();   
         $this->_base_filters($filters);
         return $this->db->count_all_results();
     }
 
     /** Ambil produk dengan filter + sort + limit */
     public function get_products($filters = [], $limit = 12, $offset = 0, $sort = 'random'){
+        $this->db->reset_query();   
         $this->_base_select();
         $this->_apply_filters($filters);
         $this->_apply_sort($sort, $filters); // <- kirim $filters untuk seed
@@ -28,6 +30,7 @@ class M_produk extends CI_Model {
 
     /** Detail by slug */
     public function get_by_slug($slug){
+        $this->db->reset_query();   
         $this->_base_select();
         $this->db->where('p.link_seo', $slug);
         $this->db->where('p.is_active', 1);
@@ -98,7 +101,7 @@ if ($isRec) {
         $this->db->where('p.recommended', 1);
     } else {
         // kalau dua-duanya tidak ada, paksa 0 hasil (hindari error)
-        $this->db->where('1=', '0', false);
+        $this->db->where('1=0', null, false);
     }
 }
 
@@ -162,7 +165,7 @@ if ($isRec) {
         $this->db->where('p.recommended', 1);
     } else {
         // kalau dua-duanya tidak ada, paksa 0 hasil (hindari error)
-        $this->db->where('1=', '0', false);
+        $this->db->where('1=0', null, false);
     }
 }
 
