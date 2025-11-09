@@ -34,6 +34,19 @@
     .meja-kode{ font-weight:700; font-size:1rem; }
     .meja-meta{ color:#6b7280; font-size:.85rem; }
     .meja-actions .btn{ margin-right:.3rem; margin-top:.35rem; }
+    .idle-countdown{
+  border:1px solid #e2e8f0;
+  background:#f8fafc;
+  color:#0f172a;
+  padding:.25rem .5rem;
+  border-radius:.5rem;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+@media (max-width: 575.98px){
+  .idle-countdown .d-none.d-sm-inline{ display:none !important; } /* sembunyikan label di layar kecil */
+}
+
   </style>
 
   <div class="row">
@@ -44,37 +57,37 @@
           <!-- Toolbar -->
           <div class="row mb-2">
             <div class="col-12">
-              <form class="form-inline">
-                <!-- Refresh -->
-                <button type="button" onclick="reload_table('user')" class="btn btn-blue btn-sm waves-effect waves-light mb-2 mr-2">
-                  <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-                </button>
+              <form class="form-inline align-items-center flex-wrap w-100">
+  <!-- Refresh -->
+  <button type="button" onclick="reload_table('user')" class="btn btn-blue btn-sm waves-effect waves-light mb-2 mr-2">
+    <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
+  </button>
 
-                <?php if (!$isKB): ?>
-                  <!-- Order -->
-                 <!--  <button type="button" class="btn btn-success btn-sm waves-effect waves-light mb-2 mr-2" onclick="openMejaModal()">
-                    <span class="btn-label"><i class="fe-grid"></i></span>Order
-                  </button> -->
+  <?php if (!$isKB): ?>
+    <!-- Filter status -->
+    <div class="form-group mb-2 mr-2">
+      <label for="filter-status" class="sr-only">Status</label>
+      <select id="filter-status" class="custom-select custom-select-sm">
+        <option value="all" selected>Semua status</option>
+        <option value="paid">Lunas</option>
+        <option value="pending">Menunggu Pembayaran</option>
+        <option value="verifikasi">Verifikasi</option>
+        <option value="canceled">Canceled</option>
+      </select>
+    </div>
+  <?php endif; ?>
 
-                  <!-- Bungkus -->
-               <!--    <a href="<?= site_url('produk/walkin') ?>" class="btn btn-primary btn-sm waves-effect waves-light mb-2 mr-2">
-                    <span class="btn-label"><i class="fe-shopping-bag"></i></span>Bungkus
-                  </a> -->
+  <!-- === Idle countdown: sekarang sejajar & di sisi kanan === -->
+  <div id="idle-countdown"
+       class="idle-countdown d-inline-flex align-items-center ml-auto mb-2"
+       aria-live="polite"
+       style="display:none">
+    <i class="mdi mdi-timer-outline mr-1" aria-hidden="true"></i>
+    <span class="d-none d-sm-inline mr-1">Segarkan dalam:</span>
+    <span id="idle-countdown-text" class="font-weight-bold">20:00</span>
+  </div>
+</form>
 
-                  <!-- Filter status (custom-select bawaan template) -->
-                  <div class="form-group mb-2 mr-2">
-                    <label for="filter-status" class="sr-only">Status</label>
-                    <select id="filter-status" class="custom-select custom-select-sm">
-                      <option value="all" selected>Semua status</option>
-                      <option value="paid">Lunas</option>
-                      <option value="pending">Menunggu Pembayaran</option>
-                      <option value="verifikasi">Verifikasi</option>
-                      <option value="canceled">Canceled</option>
-                      <!-- <option value="failed">Failed</option> -->
-                    </select>
-                  </div>
-                <?php endif; ?>
-              </form>
             </div>
           </div>
           <!-- /Toolbar -->
