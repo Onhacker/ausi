@@ -103,9 +103,10 @@
               <option value="today">Hari ini</option>
               <option value="yesterday">Kemarin</option>
               <option value="this_week">Minggu ini</option>
-              <option value="this_month">Bulan ini</option>
+              <option value="this_month" selected>Bulan ini</option> <!-- default -->
               <option value="range">Rentang Tanggal</option>
             </select>
+
             <small class="text-muted" style="font-size:11px">
               Pilih preset cepat atau pakai Rentang Tanggal.
             </small>
@@ -447,15 +448,16 @@
   });
 
   // Reset dari modal → balik "today", mode=all, metode=all
-  document.getElementById('btn-reset').addEventListener('click', function(){
-    document.getElementById('preset').value = 'today';
-    document.getElementById('metode').value = 'all';
-    document.getElementById('mode').value   = 'all';
+document.getElementById('btn-reset').addEventListener('click', function(){
+  document.getElementById('preset').value = 'this_month';
+  document.getElementById('metode').value = 'all';
+  document.getElementById('mode').value   = 'all';
 
-    const r = computeRangeDT('today');
-    setRangeInputsDT(r, false);
-    normalizeDTInputs();
-  });
+  const r = computeRangeDT('this_month');
+  setRangeInputsDT(r, false);
+  normalizeDTInputs();
+});
+
 
   // Terapkan dari modal:
   // - normalisasi input
@@ -482,18 +484,18 @@
 
   // INIT pertama kali halaman dibuka:
   // preset default: today
-  document.addEventListener('DOMContentLoaded', function(){
-    const presetSel = document.getElementById('preset');
-    presetSel.value = 'today';
+ document.addEventListener('DOMContentLoaded', function(){
+  const presetSel = document.getElementById('preset');
+  presetSel.value = 'this_month'; // default = bulan ini
 
-    // isi datetime-local sesuai preset "today" dan disable karena bukan 'range'
-    const initRange = computeRangeDT('today');
-    setRangeInputsDT(initRange, false);
-    normalizeDTInputs();
+  const initRange = computeRangeDT('this_month');
+  setRangeInputsDT(initRange, false);
+  normalizeDTInputs();
 
-    // load chart awal
-    loadCharts();
-  });
+  // load chart awal pakai Bulan ini
+  loadCharts();
+});
+
 
 })();
 </script>
