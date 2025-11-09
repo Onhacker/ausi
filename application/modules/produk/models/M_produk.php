@@ -28,6 +28,26 @@ class M_produk extends CI_Model {
         return $this->db->get()->result();
     }
 
+private function _apply_trending_window($filters){
+    if (empty($filters['trending'])) return;
+
+    // jika kolom belum ada → jangan pakai filter trending (hindari 500)
+    if (!$this->_trending_columns_ready()) {
+        log_message('debug', 'Trending skipped: columns missing');
+        return;
+    }
+
+    $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;
+    $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;
+    $cutoff = date('Y-m-d H:i:s', time() - ($days * 86400));
+
+    $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+
+    $cut = $this->db->escape($cutoff);
+    $this->db->where("( (p.terlaris_score_updated_at IS NOT NULL AND p.terlaris_score_updated_at >= {$cut})
+                        OR (p.terlaris_score_updated_at IS NULL AND p.created_at >= {$cut}) )", null, false);
+}
+
     /** Detail by slug */
     public function get_by_slug($slug){
         $this->db->reset_query();   
@@ -123,17 +143,25 @@ if ($isRec) {
     }
 
     // 🔥 Trending window (tambahkan di base_filters juga!)
-    if (!empty($filters['trending'])) {
-        $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;
-        $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;
+    // if (!empty($filters['trending'])) {
+    //     $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;
+    //     $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;
 
-        $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
-        $this->db->where(
-            '(TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, p.created_at), NOW()) <= '.(int)$days.')',
-            null,
-            false
-        );
-    }
+    //     $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+    //     $this->db->where(
+    //         '(TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, p.created_at), NOW()) <= '.(int)$days.')',
+    //         null,
+    //         false
+    //     );
+    // }
+    // 🔥 Trending window (aman, auto-skip kalau kolom belum ada)
+$this->_apply_trending_window($filters);
+
+}
+private function _trending_columns_ready(): bool
+{
+    return $this->db->field_exists('terlaris_score', 'produk')
+        && $this->db->field_exists('terlaris_score_updated_at', 'produk');
 }
 
 
@@ -188,21 +216,24 @@ if ($isRec) {
         $this->db->where('p.stok', 0);
     }
 
-    // ===== Trending window (opsional, aktif jika filters['trending']) =====
-    if (!empty($filters['trending'])) {
-        $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;  // skor min
-        $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;   // jendela hari
+    // // ===== Trending window (opsional, aktif jika filters['trending']) =====
+    // if (!empty($filters['trending'])) {
+    //     $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;  // skor min
+    //     $days = isset($filters['trend_days']) ? (int)$filters['trend_days']   : 14;   // jendela hari
 
-        // skor minimal (pakai raw supaya fungsi COALESCE tidak di-backtick)
-        $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
+    //     // skor minimal (pakai raw supaya fungsi COALESCE tidak di-backtick)
+    //     $this->db->where('COALESCE(p.terlaris_score,0) >= '.(float)$min, null, false);
 
-        // hanya yang skornya diupdate dalam <= $days hari terakhir
-        $this->db->where(
-            '(TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, p.created_at), NOW()) <= '.(int)$days.')',
-            null,
-            false
-        );
-    }
+    //     // hanya yang skornya diupdate dalam <= $days hari terakhir
+    //     $this->db->where(
+    //         '(TIMESTAMPDIFF(DAY, COALESCE(p.terlaris_score_updated_at, p.created_at), NOW()) <= '.(int)$days.')',
+    //         null,
+    //         false
+    //     );
+    // }
+    // ===== Trending window (aman, auto-skip) =====
+$this->_apply_trending_window($filters);
+
 }
 
 
@@ -227,12 +258,20 @@ if ($isRec) {
             break;
 
             case 'trending':
-    // Sedang naik daun (dinamis). Fallback ke terlaris bila score 0/null.
-                    $this->db->order_by('COALESCE(p.terlaris_score,0)','DESC', false);
-            $this->db->order_by('p.terlaris','DESC');      // tie-breaker
-            $this->db->order_by('p.created_at','DESC');
-            $this->db->order_by('p.id','DESC');
-            break;
+    // jika kolom belum ada → fallback ke terlaris (hindari 500)
+    if (!$this->_trending_columns_ready()){
+        $this->db->order_by('p.terlaris','DESC');
+        $this->db->order_by('p.created_at','DESC');
+        $this->db->order_by('p.id','DESC');
+        break;
+    }
+    // kolom ada → pakai score
+    $this->db->order_by('COALESCE(p.terlaris_score,0)','DESC', false);
+    $this->db->order_by('p.terlaris','DESC');
+    $this->db->order_by('p.created_at','DESC');
+    $this->db->order_by('p.id','DESC');
+    break;
+
 
         case 'price_low':
             $this->db->order_by('p.harga','ASC');  break;
