@@ -195,7 +195,7 @@
       var a = document.createElement('a');
       a.className = 'nav-link dropdown-toggle waves-effect';
       a.href = j.data.dashboard || "<?= site_url('admin_profil/detail_profil') ?>";
-      a.innerHTML = '<i class="fe-user user"></i> Ke Dashboard';
+      a.innerHTML = '<i class="fe-user user text-white"></i><span class = "text-white"> Ke Admin<span>';
 
       li.appendChild(a);
       ul.appendChild(li);
