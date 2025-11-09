@@ -454,58 +454,77 @@ public function get_dataa(){
             $jumlah = (int)($r->grand_total ?? $r->total ?? 0);
 
             // ======== STATUS (label & badge) sesuai role ========
-            if ($isKitchen) {
-                // Kitchen → pakai status_pesanan_kitchen (1/2)
-                $sp = (int)($r->status_pesanan_kitchen ?? 1);
-                if ($sp === 2) { $status_label = 'Selesai'; $badge = 'success'; }
-                else           { $status_label = 'Proses';  $badge = 'warning'; }
-            } elseif ($isBar) {
-                // Bar → pakai status_pesanan_bar (1/2)
-                $sp = (int)($r->status_pesanan_bar ?? 1);
-                if ($sp === 2) { $status_label = 'Selesai'; $badge = 'success'; }
-                else           { $status_label = 'Proses';  $badge = 'warning'; }
-            } else {
-                // Kasir / Admin → pakai status pembayaran
-                $status_raw = strtolower($r->status ?: 'pending');
-                $badge = 'secondary';
-                if     ($status_raw === 'paid')       $badge = 'success';
-                elseif ($status_raw === 'canceled')   $badge = 'dark';
-                elseif ($status_raw === 'verifikasi') $badge = 'warning';
-                elseif ($status_raw === 'failed')     $badge = 'danger';
-                elseif ($status_raw === 'sent')       $badge = 'info';
+            // --- status global dari header pesanan ---
+                $status_global = strtolower((string)($r->status ?? ''));
+                $isCanceled = in_array($status_global, ['canceled','cancel','batal'], true);
 
-                $status_label = $status_raw;
-                if     ($status_raw === 'pending')    $status_label = 'menunggu pembayaran';
-                elseif ($status_raw === 'verifikasi') $status_label = 'verifikasi kasir';
-                elseif ($status_raw === 'paid')       $status_label = 'lunas';
-                elseif ($status_raw === 'sent')       $status_label = 'terkirim';
-            }
+                // ======== STATUS (label & badge) sesuai role, override jika canceled ========
+                if ($isKitchen) {
+                    if ($isCanceled) {
+                        $status_label = 'Dibatalkan';
+                        $badge = 'dark';  // boleh diganti 'danger' kalau mau merah
+                    } else {
+                        $sp = (int)($r->status_pesanan_kitchen ?? 1);
+                        if ($sp === 2) { $status_label = 'Selesai'; $badge = 'success'; }
+                        else           { $status_label = 'Proses';  $badge = 'warning'; }
+                    }
+                } elseif ($isBar) {
+                    if ($isCanceled) {
+                        $status_label = 'Dibatalkan';
+                        $badge = 'dark';
+                    } else {
+                        $sp = (int)($r->status_pesanan_bar ?? 1);
+                        if ($sp === 2) { $status_label = 'Selesai'; $badge = 'success'; }
+                        else           { $status_label = 'Proses';  $badge = 'warning'; }
+                    }
+                } else {
+                    // Kasir/Admin: tetap pakai status pembayaran seperti sebelumnya
+                    $status_raw = $status_global ?: 'pending';
+                    $badge = 'secondary';
+                    if     ($status_raw === 'paid')       $badge = 'success';
+                    elseif ($status_raw === 'canceled')   $badge = 'dark';
+                    elseif ($status_raw === 'verifikasi') $badge = 'warning';
+                    elseif ($status_raw === 'failed')     $badge = 'danger';
+                    elseif ($status_raw === 'sent')       $badge = 'info';
+
+                    $status_label = $status_raw;
+                    if     ($status_raw === 'pending')    $status_label = 'menunggu pembayaran';
+                    elseif ($status_raw === 'verifikasi') $status_label = 'verifikasi kasir';
+                    elseif ($status_raw === 'paid')       $status_label = 'lunas';
+                    elseif ($status_raw === 'sent')       $status_label = 'terkirim';
+                    elseif ($status_raw === 'canceled')   $status_label = 'dibatalkan';
+                }
+
 
             // === Hitung "lama" (elapsed) & closed flag ===
-            $isClosed = false;
-            if ($isKitchen) {
-                $isClosed = ((int)$r->status_pesanan_kitchen === 2);
-            } elseif ($isBar) {
-                $isClosed = ((int)$r->status_pesanan_bar === 2);
-            } else {
-                $status_raw2 = strtolower((string)($r->status ?? ''));
-                $isClosed = ((int)($r->tutup_transaksi ?? 0) === 1)
-                         || in_array($status_raw2, ['paid','canceled'], true);
-            }
+            // === Hitung "lama" (elapsed) & closed flag ===
+                $isClosed = false;
+                if ($isKitchen) {
+                    $isClosed = $isCanceled || ((int)$r->status_pesanan_kitchen === 2);
+                } elseif ($isBar) {
+                    $isClosed = $isCanceled || ((int)$r->status_pesanan_bar === 2);
+                } else {
+                    $status_raw2 = strtolower((string)($r->status ?? ''));
+                    $isClosed = $isCanceled
+                             || ((int)($r->tutup_transaksi ?? 0) === 1)
+                             || in_array($status_raw2, ['paid','canceled'], true);
+                }
 
-            if ($isClosed) {
-                // Titik selesai terbaik
-                if     ($isKitchen && !empty($r->kitchen_done_at)) $endTs = strtotime($r->kitchen_done_at);
-                elseif ($isBar   && !empty($r->bar_done_at))       $endTs = strtotime($r->bar_done_at);
-                elseif (!empty($r->paid_at))                       $endTs = strtotime($r->paid_at);
-                elseif (!empty($r->updated_at))                    $endTs = strtotime($r->updated_at);
-                else                                               $endTs = $createdTs;
+                if ($isClosed) {
+                    // Titik selesai terbaik
+                    if     ($isCanceled && !empty($r->canceled_at))          $endTs = strtotime($r->canceled_at);
+                    elseif ($isKitchen  && !empty($r->kitchen_done_at))       $endTs = strtotime($r->kitchen_done_at);
+                    elseif ($isBar      && !empty($r->bar_done_at))           $endTs = strtotime($r->bar_done_at);
+                    elseif (!empty($r->paid_at))                              $endTs = strtotime($r->paid_at);
+                    elseif (!empty($r->updated_at))                           $endTs = strtotime($r->updated_at);
+                    else                                                      $endTs = $createdTs;
 
-                $dur = max(0, (int)$endTs - (int)$createdTs);
-                $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-            } else {
-                $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
-            }
+                    $dur = max(0, (int)$endTs - (int)$createdTs);
+                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
+                } else {
+                    $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
+                }
+
 
             // ===== Kolom "Pesanan" (khusus kitchen/bar) =====
             if ($isKitchen || $isBar) {
