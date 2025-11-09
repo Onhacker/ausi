@@ -224,22 +224,6 @@ if (is_file($img_path)) {
 ?>
 
 <body class="menubar-gradient gradient-topbar topbar-dark">
-<?php
-  // Redirect kasir -> on_login (client-side, aman dari "headers already sent")
-  $uname = strtolower((string)$this->session->userdata('admin_username'));
-  $current = strtolower((string)$this->uri->uri_string());
-  $target  = site_url('on_login');
-
-  if ($uname === 'kasir' && $current !== 'on_login') : ?>
-    <script>
-      // JS redirect (cepat)
-      (function(){ window.location.replace("<?= $target ?>"); })();
-    </script>
-    <noscript>
-      <!-- Fallback tanpa JS -->
-      <meta http-equiv="refresh" content="0;url=<?= $target ?>">
-    </noscript>
-<?php endif; ?>
 
 
 <header id="topnav">
