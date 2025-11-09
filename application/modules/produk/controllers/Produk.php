@@ -359,21 +359,7 @@ private function _db_fail_response_if_any()
     }
 }
 
-private function _db_fail_response_if_any(): 
-{
-    $err = $this->db->error();
-    if (!empty($err['code'])) {
-        log_message('error', 'DB ERROR '.$err['code'].': '.$err['message']);
-        $this->output->set_content_type('application/json')
-            ->set_status_header(500)
-            ->set_output(json_encode([
-                'success' => false,
-                'error'   => 'Database error',
-                'code'    => $err['code'],
-            ]));
-        exit; // penting: hentikan eksekusi
-    }
-}
+
    public function list_ajax(){
     $this->_nocache_headers();
     $this->_ensure_db();
