@@ -544,27 +544,17 @@ public function get_dataa(){
             // }
 
             if (!$isKitchen && !$isBar) {
-    $idInt = (int)$r->id;
+                $idInt = (int)$r->id;
 
-    // tombol
-    $btnPaid = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
+                $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
+                $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')"><i class="fe-x-circle"></i></button>';
+                $btnDelete = '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>';
 
-    // Non-admin (kasir) juga dapat Cancel; disable jika sudah closed/paid/canceled
-    $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')" '.($isClosed ? 'disabled' : '').'><i class="fe-x-circle"></i></button>';
+                $unameLower = strtolower((string)$this->session->userdata('admin_username'));
+    $isAdmin = ($unameLower === 'admin'); // sesuaikan kalau ada role lain
 
-    // Delete tetap khusus admin
-    $btnDelete = '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>';
-
-    $unameLower = strtolower((string)$this->session->userdata('admin_username'));
-    $isAdmin = ($unameLower === 'admin');
-
+    // kasir & user selain admin: hanya tombol Paid
     $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'
-                 .   $btnPaid
-                 .   $btnCancel           // <-- sekarang tampil juga untuk kasir
-                 .   ($isAdmin ? $btnDelete : '')
-                 . '</div>';
-}
-
     . $btnPaid
     . ($isAdmin ? $btnCancel.$btnDelete : '')
     . '</div>';
