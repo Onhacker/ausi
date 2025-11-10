@@ -57,6 +57,24 @@
 
   <!-- ========== CSS KUSTOM ========== -->
   <style>
+    /* ===== EMPTY STATE (No upcoming bookings) ===== */
+.empty-state { text-align:center; padding:16px 12px 0; }
+.empty-hero { display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
+.empty-hero .emoji-8ball { font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
+.empty-title{
+  margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
+  font-size:clamp(16px,3.2vw,30px);
+  background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,1.6vw,14px) }
+.empty-divider{
+  width:min(520px,80%); height:3px; margin:8px auto 12px; border-radius:999px;
+  background:linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
+  box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
+}
+/* responsive video wrapper sudah ada: .empty-video + .embed-16x9 */
+
     :root{
       /* jarak aman default dari bawah */
       --safe-bottom: 16px;
@@ -389,15 +407,17 @@
     function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]}); }
 
 function renderCards(cards){
-  if(!Array.isArray(cards) || cards.length===0){
-    // Tampilkan pesan + video loop
-   var html = ''
+ if(!Array.isArray(cards) || cards.length===0){
+  var html = ''
   + '<div class="col-12">'
-  + '  <div class="card-box">'
-  + '    <p class="mb-2">Belum ada bookingan billiard mendatang.</p>'
+  + '  <div class="card-box empty-state">'
+  + '    <div class="empty-hero">'
+  + '      <span class="emoji-8ball" aria-hidden="true">🎱</span>'
+  + '      <h3 class="empty-title">Belum ada bookingan <span class="hl">billiard</span> mendatang</h3>'
+  + '    </div>'
+  + '    <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
+  + '    <div class="empty-divider" aria-hidden="true"></div>'
   + '    <div class="empty-video" style="max-width:clamp(720px,72vw,1280px);margin:14px auto 0">'
-
-
   + '      <div class="embed-16x9">'
   + '        <iframe'
   + '          id="ytLoop"'
@@ -411,11 +431,11 @@ function renderCards(cards){
   + '  </div>'
   + '</div>';
 
+  rowEl.innerHTML = html;
+  setLive('idle');
+  return;
+}
 
-    rowEl.innerHTML = html;
-    setLive('idle');
-    return;
-  }
 
   // ====== jika ADA data booking (kode lama kamu tetap dipakai) ======
   var html = '';
