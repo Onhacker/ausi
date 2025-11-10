@@ -235,7 +235,7 @@ public function print_laba(){
     $sumKP  = $this->lm->sum_kursi_pijat($f);
 
     // Laba final: Cafe + Billiard + Kursi Pijat - Pengeluaran
-    $laba = (int)$sumPos['total'] + (int)$sumBil['total'] + (int)$sumKP['total'] - (int)$sumPen['total'];
+    $laba = (int)$sumPos['total'] + (int)$sumBil['total'] + (int)$sumKP['total'] + 38377000 - (int)$sumPen['total'];
 
     $data = [
         'title'  => 'Laporan Laba',

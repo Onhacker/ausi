@@ -32,11 +32,15 @@
           <td align="right"><?= $idr($sumKP['total'] ?? 0) ?></td>
         </tr>
         <tr>
+          <td>Input Tgl 1 - 7</td>
+          <td align="right"><?= $idr(38377000) ?></td>
+        </tr>
+        <tr>
           <td>Pengeluaran</td>
           <td align="right" style="color:#c62828">-<?= $idr($sumPen['total'] ?? 0) ?></td>
         </tr>
         <tr style="background-color:#f9fafb">
-          <td><b>LABA BERSIH (Cafe + Billiard + Kursi Pijat − Pengeluaran)</b></td>
+          <td><b>LABA BERSIH (Cafe + Billiard + Kursi Pijat + Input Tgl 1 - 7 − Pengeluaran)</b></td>
           <td align="right"><b><?= $idr($laba ?? 0) ?></b></td>
         </tr>
       </table>
