@@ -57,6 +57,15 @@
 
   <!-- ========== CSS KUSTOM ========== -->
   <style>
+      :root{
+      /* jarak aman default dari bawah */
+      --safe-bottom: 16px;
+      /* warna aksen */
+      --a1:#dd7634; --a2:#ffffff; --a3:#cddc39;
+      --c1:#4e77be; --c2:#1e3c72;
+      /* tinggi ticker */
+      --ticker-h: 46px;
+    }
     /* ===== EMPTY STATE (No upcoming bookings) ===== */
 .empty-state { text-align:center; padding:16px 12px 0; }
 .empty-hero { display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
@@ -75,15 +84,7 @@
 }
 /* responsive video wrapper sudah ada: .empty-video + .embed-16x9 */
 
-    :root{
-      /* jarak aman default dari bawah */
-      --safe-bottom: 16px;
-      /* warna aksen */
-      --a1:#dd7634; --a2:#ffffff; --a3:#cddc39;
-      --c1:#4e77be; --c2:#1e3c72;
-      /* tinggi ticker */
-      --ticker-h: 46px;
-    }
+  
 
     body { padding-bottom: 0 !important; }
 
@@ -417,7 +418,8 @@ function renderCards(cards){
   + '    </div>'
   + '    <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
   + '    <div class="empty-divider" aria-hidden="true"></div>'
-  + '    <div class="empty-video" style="max-width:clamp(720px,72vw,1280px);margin:14px auto 0">'
+  + '    <div class="empty-video" style="width:clamp(320px,92vw,1280px);margin:14px auto 0">'
+
   + '      <div class="embed-16x9">'
   + '        <iframe'
   + '          id="ytLoop"'
