@@ -74,7 +74,7 @@ class Sitemap extends Onhacker_Controller
     }
 
     /* ========== /sitemap-static.xml (STATIS) ========== */
-    public function static_pages(){
+   public function static_pages(){
         $rows = [
             // Home
             ['loc'=>$this->_abs('/'),                       'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'1.00'],
@@ -94,7 +94,7 @@ class Sitemap extends Onhacker_Controller
             ['loc'=>$this->_abs('scan'),                   'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
             // Pijat
             ['loc'=>$this->_abs('pijat'),                  'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
-            // Review (pilih salah satu di real prod; ini pakai /hal/review)
+            // Review
             ['loc'=>$this->_abs('hal/review'),             'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
             // Hal
             ['loc'=>$this->_abs('hal'),                    'last'=>'2025-11-01', 'chg'=>'weekly', 'prio'=>'0.60'],
@@ -104,6 +104,8 @@ class Sitemap extends Onhacker_Controller
             ['loc'=>$this->_abs('hal/pengumuman'),         'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.70'],
             // Privacy Policy
             ['loc'=>$this->_abs('hal/privacy_policy'),     'last'=>'2025-11-01', 'chg'=>'yearly', 'prio'=>'0.30'],
+            // Monitor (ditambahkan)
+            ['loc'=>$this->_abs('monitor'),                'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
         ];
 
         $xml  = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
