@@ -57,7 +57,7 @@
 
   <!-- ========== CSS KUSTOM ========== -->
   <style>
-      :root{
+    :root{
       /* jarak aman default dari bawah */
       --safe-bottom: 16px;
       /* warna aksen */
@@ -65,60 +65,71 @@
       --c1:#4e77be; --c2:#1e3c72;
       /* tinggi ticker */
       --ticker-h: 46px;
+      /* tinggi jam (akan dioverride via JS) */
+      --clock-h: 88px;
     }
+
     /* ===== EMPTY STATE (No upcoming bookings) ===== */
-.empty-state { text-align:center; padding:16px 12px 0; }
-.empty-hero { display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
-.empty-hero .emoji-8ball { font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
-.empty-title{
-  margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
-  font-size:clamp(16px,3.2vw,30px);
-  background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-}
-.empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,1.6vw,14px) }
-.empty-divider{
-  width:min(520px,80%); height:3px; margin:8px auto 12px; border-radius:999px;
-  background:linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
-  box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
-}
-/* responsive video wrapper sudah ada: .empty-video + .embed-16x9 */
+    .empty-state { text-align:center; padding:16px 12px 0; }
+    .empty-hero { display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
+    .empty-hero .emoji-8ball { font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
+    .empty-title{
+      margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
+      font-size:clamp(16px,3.2vw,30px);
+      background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,1.6vw,14px) }
+    .empty-divider{
+      width:min(520px,80%); height:3px; margin:8px auto 12px; border-radius:999px;
+      background:linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
+      box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
+    }
 
-  /* ===== EMPTY STATE: responsif ikuti layar ===== */
-.empty-wrap{ 
-  width: clamp(320px, 94vw, 1280px);           /* skala dari HP sampai TV FHD */
-  margin: clamp(8px,2vw,16px) auto 0;
-  padding: clamp(8px,2vw,16px) clamp(8px,2vw,18px);
-  text-align: center;
-}
-.empty-hero{ display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
-.empty-hero .emoji-8ball{ font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
+    /* ===== EMPTY STATE: responsif ikuti layar ===== */
+    .empty-wrap{
+      width: clamp(320px, 94vw, 1280px);
+      margin: clamp(8px,2vw,16px) auto 0;
+      padding: clamp(8px,2vw,16px) clamp(8px,2vw,18px);
+      text-align: center;
+      min-height: calc(100svh - var(--ticker-h) - var(--clock-h) - 120px);
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
+    }
+    .empty-hero{ display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
+    .empty-hero .emoji-8ball{ font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
 
-.empty-title{
-  margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
-  font-size: clamp(18px, 4vw, 34px);           /* judul ikut layar */
-  background: linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-}
-.empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,2vw,16px) }
-.empty-divider{
-  width: min(94%, 720px); height:3px; margin:8px auto 12px; border-radius:999px;
-  background: linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
-  box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
-}
+    .empty-title{
+      margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
+      font-size: clamp(18px, 4vw, 34px);
+      background: linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,2vw,16px) }
+    .empty-divider{
+      width: min(94%, 720px); height:3px; margin:8px auto 12px; border-radius:999px;
+      background: linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
+      box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
+    }
 
-/* Video responsif penuh lebar container */
-.empty-video{ margin-top: clamp(8px,2vw,16px); }
-.embed-16x9{ position:relative; width:100%; aspect-ratio:16/9; }
-.embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-/* Fallback jika browser belum support aspect-ratio */
-@supports not (aspect-ratio: 16/9){
-  .embed-16x9{ height:0; padding-bottom:56.25%; }
-}
+    /* Video responsif penuh lebar container */
+    .empty-video{
+      margin-top:14px;
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:0 6px 16px rgba(0,0,0,.15);
+      width: clamp(320px, 94vw, 1280px);
+      margin-left:auto; margin-right:auto;
+      /* beri jeda ekstra agar tak ketutup jam */
+      margin-bottom: calc(var(--clock-h) + 8px);
+    }
+    .embed-16x9{ position:relative; width:100%; aspect-ratio:16/9; }
+    .embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+    @supports not (aspect-ratio: 16/9){
+      .embed-16x9{ height:0; padding-bottom:56.25%; }
+    }
 
-/* Saat ada ticker fixed, batasi tinggi supaya tidak mentok bawah */
-body.has-fixed-ticker .empty-video{ max-height: calc(100svh - var(--ticker-h) - 160px); }
-
+    /* Saat ada ticker fixed, jangan potong video */
+    body.has-fixed-ticker .empty-video{ max-height: none !important; }
 
     body { padding-bottom: 0 !important; }
 
@@ -152,9 +163,7 @@ body.has-fixed-ticker .empty-video{ max-height: calc(100svh - var(--ticker-h) - 
       border-bottom-left-radius:50% 16%; border-bottom-right-radius:50% 16%;
       z-index:-1; filter:drop-shadow(0 18px 36px rgba(16,24,40,.18));
     }
-    .wrapper {
-      padding-top: 0px;
-    }
+    .wrapper{ padding-top:0px; }
 
     /* ===== LIVE DOT ===== */
     #liveDot{ position:relative; width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px;
@@ -320,49 +329,20 @@ body.has-fixed-ticker .empty-video{ max-height: calc(100svh - var(--ticker-h) - 
 
     /* ===== MISC ===== */
     hr{ margin-top:1rem; margin-bottom:1rem; border:0; border-top:1px solid #9E9E9E }
-      /* ==== AMAN DARI TICKER & PAS DI LAYAR ==== */
-body.has-fixed-ticker .wrapper.curved {
-  /* beri ruang bawah agar konten (judul/video) tidak tertutup ticker */
-  padding-bottom: calc(var(--ticker-h) + var(--safe-bottom) + env(safe-area-inset-bottom, 0px) + 32px);
-  min-height: 100svh; /* isi penuh layar */
-  box-sizing: border-box;
-}
 
-/* agar .empty-wrap (kontainer kosong) ikut skala penuh layar */
-.empty-wrap {
-  min-height: calc(100svh - var(--ticker-h) - 120px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* tengah vertikal */
-  align-items: center;
-}
+    /* ==== AMAN DARI TICKER & PAS DI LAYAR ==== */
+    body.has-fixed-ticker .wrapper.curved{
+      padding-bottom: calc(var(--ticker-h) + var(--safe-bottom) + var(--clock-h) + 16px);
+      min-height: 100svh;
+      box-sizing: border-box;
+    }
   </style>
+
+  <!-- Tambahan CSS final video (biar prioritas paling bawah stylesheet) -->
   <style>
-  /* ===== EMPTY VIDEO (responsive 16:9) ===== */
-  /* ===== VIDEO 16:9 RESPONSIF (FINAL) ===== */
-.empty-video{ 
-  margin-top:14px; 
-  border-radius:12px; 
-  overflow:hidden; 
-  box-shadow:0 6px 16px rgba(0,0,0,.15);
-  width: clamp(320px, 94vw, 1280px);      /* ngikut lebar layar */
-  margin-left:auto; margin-right:auto;
-}
-
-.embed-16x9{ position:relative; width:100%; height:auto; }
-@supports (aspect-ratio: 16/9){
-  .embed-16x9{ aspect-ratio:16/9; }       /* browser modern */
-}
-@supports not (aspect-ratio: 16/9){
-  .embed-16x9{ height:0; padding-bottom:56.25%; } /* fallback universal */
-}
-.embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-
-body.has-fixed-ticker .empty-video{ max-height: none !important; }
-
-
-</style>
-
+    /* (Tetap dipertahankan untuk memastikan override aktif) */
+    body.has-fixed-ticker .empty-video{ max-height: none !important; }
+  </style>
 </head>
 
 <body class="menubar-gradient gradient-topbar topbar-dark compact">
@@ -434,6 +414,25 @@ body.has-fixed-ticker .empty-video{ max-height: none !important; }
   })();
   </script>
 
+  <!-- SET CSS --clock-h sesuai tinggi jam (TAMBAHAN KECIL) -->
+  <script>
+  (function(){
+    const el = document.getElementById('liveClock');
+    if(!el) return;
+    let t;
+    function applyClockHeight(){
+      const h = el.offsetHeight || 80;
+      document.documentElement.style.setProperty('--clock-h', h + 'px');
+    }
+    applyClockHeight();
+    window.addEventListener('resize', ()=>{ clearTimeout(t); t = setTimeout(applyClockHeight, 120); }, {passive:true});
+    if ('ResizeObserver' in window){
+      const ro = new ResizeObserver(applyClockHeight);
+      ro.observe(el);
+    }
+  })();
+  </script>
+
   <!-- Monitor loop + renderer -->
   <script>
   (function(){
@@ -476,92 +475,87 @@ body.has-fixed-ticker .empty-video{ max-height: none !important; }
 
     function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]}); }
 
-function renderCards(cards){
- if(!Array.isArray(cards) || cards.length===0){
-  var html = ''
-  + '<div class="col-12">'
-  + '  <div class="card-box empty-wrap">'
-  + '    <div class="empty-hero">'
-  + '      <span class="emoji-8ball" aria-hidden="true">🎱</span>'
-  + '      <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
-  + '    </div>'
-  + '    <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
-  + '    <div class="empty-divider" aria-hidden="true"></div>'
-  + '    <div class="empty-video">'
-  + '      <div class="embed-16x9">'
-  + '        <iframe'
-  + '          id="ytLoop"'
-  + '          src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
-  + '          title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
-  + '          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
-  + '          referrerpolicy="strict-origin-when-cross-origin"'
-  + '          allowfullscreen></iframe>'
-  + '      </div>'
-  + '    </div>'
-  + '  </div>'
-  + '</div>';
+    function renderCards(cards){
+      if(!Array.isArray(cards) || cards.length===0){
+        var html = ''
+        + '<div class="col-12">'
+        + '  <div class="card-box empty-wrap">'
+        + '    <div class="empty-hero">'
+        + '      <span class="emoji-8ball" aria-hidden="true">🎱</span>'
+        + '      <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
+        + '    </div>'
+        + '    <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
+        + '    <div class="empty-divider" aria-hidden="true"></div>'
+        + '    <div class="empty-video">'
+        + '      <div class="embed-16x9">'
+        + '        <iframe'
+        + '          id="ytLoop"'
+        + '          src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
+        + '          title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
+        + '          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+        + '          referrerpolicy="strict-origin-when-cross-origin"'
+        + '          allowfullscreen></iframe>'
+        + '      </div>'
+        + '    </div>'
+        + '  </div>'
+        + '</div>';
 
-  rowEl.innerHTML = html;
-  setLive('idle');
-  return;
-}
-
-
-
-  // ====== jika ADA data booking (kode lama kamu tetap dipakai) ======
-  var html = '';
-  cards.forEach(function(c){
-    var count = parseInt(c.booking_count||0,10);
-    html += '<div class="col-xl-6 col-lg-12">';
-    html +=   '<div class="card-box mt-3" style="position:relative; padding-top:46px; padding-bottom:64px;">';
-    html +=     '<div class="meja-ribbon"><span>'+esc(c.nama_meja)+'</span></div>';
-    html +=     '<div class="book-count">'+count+' booking</div>';
-
-    (c.days||[]).forEach(function(d){
-      html += '<div class="day-row">';
-      html +=   '<div class="cal-ava" title="'+esc(d.tanggal_fmt)+'">';
-      html +=     '<div class="cal-tile" aria-label="'+esc(d.tanggal_fmt)+'">';
-      html +=       '<div class="cal-head">'+esc(d.mon)+'</div>';
-      html +=       '<div class="cal-day">'+esc(d.daynum)+'</div>';
-      html +=     '</div>';
-      html +=     '<div class="cal-cap mt-1">'+esc(String(d.weekday||'').toUpperCase())+'</div>';
-      html +=   '</div>';
-
-      html +=   '<div class="day-content">';
-      if(d.bookings && d.bookings.length){
-        html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
-        d.bookings.forEach(function(b){
-          var showVeriCash = (String(b.status||'').toLowerCase()==='verifikasi'
-                              && String(b.metode_bayar||'').toLowerCase()==='cash');
-          html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
-          html +=   '<div class="conversation-text"><div class="ctext-wrap">';
-          html +=     '<div class="ct-head">';
-          html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' · '+parseInt(b.durasi_jam||0,10)+' jam <span class="tz">WITA</span></div>';
-          html +=       '<div class="ct-right mb-1">';
-          html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
-          // if(showVeriCash){ html += ' <span class="verify-pill" title="Status: verifikasi, metode bayar cash" aria-label="Verifikasi (Cash)">Verifikasi Cash</span>'; }
-          html +=       '</div>';
-          html +=     '</div>';
-          html +=     '<div class="ct-meta">'+esc(b.nama||'Booking')+(b.hp_masked?(' · '+esc(b.hp_masked)):'')+'</div>';
-          html +=   '</div></div>';
-          html += '</li>';
-        });
-        html +=   '</ul>';
-      } else {
-        html +=   '<div class="text-muted small">Belum ada booking pada tanggal ini.</div>';
+        rowEl.innerHTML = html;
+        setLive('idle');
+        return;
       }
-      html +=   '</div>';
-      html += '</div>';
-      html += '<hr style="margin:10px 0">';
-    });
 
-    html +=   '</div>';
-    html += '</div>';
-  });
-  rowEl.innerHTML = html;
-}
+      // ====== jika ADA data booking (kode lama kamu tetap dipakai) ======
+      var html = '';
+      cards.forEach(function(c){
+        var count = parseInt(c.booking_count||0,10);
+        html += '<div class="col-xl-6 col-lg-12">';
+        html +=   '<div class="card-box mt-3" style="position:relative; padding-top:46px; padding-bottom:64px;">';
+        html +=     '<div class="meja-ribbon"><span>'+esc(c.nama_meja)+'</span></div>';
+        html +=     '<div class="book-count">'+count+' booking</div>';
 
+        (c.days||[]).forEach(function(d){
+          html += '<div class="day-row">';
+          html +=   '<div class="cal-ava" title="'+esc(d.tanggal_fmt)+'">';
+          html +=     '<div class="cal-tile" aria-label="'+esc(d.tanggal_fmt)+'">';
+          html +=       '<div class="cal-head">'+esc(d.mon)+'</div>';
+          html +=       '<div class="cal-day">'+esc(d.daynum)+'</div>';
+          html +=     '</div>';
+          html +=     '<div class="cal-cap mt-1">'+esc(String(d.weekday||'').toUpperCase())+'</div>';
+          html +=   '</div>';
 
+          html +=   '<div class="day-content">';
+          if(d.bookings && d.bookings.length){
+            html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
+            d.bookings.forEach(function(b){
+              var showVeriCash = (String(b.status||'').toLowerCase()==='verifikasi'
+                                  && String(b.metode_bayar||'').toLowerCase()==='cash');
+              html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
+              html +=   '<div class="conversation-text"><div class="ctext-wrap">';
+              html +=     '<div class="ct-head">';
+              html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' · '+parseInt(b.durasi_jam||0,10)+' jam <span class="tz">WITA</span></div>';
+              html +=       '<div class="ct-right mb-1">';
+              html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
+              html +=       '</div>';
+              html +=     '</div>';
+              html +=     '<div class="ct-meta">'+esc(b.nama||'Booking')+(b.hp_masked?(' · '+esc(b.hp_masked)):'')+'</div>';
+              html +=   '</div></div>';
+              html += '</li>';
+            });
+            html +=   '</ul>';
+          } else {
+            html +=   '<div class="text-muted small">Belum ada booking pada tanggal ini.</div>';
+          }
+          html +=   '</div>';
+          html += '</div>';
+          html += '<hr style="margin:10px 0">';
+        });
+
+        html +=   '</div>';
+        html += '</div>';
+      });
+      rowEl.innerHTML = html;
+    }
 
     // ================== Countdown ==================
     function pad(n){return (n<10?'0':'')+n;}
