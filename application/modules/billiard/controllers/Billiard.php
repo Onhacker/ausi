@@ -404,23 +404,24 @@ public function monitor_ping(){
 
   // Agregat ringan: total, max_id, dan versi (SUM(CRC32(...)))
   $sql = "
-    SELECT
-    COUNT(*) AS total,
-    MAX(id_pesanan) AS max_id,
-    COALESCE(SUM(CRC32(CONCAT_WS('#',
-      meja_id,
-      tanggal,
-      id_pesanan,
-      status,
-      LOWER(COALESCE(metode_bayar,'')),
-      jam_mulai,
-      jam_selesai
-    ))), 0) AS ver
-  FROM pesanan_billiard
-  WHERE
-    (status='terkonfirmasi' OR (status='verifikasi' AND metode_bayar='cash'))
-    AND tanggal >= ? AND tanggal <= ?
-    AND LOWER(TRIM(SUBSTRING_INDEX(nama_meja, '-', -1))) IN ('regular','reguler');
+   SELECT
+  COUNT(*) AS total,
+  MAX(id_pesanan) AS max_id,
+  COALESCE(SUM(CRC32(CONCAT_WS('#',
+    meja_id,
+    tanggal,
+    id_pesanan,
+    status,
+    LOWER(COALESCE(metode_bayar,'')),
+    jam_mulai,
+    jam_selesai
+  ))), 0) AS ver
+FROM pesanan_billiard
+WHERE
+  (status='terkonfirmasi' OR (status='verifikasi' AND LOWER(metode_bayar)='cash'))
+  AND tanggal BETWEEN ? AND ?
+  /* hanya yang mengandung kata regular/reguler (kata utuh) */
+  AND nama_meja REGEXP '(?i)[[:<:]]regul(e|a)r[[:>:]]';
 
   ";
   $row = $this->db->query($sql, [$yesterday, $upperDate])->row();
