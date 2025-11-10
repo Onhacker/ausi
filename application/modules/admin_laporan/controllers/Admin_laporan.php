@@ -365,30 +365,112 @@ public function print_laba(){
  *  Admin: bebas.
  *  Non-admin: hanya 'today' & 'yesterday'. Selain itu akan dipaksa 'today'.
  */
+// private function _enforce_period_acl(array $f): array
+// {
+//     $isAdmin = ($this->session->userdata('admin_username') === 'admin');
+//     $preset  = $f['preset'] ?? 'today';
+
+//     // Admin: tak perlu ubah apa pun
+//     if ($isAdmin) {
+//         return $f;
+//     }
+
+//     // Non-admin: hanya boleh today / yesterday
+//     if ($preset !== 'today' && $preset !== 'yesterday') {
+//         $preset = 'today';
+//     }
+
+//     $tz  = new DateTimeZone('Asia/Makassar');
+//     $now = new DateTime('now', $tz);
+
+//     if ($preset === 'yesterday') {
+//         $start = (clone $now)->setTime(0,0,0)->modify('-1 day');
+//         $end   = (clone $start)->setTime(23,59,59);
+//     } else { // today
+//         $start = (clone $now)->setTime(0,0,0);
+//         $end   = (clone $now)->setTime(23,59,59);
+//     }
+
+//     $f['preset']    = $preset;
+//     $f['date_from'] = $start->format('Y-m-d H:i:s');
+//     $f['date_to']   = $end->format('Y-m-d H:i:s');
+//     return $f;
+// }
+
 private function _enforce_period_acl(array $f): array
 {
-    $isAdmin = ($this->session->userdata('admin_username') === 'admin');
-    $preset  = $f['preset'] ?? 'today';
-
-    // Admin: tak perlu ubah apa pun
-    if ($isAdmin) {
-        return $f;
-    }
-
-    // Non-admin: hanya boleh today / yesterday
-    if ($preset !== 'today' && $preset !== 'yesterday') {
-        $preset = 'today';
-    }
-
+    // Tidak ada pembatasan berdasarkan session/role lagi.
+    // Semua preset diterima. Jika 'custom' dikirim dengan date_from & date_to,
+    // kita pakai apa adanya (dinormalisasi). Default: today.
     $tz  = new DateTimeZone('Asia/Makassar');
     $now = new DateTime('now', $tz);
 
-    if ($preset === 'yesterday') {
-        $start = (clone $now)->setTime(0,0,0)->modify('-1 day');
-        $end   = (clone $start)->setTime(23,59,59);
-    } else { // today
-        $start = (clone $now)->setTime(0,0,0);
-        $end   = (clone $now)->setTime(23,59,59);
+    $preset = strtolower(trim((string)($f['preset'] ?? 'today')));
+
+    // Jika custom & ada date_from/date_to → pakai itu
+    if ($preset === 'custom' && !empty($f['date_from']) && !empty($f['date_to'])) {
+        try { $start = new DateTime((string)$f['date_from'], $tz); }
+        catch (\Exception $e) { $start = (clone $now)->setTime(0,0,0); }
+
+        try { $end = new DateTime((string)$f['date_to'], $tz); }
+        catch (\Exception $e) { $end = (clone $start)->setTime(23,59,59); }
+
+        // Jaga urutan start <= end
+        if ($end < $start) { [$start, $end] = [$end, $start]; }
+
+        // Clamp ke detik penuh
+        $start = (clone $start)->setTime((int)$start->format('H'), (int)$start->format('i'), (int)$start->format('s'));
+        $end   = (clone $end)->setTime((int)$end->format('H'), (int)$end->format('i'), (int)$end->format('s'));
+    } else {
+        // Preset umum (tambahkan/kurangi sesuai kebutuhanmu)
+        switch ($preset) {
+            case 'yesterday':
+                $start = (clone $now)->setTime(0,0,0)->modify('-1 day');
+                $end   = (clone $start)->setTime(23,59,59);
+                break;
+
+            case 'this_week': { // Senin..Minggu minggu ini
+                $dow   = (int)$now->format('N'); // 1..7 (Mon..Sun)
+                $start = (clone $now)->modify('-'.($dow-1).' days')->setTime(0,0,0);
+                $end   = (clone $start)->modify('+6 days')->setTime(23,59,59);
+                break;
+            }
+
+            case 'last_week': { // Senin..Minggu minggu lalu
+                $dow   = (int)$now->format('N');
+                $end   = (clone $now)->modify('-'.$dow.' days')->setTime(23,59,59); // Minggu lalu
+                $start = (clone $end)->modify('-6 days')->setTime(0,0,0);
+                break;
+            }
+
+            case 'this_month':
+                $start = (clone $now)->modify('first day of this month')->setTime(0,0,0);
+                $end   = (clone $now)->modify('last day of this month')->setTime(23,59,59);
+                break;
+
+            case 'last_month':
+                $start = (clone $now)->modify('first day of last month')->setTime(0,0,0);
+                $end   = (clone $now)->modify('last day of last month')->setTime(23,59,59);
+                break;
+
+            case 'this_year':
+                $start = (clone $now)->setDate((int)$now->format('Y'), 1, 1)->setTime(0,0,0);
+                $end   = (clone $now)->setDate((int)$now->format('Y'),12,31)->setTime(23,59,59);
+                break;
+
+            case 'last_year': {
+                $y     = (int)$now->format('Y') - 1;
+                $start = (clone $now)->setDate($y, 1, 1)->setTime(0,0,0);
+                $end   = (clone $now)->setDate($y,12,31)->setTime(23,59,59);
+                break;
+            }
+
+            case 'today':
+            default:
+                $preset = 'today';
+                $start  = (clone $now)->setTime(0,0,0);
+                $end    = (clone $now)->setTime(23,59,59);
+        }
     }
 
     $f['preset']    = $preset;
@@ -396,7 +478,6 @@ private function _enforce_period_acl(array $f): array
     $f['date_to']   = $end->format('Y-m-d H:i:s');
     return $f;
 }
-
 
 
     private function _pdf($title, $html, $filename='laporan.pdf'){
