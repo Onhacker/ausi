@@ -58,78 +58,60 @@
   <!-- ========== CSS KUSTOM ========== -->
   <style>
     :root{
-      /* jarak aman default dari bawah */
       --safe-bottom: 16px;
-      /* warna aksen */
       --a1:#dd7634; --a2:#8c2424; --a3:#cddc39;
       --c1:#4e77be; --c2:#1e3c72;
-      /* tinggi ticker */
       --ticker-h: 46px;
-      /* tinggi jam (akan dioverride via JS) */
       --clock-h: 88px;
+      --hero-h: 120px; /* diisi via JS */
     }
 
-    /* ===== EMPTY STATE (No upcoming bookings) ===== */
-    .empty-state { text-align:center; padding:16px 12px 0; }
-    .empty-hero { display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
-    .empty-hero .emoji-8ball { font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
-    .empty-title{
-      margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
-      font-size:clamp(16px,3.2vw,30px);
-      background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
-      -webkit-background-clip:text; background-clip:text; color:transparent;
-    }
-    .empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,1.6vw,14px) }
-    .empty-divider{
-      width:min(520px,80%); height:3px; margin:8px auto 12px; border-radius:999px;
-      background:linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
-      box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
-    }
-
-    /* ===== EMPTY STATE: responsif ikuti layar ===== */
+    /* ===== EMPTY STATE (2 kolom kiri teks, kanan video) ===== */
     .empty-wrap{
       width: clamp(320px, 94vw, 1280px);
       margin: clamp(8px,2vw,16px) auto 0;
       padding: clamp(8px,2vw,16px) clamp(8px,2vw,18px);
-      text-align: center;
       min-height: calc(100svh - var(--ticker-h) - var(--clock-h) - 120px);
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
+      display: block;
     }
-    .empty-hero{ display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
-    .empty-hero .emoji-8ball{ font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
+    .empty-grid{
+      display:grid;
+      grid-template-columns: minmax(260px,1fr) minmax(300px,1.4fr);
+      align-items:center;
+      gap: clamp(12px,3vw,28px);
+    }
+    @media (max-width: 992px){
+      .empty-grid{ grid-template-columns: 1fr; }
+      .empty-left{ text-align:center; }
+    }
 
+    .empty-left .empty-hero{ display:flex; align-items:center; gap:10px; margin:6px 0 6px; }
+    .empty-left .emoji-8ball{ font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
     .empty-title{
       margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
-      font-size: clamp(18px, 4vw, 34px);
-      background: linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
+      font-size:clamp(18px, 4vw, 34px);
+      background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
       -webkit-background-clip:text; background-clip:text; color:transparent;
     }
-    .empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,2vw,16px) }
+    .empty-sub{ margin:6px 0 10px; color:#64748b; font-weight:600; font-size:clamp(12px,2vw,16px) }
     .empty-divider{
-      width: min(94%, 720px); height:3px; margin:8px auto 12px; border-radius:999px;
-      background: linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
+      width:min(520px,80%); height:3px; margin:8px 0 12px; border-radius:999px;
+      background:linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
       box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
     }
 
-    /* Video responsif penuh lebar container */
-    .empty-video{
-      margin-top:14px;
-      border-radius:12px;
-      overflow:hidden;
-      box-shadow:0 6px 16px rgba(0,0,0,.15);
-      width: clamp(320px, 94vw, 1280px);
-      margin-left:auto; margin-right:auto;
-      /* beri jeda ekstra agar tak ketutup jam */
+    .empty-right .empty-video{
+      border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.15);
+      width:100%;
+      margin:0;
       margin-bottom: calc(var(--clock-h) + 8px);
     }
-    .embed-16x9{ position:relative; width:100%; aspect-ratio:16/9; }
+    .embed-16x9{ position:relative; width:100%; aspect-ratio:16/9; max-height: calc(100svh - var(--hero-h) - var(--clock-h) - var(--ticker-h) - 42px); }
     .embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
     @supports not (aspect-ratio: 16/9){
-      .embed-16x9{ height:0; padding-bottom:56.25%; }
+      .embed-16x9{ height:0; padding-bottom:56.25%; max-height:none; }
     }
-
-    /* Saat ada ticker fixed, jangan potong video */
-    body.has-fixed-ticker .empty-video{ max-height: none !important; }
+    body.has-fixed-ticker .empty-right .empty-video{ max-height: none !important; }
 
     body { padding-bottom: 0 !important; }
 
@@ -190,7 +172,7 @@
     #liveDot.is-err{--radar-ring:1.8s; --radar-sweep:2.0s}
     @media (prefers-reduced-motion:reduce){ #liveDot.radar::before,#liveDot.radar::after,#liveDot .sweep{ animation:none!important; opacity:0!important } }
 
-    /* ===== CARD & KALENDER MINI ===== */
+    /* ===== CARD & KALENDER MINI (tidak diubah) ===== */
     .meja-ribbon{position:absolute;top:-12px;left:50%;transform:translateX(-50%);z-index:2}
     .meja-ribbon span{background:#d30048;color:#fff;font-weight:700;font-size:14px;padding:6px 14px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
     .book-count{position:absolute;top:10px;right:12px;z-index:2;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}
@@ -250,7 +232,7 @@
     @media (prefers-reduced-motion:reduce){ .ticker-track{ animation:none!important; padding-left:0!important } }
     @keyframes tickerScroll{ from{transform:translateX(0)} to{transform:translateX(var(--ticker-translate,-100%))} }
 
-    /* ===== COMPACT MODE ===== */
+    /* ===== COMPACT MODE (tidak diubah) ===== */
     body.compact .wrapper.curved{ --curve-h:160px }
     body.compact .hero-title{ padding:10px 0 6px }
     body.compact .hero-title .text{ letter-spacing:.02em; font-size:clamp(14px,2.4vw,22px) }
@@ -276,9 +258,9 @@
     body.compact .live-clock .lc-time{ font-size:clamp(18px,3.6vw,30px) }
     body.compact .live-clock .lc-date{ font-size:11px }
 
-    /* ===== LIVE CLOCK ===== */
+    /* ===== LIVE CLOCK (tidak diubah) ===== */
     .live-clock{
-      position:fixed; right:16px; /* bottom diatur override di bawah */
+      position:fixed; right:16px;
       z-index:10060; background:rgba(2,6,23,.72); color:#fff; padding:12px 14px;
       border-radius:14px; border:1px solid rgba(255,255,255,.08);
       box-shadow:0 10px 24px rgba(0,0,0,.25); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
@@ -289,7 +271,7 @@
     .live-clock .lc-date{ margin-top:4px; font-size:12px; font-weight:600; opacity:.9; white-space:nowrap }
     .live-clock .lc-badge{ position:absolute; top:-8px; left:8px; background:#16a34a; color:#fff; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.04em; border:1px solid rgba(255,255,255,.15) }
 
-    /* ===== FS CTA & BUTTON ===== */
+    /* ===== FS CTA & BUTTON (tidak diubah) ===== */
     .fs-cta{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:10060 }
     .fs-cta__inner{ text-align:center; background:rgba(17,24,39,.88); border:1px solid rgba(255,255,255,.08); padding:20px 18px; border-radius:12px; color:#e5e7eb; max-width:92% }
     .fs-cta__inner .emoji{ font-size:36px; margin-bottom:8px }
@@ -300,7 +282,7 @@
     .fs-cta__inner .btn-cta:active{ transform:translateY(1px) }
 
     .fs-btn{
-      position:fixed; right:12px; /* bottom diatur override di bawah */
+      position:fixed; right:12px;
       z-index:10060; width:38px; height:38px; border-radius:10px; border:1px solid rgba(0,0,0,.12);
       background:#111827; color:#e5e7eb; cursor:pointer; display:grid; place-items:center; box-shadow:0 4px 16px rgba(0,0,0,.25);
     }
@@ -309,7 +291,7 @@
     .fs-btn.active .icon-exit{ display:inline }
     .fs-btn:hover{ filter:brightness(1.05) }
 
-    /* ===== OVERRIDE POSISI KUAT: PIN DI ATAS TICKER KANAN BAWAH ===== */
+    /* ===== PIN JAM + TOMBOL DI ATAS TICKER (tidak diubah) ===== */
     body.has-fixed-ticker #liveClock{
       top:auto !important; left:auto !important; right:16px !important;
       bottom: calc(var(--ticker-h) + var(--safe-bottom) + env(safe-area-inset-bottom, 0px)) !important;
@@ -327,50 +309,17 @@
       bottom: calc(var(--safe-bottom) + 56px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
-    /* ===== MISC ===== */
-    hr{ margin-top:1rem; margin-bottom:1rem; border:0; border-top:1px solid #9E9E9E }
-
-    /* ==== AMAN DARI TICKER & PAS DI LAYAR ==== */
+    /* ===== LAYOUT AMAN DENGAN TICKER (tidak diubah) ===== */
     body.has-fixed-ticker .wrapper.curved{
       padding-bottom: calc(var(--ticker-h) + var(--safe-bottom) + var(--clock-h) + 16px);
       min-height: 100svh;
       box-sizing: border-box;
     }
-    :root{
-  /* ...yang lain... */
-  --ticker-h: 46px;
-  --clock-h: 88px;   /* sudah ada, biarkan */
-  --hero-h: 120px;   /* tinggi judul (akan diisi otomatis lewat JS) */
-}
-
-/* kontainer empty agar memberi ruang bawah untuk jam+ticker */
-.empty-wrap{
-  padding-bottom: calc(var(--clock-h) + var(--ticker-h) + var(--safe-bottom));
-}
-
-/* kotak 16:9: batasi tinggi maksimum = tinggi layar - (judul+jam+ticker+nafás) */
-.embed-16x9{
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-  max-height: calc(100svh - var(--hero-h) - var(--clock-h) - var(--ticker-h) - 42px);
-}
-.embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-
-/* fallback jika browser belum support aspect-ratio */
-@supports not (aspect-ratio: 16/9){
-  .embed-16x9{ height:0; padding-bottom:56.25%; max-height:none; }
-}
-
-/* jangan pernah dipotong karena ticker fixed */
-body.has-fixed-ticker .empty-video{ max-height:none !important; }
-
   </style>
 
   <!-- Tambahan CSS final video (biar prioritas paling bawah stylesheet) -->
   <style>
-    /* (Tetap dipertahankan untuk memastikan override aktif) */
-    body.has-fixed-ticker .empty-video{ max-height: none !important; }
+    body.has-fixed-ticker .empty-right .empty-video{ max-height: none !important; }
   </style>
 </head>
 
@@ -443,7 +392,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
   })();
   </script>
 
-  <!-- SET CSS --clock-h sesuai tinggi jam (TAMBAHAN KECIL) -->
+  <!-- SET CSS --clock-h sesuai tinggi jam -->
   <script>
   (function(){
     const el = document.getElementById('liveClock');
@@ -481,22 +430,22 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
 
       if(status==='ok'){
         liveText.textContent = 'Live Billiard Ausi';
-        liveDot.style.setProperty('--dot-color', '#10b981'); // hijau
+        liveDot.style.setProperty('--dot-color', '#10b981');
         liveDot.style.color = '#10b981';
         liveDot.classList.add('is-ok');
       } else if(status==='idle'){
         liveText.textContent = 'Menunggu perubahan…';
-        liveDot.style.setProperty('--dot-color', '#6b7280'); // abu-abu
+        liveDot.style.setProperty('--dot-color', '#6b7280');
         liveDot.style.color = '#6b7280';
         liveDot.classList.add('is-idle');
       } else if(status==='err'){
         liveText.textContent = 'Gangguan koneksi';
-        liveDot.style.setProperty('--dot-color', '#ef4444'); // merah
+        liveDot.style.setProperty('--dot-color', '#ef4444');
         liveDot.style.color = '#ef4444';
         liveDot.classList.add('is-err');
       } else {
         liveText.textContent = 'Menghubungkan…';
-        liveDot.style.setProperty('--dot-color', '#a3a3a3'); // default
+        liveDot.style.setProperty('--dot-color', '#a3a3a3');
         liveDot.style.color = '#a3a3a3';
         liveDot.classList.add('is-idle');
       }
@@ -506,24 +455,31 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
 
     function renderCards(cards){
       if(!Array.isArray(cards) || cards.length===0){
+        // ====== EMPTY STATE: kiri teks, kanan video ======
         var html = ''
         + '<div class="col-12">'
         + '  <div class="card-box empty-wrap">'
-        + '    <div class="empty-hero">'
-        + '      <span class="emoji-8ball" aria-hidden="true">🎱</span>'
-        + '      <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
-        + '    </div>'
-        + '    <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
-        + '    <div class="empty-divider" aria-hidden="true"></div>'
-        + '    <div class="empty-video">'
-        + '      <div class="embed-16x9">'
-        + '        <iframe'
-        + '          id="ytLoop"'
-        + '          src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
-        + '          title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
-        + '          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
-        + '          referrerpolicy="strict-origin-when-cross-origin"'
-        + '          allowfullscreen></iframe>'
+        + '    <div class="empty-grid">'
+        + '      <div class="empty-left" role="status" aria-live="polite">'
+        + '        <div class="empty-hero">'
+        + '          <span class="emoji-8ball" aria-hidden="true">🎱</span>'
+        + '          <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
+        + '        </div>'
+        + '        <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
+        + '        <div class="empty-divider" aria-hidden="true"></div>'
+        + '      </div>'
+        + '      <div class="empty-right">'
+        + '        <div class="empty-video" aria-label="Video pemutar 9-ball (diputar berulang)">'
+        + '          <div class="embed-16x9">'
+        + '            <iframe'
+        + '              id="ytLoop"'
+        + '              src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
+        + '              title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
+        + '              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+        + '              referrerpolicy="strict-origin-when-cross-origin"'
+        + '              allowfullscreen></iframe>'
+        + '          </div>'
+        + '        </div>'
         + '      </div>'
         + '    </div>'
         + '  </div>'
@@ -534,7 +490,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
         return;
       }
 
-      // ====== jika ADA data booking (kode lama kamu tetap dipakai) ======
+      // ====== jika ADA data booking (kode lama tetap) ======
       var html = '';
       cards.forEach(function(c){
         var count = parseInt(c.booking_count||0,10);
@@ -557,8 +513,6 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
           if(d.bookings && d.bookings.length){
             html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
             d.bookings.forEach(function(b){
-              var showVeriCash = (String(b.status||'').toLowerCase()==='verifikasi'
-                                  && String(b.metode_bayar||'').toLowerCase()==='cash');
               html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
               html +=   '<div class="conversation-text"><div class="ctext-wrap">';
               html +=     '<div class="ct-head">';
@@ -586,7 +540,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
       rowEl.innerHTML = html;
     }
 
-    // ================== Countdown ==================
+    // ================== Countdown (tidak diubah) ==================
     function pad(n){return (n<10?'0':'')+n;}
     function fmt(ms){
       if(ms<=0)return'00:00:00';
@@ -652,7 +606,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
     }
     setInterval(runCountdown, 1000);
 
-    // ================== Doorbell (autoplay-safe) ==================
+    // ================== Doorbell beep (tidak diubah) ==================
     (function(){
       const AC = window.AudioContext || window.webkitAudioContext;
       let ctx = null, lastWall = 0;
@@ -677,7 +631,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
       }, { once:true });
     })();
 
-    // ================== Ping loop ==================
+    // ================== Ping loop (tidak diubah) ==================
     const last = { bil: { total:null, max_id:null, last_ts:null } };
     const BASE_INTERVAL = 10000, HIDDEN_INTERVAL = 20000;
     let errorStreak = 0, ticking = false;
@@ -733,13 +687,13 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
         };
         if (last.bil.total === null){
           last.bil = snap;
-          await reload_billiard_table('baseline'); // muat awal
+          await reload_billiard_table('baseline');
         } else {
           const added   = isAdded(last.bil, snap);
           const changed = isChanged(last.bil, snap);
-          last.bil = snap; // update snapshot dulu
-          if (changed) await reload_billiard_table('changed'); // hanya saat berubah
-          if (added)   playSound(); // ting–tong saat ada penambahan
+          last.bil = snap;
+          if (changed) await reload_billiard_table('changed');
+          if (added)   playSound();
         }
       }
     }
@@ -780,7 +734,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
   })();
   </script>
 
-  <!-- Fullscreen toggle + WakeLock -->
+  <!-- Fullscreen toggle + WakeLock (tidak diubah) -->
   <script>
   (function(){
     const LS_KEY = 'ausi_fs_auto';
@@ -872,7 +826,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
   })();
   </script>
 
-  <!-- Ticker rebuild + flag has-fixed-ticker -->
+  <!-- Ticker rebuild + flag has-fixed-ticker (tidak diubah) -->
   <script>
   (function(){
     const el = document.getElementById('fixedTicker');
@@ -894,7 +848,6 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
       el.style.setProperty('--ticker-translate', (-distance) + 'px');
     }
 
-    // tandai: ada ticker fixed → aktifkan layout aman bawah
     document.body.classList.add('has-fixed-ticker');
 
     rebuild();
@@ -903,7 +856,7 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
   })();
   </script>
 
-  <!-- Auto reload berkala (aman saat tab tersembunyi) -->
+  <!-- Auto reload berkala (tidak diubah) -->
   <script>
   (function(){
     const HOUR  = 60 * 60 * 1000;
@@ -915,21 +868,21 @@ body.has-fixed-ticker .empty-video{ max-height:none !important; }
     setTimeout(reloadOrWait, HOUR);
   })();
   </script>
+
+  <!-- Hitung tinggi hero untuk batas video -->
   <script>
-(function(){
-  const hero = document.querySelector('.hero-title');
-  if(!hero) return;
-  function applyHeroH(){
-    const h = hero.offsetHeight || 120;
-    document.documentElement.style.setProperty('--hero-h', h + 'px');
-  }
-  applyHeroH();
-  let t;
-  window.addEventListener('resize', ()=>{ clearTimeout(t); t=setTimeout(applyHeroH,120); }, {passive:true});
-  if('ResizeObserver' in window){ new ResizeObserver(applyHeroH).observe(hero); }
-})();
-</script>
-
-
+  (function(){
+    const hero = document.querySelector('.hero-title');
+    if(!hero) return;
+    function applyHeroH(){
+      const h = hero.offsetHeight || 120;
+      document.documentElement.style.setProperty('--hero-h', h + 'px');
+    }
+    applyHeroH();
+    let t;
+    window.addEventListener('resize', ()=>{ clearTimeout(t); t=setTimeout(applyHeroH,120); }, {passive:true});
+    if('ResizeObserver' in window){ new ResizeObserver(applyHeroH).observe(hero); }
+  })();
+  </script>
 </body>
 </html>
