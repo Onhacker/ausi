@@ -268,6 +268,13 @@
     /* ===== MISC ===== */
     hr{ margin-top:1rem; margin-bottom:1rem; border:0; border-top:1px solid #9E9E9E }
   </style>
+  <style>
+  /* ===== EMPTY VIDEO (responsive 16:9) ===== */
+  .empty-video{ margin-top:10px; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.15) }
+  .embed-16x9{ position:relative; width:100%; padding-bottom:56.25% } /* 16:9 */
+  .embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
+</style>
+
 </head>
 
 <body class="menubar-gradient gradient-topbar topbar-dark compact">
@@ -381,63 +388,86 @@
 
     function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]}); }
 
-    function renderCards(cards){
-      if(!Array.isArray(cards) || cards.length===0){
-        rowEl.innerHTML = '<div class="col-12"><div class="card-box"><p class="mb-0">Belum ada bookingan mendatang.</p></div></div>';
-        setLive('idle'); 
-        return;
-      }
-      var html = '';
-      cards.forEach(function(c){
-        var count = parseInt(c.booking_count||0,10);
-        html += '<div class="col-xl-6 col-lg-12">';
-        html +=   '<div class="card-box mt-3" style="position:relative; padding-top:46px; padding-bottom:64px;">';
-        html +=     '<div class="meja-ribbon"><span>'+esc(c.nama_meja)+'</span></div>';
-        html +=     '<div class="book-count">'+count+' booking</div>';
+function renderCards(cards){
+  if(!Array.isArray(cards) || cards.length===0){
+    // Tampilkan pesan + video loop
+    var html = ''
+      + '<div class="col-12">'
+      + '  <div class="card-box">'
+      + '    <p class="mb-2">Belum ada bookingan billiard mendatang.</p>'
+      + '    <div class="empty-video">'
+      + '      <div class="embed-16x9">'
+      + '        <iframe'
+      + '          id="ytLoop"'
+      + '          src="https://www.youtube.com/embed/4_nZL5pDl5U?loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
+      + '          title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
+      + '          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+      + '          referrerpolicy="strict-origin-when-cross-origin"'
+      + '          allowfullscreen></iframe>'
+      + '      </div>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>';
 
-        (c.days||[]).forEach(function(d){
-          html += '<div class="day-row">';
-          html +=   '<div class="cal-ava" title="'+esc(d.tanggal_fmt)+'">';
-          html +=     '<div class="cal-tile" aria-label="'+esc(d.tanggal_fmt)+'">';
-          html +=       '<div class="cal-head">'+esc(d.mon)+'</div>';
-          html +=       '<div class="cal-day">'+esc(d.daynum)+'</div>';
+    rowEl.innerHTML = html;
+    setLive('idle');
+    return;
+  }
+
+  // ====== jika ADA data booking (kode lama kamu tetap dipakai) ======
+  var html = '';
+  cards.forEach(function(c){
+    var count = parseInt(c.booking_count||0,10);
+    html += '<div class="col-xl-6 col-lg-12">';
+    html +=   '<div class="card-box mt-3" style="position:relative; padding-top:46px; padding-bottom:64px;">';
+    html +=     '<div class="meja-ribbon"><span>'+esc(c.nama_meja)+'</span></div>';
+    html +=     '<div class="book-count">'+count+' booking</div>';
+
+    (c.days||[]).forEach(function(d){
+      html += '<div class="day-row">';
+      html +=   '<div class="cal-ava" title="'+esc(d.tanggal_fmt)+'">';
+      html +=     '<div class="cal-tile" aria-label="'+esc(d.tanggal_fmt)+'">';
+      html +=       '<div class="cal-head">'+esc(d.mon)+'</div>';
+      html +=       '<div class="cal-day">'+esc(d.daynum)+'</div>';
+      html +=     '</div>';
+      html +=     '<div class="cal-cap mt-1">'+esc(String(d.weekday||'').toUpperCase())+'</div>';
+      html +=   '</div>';
+
+      html +=   '<div class="day-content">';
+      if(d.bookings && d.bookings.length){
+        html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
+        d.bookings.forEach(function(b){
+          var showVeriCash = (String(b.status||'').toLowerCase()==='verifikasi'
+                              && String(b.metode_bayar||'').toLowerCase()==='cash');
+          html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
+          html +=   '<div class="conversation-text"><div class="ctext-wrap">';
+          html +=     '<div class="ct-head">';
+          html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' · '+parseInt(b.durasi_jam||0,10)+' jam <span class="tz">WITA</span></div>';
+          html +=       '<div class="ct-right mb-1">';
+          html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
+          // if(showVeriCash){ html += ' <span class="verify-pill" title="Status: verifikasi, metode bayar cash" aria-label="Verifikasi (Cash)">Verifikasi Cash</span>'; }
+          html +=       '</div>';
           html +=     '</div>';
-          html +=     '<div class="cal-cap mt-1">'+esc(String(d.weekday||'').toUpperCase())+'</div>';
-          html +=   '</div>';
-
-          html +=   '<div class="day-content">';
-          if(d.bookings && d.bookings.length){
-            html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
-            d.bookings.forEach(function(b){
-              var showVeriCash = (String(b.status||'').toLowerCase()==='verifikasi'
-                                  && String(b.metode_bayar||'').toLowerCase()==='cash');
-              html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
-              html +=   '<div class="conversation-text"><div class="ctext-wrap">';
-              html +=     '<div class="ct-head">';
-              html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' · '+parseInt(b.durasi_jam||0,10)+' jam <span class="tz">WITA</span></div>';
-              html +=       '<div class="ct-right mb-1">';
-              html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
-              // if(showVeriCash){ html += ' <span class="verify-pill" title="Status: verifikasi, metode bayar cash" aria-label="Verifikasi (Cash)">Verifikasi Cash</span>'; }
-              html +=       '</div>';
-              html +=     '</div>';
-              html +=     '<div class="ct-meta">'+esc(b.nama||'Booking')+(b.hp_masked?(' · '+esc(b.hp_masked)):'')+'</div>';
-              html +=   '</div></div>';
-              html += '</li>';
-            });
-            html +=   '</ul>';
-          } else {
-            html +=   '<div class="text-muted small">Belum ada booking pada tanggal ini.</div>';
-          }
-          html +=   '</div>';
-          html += '</div>';
-          html += '<hr style="margin:10px 0">';
+          html +=     '<div class="ct-meta">'+esc(b.nama||'Booking')+(b.hp_masked?(' · '+esc(b.hp_masked)):'')+'</div>';
+          html +=   '</div></div>';
+          html += '</li>';
         });
+        html +=   '</ul>';
+      } else {
+        html +=   '<div class="text-muted small">Belum ada booking pada tanggal ini.</div>';
+      }
+      html +=   '</div>';
+      html += '</div>';
+      html += '<hr style="margin:10px 0">';
+    });
 
-        html +=   '</div>';
-        html += '</div>';
-      });
-      rowEl.innerHTML = html;
-    }
+    html +=   '</div>';
+    html += '</div>';
+  });
+  rowEl.innerHTML = html;
+}
+
+
 
     // ================== Countdown ==================
     function pad(n){return (n<10?'0':'')+n;}
