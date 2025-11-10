@@ -84,7 +84,41 @@
 }
 /* responsive video wrapper sudah ada: .empty-video + .embed-16x9 */
 
-  
+  /* ===== EMPTY STATE: responsif ikuti layar ===== */
+.empty-wrap{ 
+  width: clamp(320px, 94vw, 1280px);           /* skala dari HP sampai TV FHD */
+  margin: clamp(8px,2vw,16px) auto 0;
+  padding: clamp(8px,2vw,16px) clamp(8px,2vw,18px);
+  text-align: center;
+}
+.empty-hero{ display:flex; align-items:center; justify-content:center; gap:10px; margin:6px 0 6px; }
+.empty-hero .emoji-8ball{ font-size:clamp(20px,3.2vw,36px); filter:drop-shadow(0 2px 6px rgba(0,0,0,.15)); }
+
+.empty-title{
+  margin:0; font-weight:900; letter-spacing:.02em; line-height:1.1;
+  font-size: clamp(18px, 4vw, 34px);           /* judul ikut layar */
+  background: linear-gradient(90deg,var(--a1),var(--a2),var(--a3));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.empty-sub{ margin:4px 0 12px; color:#64748b; font-weight:600; font-size:clamp(12px,2vw,16px) }
+.empty-divider{
+  width: min(94%, 720px); height:3px; margin:8px auto 12px; border-radius:999px;
+  background: linear-gradient(90deg,#22c55e,#06b6d4,#f59e0b); opacity:.9;
+  box-shadow:0 0 12px rgba(34,197,94,.25), 0 0 16px rgba(6,182,212,.2);
+}
+
+/* Video responsif penuh lebar container */
+.empty-video{ margin-top: clamp(8px,2vw,16px); }
+.embed-16x9{ position:relative; width:100%; aspect-ratio:16/9; }
+.embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+/* Fallback jika browser belum support aspect-ratio */
+@supports not (aspect-ratio: 16/9){
+  .embed-16x9{ height:0; padding-bottom:56.25%; }
+}
+
+/* Saat ada ticker fixed, batasi tinggi supaya tidak mentok bawah */
+body.has-fixed-ticker .empty-video{ max-height: calc(100svh - var(--ticker-h) - 160px); }
+
 
     body { padding-bottom: 0 !important; }
 
@@ -411,15 +445,14 @@ function renderCards(cards){
  if(!Array.isArray(cards) || cards.length===0){
   var html = ''
   + '<div class="col-12">'
-  + '  <div class="card-box empty-state">'
+  + '  <div class="card-box empty-wrap">'
   + '    <div class="empty-hero">'
   + '      <span class="emoji-8ball" aria-hidden="true">🎱</span>'
-  + '      <h3 class="empty-title">Belum ada bookingan <span class="hl">billiard</span> mendatang</h3>'
+  + '      <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
   + '    </div>'
   + '    <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
   + '    <div class="empty-divider" aria-hidden="true"></div>'
-  + '    <div class="empty-video" style="width:clamp(320px,92vw,1280px);margin:14px auto 0">'
-
+  + '    <div class="empty-video">'
   + '      <div class="embed-16x9">'
   + '        <iframe'
   + '          id="ytLoop"'
@@ -437,6 +470,7 @@ function renderCards(cards){
   setLive('idle');
   return;
 }
+
 
 
   // ====== jika ADA data booking (kode lama kamu tetap dipakai) ======
