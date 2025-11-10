@@ -358,6 +358,265 @@ public function daftar_booking(){
 
 
 
+// ====== LIVE MONITOR: View utama ======
+public function monitor(){
+  // anti-cache
+  if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
+  else {
+    $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+    $this->output->set_header('Pragma: no-cache');
+  }
+
+  $web = $this->fm->web_me();
+
+  $data = [
+    "controller" => get_class($this),
+    "title"      => "Daftar Bookingan Billiard",
+    "deskripsi"  => "Lihat daftar booking billiard mendatang berdasarkan meja dan tanggal.",
+    "prev"       => base_url("assets/images/billiard.webp"),
+    "rec"        => $web,
+  ];
+  $this->load->view('billiard/monitor', $data);
+}
+
+// ====== PING RINGAN (kecil & cepat) ======
+public function monitor_ping(){
+  if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
+  else {
+    $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+    $this->output->set_header('Pragma: no-cache');
+  }
+  $this->output->set_content_type('application/json');
+
+  // Rentang tanggal: kemarin s/d maks_hari_booking ke depan
+  $tz  = new DateTimeZone(date_default_timezone_get());
+  $now = new DateTime('now', $tz);
+
+  $web      = $this->fm->web_me();
+  $maxDays  = (int)($web->maks_hari_booking ?? 30);
+  if ($maxDays < 0) $maxDays = 0;
+
+  $today     = (clone $now)->setTime(0,0,0);
+  $yesterday = (clone $today)->modify('-1 day')->format('Y-m-d');
+  $upperDate = (clone $today)->modify('+'.$maxDays.' day')->format('Y-m-d');
+
+  // Agregat ringan: total, max_id, dan versi (SUM(CRC32(...)))
+  $sql = "
+    SELECT
+      COUNT(*) AS total,
+      MAX(id_pesanan) AS max_id,
+      COALESCE(SUM(CRC32(CONCAT_WS('#',
+        meja_id,
+        tanggal,
+        id_pesanan,
+        status,
+        LOWER(COALESCE(metode_bayar,'')),
+        jam_mulai,
+        jam_selesai
+      ))), 0) AS ver
+    FROM pesanan_billiard
+    WHERE
+      (status='terkonfirmasi' OR (status='verifikasi' AND metode_bayar='cash'))
+      AND tanggal >= ? AND tanggal <= ? AND nama_meja like '%reguler%'
+  ";
+  $row = $this->db->query($sql, [$yesterday, $upperDate])->row();
+
+  $total  = (int)($row->total ?? 0);
+  $max_id = (int)($row->max_id ?? 0);
+  $verStr = (string)($row->ver ?? '0');
+
+  $this->output->set_header('X-Ping-Total: '.$total);
+  $this->output->set_header('X-Ping-MaxId: '.$max_id);
+  $this->output->set_header('X-Ping-Ver: '.$verStr);
+
+  echo json_encode([
+    'success' => true,
+    'total'   => $total,
+    'max_id'  => $max_id,
+    'last_ts' => $verStr,
+  ], JSON_UNESCAPED_UNICODE);
+}
+
+// ====== DATA PENUH (dipanggil hanya saat ada perubahan) ======
+public function monitor_data(){
+  if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
+  else {
+    $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+    $this->output->set_header('Pragma: no-cache');
+  }
+  $this->output->set_content_type('application/json');
+
+  [$cards, $nowMs] = $this->_monitor_cards_and_now();
+  $rev = $this->_calc_rev($cards);
+
+  $this->output->set_header('X-Data-Rev: '.$rev);
+  echo json_encode([
+    'ok'     => true,
+    'rev'    => $rev,
+    'now_ms' => $nowMs,
+    'cards'  => $cards,
+  ], JSON_UNESCAPED_UNICODE);
+}
+
+// ====== Helper: ambil & bentuk cards + timestamp server (ms) ======
+private function _monitor_cards_and_now(): array {
+  $tz  = new DateTimeZone(date_default_timezone_get());
+  $now = new DateTime('now', $tz);
+
+  $web      = $this->fm->web_me();
+  $maxDays  = (int)($web->maks_hari_booking ?? 30);
+  if ($maxDays < 0) $maxDays = 0;
+
+  $today     = (clone $now)->setTime(0,0,0);
+  $yesterday = (clone $today)->modify('-1 day')->format('Y-m-d');
+  $upperDate = (clone $today)->modify('+'.$maxDays.' day')->format('Y-m-d');
+
+  $this->db->reset_query();
+  $rows = $this->db->select('id_pesanan, meja_id, nama_meja, no_hp, tanggal, jam_mulai, jam_selesai, durasi_jam, nama, status, metode_bayar')
+    ->from('pesanan_billiard')
+    ->group_start()
+      ->where('status','terkonfirmasi')
+      ->or_group_start()
+        ->where('status','verifikasi')
+        ->where('metode_bayar','cash')
+      ->group_end()
+    ->group_end()
+    ->where('tanggal >=', $yesterday)
+    ->where('tanggal <=', $upperDate)
+    ->order_by('meja_id','ASC')
+    ->order_by('tanggal','ASC')
+    ->order_by('jam_mulai','ASC')
+    ->get()->result();
+
+  $cards = $this->_build_cards_from_rows($rows, $now);
+  return [$cards, (int)($now->format('U'))*1000];
+}
+
+// ====== Helper: builder cards ======
+private function _build_cards_from_rows(array $rows, DateTime $now): array {
+  $mk_dt = function(string $d, string $t) {
+    $dt = DateTime::createFromFormat('Y-m-d H:i:s', $d.' '.$t);
+    if ($dt !== false) return $dt;
+    $dt2 = DateTime::createFromFormat('Y-m-d H:i', $d.' '.substr($t,0,5));
+    return $dt2 !== false ? $dt2 : null;
+  };
+  $mask_hp = function($s){
+    $d = preg_replace('/\D+/', '', (string)$s);
+    if ($d==='') return '';
+    $len = strlen($d);
+    if ($len <= 4) return str_repeat('•', $len);
+    $head = substr($d, 0, min(4, $len-3));
+    $tail = substr($d, -3);
+    $mid  = max(0, $len - strlen($head) - strlen($tail));
+    return $head . str_repeat('•', $mid) . $tail;
+  };
+
+  $cards_by_meja = [];
+  foreach ($rows as $r){
+    $start = $mk_dt($r->tanggal, $r->jam_mulai);
+    $end   = $mk_dt($r->tanggal, $r->jam_selesai);
+    if (!$start || !$end) continue;
+    if ($end <= $start) { $end->modify('+1 day'); } // overnight
+    if ($end <= $now) continue; // sudah lewat
+
+    $mejaId = (int)$r->meja_id;
+    if (!isset($cards_by_meja[$mejaId])){
+      $cards_by_meja[$mejaId] = [
+        'meja_id'       => $mejaId,
+        'nama_meja'     => ($r->nama_meja ?: 'MEJA #'.$mejaId),
+        'days'          => [],
+        'all_bookings'  => [],
+      ];
+    }
+
+    $cards_by_meja[$mejaId]['all_bookings'][] = $start->getTimestamp()*1000;
+
+    $dkey  = $r->tanggal;
+    $epoch = strtotime($dkey);
+    if (!isset($cards_by_meja[$mejaId]['days'][$dkey])){
+      $monMap = ['Jan'=>'JAN','Feb'=>'FEB','Mar'=>'MAR','Apr'=>'APR','May'=>'MEI','Jun'=>'JUN','Jul'=>'JUL','Aug'=>'AGU','Sep'=>'SEP','Oct'=>'OKT','Nov'=>'NOV','Dec'=>'DES'];
+      $monEn  = date('M',$epoch);
+      $hariMap= ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+      $cards_by_meja[$mejaId]['days'][$dkey] = [
+        'date'        => $dkey,
+        'tanggal_fmt' => date('d M Y',$epoch),
+        'mon'         => $monMap[$monEn] ?? strtoupper($monEn),
+        'daynum'      => date('j',$epoch),
+        'weekday'     => $hariMap[(int)date('w',$epoch)],
+        'bookings'    => [],
+      ];
+    }
+
+    $cards_by_meja[$mejaId]['days'][$dkey]['bookings'][] = [
+      'id'            => (int)$r->id_pesanan,
+      'nama'          => (string)($r->nama ?? 'Booking'),
+      'hp_masked'     => $mask_hp($r->no_hp ?? ''),
+      'tanggal'       => $r->tanggal,
+      'jam_mulai'     => substr($r->jam_mulai,0,5),
+      'jam_selesai'   => substr($r->jam_selesai,0,5),
+      'durasi_jam'    => (int)$r->durasi_jam,
+      'start_ts'      => $start->getTimestamp()*1000,
+      'end_ts'        => $end->getTimestamp()*1000,
+      'status'        => (string)$r->status,
+      'metode_bayar'  => (string)($r->metode_bayar ?? ''),
+    ];
+  }
+
+  // Bentuk cards final
+  $cards = [];
+  foreach ($cards_by_meja as $meja){
+    ksort($meja['days']);
+    foreach ($meja['days'] as &$day){
+      usort($day['bookings'], fn($a,$b)=> $a['start_ts'] <=> $b['start_ts']);
+    }
+    unset($day);
+
+    $booking_count = 0;
+    foreach ($meja['days'] as $d){ $booking_count += count($d['bookings']); }
+
+    $next_ts = !empty($meja['all_bookings']) ? min($meja['all_bookings']) : PHP_INT_MAX;
+
+    $cards[] = [
+      'meja_id'       => $meja['meja_id'],
+      'nama_meja'     => $meja['nama_meja'],
+      'days'          => array_values($meja['days']),
+      'booking_count' => $booking_count,
+      'next_ts'       => $next_ts,
+    ];
+  }
+  usort($cards, fn($a,$b)=> $a['next_ts'] <=> $b['next_ts']);
+  return $cards;
+}
+
+// ====== Helper: hitung rev (untuk header/debug) ======
+private function _calc_rev(array $cards): string {
+  $flat = [];
+  foreach ($cards as $c){
+    foreach ($c['days'] as $d){
+      foreach ($d['bookings'] as $b){
+        $flat[] = implode('|', [
+          $c['meja_id'],
+          $d['date'],
+          $b['id'],
+          $b['status'],
+          strtolower($b['metode_bayar']),
+          $b['jam_mulai'],
+          $b['jam_selesai'],
+          $b['start_ts'],
+          $b['end_ts'],
+        ]);
+      }
+    }
+  }
+  sort($flat, SORT_STRING);
+  return md5(implode('~', $flat));
+}
+
+
   public function add(){
     // ambil input & normalisasi
     $in = $this->input->post(NULL, TRUE) ?: [];

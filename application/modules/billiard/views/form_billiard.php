@@ -231,8 +231,16 @@
 
               <div class="col-md-4 mb-2">
                 <label class="form-label" for="durasi">Mau main berapa jam?</label>
-                <input type="number" name="durasi_jam" id="durasi" value="" min="1" max="12" class="form-control" required>
+                <select name="durasi_jam" id="durasi" class="form-control" required>
+                  <option value="" selected disabled hidden>Pilih durasi…</option>
+                  <option value="1">1 Jam</option>
+                  <option value="2">2 Jam</option>
+                  <option value="3">3 Jam</option>
+                  <option value="4">4 Jam</option>
+                  <option value="5">5 Jam</option>
+                </select>
               </div>
+
 
               <div class="col-12 mb-2">
                 <div id="infoHitung" class="small text-danger"></div>
@@ -458,7 +466,7 @@ jamMulai.min = (pickedDate && sameYMD(pickedDate, new Date())) ? hmNow() : '00:0
 
   // durasi (jam)
   let dHours = parseInt((durasi.value || '').trim(), 10);
-  dHours = isNaN(dHours) ? null : Math.max(1, Math.min(12, dHours));
+  dHours = isNaN(dHours) ? null : Math.max(1, Math.min(5, dHours));
 
   // Info display saja
   const displayClose = overnight ? `${close} (next day)` : close;
@@ -543,7 +551,7 @@ function windowToSpan(w){
 /** Kembalikan window aktif untuk slot (jamMulai, durasi) — atau null jika tidak masuk window mana pun */
 function slotBandFor(r, startHM, hours, dateObj){
   const cfg = getCfgFor(r, dateObj); if(!cfg || !startHM) return null;
-  const dur = Math.max(1, Math.min(12, parseInt(hours||'1',10))) * 60;
+  const dur = Math.max(1, Math.min(5, parseInt(hours||'1',10))) * 60;
   const start = toMin(startHM);
   const end   = start + dur;
 
@@ -666,7 +674,7 @@ function validateTimeRange(){
 
   if (!jamMulai.value) return true;
 
-  const dHours = Math.max(1, Math.min(12, parseInt(durasi.value||'1', 10)));
+  const dHours = Math.max(1, Math.min(5, parseInt(durasi.value||'1', 10)));
 
   const okBand = slotBandFor(sel, jamMulai.value, dHours, dObj);
   if (okBand){
@@ -1313,7 +1321,7 @@ function getFreeHours(){
 <script>
 function slotErrorFor(r, startHM, hours, dateObj){
   const cfg = getCfgFor(r, dateObj); if(!cfg || !startHM) return null;
-  const durMin = Math.max(1, Math.min(12, parseInt(hours||'1',10))) * 60;
+  const durMin = Math.max(1, Math.min(5, parseInt(hours||'1',10))) * 60;
   const s = toMin(startHM), e = s + durMin;
   const endHM = fromMin(e % (24*60));
   const dwin = windowToSpan(cfg.day), nwin = windowToSpan(cfg.night);
@@ -1372,7 +1380,7 @@ function slotDayCrossOK(r, startHM, hours, dateObj){
   const cfg = getCfgFor(r, dateObj);
   if (!cfg || !startHM) return { ok:false };
 
-  const durMin = Math.max(1, Math.min(12, parseInt(hours||'1',10))) * 60;
+  const durMin = Math.max(1, Math.min(5, parseInt(hours||'1',10))) * 60;
   const s = toMin(startHM);                 // menit dari 00:00
   const dwin = windowToSpan(cfg.day);       // {s,e} dengan e bisa >1440 (overnight)
   const nwin = windowToSpan(cfg.night);     // {s,e}
