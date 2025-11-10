@@ -336,6 +336,35 @@
       min-height: 100svh;
       box-sizing: border-box;
     }
+    :root{
+  /* ...yang lain... */
+  --ticker-h: 46px;
+  --clock-h: 88px;   /* sudah ada, biarkan */
+  --hero-h: 120px;   /* tinggi judul (akan diisi otomatis lewat JS) */
+}
+
+/* kontainer empty agar memberi ruang bawah untuk jam+ticker */
+.empty-wrap{
+  padding-bottom: calc(var(--clock-h) + var(--ticker-h) + var(--safe-bottom));
+}
+
+/* kotak 16:9: batasi tinggi maksimum = tinggi layar - (judul+jam+ticker+nafás) */
+.embed-16x9{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  max-height: calc(100svh - var(--hero-h) - var(--clock-h) - var(--ticker-h) - 42px);
+}
+.embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+
+/* fallback jika browser belum support aspect-ratio */
+@supports not (aspect-ratio: 16/9){
+  .embed-16x9{ height:0; padding-bottom:56.25%; max-height:none; }
+}
+
+/* jangan pernah dipotong karena ticker fixed */
+body.has-fixed-ticker .empty-video{ max-height:none !important; }
+
   </style>
 
   <!-- Tambahan CSS final video (biar prioritas paling bawah stylesheet) -->
@@ -886,6 +915,21 @@
     setTimeout(reloadOrWait, HOUR);
   })();
   </script>
+  <script>
+(function(){
+  const hero = document.querySelector('.hero-title');
+  if(!hero) return;
+  function applyHeroH(){
+    const h = hero.offsetHeight || 120;
+    document.documentElement.style.setProperty('--hero-h', h + 'px');
+  }
+  applyHeroH();
+  let t;
+  window.addEventListener('resize', ()=>{ clearTimeout(t); t=setTimeout(applyHeroH,120); }, {passive:true});
+  if('ResizeObserver' in window){ new ResizeObserver(applyHeroH).observe(hero); }
+})();
+</script>
+
 
 </body>
 </html>
