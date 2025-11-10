@@ -391,23 +391,24 @@
 function renderCards(cards){
   if(!Array.isArray(cards) || cards.length===0){
     // Tampilkan pesan + video loop
-    var html = ''
-      + '<div class="col-12">'
-      + '  <div class="card-box">'
-      + '    <p class="mb-2">Belum ada bookingan billiard mendatang.</p>'
-      + '    <div class="empty-video">'
-      + '      <div class="embed-16x9">'
-      + '        <iframe'
-      + '          id="ytLoop"'
-      + '          src="https://www.youtube.com/embed/4_nZL5pDl5U?loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
-      + '          title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
-      + '          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
-      + '          referrerpolicy="strict-origin-when-cross-origin"'
-      + '          allowfullscreen></iframe>'
-      + '      </div>'
-      + '    </div>'
-      + '  </div>'
-      + '</div>';
+   var html = ''
+  + '<div class="col-12">'
+  + '  <div class="card-box">'
+  + '    <p class="mb-2">Belum ada bookingan billiard mendatang.</p>'
+  + '    <div class="empty-video">'
+  + '      <div class="embed-16x9">'
+  + '        <iframe'
+  + '          id="ytLoop"'
+  + '          src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
+  + '          title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
+  + '          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+  + '          referrerpolicy="strict-origin-when-cross-origin"'
+  + '          allowfullscreen></iframe>'
+  + '      </div>'
+  + '    </div>'
+  + '  </div>'
+  + '</div>';
+
 
     rowEl.innerHTML = html;
     setLive('idle');
