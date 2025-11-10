@@ -395,7 +395,8 @@ function renderCards(cards){
   + '<div class="col-12">'
   + '  <div class="card-box">'
   + '    <p class="mb-2">Belum ada bookingan billiard mendatang.</p>'
-  + '    <div class="empty-video">'
+  + '    <div class="empty-video" style="max-width:560px;margin:10px auto 0">'
+
   + '      <div class="embed-16x9">'
   + '        <iframe'
   + '          id="ytLoop"'
