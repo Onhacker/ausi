@@ -100,26 +100,30 @@ $us = $this->om->user();
       <?php $this->load->view("backend/notif.php") ?>
 
       <!-- DESKTOP HEADER (sembunyikan di mobile) -->
-      <div class="logo-desktop d-none d-lg-flex align-items-center mb-3">
-        <div class="me-3">
-          <img src="<?php echo base_url('assets/images/logo_admin.png') ?>" 
-               alt="Logo <?php echo htmlspecialchars($web->nama_website, ENT_QUOTES) ?>" height="50">
-        </div>
-        <div class="kepala">
-          <h4 class="mb-1 ml-2">
-            <span class="header-title2">
-              <?php echo htmlspecialchars($web->nama_website." ".strtoupper($web->kabupaten), ENT_QUOTES) ?>
-            </span>
-          </h4>
-          <div class="font-13 text-success mb-2 ml-2 text-truncate">
-            <code><?php echo strtoupper($web->meta_deskripsi." ".$us->kota) ?></code>
-          </div>
-        </div>
-      </div>
+      <!-- DESKTOP HEADER (sembunyikan di mobile) -->
+<a class="logo-desktop d-none d-lg-flex align-items-center mb-3 text-reset text-decoration-none"
+   href="<?php echo site_url() ?>"
+   aria-label="Kembali ke beranda">
+  <div class="me-3">
+    <img src="<?php echo base_url('assets/images/logo_admin.png') ?>" 
+         alt="Logo <?php echo htmlspecialchars($web->nama_website, ENT_QUOTES) ?>" height="50">
+  </div>
+  <div class="kepala">
+    <h4 class="mb-1 ml-2">
+      <span class="header-title2">
+        <?php echo htmlspecialchars($web->nama_website." ".strtoupper($web->kabupaten), ENT_QUOTES) ?>
+      </span>
+    </h4>
+    <div class="font-13 text-success mb-2 ml-2 text-truncate">
+      <code><?php echo strtoupper($web->meta_deskripsi." ".$us->kota) ?></code>
+    </div>
+  </div>
+</a>
+
 
       <!-- MOBILE HEADER (hanya tampil di mobile) -->
       <div class="logo-box d-lg-none ">
-        <a class="logo text-center" href="javascript:void(0)">
+        <a class="logo text-center" href="<?php echo site_url() ?>">
           <span class="logo-sm d-inline-flex align-items-center">
             <img src="<?php echo base_url('assets/images/logo_admin.png') ?>" 
                  alt="Logo <?php echo htmlspecialchars($web->nama_website, ENT_QUOTES) ?>" height="40" class="mr-1">
