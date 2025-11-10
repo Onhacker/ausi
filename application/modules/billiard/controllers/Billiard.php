@@ -381,6 +381,7 @@ public function monitor(){
 }
 
 // ====== PING RINGAN (kecil & cepat) ======
+// ====== PING RINGAN (kecil & cepat) ======
 public function monitor_ping(){
   if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
   else {
@@ -390,7 +391,6 @@ public function monitor_ping(){
   }
   $this->output->set_content_type('application/json');
 
-  // Rentang tanggal: kemarin s/d maks_hari_booking ke depan
   $tz  = new DateTimeZone(date_default_timezone_get());
   $now = new DateTime('now', $tz);
 
@@ -402,27 +402,19 @@ public function monitor_ping(){
   $yesterday = (clone $today)->modify('-1 day')->format('Y-m-d');
   $upperDate = (clone $today)->modify('+'.$maxDays.' day')->format('Y-m-d');
 
-  // Agregat ringan: total, max_id, dan versi (SUM(CRC32(...)))
+  // Agregat ringan: total, max_id, dan versi
   $sql = "
    SELECT
-  COUNT(*) AS total,
-  MAX(id_pesanan) AS max_id,
-  COALESCE(SUM(CRC32(CONCAT_WS('#',
-    meja_id,
-    tanggal,
-    id_pesanan,
-    status,
-    LOWER(COALESCE(metode_bayar,'')),
-    jam_mulai,
-    jam_selesai
-  ))), 0) AS ver
-FROM pesanan_billiard
-WHERE
-  (status='terkonfirmasi' OR (status='verifikasi' AND LOWER(metode_bayar)='cash'))
-  AND tanggal BETWEEN ? AND ?
-  /* hanya yang mengandung kata regular/reguler (kata utuh) */
-  AND nama_meja REGEXP '(?i)[[:<:]]regul(e|a)r[[:>:]]';
-
+     COUNT(*) AS total,
+     MAX(id_pesanan) AS max_id,
+     COALESCE(SUM(CRC32(CONCAT_WS('#',
+       meja_id, tanggal, id_pesanan, status, LOWER(COALESCE(metode_bayar,'')), jam_mulai, jam_selesai
+     ))), 0) AS ver
+   FROM pesanan_billiard
+   WHERE
+     (status='terkonfirmasi' OR (status='verifikasi' AND LOWER(metode_bayar)='cash'))
+     AND tanggal BETWEEN ? AND ?
+     AND meja_id IN (1,2)  -- HANYA MEJA 1 & 2
   ";
   $row = $this->db->query($sql, [$yesterday, $upperDate])->row();
 
@@ -441,6 +433,7 @@ WHERE
     'last_ts' => $verStr,
   ], JSON_UNESCAPED_UNICODE);
 }
+
 
 // ====== DATA PENUH (dipanggil hanya saat ada perubahan) ======
 public function monitor_data(){
@@ -464,6 +457,7 @@ public function monitor_data(){
   ], JSON_UNESCAPED_UNICODE);
 }
 
+// ====== Helper: ambil & bentuk cards + timestamp server (ms) ======
 // ====== Helper: ambil & bentuk cards + timestamp server (ms) ======
 private function _monitor_cards_and_now(): array {
   $tz  = new DateTimeZone(date_default_timezone_get());
@@ -489,6 +483,7 @@ private function _monitor_cards_and_now(): array {
     ->group_end()
     ->where('tanggal >=', $yesterday)
     ->where('tanggal <=', $upperDate)
+    ->where_in('meja_id', [1,2])   // HANYA MEJA 1 & 2
     ->order_by('meja_id','ASC')
     ->order_by('tanggal','ASC')
     ->order_by('jam_mulai','ASC')
@@ -497,6 +492,7 @@ private function _monitor_cards_and_now(): array {
   $cards = $this->_build_cards_from_rows($rows, $now);
   return [$cards, (int)($now->format('U'))*1000];
 }
+
 
 // ====== Helper: builder cards ======
 private function _build_cards_from_rows(array $rows, DateTime $now): array {
