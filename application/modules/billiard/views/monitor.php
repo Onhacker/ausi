@@ -50,10 +50,6 @@
 
   <!-- ========== CSS VENDOR ========== -->
   <link href="<?= base_url('assets/admin/css/bootstrap.min.css'); ?>" rel="stylesheet" />
-  <link href="<?= base_url('assets/admin/css/icons.min.css'); ?>" rel="stylesheet" />
-  <link href="<?= base_url('assets/admin/css/app.min.css'); ?>" rel="stylesheet" />
-  <link href="<?= base_url('assets/admin/libs/animate/animate.min.css'); ?>" rel="stylesheet" />
-  <link href="<?= base_url('assets/admin/libs/sweetalert2/sweetalert2.min.css'); ?>" rel="stylesheet" />
 
   <!-- ========== CSS KUSTOM ========== -->
   <style>
@@ -367,9 +363,7 @@
   </div>
 
   <!-- Vendor JS -->
-  <script src="<?= base_url('assets/admin/js/vendor.min.js') ?>"></script>
-  <script src="<?= base_url('assets/admin/js/app.min.js') ?>"></script>
-  <script src="<?= base_url('assets/admin/js/sw.min.js') ?>"></script>
+  
 
   <!-- Jam live WITA -->
   <script>
