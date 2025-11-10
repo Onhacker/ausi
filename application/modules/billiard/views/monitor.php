@@ -320,13 +320,7 @@ body.has-fixed-ticker .empty-video{ max-height: calc(100svh - var(--ticker-h) - 
 
     /* ===== MISC ===== */
     hr{ margin-top:1rem; margin-bottom:1rem; border:0; border-top:1px solid #9E9E9E }
-  </style>
-  <style>
-  /* ===== EMPTY VIDEO (responsive 16:9) ===== */
-  .empty-video{ margin-top:10px; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.15) }
-  .embed-16x9{ position:relative; width:100%; padding-bottom:56.25% } /* 16:9 */
-  .embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
-  /* ==== AMAN DARI TICKER & PAS DI LAYAR ==== */
+      /* ==== AMAN DARI TICKER & PAS DI LAYAR ==== */
 body.has-fixed-ticker .wrapper.curved {
   /* beri ruang bawah agar konten (judul/video) tidak tertutup ticker */
   padding-bottom: calc(var(--ticker-h) + var(--safe-bottom) + env(safe-area-inset-bottom, 0px) + 32px);
@@ -342,6 +336,13 @@ body.has-fixed-ticker .wrapper.curved {
   justify-content: center; /* tengah vertikal */
   align-items: center;
 }
+  </style>
+  <style>
+  /* ===== EMPTY VIDEO (responsive 16:9) ===== */
+  .empty-video{ margin-top:10px; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.15) }
+  .embed-16x9{ position:relative; width:100%; padding-bottom:56.25% } /* 16:9 */
+  .embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
+
 
 </style>
 
