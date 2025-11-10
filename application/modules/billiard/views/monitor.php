@@ -61,7 +61,7 @@
       /* jarak aman default dari bawah */
       --safe-bottom: 16px;
       /* warna aksen */
-      --a1:#dd7634; --a2:#ffffff; --a3:#cddc39;
+      --a1:#dd7634; --a2:#8c2424; --a3:#cddc39;
       --c1:#4e77be; --c2:#1e3c72;
       /* tinggi ticker */
       --ticker-h: 46px;
@@ -339,9 +339,26 @@ body.has-fixed-ticker .wrapper.curved {
   </style>
   <style>
   /* ===== EMPTY VIDEO (responsive 16:9) ===== */
-  .empty-video{ margin-top:10px; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.15) }
-  .embed-16x9{ position:relative; width:100%; padding-bottom:56.25% } /* 16:9 */
-  .embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
+  /* ===== VIDEO 16:9 RESPONSIF (FINAL) ===== */
+.empty-video{ 
+  margin-top:14px; 
+  border-radius:12px; 
+  overflow:hidden; 
+  box-shadow:0 6px 16px rgba(0,0,0,.15);
+  width: clamp(320px, 94vw, 1280px);      /* ngikut lebar layar */
+  margin-left:auto; margin-right:auto;
+}
+
+.embed-16x9{ position:relative; width:100%; height:auto; }
+@supports (aspect-ratio: 16/9){
+  .embed-16x9{ aspect-ratio:16/9; }       /* browser modern */
+}
+@supports not (aspect-ratio: 16/9){
+  .embed-16x9{ height:0; padding-bottom:56.25%; } /* fallback universal */
+}
+.embed-16x9 iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+
+body.has-fixed-ticker .empty-video{ max-height: none !important; }
 
 
 </style>
