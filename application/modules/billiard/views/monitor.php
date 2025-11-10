@@ -459,7 +459,7 @@
         + '          <span class="emoji-8ball" aria-hidden="true">🎱</span>'
         + '          <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
         + '        </div>'
-        + '        <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
+        + '        <div class="empty-sub">Silahkan lalukan booking meja billiard segera.</div>'
         + '        <div class="empty-divider" aria-hidden="true"></div>'
         + '      </div>'
         + '      <div class="empty-right">'
