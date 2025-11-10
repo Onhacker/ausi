@@ -551,9 +551,27 @@
   /* Ticker di bawah live-clock */
   .notice-ticker--fixed{ z-index: 9980 !important; }
 
-  /* Jangan tambah ruang bawah & jangan geser jam */
-  .has-fixed-ticker .wrapper{ padding-bottom: 0 !important; }
-  .has-fixed-ticker .live-clock{ bottom: 16px !important; } /* posisi defaultmu */
+ /* === SAFE BOTTOM AREA: jarak aman di atas ticker === */
+:root{ --safe-bottom: 16px; } /* default saat tidak ada ticker */
+
+/* Saat ada ticker fixed, safe-bottom = tinggi ticker + margin */
+.has-fixed-ticker{ --safe-bottom: calc(var(--ticker-h) + 16px); }
+
+/* Posisi jam live & tombol fullscreen pakai safe-bottom */
+.live-clock{
+  bottom: var(--safe-bottom) !important;
+  right: 16px;
+  z-index: 10060; /* pastikan di atas ticker */
+}
+.fs-btn{
+  bottom: calc(var(--safe-bottom) + 56px) !important; /* tombol tepat di atas jam */
+  right: 12px;
+  z-index: 10060;
+}
+
+/* Pastikan ticker berada di bawah jam/tombol */
+.notice-ticker--fixed{ z-index: 9980 !important; }
+
 </style>
 <style>
   /* Animasi lenyap yang halus */
@@ -565,6 +583,46 @@
     overflow: hidden;
     transition: opacity .25s, height .25s, margin .25s, padding .25s;
   }
+
+  /* === PIN JAM & TOMBOL DI ATAS TICKER, KANAN BAWAH (OVERRIDE KUAT) === */
+body.has-fixed-ticker #liveClock{
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  right: 16px !important;
+  bottom: calc(var(--ticker-h) + 16px + env(safe-area-inset-bottom)) !important;
+  z-index: 10060 !important;
+}
+body:not(.has-fixed-ticker) #liveClock{
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  right: 16px !important;
+  bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  z-index: 10060 !important;
+}
+
+/* Tombol fullscreen tepat di atas jam */
+body.has-fixed-ticker .fs-btn{
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  right: 12px !important;
+  bottom: calc(var(--ticker-h) + 16px + 56px + env(safe-area-inset-bottom)) !important;
+  z-index: 10060 !important;
+}
+body:not(.has-fixed-ticker) .fs-btn{
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  right: 12px !important;
+  bottom: calc(16px + 56px + env(safe-area-inset-bottom)) !important;
+  z-index: 10060 !important;
+}
+
+/* Pastikan ticker tetap di bawah jam/tombol */
+.notice-ticker--fixed{ z-index: 9980 !important; }
+
 </style>
 
 

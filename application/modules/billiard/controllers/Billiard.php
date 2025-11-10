@@ -372,8 +372,8 @@ public function monitor(){
 
   $data = [
     "controller" => get_class($this),
-    "title"      => "Daftar Bookingan Billiard",
-    "deskripsi"  => "Lihat daftar booking billiard mendatang berdasarkan meja dan tanggal.",
+    "title"      => "Live Billiard",
+    "deskripsi"  => "Lihat daftar main dan booking billiard mendatang berdasarkan meja dan tanggal.",
     "prev"       => base_url("assets/images/billiard.webp"),
     "rec"        => $web,
   ];
