@@ -1306,33 +1306,48 @@ public function leave_table(){
         return $this->_json_err('Gagal membuat pesanan');
     }
     $this->db->trans_commit();
-    if ($mode === 'delivery') {
-    $ord = (object)[
-        'id'            => $order_id,
-        'nomor'         => $nomor,
-        'nama'          => $nama,
-        'customer_phone'=> $customer_phone,
-        'total'         => $total,
-        'delivery_fee'  => $delivery_fee,
-        'grand_total'   => $grand_total,
-        'kode_unik'   => $kode_unik,
-        'catatan'   => $catatan,
-        'alamat_kirim'  => $alamat_kirim,
-        'dest_lat'      => $dest_lat,
-        'dest_lng'      => $dest_lng,
-    ];
-    // $this->_wa_notify_delivery_submit($ord, $items);
-   
+    // setelah $this->db->trans_commit();
+    $order = $this->db->get_where('pesanan', ['id' => (int)$order_id])->row();
 
-}
+       // === Setelah $this->db->trans_commit() ===
+    $redirectUrl = site_url('produk/order_success/'.$nomor);
 
-    return $this->_json_ok([
+    // Siapkan objek ringkas untuk WA
+   $ordForWa = (object)[
+  'id'            => (int)$order->id,
+  'nomor'         => (string)$order->nomor,
+  'nama'          => (string)$nama,
+  'mode'          => (string)$mode,
+  'customer_phone'=> (string)$customer_phone,
+  'total'         => (int)$order->total,
+  'delivery_fee'  => (int)$order->delivery_fee,   // 1 = gratis
+  'grand_total'   => (int)$order->grand_total,
+  'kode_unik'     => (int)$order->kode_unik,      // <— PENTING
+  'alamat_kirim'  => $alamat_kirim ?: null,
+  'dest_lat'      => (float)$dest_lat,
+  'dest_lng'      => (float)$dest_lng,
+  'meja'          => $meja_nama ?: $meja_kode ?: null,
+  'catatan'       => (string)$catatan,
+];
+    // === 3.a KIRIM RESPON KE USER SEKARANG (tidak nunggu WA) ===
+    $this->_json_ok_and_flush_then_continue([
         'order_id' => (int)$order_id,
         'nomor'    => $nomor ?: $order_id,
         'message'  => 'Pesanan dibuat (status pending)',
-        // 'redirect' => site_url('produk/order_success/'.$order_id)
-        'redirect' => site_url('produk/order_success/'.$nomor) // <— pakai nomor
+        'redirect' => $redirectUrl
     ]);
+
+    // === 3.b LANJUTKAN KIRIM WA DI BELAKANG (user sudah dapat respons) ===
+    try {
+        // Kita sudah punya $items di atas (array of object)
+        $this->_wa_notify_order_submit($ordForWa, $items);
+    } catch (\Throwable $e) {
+        log_message('error', 'Send WA async failed: '.$e->getMessage());
+    }
+
+    // Pastikan tidak ada output lagi
+    exit;
+
 }
 
 /**
@@ -1346,85 +1361,254 @@ public function leave_table(){
  * @param array|null $items  Array item (object {nama, qty, harga}); jika null akan diambil dari DB.
  * @return bool  true jika dieksekusi (tidak menjamin sukses kirim WA), false jika gagal awal (mis. no phone).
  */
-private function _wa_notify_delivery_submit($ord, ?array $items = null): bool
-{
-    // Validasi minimal
-    if (!$ord || empty($ord->customer_phone)) return false;
+// private function _wa_notify_delivery_submit($ord, ?array $items = null): bool
+// {
+//     // Validasi minimal
+//     if (!$ord || empty($ord->customer_phone)) return false;
 
-    // Helper WA
-    // if (!function_exists('send_wa_single')) {
-    //     // ganti 'wa' jika nama helper berbeda
-    //     $this->load->helper('wa');
-    // }
-        $this->load->helper('front');
+//     $this->load->helper('front');
+
+//     // Info brand toko
+//     $shop  = $this->fm->web_me();
+//     $brand = $shop->nama_website;
+//     $brand_wa = str_replace('&', 'dan', $brand);
+// // … lalu gunakan $brand_wa di $msg
+
+
+//     // Ambil items dari DB jika tidak disuplai
+//     if ($items === null) {
+//         $items = $this->db->select('nama, qty, harga')
+//                           ->from('pesanan_item')
+//                           ->where('pesanan_id', (int)$ord->id)
+//                           ->order_by('id', 'asc')
+//                           ->get()->result();
+//     }
+
+//     // Formatter rupiah
+//     $idr = function($n){ return 'Rp'.number_format((int)$n, 0, ',', '.'); };
+
+//     // Ringkas daftar item (maks 6 baris)
+//     $lines = [];
+//     $maxLines = 6;
+//     $i = 0;
+//     foreach ($items as $it) {
+//         $nm  = trim((string)($it->nama ?? 'Item'));
+//         $qty = (int)($it->qty ?? 0);
+//         $hrg = (int)($it->harga ?? 0);
+//         $lines[] = '• '.$nm.' ×'.$qty.' — '.$idr($qty*$hrg);
+//         if (++$i >= $maxLines) { $lines[] = '• …'; break; }
+//     }
+//     $itemsList = $lines ? implode("\n", $lines) : '• (kosong)';
+
+//     // Mode & baris opsional
+//     $mode = strtolower((string)($ord->mode ?? ''));
+
+//     // Meja (khusus dine-in)
+//     $mejaName = '';
+//     if ($mode === 'dinein') {
+//         $mejaName = trim((string)($ord->meja ?? ''));
+//         if ($mejaName === '' && !empty($ord->meja_nama)) $mejaName = (string)$ord->meja_nama;
+//         if ($mejaName === '' && !empty($ord->meja_kode)) $mejaName = (string)$ord->meja_kode;
+//     }
+//     $mejaLine = ($mode === 'dinein' && $mejaName !== '') ? "Meja: {$mejaName}\n" : '';
+
+//     // Ongkir (tampilkan HANYA untuk delivery)
+//     $ongkirLine = '';
+//     if ($mode === 'delivery') {
+//         $fee = (int)($ord->delivery_fee ?? 0);
+//         $ongkirLine = ($fee === 1) ? "Ongkir: Gratis ongkir\n" : "Ongkir: ".$idr($fee)."\n";
+//     }
+
+//     // Kode unik (tampilkan hanya jika > 0)
+//     $kodeUnikLine = ((int)($ord->kode_unik ?? 0) > 0)
+//         ? "Kode Unik: ".$idr((int)$ord->kode_unik)."\n"
+//         : '';
+
+//     // Alamat / Pin / Catatan
+//     $alamatLine  = !empty($ord->alamat_kirim) ? "Alamat: {$ord->alamat_kirim}\n" : '';
+
+//     $pinLink = '';
+//     if (!empty($ord->dest_lat) && !empty($ord->dest_lng)) {
+//         $pinLink = "https://www.google.com/maps/?q={$ord->dest_lat},{$ord->dest_lng}";
+//     }
+//     $pinLine     = $pinLink ? "Pin lokasi: {$pinLink}\n" : '';
+//     $catatanLine = !empty($ord->catatan) ? "Catatan: {$ord->catatan}\n" : '';
+
+//     // Link pembayaran/sukses
+//     $payUrl = site_url('produk/order_success/'.$ord->nomor);
+
+//     // Susun pesan
+//     $msg =
+//         "Halo {$ord->nama}, pesanan *{$ord->nomor}* di *{$brand_wa}* sudah kami terima ✅\n\n".
+//         "Rincian:\n{$itemsList}\n\n".
+//         "Subtotal: ".$idr((int)$ord->total)."\n".
+//         $ongkirLine.
+//         $kodeUnikLine.
+//         "Grand Total: ".$idr((int)$ord->grand_total)."\n".
+//         $mejaLine.     // hanya dine-in
+//         $alamatLine.
+//         $pinLine.
+//         $catatanLine.
+//         "\nSilakan *pilih metode pembayaran* di tautan berikut:\n{$payUrl}\n\n".
+//         "ℹ️ *Catatan*: Kode unik hanya berlaku untuk metode *QRIS/Transfer*. Jika Anda memilih *Tunai*, *kode unik tidak ditagihkan*.\n".
+//         "✅ Abaikan pesan ini jika Anda sudah melakukan pembayaran.\n".
+//         "— Pesan ini dikirim otomatis oleh sistem *{$brand_wa}*. Mohon jangan dibalas.";
+
+//     // (Opsional) Normalisasi nomor HP ke format 62xxxxxxxxxx
+//     $toMsisdn = function(string $hp): string {
+//         $d = preg_replace('/\D+/', '', $hp);        // hanya digit
+//         if ($d === '') return $hp;
+//         if (strpos($d, '0') === 0)   return '62'.substr($d, 1);
+//         if (strpos($d, '62') === 0)  return $d;
+//         return '62'.$d; // fallback
+//     };
+//     $phone = $toMsisdn((string)$ord->customer_phone);
+
+//     // Kirim WA; bungkus try agar aman
+//     try {
+//         @send_wa_single($phone, $msg);
+//         return true;
+//     } catch (\Throwable $e) {
+//         log_message('error', 'WA delivery submit error: '.$e->getMessage());
+//         return false;
+//     }
+// }
+
+    
+/** Kirim JSON sekarang ke client, lalu lanjut proses di server (non-blocking untuk user) */
+private function _json_ok_and_flush_then_continue(array $payload){
+    // siapkan output
+    $out = array_merge(['success'=>true], $payload);
+    $this->output->set_content_type('application/json')
+                 ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+
+    // lepas kunci session supaya request berikutnya tidak nunggu
+    @session_write_close();
+
+    // kirim sekarang ke client
+    $this->output->_display();
+
+    // tutup koneksi ke client; lanjut eksekusi di server
+    if (function_exists('fastcgi_finish_request')) {
+        @fastcgi_finish_request();
+    } else {
+        @ob_end_flush(); @flush();
+    }
+
+    // kalau user menutup halaman, proses tetap lanjut
+    @ignore_user_abort(true);
+}
+/**
+ * Kirim WA untuk SEMUA mode (delivery/dinein/walkin) saat order dibuat.
+ * $ord minimal: id, nomor, nama, mode, customer_phone (jika ada), total, grand_total
+ * Optional: delivery_fee, alamat_kirim, dest_lat, dest_lng, meja
+ */
+private function _wa_notify_order_submit(object $ord, ?array $items = null): bool
+{
+    // Tanpa nomor HP: skip (tidak memblokir flow)
+    if (empty($ord->customer_phone)) return false;
+
+    // Helper WA (pastikan send_wa_single tersedia)
+    $this->load->helper('front');
 
     // Info brand toko
-    $shop  = $this->fm->web_me(); // pastikan model fm sudah diload di __construct
-    $brand = $shop->nama_toko ?? ($shop->web_title ?? 'Ausi Billiard & Café');
+    $shop      = $this->fm->web_me();
+    $brand     = $shop->nama_toko ?? ($shop->web_title ?? 'AUSI Billiard & Café');
+    $brand_wa  = str_replace('&', 'dan', $brand); // hindari '&' di payload form-encoded
 
-    // Ambil items dari DB jika tidak disuplai
+    // Ambil items dari DB bila tidak diberikan
     if ($items === null) {
         $items = $this->db->select('nama, qty, harga')
                           ->from('pesanan_item')
                           ->where('pesanan_id', (int)$ord->id)
-                          ->order_by('id', 'asc')
+                          ->order_by('id','asc')
                           ->get()->result();
     }
 
     // Formatter rupiah
     $idr = function($n){ return 'Rp'.number_format((int)$n, 0, ',', '.'); };
 
-    // Ringkas daftar item (maks 6 baris)
+    // Ringkas daftar item (maks 10 baris)
     $lines = [];
-    $maxLines = 6;
-    $i = 0;
+    $max   = 10;
+    $i=0;
     foreach ($items as $it) {
         $nm  = trim((string)($it->nama ?? 'Item'));
         $qty = (int)($it->qty ?? 0);
         $hrg = (int)($it->harga ?? 0);
-        $sub = $qty * $hrg;
-        $lines[] = '• '.$nm.' ×'.$qty.' — '.$idr($sub);
-        if (++$i >= $maxLines) { $lines[] = '• …'; break; }
+        $lines[] = '• '.$nm.' ×'.$qty.' — '.$idr($qty*$hrg);
+        if (++$i >= $max) { $lines[] = '• …'; break; }
     }
     $itemsList = $lines ? implode("\n", $lines) : '• (kosong)';
 
-    // Ongkir: sentinel 1 = gratis
-    $ongkirText = ((int)$ord->delivery_fee === 1) ? 'Gratis ongkir' : $idr($ord->delivery_fee);
+    $payUrl    = site_url('produk/order_success/'.$ord->nomor);
+    $mode      = strtolower((string)$ord->mode);
+    $modeLabel = strtoupper($mode);
 
-    // Link pembayaran/sukses (sesuai permintaan)
-    $payUrl = site_url('produk/order_success/'.$ord->nomor);
-
-    // (opsional) pin tujuan
-    $pinLink = '';
-    if (!empty($ord->dest_lat) && !empty($ord->dest_lng)) {
-        $pinLink = "https://www.google.com/maps/?q={$ord->dest_lat},{$ord->dest_lng}";
+    // Meja (khusus dine-in)
+    $mejaText = '';
+    if ($mode === 'dinein') {
+        $mejaText = trim((string)($ord->meja ?? ''));
+        if ($mejaText === '' && !empty($ord->meja_nama)) $mejaText = (string)$ord->meja_nama;
+        if ($mejaText === '' && !empty($ord->meja_kode)) $mejaText = (string)$ord->meja_kode;
+        if ($mejaText !== '') $mejaText = "Meja: {$mejaText}\n";
     }
 
+    // Ongkir (tampilkan HANYA untuk delivery)
+    $ongkirTxt = '';
+    if ($mode === 'delivery') {
+        $fee = (int)($ord->delivery_fee ?? 0);
+        $ongkirTxt = ($fee === 1) ? "Ongkir: Gratis ongkir\n" : "Ongkir: ".$idr($fee)."\n";
+    }
+
+    // Kode unik (tampilkan hanya jika > 0)
+    $kodeUnikLine = ((int)($ord->kode_unik ?? 0) > 0)
+        ? "Kode Unik: ".$idr((int)$ord->kode_unik)."\n"
+        : '';
+
+    // Alamat / Pin / Catatan
+    $alamatLine  = !empty($ord->alamat_kirim) ? "Alamat: {$ord->alamat_kirim}\n" : '';
+    $pinLine     = (!empty($ord->dest_lat) && !empty($ord->dest_lng))
+        ? "Pin lokasi: https://www.google.com/maps/?q={$ord->dest_lat},{$ord->dest_lng}\n"
+        : '';
+    $catatanLine = !empty($ord->catatan) ? "Catatan: {$ord->catatan}\n" : '';
+
     // Susun pesan
-    $msg =
-        "Halo {$ord->nama}, pesanan *{$ord->nomor}* di *{$brand}* sudah kami terima ✅\n\n".
+    $msg  =
+        "Halo {$ord->nama}, pesanan *{$ord->nomor}* ({$modeLabel}) di *{$brand_wa}* sudah kami terima ✅\n\n".
         "Rincian:\n{$itemsList}\n\n".
-        "Subtotal: ".$idr($ord->total)."\n".
-        "Ongkir: {$ongkirText}\n".
-        "Kode Unik: ".$idr($ord->kode_unik)."\n".
-        "Grand Total: ".$idr($ord->grand_total)."\n".
-        (!empty($ord->alamat_kirim) ? "Alamat: {$ord->alamat_kirim}\n" : '').
-        ($pinLink ? "Pin lokasi: {$pinLink}\n" : '').
-        "Catatan: ".$ord->catatan."\n".
+        "Subtotal: ".$idr((int)$ord->total)."\n".
+        $ongkirTxt.
+        $kodeUnikLine.
+        "Grand Total: ".$idr((int)$ord->grand_total)."\n".
+        $mejaText.
+        $alamatLine.
+        $pinLine.
+        $catatanLine.
+        "\nSilakan *pilih metode pembayaran* di tautan berikut:\n{$payUrl}\n\n".
+        "ℹ️ *Catatan*: Kode unik hanya berlaku untuk metode *QRIS/Transfer*. Jika Anda memilih *Tunai*, *kode unik tidak ditagihkan*.\n".
+        "✅ Abaikan pesan ini jika Anda sudah melakukan pembayaran.\n".
+        "— Pesan ini dikirim otomatis oleh sistem *AUSI Billiard & Cafe*. Mohon jangan dibalas.";
 
-        "\nSilahkan lanjutkan proses *pembayaran* di tautan berikut:\n{$payUrl}\n\n".
-        "Terima kasih 🙏";
+    // (Opsional) Normalisasi nomor HP ke format 62xxxxxxxxxx
+    $toMsisdn = function(string $hp): string {
+        $d = preg_replace('/\D+/', '', $hp);
+        if ($d === '') return $hp;
+        if (strpos($d, '0') === 0)   return '62'.substr($d, 1);
+        if (strpos($d, '62') === 0)  return $d;
+        return '62'.$d;
+    };
+    $phone = $toMsisdn((string)$ord->customer_phone);
 
-    // Kirim WA; bungkus try agar aman
     try {
-        @send_wa_single($ord->customer_phone, $msg);
+        @send_wa_single($phone, $msg);
         return true;
     } catch (\Throwable $e) {
-        log_message('error', 'WA delivery submit error: '.$e->getMessage());
+        log_message('error', 'WA order submit error: '.$e->getMessage());
         return false;
     }
 }
-    
+
 
 
     private function _clear_guest_session(){
