@@ -72,8 +72,8 @@
 <script>
 (function(){
   // ================== ENDPOINTS ==================
-  var EP_DATA      = '<?= site_url($controller."/monitor_data"); ?>';
-  var PING_BIL_URL = '<?= site_url($controller."/monitor_ping"); ?>';
+  var EP_DATA      = '<?= site_url("billiard/monitor_data"); ?>';
+  var PING_BIL_URL = '<?= site_url("billiard/monitor_ping"); ?>';
 
   // ================== UI refs ==================
   var rowEl    = document.getElementById('cardsRow');
