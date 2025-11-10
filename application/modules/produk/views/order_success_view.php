@@ -406,9 +406,9 @@ list($status_label, $status_class) = status_badge($status);
                 <?php if ($is_delivery): ?>
                   <div>Silakan beri <strong>uang tunai</strong> kepada staff kami saat <strong>mengantar</strong> orderan Anda.</div>
                 <?php elseif ($is_dinein): ?>
-                  <div>Silakan lakukan <strong>pembayaran tunai</strong> kepada kasir/staff kami saat orderan diantar ke meja.</div>
+                  <div>Silakan langsung lakukan <strong>pembayaran tunai di KASIR sebelum orderan di antar</strong></div>
                 <?php else: /* walkin / take-away */ ?>
-                  <div>Silakan lakukan <strong>pembayaran tunai</strong> kepada staff kami saat <strong>pengambilan</strong> orderan.</div>
+                  <div>Silakan lakukan <strong>pembayaran tunai</strong> kepada <strong>KASIR</strong> saat <strong>pengambilan</strong> orderan.</div>
                 <?php endif; ?>
               </div>
             </div>
@@ -567,7 +567,7 @@ list($status_label, $status_class) = status_badge($status);
 (function(){
   function methodLabel(m){
     m = (m||'').toLowerCase();
-    if (m === 'cash') return 'Tunai di tempat';
+    if (m === 'cash') return 'Tunai di Kasir ?';
     if (m === 'qris') return 'QRIS';
     if (m === 'transfer') return 'Transfer Bank';
     return m.toUpperCase();
