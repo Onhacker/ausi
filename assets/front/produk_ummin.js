@@ -52,6 +52,19 @@
   const $pagi=$("#pagination-wrap");
   const $cartCount=$("#cart-count");
   const $fabCount=$("#fab-count");
+  // --- anti-nyalip request ---
+let __reqSeq = 0;
+let __xhr    = null;
+(function(){
+  function toast(txt, type){
+    if (window.Swal) {
+      Swal.fire({toast:true, position:'top', icon:(type||'info'), title:txt, showConfirmButton:false, timer:1800});
+    }
+  }
+  window.addEventListener('offline', function(){ toast('Kamu offline. Cek koneksi ya.', 'warning'); });
+  window.addEventListener('online',  function(){ toast('Kembali online ✨', 'success'); });
+})();
+
 
   /* HIDDEN inputs (pastikan ada) */
   if(!$("#sub_kategori").length){
@@ -160,7 +173,9 @@ function scrollToGrid(){
   const url = new URL(window.location.href);
   if (url.hash !== '#grandong') {
     url.hash = 'grandong';
-    history.replaceState(history.state, "", url.toString()); // update hash tanpa gerakin layar
+    // history.replaceState(history.state, "", url.toString()); // update hash tanpa gerakin layar
+    history.replaceState({}, "", url.toString());
+
   }
   // opsional: kasih fokus tanpa scroll (diamankan untuk Safari lawas)
   const el = document.getElementById("grandong");
@@ -232,51 +247,69 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
 }
 
 
-  function loadProducts(page=1,pushUrl=true){
-    loading(true);
-    const params=serializeFilters(page);
-      // kompat backend lama yang baca ?rec=1
-params.rec = params.recommended ? 1 : 0;
-// optional: bust cache
-params._ = Date.now();
+  function loadProducts(page=1, pushUrl=true){
+  loading(true);
+  const params = serializeFilters(page);
+  params.rec = params.recommended ? 1 : 0;
+  params._   = Date.now(); // bust cache
 
-    $.getJSON(CFG.list_ajax,params)
-    .done(function(r){
-      if(!r||!r.success){
-        $grid.html('<div class="col-12 alert alert-danger">Gagal memuat data.</div>');
-        return;
-      }
-      $grid.html(r.items_html);
-      $pagi.html(r.pagination_html);
+  // abort request sebelumnya kalau masih jalan
+  if (__xhr && __xhr.readyState !== 4) { try{ __xhr.abort(); }catch(e){} }
 
-  if(pushUrl){
-  const url=new URL(window.location.href);
-  url.searchParams.set("q",params.q);
-  url.searchParams.set("kategori",params.kategori);
-  url.searchParams.set("sub",params.sub_kategori);
-  url.searchParams.set("sort",params.sort);
-  url.searchParams.set("page",r.page);
-  url.searchParams.set("seed",params.seed);
-  if(params.recommended){ url.searchParams.set("rec","1"); } else { url.searchParams.delete("rec"); }
+  const mySeq = ++__reqSeq;
+  __xhr = $.ajax({
+    url: CFG.list_ajax,
+    method: "GET",
+    dataType: "json",
+    data: params,
+    timeout: 12000 // 12s, silakan atur
+  })
+  .done(function(r){
+    if (mySeq !== __reqSeq) return; // ada request yang lebih baru: abaikan hasil ini
 
-  // ⬇️ taruh di sini
-  if(params.trend){ url.searchParams.set("trend", params.trend); } else { url.searchParams.delete("trend"); }
-  if(params.trend_days){ url.searchParams.set("trend_days", params.trend_days); } else { url.searchParams.delete("trend_days"); }
-  if(params.trend_min){ url.searchParams.set("trend_min", params.trend_min); } else { url.searchParams.delete("trend_min"); }
+    if(!r || !r.success){
+      $grid.html('<div class="col-12 alert alert-danger">Gagal memuat data.</div>');
+      $pagi.empty();
+      return;
+    }
 
-  history.pushState(params,"",url.toString());
+    $grid.html(r.items_html).attr("aria-busy","false");
+    $pagi.html(r.pagination_html);
+
+    if (pushUrl){
+      const url=new URL(window.location.href);
+      url.searchParams.set("q",params.q);
+      url.searchParams.set("kategori",params.kategori);
+      url.searchParams.set("sub",params.sub_kategori);
+      url.searchParams.set("sort",params.sort);
+      url.searchParams.set("page",r.page);
+      url.searchParams.set("seed",params.seed);
+      if(params.recommended){ url.searchParams.set("rec","1"); } else { url.searchParams.delete("rec"); }
+      if(params.trend){ url.searchParams.set("trend", params.trend); } else { url.searchParams.delete("trend"); }
+      if(params.trend_days){ url.searchParams.set("trend_days", params.trend_days); } else { url.searchParams.delete("trend_days"); }
+      if(params.trend_min){ url.searchParams.set("trend_min", params.trend_min); } else { url.searchParams.delete("trend_min"); }
+
+      history.pushState(params, "", url.toString());
+    }
+
+    bindAddToCart();
+    bindPagination();
+    if (typeof bindDetailModal === "function") { bindDetailModal(); }
+  })
+  .fail(function(jq, text, err){
+    if (text === "abort") return; // kita sendiri yang cancel
+    const msg = (jq?.status ? ` (${jq.status})` : "") + (err ? `: ${err}` : "");
+    $grid.html('<div class="col-12 alert alert-danger">Koneksi bermasalah'+msg+'.</div>');
+    $pagi.empty();
+  })
+  .always(function(){
+    $grid.attr("aria-busy","false");
+  });
+
+  // aksesibilitas: tandai sedang loading
+  $grid.attr("aria-busy","true");
 }
 
-
-
-      bindAddToCart();
-      bindPagination();
-      if (typeof bindDetailModal === "function") { bindDetailModal(); }
-    })
-    .fail(function(){
-      $grid.html('<div class="col-12 alert alert-danger">Koneksi bermasalah.</div>');
-    });
-  }
 
   function bindPagination(){
     $("#pagination-wrap").off("click","a[data-page]").on("click","a[data-page]",function(e){

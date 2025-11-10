@@ -472,26 +472,43 @@ jamMulai.min = (pickedDate && sameYMD(pickedDate, new Date())) ? hmNow() : '00:0
 
   // Estimasi & validasi window (Day/Night)
   // Estimasi & validasi window (Day/Night)
+// Estimasi & validasi window (terima lintas Day→Night pakai tarif Day)
 const band = slotBandFor(sel, jamMulai.value, dHours, d);
 if (!band){
-  const err = slotErrorFor(sel, jamMulai.value||'', dHours, d);
-  if (jamMulai) jamMulai.setCustomValidity(err||'');
-  if (jamInfo)  jamInfo.textContent = err||'';
-  if (infoHitung) infoHitung.textContent = err||'';
+  // coba rule baru: Day→Night diterima & pakai tarif Day full
+  const cx = slotDayCrossOK(sel, jamMulai.value, dHours, d);
+  if (!cx.ok){
+    const err = slotErrorFor(sel, jamMulai.value||'', dHours, d);
+    if (jamMulai) jamMulai.setCustomValidity(err||'');
+    if (jamInfo)  jamInfo.textContent = err||'';
+    if (infoHitung) infoHitung.textContent = err||'';
+    return;
+  }
+
+  // OK via rule Day→Night
+  if (jamMulai) jamMulai.setCustomValidity('');
+  if (jamInfo)  jamInfo.textContent = '';
+  const subtotal = cx.rate * dHours;
+
+  if (infoHitung){
+    infoHitung.innerHTML =
+      `<b>${cx.label}</b> ${cx.startHM}–${cx.endHM} `
+      + `(pakai tarif Day Rp${cx.rate.toLocaleString('id-ID')}/jam) • `
+      + `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`;
+  }
   return;
 }
 
-
-  // Estimasi harga
-  const subtotal = (band.rate * dHours) || 0;
-  if (infoHitung) {
-    infoHitung.innerHTML =
-      `<b>${band.label}</b> ${band.wStart}–${band.wEnd} ` +
-      `(Rp${band.rate.toLocaleString('id-ID')}/jam) • ` +
-      `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`;
-  }
+// Normal (tidak lintas window)
+const subtotal = (band.rate * dHours) || 0;
+if (infoHitung) {
+  infoHitung.innerHTML =
+    `<b>${band.label}</b> ${band.wStart}–${band.wEnd} `
+    + `(Rp${band.rate.toLocaleString('id-ID')}/jam) • `
+    + `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`;
 }
 
+}
 
 
   document.querySelectorAll('input[name="meja_id"]').forEach(r=>r.addEventListener('change',refreshUI));
@@ -650,14 +667,29 @@ function validateTimeRange(){
   if (!jamMulai.value) return true;
 
   const dHours = Math.max(1, Math.min(12, parseInt(durasi.value||'1', 10)));
-  const errMsg = slotErrorFor(sel, jamMulai.value, dHours, dObj);
 
-  if (errMsg){
-    jamMulai.setCustomValidity(errMsg);
-    if (jamInfo) jamInfo.textContent = errMsg;
-    return false;
+  const okBand = slotBandFor(sel, jamMulai.value, dHours, dObj);
+  if (okBand){
+    jamMulai.setCustomValidity('');
+    if (jamInfo) jamInfo.textContent = '';
+    return true;
   }
-  return true;
+
+  // 2) Fallback: terima kasus lintas Day→Night dengan tarif Day penuh
+  const cx = slotDayCrossOK(sel, jamMulai.value, dHours, dObj);
+  if (cx.ok){
+    jamMulai.setCustomValidity('');
+    if (jamInfo) jamInfo.textContent = '';
+    return true;
+  }
+
+  // 3) Masih tidak valid → error default
+    // 3) Masih tidak valid → error default
+  const errMsg = slotErrorFor(sel, jamMulai.value, dHours, dObj);
+  jamMulai.setCustomValidity(errMsg);
+  if (jamInfo) jamInfo.textContent = errMsg;
+  return false;
+
 }
 
 
@@ -1155,14 +1187,31 @@ document.addEventListener('DOMContentLoaded', function(){
   const tglLabel   = (document.getElementById('tanggal_view')||{}).value || tanggalIso.value || '—';
   const durVal     = (durasi.value || '1');
   const jamLabel   = (jamMulai.value || '00:00') + ' / Durasi: ' + durVal + ' jam';
-  const bandObj    = slotBandFor(sel, (jamMulai.value||'00:00'), parseInt(durVal,10), (getSelectedDate()||new Date()));
-  const subtotal   = bandObj ? (bandObj.rate * parseInt(durVal,10)) : 0;
   const voucherCode = (voucherInp && voucherInp.value.trim()) ? voucherInp.value.trim().toUpperCase() : '';
-  const estimasi = voucherCode
-    ? 'Rp 0 (kalau kode valid)'
-    : (bandObj
-        ? `Rp ${subtotal.toLocaleString('id-ID')} (${bandObj.label})`
-        : '— (pilih jam agar masuk window)');
+  const durInt = parseInt(durVal,10);
+let labelTxt = '—', subtotal = 0;
+
+// normal (full di satu window)
+const bandObj = slotBandFor(sel, (jamMulai.value||'00:00'), durInt, (getSelectedDate()||new Date()));
+if (bandObj){
+  labelTxt = bandObj.label;
+  subtotal = bandObj.rate * durInt;
+} else {
+  // fallback: lintas Day→Night pakai tarif Day
+  const cx = slotDayCrossOK(sel, (jamMulai.value||'00:00'), durInt, (getSelectedDate()||new Date()));
+  if (cx.ok){
+    labelTxt = cx.label;
+    subtotal = cx.rate * durInt; // SELURUH DURASI tarif siang
+  }
+}
+
+const estimasi = voucherCode
+  ? 'Rp 0 (kalau kode valid)'
+  : (subtotal > 0
+      ? `Rp ${subtotal.toLocaleString('id-ID')} (${labelTxt})`
+      : '— (pilih jam agar masuk window)');
+
+
 
   const html = `
     <div style="text-align:left;">
@@ -1312,5 +1361,53 @@ if (inNight && inNight.sBase + durMin > nwin.e){
   // fallback: benar-benar di luar kedua window
   return `Jam ${startHM} selama ${hours} jam berada di luar jendela: `
        + `${cfg.day.start}–${cfg.day.end} atau ${cfg.night.start}–${cfg.night.end}.`;
+}
+</script>
+<script>
+// ==== RULE TAMBAHAN: jika mulai di "Day" lalu melewati batas ke "Night",
+// terima sebagai VALID dan seluruh durasi dihitung pakai tarif "Day".
+// ==== RULE TAMBAHAN: jika mulai di "Day" lalu melewati batas ke "Night",
+// terima sebagai VALID dan seluruh durasi dihitung pakai tarif "Day".
+function slotDayCrossOK(r, startHM, hours, dateObj){
+  const cfg = getCfgFor(r, dateObj);
+  if (!cfg || !startHM) return { ok:false };
+
+  const durMin = Math.max(1, Math.min(12, parseInt(hours||'1',10))) * 60;
+  const s = toMin(startHM);                 // menit dari 00:00
+  const dwin = windowToSpan(cfg.day);       // {s,e} dengan e bisa >1440 (overnight)
+  const nwin = windowToSpan(cfg.night);     // {s,e}
+
+  // Map titik waktu t ke "garis waktu" yang sejajar dengan window win
+  function mapToBase(t, win){
+    // Jika window overnight (e>1440) dan t < win.s, geser +24h
+    return (win.e > 1440 && t < win.s) ? t + 1440 : t;
+  }
+
+  // Start harus berada di window Day (dalam basis Day)
+  const sBase = mapToBase(s, dwin);
+  if (!(sBase >= dwin.s && sBase < dwin.e)) return { ok:false };
+
+  const eBase = sBase + durMin;             // ujung slot pada basis Day
+
+  // Benar-benar menyeberang batas akhir Day?
+  if (eBase <= dwin.e) return { ok:false };
+
+  // Ujung slot harus berada di Night window (pakai basis Night)
+  function inNight(t){
+    const t1 = mapToBase(t, nwin);
+    // untuk jaga-jaga kalau masih bisa lewat +24h
+    const t2 = t1 + 1440;
+    return (t1 > nwin.s && t1 <= nwin.e) || (t2 > nwin.s && t2 <= nwin.e);
+  }
+  if (!inNight(eBase)) return { ok:false };
+
+  // Lolos: seluruh durasi dihitung dengan tarif Day
+  return {
+    ok: true,
+    rate: cfg.day.rate,
+    label: 'Lintas Day→Night (tarif Day)',
+    startHM: startHM,
+    endHM: fromMin((s + durMin) % (24*60))
+  };
 }
 </script>

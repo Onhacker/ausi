@@ -67,11 +67,11 @@ private function _rate_for_slot_cfg(string $date, string $jam_mulai, string $jam
   }
   if ($end <= $start) $end->modify('+1 day');
 
-  // Tentukan hari: 1..7 (Mon..Sun)
+  // 1=Mon .. 7=Sun
   $N = (int)DateTime::createFromFormat('Y-m-d', $date)->format('N');
 
   if ($N >= 1 && $N <= 5) {
-    // WEEKDAY windows
+    // WEEKDAY
     $dS = $meja->wk_day_start   ?? '09:00:00';
     $dE = $meja->wk_day_end     ?? '18:00:00';
     $dR = (int)($meja->wk_day_rate ?? 35000);
@@ -80,8 +80,10 @@ private function _rate_for_slot_cfg(string $date, string $jam_mulai, string $jam
     $nE = $meja->wk_night_end   ?? '02:00:00';
     $nR = (int)($meja->wk_night_rate ?? 40000);
 
+    $dayLabel = 'Weekday Day';
+    $nightLabel = 'Weekday Night';
   } else {
-    // WEEKEND windows
+    // WEEKEND
     $dS = $meja->we_day_start   ?? '10:00:00';
     $dE = $meja->we_day_end     ?? '18:00:00';
     $dR = (int)($meja->we_day_rate ?? 40000);
@@ -89,46 +91,98 @@ private function _rate_for_slot_cfg(string $date, string $jam_mulai, string $jam
     $nS = $meja->we_night_start ?? '18:00:00';
     $nE = $meja->we_night_end   ?? '02:00:00';
     $nR = (int)($meja->we_night_rate ?? 50000);
+
+    $dayLabel = 'Weekend Day';
+    $nightLabel = 'Weekend Night';
   }
 
-  // Build window Day/Night utk tanggal anchor $date
-$w1s = $this->_mk_dt2($date, $dS);
-$w1e = $this->_mk_dt2($date, $dE);
-$w1Over = ($w1e <= $w1s);
-if ($w1Over) $w1e->modify('+1 day');
+  // Build window Day/Night untuk anchor $date
+  $w1s = $this->_mk_dt2($date, $dS);
+  $w1e = $this->_mk_dt2($date, $dE);
+  $w1Over = ($w1e <= $w1s);
+  if ($w1Over) $w1e->modify('+1 day');
 
-$w2s = $this->_mk_dt2($date, $nS);
-$w2e = $this->_mk_dt2($date, $nE);
-$w2Over = ($w2e <= $w2s);
-if ($w2Over) $w2e->modify('+1 day');
+  $w2s = $this->_mk_dt2($date, $nS);
+  $w2e = $this->_mk_dt2($date, $nE);
+  $w2Over = ($w2e <= $w2s);
+  if ($w2Over) $w2e->modify('+1 day');
 
-// Cek langsung pada anchor tanggal
-$inW1 = ($start >= $w1s && $end <= $w1e);
-$inW2 = ($start >= $w2s && $end <= $w2e);
+  // Helper cek "t berada di dalam window" dgn dukungan overnight
+  $pointIn = function($t, $ws, $we, $overnight) {
+    if ($t >= $ws && $t < $we) return true;
+    if ($overnight && $t < $ws) {
+      $t2 = (clone $t)->modify('+1 day');
+      return ($t2 >= $ws && $t2 < $we);
+    }
+    return false;
+  };
 
-// Tambahan: jika overnight dan start dinihari (sebelum start window),
-// geser start/end +1 hari agar ikut bagian "H+1" window
-if (!$inW1 && $w1Over && $start < $w1s){
-  $start2 = (clone $start)->modify('+1 day');
-  $end2   = (clone $end)->modify('+1 day');
-  $inW1 = ($start2 >= $w1s && $end2 <= $w1e);
-}
-if (!$inW2 && $w2Over && $start < $w2s){
-  $start2 = (clone $start)->modify('+1 day');
-  $end2   = (clone $end)->modify('+1 day');
-  $inW2 = ($start2 >= $w2s && $end2 <= $w2e);
-}
+  // Full-in-window?
+  $inW1 = ($start >= $w1s && $end <= $w1e);
+  $inW2 = ($start >= $w2s && $end <= $w2e);
 
-if ($inW1) return ['ok'=>true,'rate'=>$dR,'band'=>'day','msg'=>'Tarif Day window'];
-if ($inW2) return ['ok'=>true,'rate'=>$nR,'band'=>'night','msg'=>'Tarif Night window'];
+  // Map untuk overnight jika start di bagian dinihari
+  if (!$inW1 && $w1Over && $start < $w1s){
+    $start2 = (clone $start)->modify('+1 day');
+    $end2   = (clone $end)->modify('+1 day');
+    $inW1 = ($start2 >= $w1s && $end2 <= $w1e);
+  }
+  if (!$inW2 && $w2Over && $start < $w2s){
+    $start2 = (clone $start)->modify('+1 day');
+    $end2   = (clone $end)->modify('+1 day');
+    $inW2 = ($start2 >= $w2s && $end2 <= $w2e);
+  }
 
-// fallback pesan jika tetap tidak masuk
-$msg = sprintf(
-  'Slot harus di dalam salah satu jendela: %s–%s atau %s–%s.',
-  substr($dS,0,5), substr($dE,0,5), substr($nS,0,5), substr($nE,0,5)
-);
-return ['ok'=>false,'rate'=>0,'band'=>'','msg'=>$msg];
+  if ($inW1) return ['ok'=>true,'rate'=>$dR,'band'=>'day','msg'=>'Tarif Day window'];
+  if ($inW2) return ['ok'=>true,'rate'=>$nR,'band'=>'night','msg'=>'Tarif Night window'];
 
+  // ==== ATURAN KHUSUS: Day → Night ====
+  // Start harus DI dalam Day window, end (inklusif) DI dalam Night window → tarif Day
+  $startsInDay  = $pointIn($start, (clone $w1s), (clone $w1e), $w1Over);
+  $endMinus1Min = (clone $end)->modify('-1 minute');
+  $endsInNight  = $pointIn($endMinus1Min, (clone $w2s), (clone $w2e), $w2Over);
+
+  if ($startsInDay && $endsInNight) {
+    return ['ok'=>true,'rate'=>$dR,'band'=>'day_to_night','msg'=>'Lintas Day→Night (tarif Day)'];
+  }
+
+  // ==== Pesan error yang informatif mirip front-end ====
+  $fmtDur = function(int $minutes){
+    $minutes = max(0,$minutes);
+    $h = intdiv($minutes,60); $m = $minutes%60;
+    $o=[]; if($h)$o[]=$h.' jam'; if($m)$o[]=$m.' mnt'; return $o?implode(' ',$o):'0 mnt';
+  };
+
+  if ($startsInDay) {
+    // hitung sisa durasi maksimal hingga batas Day
+    $baseStart = $start;
+    if ($w1Over && $baseStart < $w1s) $baseStart = (clone $baseStart)->modify('+1 day');
+    $maxMin = max(0, (int)round(($w1e->getTimestamp() - $baseStart->getTimestamp())/60));
+    return [
+      'ok'=>false,'rate'=>0,'band'=>'',
+      'msg'=>"Slot melewati batas {$dayLabel} ".substr($dS,0,5)."–".substr($dE,0,5).". ".
+             "Dari ".substr($jam_mulai,0,5)." maksimal {$fmtDur($maxMin)} (sampai ".substr($dE,0,5)."). ".
+             "Kurangi durasi atau pindah ke window ".substr($nS,0,5)."–".substr($nE,0,5)."."
+    ];
+  }
+  if ($pointIn($start, (clone $w2s), (clone $w2e), $w2Over)) {
+    $baseStart = $start;
+    if ($w2Over && $baseStart < $w2s) $baseStart = (clone $baseStart)->modify('+1 day');
+    $maxMin = max(0, (int)round(($w2e->getTimestamp() - $baseStart->getTimestamp())/60));
+    return [
+      'ok'=>false,'rate'=>0,'band'=>'',
+      'msg'=>"Slot melewati batas {$nightLabel} ".substr($nS,0,5)."–".substr($nE,0,5).". ".
+             "Dari ".substr($jam_mulai,0,5)." maksimal {$fmtDur($maxMin)} (sampai ".substr($nE,0,5)."). ".
+             "Kurangi durasi atau pindah ke window ".substr($dS,0,5)."–".substr($dE,0,5)."."
+    ];
+  }
+
+  // fallback
+  $msg = sprintf(
+    'Jam %s berada di luar jendela: %s–%s atau %s–%s.',
+    substr($jam_mulai,0,5), substr($dS,0,5), substr($dE,0,5), substr($nS,0,5), substr($nE,0,5)
+  );
+  return ['ok'=>false,'rate'=>0,'band'=>'','msg'=>$msg];
 }
 
 
