@@ -12,20 +12,19 @@ $is_delivery     = ($mode === 'delivery');
 $is_dinein       = ($mode === 'dinein' || $mode === 'dine-in');
 $delivery_fee    = (int)($order->delivery_fee ?? 0);
 $customer_name   = trim((string)($order->nama ?? ''));
-$customer_phone  = trim((string)($order->customer_phone ?? ''));
 $alamat_kirim    = trim((string)($order->alamat_kirim ?? ''));
-$meja_label = ($order->meja_nama ?? ($order->meja_kode ?? '—'));
+$meja_label      = ($order->meja_nama ?? ($order->meja_kode ?? '—'));
 
-// $meja_label      = $order->meja_nama ?: ($order->meja_kode ?: '—');
 $paid_method     = trim((string)($order->paid_method ?? ''));
-// $canUpdateOngkir = ($is_delivery && $paid_method === '');
 $canUpdateOngkir = ($is_delivery && $paid_method === '' && $delivery_fee <= 0);
 
 // NEW: ambil catatan (fallback ke note jika field catatan kosong)
 $catatan         = trim((string)($order->catatan ?? $order->note ?? ''));
 
-// normalisasi telp utk link tel: / copy
-$phone_plain = preg_replace('/\s+/', '', $customer_phone);
+// ==== STATUS (sekali saja) ====
+$status = strtolower($order->status ?? '-');
+$statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
+$is_paid_like = in_array($status, ['paid','lunas','selesai','completed','success'], true);
 
 // hitung grand total tampil
 $grand_calc = $total + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
@@ -35,18 +34,29 @@ $idForPrint = (int)($order->id ?? 0);
 
 // badge mode
 $modeBadgeClass = $is_delivery ? 'badge-warning' : ($is_dinein ? 'badge-info' : 'badge-primary');
-// badge status
-$status = strtolower($order->status ?? '-');
-$statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
 
 // ==== KURIR (assigned) ====
-$status     = strtolower($order->status ?? '');
 $kurir_id   = (int)($order->courier_id ?? 0);
 $kurir_nm   = trim((string)($order->courier_name ?? ''));
-$kurir_telp = trim((string)($order->courier_phone ?? '')); // ← tambahkan ini jika ada di payload
+$kurir_telp = trim((string)($order->courier_phone ?? '')); // jika ada di payload
 $hasKurir   = ($kurir_id > 0 && $kurir_nm !== '');
 
-$is_paid_like = in_array($status, ['paid'], true);
+// ==== HP robust: ambil dari beberapa kemungkinan field ====
+$customer_phone = '';
+foreach (['customer_phone','phone','telp','hp','whatsapp','wa'] as $k) {
+  if (isset($order->$k) && trim((string)$order->$k) !== '') {
+    $customer_phone = trim((string)$order->$k);
+    break;
+  }
+}
+// normalisasi telp utk link tel: / copy
+$phone_plain = preg_replace('/\D+/', '', $customer_phone);
+$placeholders = ['-','0','000000','n/a','na'];
+if ($phone_plain === '' || in_array(strtolower($customer_phone), $placeholders, true)) {
+  $customer_phone = '';
+  $phone_plain = '';
+}
+$has_phone = (strlen($phone_plain) >= 6);
 
 // ==== deteksi metode bayar ====
 $pm_raw = trim((string)($order->paid_method ?? ''));
@@ -65,8 +75,6 @@ if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
 }
 if (!$tokens) {
   $tokens = preg_split('/[\s,\/\+\|\-]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
-
-  // $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
 }
 
 // sinonim
@@ -77,18 +85,15 @@ $digSyn   = ['transfer','tf','bank','qris','qr','qr-code','gopay','ovo','dana','
 $hasCash    = (bool)array_intersect($tokens, $cashSyn);
 $hasDigital = (bool)array_intersect($tokens, $digSyn);
 
-// ==== 2 kondisi tombol ====
-// 1) delivery + verifikasi + cash
-// 2) delivery + paid + digital (transfer/QRIS)
-// $canAssignKurir = (
-//   $is_delivery && !$hasKurir && (
-//     ($status === 'verifikasi' && $hasCash) ||
-//     ($status === 'paid'       && $hasDigital)
-//   )
-// );
+// ==== 2 kondisi tombol (disederhanakan) ====
 $canAssignKurir = ($is_delivery && !$hasKurir);
-?>
 
+// === Link order_success saat HP kosong ===
+$order_code  = trim((string)($order->nomor ?? $order->kode ?? $order->order_code ?? $order->order_key ?? $order->id ?? ''));
+$success_url = $order_code !== '' ? site_url('produk/order_success/'.$order_code) : site_url('produk/order_success');
+$pm_label    = $pm_raw !== '' ? $pm_raw : 'Lihat Order';
+if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tombol
+?>
 <style>
   .card-order{ overflow:hidden; }
   .card-order .header{
@@ -117,7 +122,7 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
 
   /* ===== Modal Assign Kurir: tema beda & overlay ===== */
   #modalAssignKurir { z-index: 1062; }
-  .modal-backdrop.backdrop-assign-kurir { /*z-index:1061 !important*/; background: rgba(22,163,74,.25); }
+  .modal-backdrop.backdrop-assign-kurir { background: rgba(22,163,74,.25); }
   #modalAssignKurir .modal-content{
     border:2px solid #16a34a; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.25);
   }
@@ -164,10 +169,6 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
           <i class="fe-clock"></i>
           <?= htmlspecialchars(date('d-m-Y H:i', strtotime($order->created_at)), ENT_QUOTES,'UTF-8'); ?>
         </span>
-        <!-- <span class="pill">
-          <i class="fe-credit-card"></i>
-          <?= htmlspecialchars($order->paid_method ?: '-', ENT_QUOTES,'UTF-8'); ?>
-        </span> -->
         <span class="pill">
           <i class="fe-credit-card"></i>
           <?= htmlspecialchars($pm_raw ?: '-', ENT_QUOTES,'UTF-8'); ?>
@@ -186,80 +187,66 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
 
         <!-- KURIR (badge ketika sudah ditugaskan) -->
         <span class="pill" id="kurirMeta" <?= $hasKurir ? '' : 'style="display:none"' ?>>
-  <i class="fe-user-check"></i>
-  Kurir:
-  <strong>
-    <?php if ($kurir_telp !== ''): ?>
-      <a href="tel:<?= htmlspecialchars(preg_replace('/\s+/', '', $kurir_telp), ENT_QUOTES,'UTF-8'); ?>">
-        <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
-      </a>
-    <?php else: ?>
-      <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
-    <?php endif; ?>
-  </strong>
-</span>
+          <i class="fe-user-check"></i>
+          Kurir:
+          <strong>
+            <?php if ($kurir_telp !== ''): ?>
+              <a href="tel:<?= htmlspecialchars(preg_replace('/\s+/', '', $kurir_telp), ENT_QUOTES,'UTF-8'); ?>">
+                <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
+              </a>
+            <?php else: ?>
+              <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
+            <?php endif; ?>
+          </strong>
+        </span>
 
       </div>
     </div>
-    <?php if ($customer_phone !== '' && !$is_paid_like): ?>
 
-  <div class="dropdown d-inline-block">
-    <button type="button" class="btn btn-sm btn-success dropdown-toggle mb-2"
-            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-      <i class="mdi mdi-whatsapp"></i> WA Pengingat
-    </button>
-    <div class="dropdown-menu dropdown-menu-right">
-      <?php if (in_array($status, ['pending','verifikasi'], true)): ?>
-        <a class="dropdown-item" href="#"
-           onclick="waReminder(<?= $idForPrint ?>,'payment');return false;">
-          Pengingat Pembayaran
-        </a>
-      <?php endif; ?>
+    <?php if ($has_phone && !$is_paid_like): ?>
+      <div class="dropdown d-inline-block">
+        <button type="button" class="btn btn-sm btn-success dropdown-toggle mb-2"
+                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="mdi mdi-whatsapp"></i> WA Pengingat
+        </button>
+        <div class="dropdown-menu dropdown-menu-right">
+          <?php if (in_array($status, ['pending','verifikasi'], true)): ?>
+            <a class="dropdown-item" href="#"
+               onclick="waReminder(<?= $idForPrint ?>,'payment');return false;">
+              Pengingat Pembayaran
+            </a>
+          <?php endif; ?>
 
-      <?php if ($is_delivery): ?>
-        <a class="dropdown-item" href="#"
-           onclick="waReminder(<?= $idForPrint ?>,'delivery');return false;">
-          Pengingat Pengantaran
-        </a>
-      <?php endif; ?>
-
-    <!--   <a class="dropdown-item" href="#"
-         onclick="waReminder(<?= $idForPrint ?>,'thanks');return false;">
-        Ucapan Terima Kasih / Minta Rating
-      </a> -->
-    </div>
-  </div>
-<?php endif; ?>
+          <?php if ($is_delivery): ?>
+            <a class="dropdown-item" href="#"
+               onclick="waReminder(<?= $idForPrint ?>,'delivery');return false;">
+              Pengingat Pengantaran
+            </a>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <div class="text-right">
-      <?php if ($is_delivery): ?>
-        <?php if ($canAssignKurir): ?>
-          <button type="button" class="btn btn-sm btn-success mb-2" id="btnAssignKurirHeader"
-            onclick="openKurirModal(<?= $idForPrint ?>)">
-            <i class="fe-send"></i> Tugaskan Kurir
-          </button><br>
-        <?php endif; ?>
+      <?php if ($is_delivery && $canAssignKurir): ?>
+        <button type="button" class="btn btn-sm btn-success mb-2" id="btnAssignKurirHeader"
+          onclick="openKurirModal(<?= $idForPrint ?>)">
+          <i class="fe-send"></i> Tugaskan Kurir
+        </button><br>
       <?php endif; ?>
 
-    <!--   <button type="button" class="btn btn-sm btn-primary mb-1"
-        onclick="printStrukInline(<?= $idForPrint ?>, '58')">
-        <i class="fe-printer"></i> Cetak 58mm
-      </button><br> -->
-     <!--  <button type="button" class="btn btn-sm btn-secondary"
-      onclick="printStrukInline(<?= $idForPrint ?>, '80')">
-      <i class="fe-printer"></i> Cetak 80mm
-    </button> -->
-    <!-- (opsional) tombol BT -->
-    <button type="button" class="btn btn-sm btn-outline-secondary"
-    onclick="printStrukInline(<?= $idForPrint ?>, '80', true, true)">
-    <i class="fe-printer"></i> Cetak
-  </button>
-
+      <button type="button" class="btn btn-sm btn-outline-secondary"
+        onclick="printStrukInline(<?= $idForPrint ?>, '80', true, true)">
+        <i class="fe-printer"></i> Cetak
+      </button>
     </div>
   </div>
 
   <!-- DETAIL PELANGGAN -->
-  <?php if ($customer_name !== '' || $customer_phone !== '' || $is_delivery || $catatan !== ''): ?>
+  <?php 
+    $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan !== '' || (!$has_phone && $pm_raw !== ''));
+    if ($show_detail):
+  ?>
     <div class="mb-3">
       <div class="section-title">Detail Pelanggan</div>
       <div class="row">
@@ -270,7 +257,7 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
             </div>
           <?php endif; ?>
 
-          <?php if ($customer_phone !== ''): ?>
+          <?php if ($has_phone): ?>
             <div class="kv mb-1 align-items-center">
               <div class="k">HP</div>
               <div class="v d-flex align-items-center">
@@ -281,6 +268,21 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
                         data-copy="<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
                   Salin
                 </button>
+              </div>
+            </div>
+          <?php else: ?>
+            <div class="kv mb-1 align-items-center">
+              <div class="k">Pembayaran</div>
+              <div class="v">
+                <?php if (!$is_paid_like): ?>
+                  <a class="btn btn-xs btn-outline-primary"
+                     href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                    <i class="fe-credit-card"></i>
+                    <?= htmlspecialchars($pm_label ?: 'Lihat Order', ENT_QUOTES, 'UTF-8'); ?>
+                  </a>
+                <?php else: ?>
+                  <span class="badge badge-success">Sudah Lunas</span>
+                <?php endif; ?>
               </div>
             </div>
           <?php endif; ?>
@@ -531,157 +533,78 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
     document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
-    $(this).text('Tersalin').prop('disabled', true);
-    setTimeout(()=>{ $(this).text('Salin').prop('disabled', false); }, 1500);
+    Swal.fire({toast:true, position:'top', icon:'success', title:'Nomor tersalin', showConfirmButton:false, timer:1300});
   });
 })();
 
- /* ==== GLOBAL CSRF utk AJAX ==== */
-  window.CSRF_NAME = "<?= isset($this->security) ? $this->security->get_csrf_token_name() : 'csrf_test_name' ?>";
-  window.CSRF_HASH = "<?= isset($this->security) ? $this->security->get_csrf_hash() : '' ?>";
+// GLOBAL CSRF utk AJAX
+window.CSRF_NAME = "<?= isset($this->security) ? $this->security->get_csrf_token_name() : 'csrf_test_name' ?>";
+window.CSRF_HASH = "<?= isset($this->security) ? $this->security->get_csrf_hash() : '' ?>";
 
-  /* ==== Helper Swal loading ==== */
-  function swalLoading(title, html){
-    Swal.fire({
-      title: title || 'Memproses...',
-      html:  html  || '',
-      allowOutsideClick: false,
-      allowEscapeKey:   false,
-      didOpen: () => { Swal.showLoading(); }
-    });
-  }
-
-  /* ====== Kirim WA Pengingat (SweetAlert) ====== */
-  window.waReminder = function(orderId, type){
-    var labels = {
-      payment : 'Pengingat Pembayaran',
-      delivery: 'Pengingat Pengantaran',
-      thanks  : 'Ucapan Terima Kasih'
-    };
-    var label = labels[type] || 'Kirim Pesan';
-
-    Swal.fire({
-      icon: 'question',
-      title: label,
-      text: 'Kirim pesan WhatsApp ke customer sekarang?',
-      showCancelButton: true,
-      confirmButtonText: 'Kirim',
-      cancelButtonText: 'Batal',
-      reverseButtons: true
-    }).then(function(res){
-      if (!res.isConfirmed) return;
-
-      swalLoading('Mengirim...', 'Mohon tunggu');
-      $.ajax({
-        url: "<?= site_url('admin_pos/wa_reminder'); ?>",
-        method: "POST",
-        dataType: "json",
-        data: (function(){
-          var d = { order_id: orderId, type: type };
-          if (window.CSRF_NAME) d[window.CSRF_NAME] = window.CSRF_HASH;
-          return d;
-        })()
-      })
-      .done(function(r){
-        // perbarui CSRF bila server kirimkan
-        if (r && r.csrf) { window.CSRF_NAME = r.csrf.name; window.CSRF_HASH = r.csrf.hash; }
-        Swal.close();
-
-        if (r && r.ok){
-          Swal.fire({ icon:'success', title:'Terkirim', text:'Pesan WhatsApp berhasil dikirim.' });
-          return;
-        }
-
-        if (r && r.preview_ctc){
-          // Gateway WA non-aktif → tawarkan kirim manual via wa.me
-          Swal.fire({
-            icon: 'info',
-            title: 'Kirim manual via WhatsApp',
-            html: `
-              <div class="text-left">
-                <p>Gateway WhatsApp tidak aktif. Klik tombol di bawah untuk membuka WhatsApp dengan pesan siap kirim.</p>
-                <label class="small text-muted d-block mb-1">Preview Pesan</label>
-                <textarea class="form-control" rows="6" readonly>${(r.preview_text||'').replace(/</g,'&lt;')}</textarea>
-              </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Buka WhatsApp',
-            cancelButtonText: 'Tutup',
-            width: 600
-          }).then(function(x){
-            if (x.isConfirmed) window.open(r.preview_ctc, '_blank');
-          });
-          return;
-        }
-
-        Swal.fire({ icon:'error', title:'Gagal', text: (r && r.msg) ? r.msg : 'Gagal mengirim pesan.' });
-      })
-      .fail(function(){
-        Swal.close();
-        Swal.fire({ icon:'error', title:'Gagal', text:'Tidak dapat menghubungi server.' });
-      });
-    });
-  };
-
-  /* ====== Ganti alert() di assignKurirNow jadi Swal ====== */
-  (function(){
-    var _assignKurirNow = window.assignKurirNow; // simpan original
-    window.assignKurirNow = function(orderId, courierId, btn){
-      var $modal   = $('#modalAssignKurir');
-      var $overlay = $modal.find('.assign-loading');
-      var $btn     = $(btn || null);
-
-      $overlay.removeClass('d-none');
-      var oldHtml=null;
-      if ($btn.length){ oldHtml = $btn.html(); $btn.prop('disabled', true).html('<span class="spin" style="width:16px;height:16px;border-width:2px;margin-right:6px;"></span>Memproses'); }
-
-      $.ajax({
-        url: "<?= site_url('admin_pos/assign_courier'); ?>",
-        method: "POST",
-        dataType: "json",
-        data: (function(){
-          var d = { order_id: orderId, courier_id: courierId };
-          // pakai var lokal dari IIFE-mu jika ada, fallback global
-          d[(typeof CSRF_NAME!=='undefined'?CSRF_NAME:window.CSRF_NAME)] = (typeof CSRF_HASH!=='undefined'?CSRF_HASH:window.CSRF_HASH);
-          return d;
-        })()
-      })
-      .done(function(res){
-        if (res && res.ok){
-          var nama = res.data && res.data.nama ? res.data.nama : 'Kurir';
-          var telp = res.data && res.data.phone ? String(res.data.phone) : '';
-          var telpPlain = telp.replace(/\s+/g,'');
-          var html = ' <i class="fe-user-check"></i> Kurir: <strong>';
-          if (telp){ html += '<a href="tel:'+telpPlain+'">'+$('<div>').text(nama).html()+'</a>'; }
-          else { html += $('<div>').text(nama).html(); }
-          html += '</strong>';
-          $('#kurirMeta').html(html).show();
-          $('#btnAssignKurirHeader').remove();
-          $('#modalAssignKurir').modal('hide');
-          Swal.fire({icon:'success', title:'Berhasil', text:'Kurir ditugaskan.'});
-        } else {
-          Swal.fire({icon:'error', title:'Gagal', text: (res && res.msg) ? res.msg : 'Tidak bisa menugaskan kurir.'});
-        }
-      })
-      .fail(function(){
-        Swal.fire({icon:'error', title:'Gagal', text:'Terjadi kesalahan jaringan/server.'});
-      })
-      .always(function(){
-        $overlay.addClass('d-none');
-        if ($btn.length){ $btn.prop('disabled', false).html(oldHtml || 'Tugaskan'); }
-      });
-    };
-  })();
-
-  /* ====== Toast kecil untuk tombol Salin ====== */
-  $(document).on('click', '.js-copy', function(){
-    var val = $(this).data('copy') || '';
-    if (!val) return;
-    var ta = document.createElement('textarea');
-    ta.value = val; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy');
-    document.body.removeChild(ta);
-    Swal.fire({toast:true, position:'top', icon:'success', title:'Nomor tersalin', showConfirmButton:false, timer:1300});
+// Helper Swal loading
+function swalLoading(title, html){
+  Swal.fire({
+    title: title || 'Memproses...',
+    html:  html  || '',
+    allowOutsideClick: false,
+    allowEscapeKey:   false,
+    didOpen: () => { Swal.showLoading(); }
   });
+}
 
+// Kirim WA Pengingat (SweetAlert)
+window.waReminder = function(orderId, type){
+  var labels = { payment:'Pengingat Pembayaran', delivery:'Pengingat Pengantaran', thanks:'Ucapan Terima Kasih' };
+  var label = labels[type] || 'Kirim Pesan';
+
+  Swal.fire({
+    icon: 'question', title: label, text: 'Kirim pesan WhatsApp ke customer sekarang?',
+    showCancelButton: true, confirmButtonText: 'Kirim', cancelButtonText: 'Batal', reverseButtons: true
+  }).then(function(res){
+    if (!res.isConfirmed) return;
+
+    swalLoading('Mengirim...', 'Mohon tunggu');
+    $.ajax({
+      url: "<?= site_url('admin_pos/wa_reminder'); ?>",
+      method: "POST",
+      dataType: "json",
+      data: (function(){
+        var d = { order_id: orderId, type: type };
+        if (window.CSRF_NAME) d[window.CSRF_NAME] = window.CSRF_HASH;
+        return d;
+      })()
+    })
+    .done(function(r){
+      if (r && r.csrf) { window.CSRF_NAME = r.csrf.name; window.CSRF_HASH = r.csrf.hash; }
+      Swal.close();
+
+      if (r && r.ok){
+        Swal.fire({ icon:'success', title:'Terkirim', text:'Pesan WhatsApp berhasil dikirim.' });
+        return;
+      }
+
+      if (r && r.preview_ctc){
+        Swal.fire({
+          icon:'info',
+          title:'Kirim manual via WhatsApp',
+          html: `
+            <div class="text-left">
+              <p>Gateway WhatsApp tidak aktif. Klik tombol di bawah untuk membuka WhatsApp dengan pesan siap kirim.</p>
+              <label class="small text-muted d-block mb-1">Preview Pesan</label>
+              <textarea class="form-control" rows="6" readonly>${(r.preview_text||'').replace(/</g,'&lt;')}</textarea>
+            </div>
+          `,
+          showCancelButton:true, confirmButtonText:'Buka WhatsApp', cancelButtonText:'Tutup', width:600
+        }).then(function(x){ if (x.isConfirmed) window.open(r.preview_ctc, '_blank'); });
+        return;
+      }
+
+      Swal.fire({ icon:'error', title:'Gagal', text:(r && r.msg) ? r.msg : 'Gagal mengirim pesan.' });
+    })
+    .fail(function(){
+      Swal.close();
+      Swal.fire({ icon:'error', title:'Gagal', text:'Tidak dapat menghubungi server.' });
+    });
+  });
+};
 </script>
