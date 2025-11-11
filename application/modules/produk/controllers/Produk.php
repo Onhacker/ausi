@@ -1201,7 +1201,7 @@ public function leave_table(){
     // === Hitung grand total TAHAP SUBMIT (tanpa kode unik) ===
     // base_total = subtotal + ongkir (jika delivery)
     $base_total  = (int)$total + ($mode === 'delivery' ? (int)$delivery_fee : 0);
-    $kode = random_int(1, 499);
+    $kode = random_int(1, 99);
     $kode_unik   = $kode;                    // <-- kode unik BELUM dipakai di sini
     $grand_total = $base_total+$kode_unik;          // <-- kunci awal; akan di-update di _set_verifikasi()
 
