@@ -329,12 +329,34 @@
     body.force-landscape #app-scroll{ display:none !important; }
     body.force-landscape .rotate-guard{ display:flex; }
   }
+
 </style>
 
   <!-- Tambahan CSS final video (biar prioritas paling bawah stylesheet) -->
   <style>
     body.has-fixed-ticker .empty-right .empty-video{ max-height: none !important; }
   </style>
+<!-- ==== NO-SCROLL LOCK FOR TV ==== -->
+<style>
+  :root, html, body { height: 100%; }
+  html, body{
+    overflow: hidden !important;          /* matikan scroll global */
+    overscroll-behavior: none;
+    touch-action: none;                   /* cegah pan/gesture */
+    -webkit-text-size-adjust: 100%;
+    -webkit-overflow-scrolling: auto;
+    scrollbar-width: none;                /* Firefox sembunyikan scrollbar */
+  }
+  body::-webkit-scrollbar{ display: none; } /* WebKit sembunyikan scrollbar */
+
+  /* Pastikan kanvas konten pas ke tinggi layar */
+  #app-scroll{
+    height: 100svh;
+    max-height: 100svh;
+    overflow: hidden;                       /* sembunyikan apapun yg lewat batas */
+  }
+</style>
+
 </head>
 
 <body class="menubar-gradient gradient-topbar topbar-dark compact">
