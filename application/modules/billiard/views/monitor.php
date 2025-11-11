@@ -476,15 +476,20 @@
       cards = (cards||[]).slice().sort((a,b)=> (a.meja_id - b.meja_id)); // 1 di kiri, 2 di kanan
 
   // Hitung total booking dari seluruh cards/days
-  function countBookings(list){
-    let n = 0;
-    (list||[]).forEach(c=>{
-      (c.days||[]).forEach(d=>{
-        n += Array.isArray(d.bookings) ? d.bookings.length : 0;
+ function countBookings(list){
+  const now = Date.now();
+  let n = 0;
+  (list||[]).forEach(c=>{
+    (c.days||[]).forEach(d=>{
+      (d.bookings||[]).forEach(b=>{
+        const end = Number(b.end_ts||0);
+        if (!end || end > now) n++; // hitung hanya yg belum selesai
       });
     });
-    return n;
-  }
+  });
+  return n;
+}
+
 
   var trulyEmpty = !Array.isArray(cards) || cards.length===0 || countBookings(cards)===0;
 
