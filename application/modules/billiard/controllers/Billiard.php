@@ -912,7 +912,7 @@ if ($use_voucher) {
   $status_pesanan = 'terkonfirmasi';   // <- kunci slot sekarang
 } else {
   // Non-cash (transfer/QRIS): tetap draft + kode unik
-  $kode_unik      = ($uname === 'kasir') ? 0 : random_int(1, 499);
+  $kode_unik      = ($uname === 'kasir') ? 0 : random_int(1, 99);
   $grand_total    = $subtotal + $kode_unik;
   $status_pesanan = 'draft';
 }
