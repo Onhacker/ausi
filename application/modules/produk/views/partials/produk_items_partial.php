@@ -50,7 +50,18 @@
 
 
 <?php else: ?>
-
+<style type="text/css">
+        /* samakan basis gaya ribbon kamu */
+.corner-ribbon.trend { 
+  /* ambil style yang dulu kamu taruh di .corner-ribbon.hot */
+  background: #ff7a00; /* oranye = 'ngetren' */
+  color:#fff;
+}
+.corner-ribbon.bestseller {
+  background: #ffb300; /* emas = 'terlaris' */
+  color:#fff;
+}
+</style>
 
 
   <?php

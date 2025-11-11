@@ -648,9 +648,9 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.48rem 0.56rem;
+        /*padding: 0.48rem 0.56rem;*/
         min-width: 44px;
-        min-height: 38px;
+        /*min-height: 38px;*/
     }
     .btn-icon-only-sm .btn-text {
         display: none !important;
@@ -675,3 +675,8 @@
       display: inline-flex !important;
     }
   }
+
+
+.product-info .btn-detail.btn-icon-only-sm::after{ content: "lihat"; }
+.product-info .btn-add-cart.btn-icon-only-sm::after{ content: "order"; }
+
