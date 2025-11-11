@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
    <div class="quickmenu-item">
     <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none">
-      <div class="menu-circle" style="background:#007bff;"><span class="emoji-icon">🎫</span></div>
+      <div class="menu-circle" style="background:#007bff;"><span class="emoji-icon">📸</span></div>
       <small class="menu-label">Dine-in</small>
     </a>
   </div>
