@@ -40,13 +40,12 @@ $status = strtolower($order->status ?? '-');
 $statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
 
 // ==== KURIR (assigned) ====
-$status     = strtolower($order->status ?? '');
 $kurir_id   = (int)($order->courier_id ?? 0);
 $kurir_nm   = trim((string)($order->courier_name ?? ''));
 $kurir_telp = trim((string)($order->courier_phone ?? '')); // ← tambahkan ini jika ada di payload
 $hasKurir   = ($kurir_id > 0 && $kurir_nm !== '');
 
-$is_paid_like = in_array($status, ['paid'], true);
+$is_paid_like = in_array($status, ['paid','lunas','selesai','completed','success'], true);
 
 // ==== deteksi metode bayar ====
 $pm_raw = trim((string)($order->paid_method ?? ''));
@@ -87,6 +86,14 @@ $hasDigital = (bool)array_intersect($tokens, $digSyn);
 //   )
 // );
 $canAssignKurir = ($is_delivery && !$hasKurir);
+/* === NEW: tombol Order Success saat no HP kosong === */
+$order_code  = trim((string)($order->nomor ?? $order->kode ?? $order->order_code ?? $order->order_key ?? $order->id ?? ''));
+$success_url = $order_code !== '' 
+  ? site_url('produk/order_success/'.$order_code) 
+  : site_url('produk/order_success');
+$pm_label    = $pm_raw !== '' ? $pm_raw : 'Lihat Order';
+/* === END NEW === */
+
 ?>
 
 <style>
@@ -271,19 +278,34 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
           <?php endif; ?>
 
           <?php if ($customer_phone !== ''): ?>
-            <div class="kv mb-1 align-items-center">
-              <div class="k">HP</div>
-              <div class="v d-flex align-items-center">
-                <a class="mr-2" href="tel:<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
-                  <?= htmlspecialchars($customer_phone, ENT_QUOTES, 'UTF-8'); ?>
-                </a>
-                <button type="button" class="btn btn-xxs btn-outline-secondary js-copy"
-                        data-copy="<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
-                  Salin
-                </button>
-              </div>
+          <div class="kv mb-1 align-items-center">
+            <div class="k">HP</div>
+            <div class="v d-flex align-items-center">
+              <a class="mr-2" href="tel:<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
+                <?= htmlspecialchars($customer_phone, ENT_QUOTES, 'UTF-8'); ?>
+              </a>
+              <button type="button" class="btn btn-xxs btn-outline-secondary js-copy"
+                      data-copy="<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
+                Salin
+              </button>
             </div>
-          <?php endif; ?>
+          </div>
+        <?php else: ?>
+          <div class="kv mb-1 align-items-center">
+            <div class="k">HP</div>
+            <div class="v">
+              <?php if (!$is_paid_like): ?>
+                <a class="btn btn-xs btn-outline-primary"
+                   href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                  <i class="fe-credit-card"></i>
+                  <?= htmlspecialchars($pm_label ?: 'Lihat Order', ENT_QUOTES, 'UTF-8'); ?>
+                </a>
+              <?php else: ?>
+                <span class="badge badge-success">Sudah Lunas</span>
+              <?php endif; ?>
+            </div>
+          </div>
+        <?php endif; ?>
         </div>
 
         <div class="col-md-6">
