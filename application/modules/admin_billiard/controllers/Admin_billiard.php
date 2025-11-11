@@ -35,10 +35,25 @@ class Admin_billiard extends Admin_Controller {
             $data = [];
 
             foreach($list as $r){
-                // ===== Kode Booking =====
+            // ===== Kode Booking (atau "Selesai Main")
                 $kode = htmlspecialchars($r->kode_booking ?: '-', ENT_QUOTES, 'UTF-8');
 
-                // ===== Meja / Nama =====
+            // Hitung apakah sudah selesai main
+                $endTs = null;
+                if (!empty($r->tanggal) && !empty($r->jam_selesai)) {
+                // asumsi $r->tanggal = YYYY-mm-dd, $r->jam_selesai = HH:ii(:ss)?
+                    $endTs = strtotime(trim($r->tanggal.' '.$r->jam_selesai));
+                }
+                $isFinished = $endTs && time() >= $endTs;
+
+            // Tampilkan di kolom "Kode Booking":
+            // - Jika selesai → "Selesai Main"
+            // - Jika belum → kode booking seperti biasa
+                $kode_html = $isFinished
+                ? '<span class="badge badge-dark">'.$kode.'</span><br><span class="badge badge-success">Selesai Main 🎱</span>'
+                : '<span class="badge badge-dark">'.$kode.'</span>';
+
+            // ===== Meja / Nama
                 $meja = $r->nama_meja ?: ('Meja #'.$r->meja_id);
                 $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
                 $nama = trim((string)$r->nama);
@@ -46,122 +61,85 @@ class Admin_billiard extends Admin_Controller {
                     $meja_html .= '<div class="text-muted small">'.htmlspecialchars($nama, ENT_QUOTES, 'UTF-8').'</div>';
                 }
 
-                
-
-                // ===== Durasi =====
+            // ===== Durasi
                 $durasi = (int)$r->durasi_jam;
                 $durasi_html = '<b>'.$durasi.' jam</b>';
 
-                // ===== Waktu =====
+            // ===== Waktu dibuat booking
                 $tgl_book = $r->created_at ? date('d-m-Y', strtotime($r->created_at)) : '-';
                 $tgl_book_html = $tgl_book.'<div class="text-dark small"> Jam '.htmlspecialchars(date('H:i:s', strtotime($r->created_at)),ENT_QUOTES,'UTF-8').'</div>';
 
-                // ===== Waktu =====
+            // ===== Waktu main
                 $tgl = $r->tanggal ? date('d-m-Y', strtotime($r->tanggal)) : '-';
                 $jam = "Jam ".trim(($r->jam_mulai ?: '').' - '.($r->jam_selesai ?: ''));
                 $waktu_html = $tgl.' ('.$durasi_html.')' .'<div class="text-blue small">'.htmlspecialchars($jam,ENT_QUOTES,'UTF-8').'</div>';
 
-                // ===== Harga / Grand =====
+            // ===== Harga / Grand
                 $harga_jam = (int)$r->harga_per_jam;
                 $grand     = (int)$r->grand_total;
                 $harga_html = 'Rp '.number_format($harga_jam,0,',','.');
                 $grand_html = 'Rp '.number_format($grand,0,',','.');
 
-                // ===== Status badge =====
-                $sraw = strtolower((string)$r->status);
-                $badge = 'secondary'; $label = $sraw;
-                switch ($sraw){
-                    case 'draft':            $badge='secondary'; $label='draft'; break;
-                    case 'menunggu_bayar':   $badge='warning';   $label='menunggu pembayaran'; break;
-                    case 'verifikasi':       $badge='info';      $label='verifikasi'; break;
-                    case 'terkonfirmasi':    $badge='success';   $label='terkonfirmasi'; break;
-                    case 'batal':            $badge='dark';      $label='batal'; break;
-                    case 'free':             $badge='primary';   $label='free'; break;
-                }
-                $status_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</span>';
-
-                // ===== Metode =====
-                $metode = $r->metode_bayar ?: '-';
-                $metode_html = htmlspecialchars($metode, ENT_QUOTES, 'UTF-8');
+            // ===== Status bayar (tetap seperti semula)
                 $sraw = strtolower((string)$r->status);
                 $badge = 'secondary'; 
                 $label = $sraw;
-
                 switch ($sraw){
-                    case 'draft':
-                        $badge = 'warning';
-                        $label = 'menunggu pembayaran';
-                        break;
-
-                    case 'menunggu_bayar':
-                        $badge = 'warning';
-                        $label = 'menunggu pembayaran';
-                        break;
-
-                    case 'verifikasi':
-                        $badge = 'info';
-                        $label = 'menunggu verifikasi';
-                        break;
-
-                    case 'terkonfirmasi':
-                        $badge = 'success';
-                        $label = 'lunas';
-                        break;
-
-                    case 'batal':
-                        $badge = 'dark';
-                        $label = 'batal';
-                        break;
-
-                    case 'free':
-                        $badge = 'primary';
-                        $label = 'free';
-                        break;
+                    case 'draft':            $badge='warning'; $label='menunggu pembayaran'; break;
+                    case 'menunggu_bayar':   $badge='warning'; $label='menunggu pembayaran'; break;
+                    case 'verifikasi':       $badge='info';    $label='menunggu verifikasi'; break;
+                    case 'terkonfirmasi':    $badge='success'; $label='lunas'; break;
+                    case 'batal':            $badge='dark';    $label='batal'; break;
+                    case 'free':             $badge='primary'; $label='free'; break;
                 }
                 $status_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</span>';
 
-                // ===== Aksi per baris =====
+            // ===== Metode
+                $metode_html = htmlspecialchars($r->metode_bayar ?: '-', ENT_QUOTES, 'UTF-8');
+
+            // ===== Aksi
                 $idInt = (int)$r->id_pesanan;
                 $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
                 $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')"><i class="fe-x-circle"></i></button>';
                 $unameLower = strtolower((string)$this->session->userdata('admin_username'));
                 $btnDelete  = ($unameLower === 'admin')
-                    ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>'
-                    : '';
+                ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>'
+                : '';
                 $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnCancel.$btnDelete.'</div>';
 
+            // ===== Build row
                 $row = [];
                 $row['id']        = $idInt;
                 $row['no']        = '';
-                $row['kode']      = '<span class="badge badge-dark">'.$kode.'</span>';
-                $row['meja']      = $meja_html;
-                $row['waktu']     = $waktu_html;
-                $row['durasi']    = $tgl_book_html;
-                $row['harga']     = $harga_html;
-                $row['grand']     = $grand_html;
-                $row['status']    = $status_html;
-                $row['metode']    = $metode_html;
-                $row['aksi']      = $actionsHtml;
+            $row['kode']      = $kode_html;     // <-- sekarang bisa "Selesai Main"
+            $row['meja']      = $meja_html;
+            $row['waktu']     = $waktu_html;
+            $row['durasi']    = $tgl_book_html;
+            $row['harga']     = $harga_html;
+            $row['grand']     = $grand_html;
+            $row['status']    = $status_html;
+            $row['metode']    = $metode_html;
+            $row['aksi']      = $actionsHtml;
 
-                $data[] = $row;
-            }
-
-            $out = [
-                "draw"            => (int)$this->input->post('draw'),
-                "recordsTotal"    => $this->dm->count_all(),
-                "recordsFiltered" => $this->dm->count_filtered(),
-                "data"            => $data,
-            ];
-            return $this->output->set_content_type('application/json')->set_output(json_encode($out));
-        } catch(\Throwable $e){
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode([
-                    "draw" => (int)$this->input->post('draw'),
-                    "recordsTotal"=>0,"recordsFiltered"=>0,"data"=>[],
-                    "error"=>"Server error: ".$e->getMessage()
-                ]));
+            $data[] = $row;
         }
+
+        $out = [
+            "draw"            => (int)$this->input->post('draw'),
+            "recordsTotal"    => $this->dm->count_all(),
+            "recordsFiltered" => $this->dm->count_filtered(),
+            "data"            => $data,
+        ];
+        return $this->output->set_content_type('application/json')->set_output(json_encode($out));
+    } catch(\Throwable $e){
+        return $this->output->set_content_type('application/json')
+        ->set_output(json_encode([
+            "draw" => (int)$this->input->post('draw'),
+            "recordsTotal"=>0,"recordsFiltered"=>0,"data"=>[],
+            "error"=>"Server error: ".$e->getMessage()
+        ]));
     }
+}
 
     /** Detail sederhana (HTML partial via JSON) */
     public function detail($id=null){

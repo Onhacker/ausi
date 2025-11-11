@@ -480,6 +480,7 @@
         + '</div>';
 
         rowEl.innerHTML = html;
+        refreshCounters();
         setLive('idle');
         return;
       }
@@ -532,74 +533,94 @@
         html += '</div>';
       });
       rowEl.innerHTML = html;
+      refreshCounters();
     }
 
-    // ================== Countdown (tidak diubah) ==================
-    function pad(n){return (n<10?'0':'')+n;}
-    function fmt(ms){
-      if(ms<=0)return'00:00:00';
-      var s=Math.floor(ms/1000);
-      var d=Math.floor(s/86400); s%=86400;
-      var h=Math.floor(s/3600);  s%=3600;
-      var m=Math.floor(s/60);    var sec=s%60;
-      var day=d>0?(d+' hari '):'';
-      return day+pad(h)+':'+pad(m)+':'+pad(sec);
-    }
-    const FIVE_MIN_MS = 5*60*1000;
-    const ONE_MIN_MS  = 60*1000;
+    // ================== Countdown (format kata Indonesia) ==================
+(function(){
+  // (Opsional) sisakan pad & fmt lama jika masih dipakai di tempat lain
+  function pad(n){return (n<10?'0':'')+n;}
 
-    function runCountdown(){
-      var now = Date.now();
-      document.querySelectorAll('.booking-item').forEach(function(item){
-        var start = parseInt(item.getAttribute('data-start-ts'),10)||0;
-        var end   = parseInt(item.getAttribute('data-end-ts'),10)||0;
-        var pill  = item.querySelector('.status-pill');
-        var label = item.querySelector('.status-label');
-        var cd    = item.querySelector('.cd');
-        if(!pill||!label||!cd) return;
+  // Ubah ms -> "X hari Y jam Z menit W dtk"
+  function fmtWords(ms){
+    if (ms <= 0) return '0 dtk';
+    var s = Math.floor(ms / 1000);
+    var d = Math.floor(s / 86400); s %= 86400;
+    var h = Math.floor(s / 3600);  s %= 3600;
+    var m = Math.floor(s / 60);    var sec = s % 60;
 
-        pill.classList.remove('success','muted');
-        item.classList.remove('soon','critical');
+    var parts = [];
+    if (d > 0)   parts.push(d + ' hari');
+    if (h > 0)   parts.push(h + ' jam');
+    if (m > 0)   parts.push(m + ' menit');
+    if (sec > 0 || parts.length === 0) parts.push(sec + ' dtk');
 
-        if(start && now < start){
-          label.textContent = 'Mulai dalam';
-          cd.textContent    = fmt(start - now);
-        }
-        else if(end && now <= end){
-          label.textContent = 'Sedang bermain';
-          cd.textContent    = fmt(end - now);
-          pill.classList.add('success');
+    // Biar ringkas, maksimal 3 unit terbesar
+    return parts.slice(0, 3).join(' ');
+  }
 
-          var left = end - now;
-          if (left > 0 && left <= FIVE_MIN_MS){
-            item.classList.add('soon');
-            if (left <= ONE_MIN_MS) item.classList.add('critical');
-            if (!item.dataset.beep5){
-              try{ playSound(); }catch(e){}
-              item.dataset.beep5 = '1';
-            }
-          } else {
-            delete item.dataset.beep5;
+  const FIVE_MIN_MS = 5*60*1000;
+  const ONE_MIN_MS  = 60*1000;
+
+  function runCountdown(){
+    var now = Date.now();
+    document.querySelectorAll('.booking-item').forEach(function(item){
+      var start = parseInt(item.getAttribute('data-start-ts'),10)||0;
+      var end   = parseInt(item.getAttribute('data-end-ts'),10)||0;
+      var pill  = item.querySelector('.status-pill');
+      var label = item.querySelector('.status-label');
+      var cd    = item.querySelector('.cd');
+      if(!pill||!label||!cd) return;
+
+      pill.classList.remove('success','muted');
+      item.classList.remove('soon','critical');
+
+      if (start && now < start){
+        // ===== Belum mulai
+        label.textContent = 'Mulai dalam';
+        cd.textContent    = fmtWords(start - now); // contoh: "1 jam 2 menit 3 dtk"
+      }
+      else if (end && now <= end){
+        // ===== Sedang bermain
+        label.textContent = 'Sedang bermain';
+        cd.textContent    = 'Sisa Waktu ' + fmtWords(end - now) + '.'; // contoh: "Sisa Waktu 1 jam 2 menit 3 dtk."
+        pill.classList.add('success');
+
+        var left = end - now;
+        if (left > 0 && left <= FIVE_MIN_MS){
+          item.classList.add('soon');
+          if (left <= ONE_MIN_MS) item.classList.add('critical');
+          if (!item.dataset.beep5){
+            try{ playSound(); }catch(e){}
+            item.dataset.beep5 = '1';
           }
-        }
-        else{
-          label.textContent = 'Selesai';
-          cd.textContent    = '00:00:00';
-          pill.classList.add('muted');
+        } else {
           delete item.dataset.beep5;
-
-          setTimeout(function(){
-            if (!item.dataset.removing){
-              item.dataset.removing = '1';
-              item.classList.add('vanish');
-              setTimeout(function(){ item.remove(); }, 300);
-            }
-          }, 15000);
         }
-      });
-    }
-    setInterval(runCountdown, 1000);
+      }
+      else{
+        // ===== Selesai
+        label.textContent = 'Selesai';
+        cd.textContent    = '00:00:00';
+        pill.classList.add('muted');
+        delete item.dataset.beep5;
 
+        setTimeout(function(){
+          if (!item.dataset.removing){
+            item.dataset.removing = '1';
+            item.classList.add('vanish');
+            setTimeout(function(){ item.remove(); refreshCounters(); }, 300);
+
+          }
+        }, 15000);
+      }
+    });
+    refreshCounters(); 
+  }
+
+  // jalan tiap detik
+  setInterval(runCountdown, 1000);
+})();
     // ================== Doorbell beep (tidak diubah) ==================
     (function(){
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -877,6 +898,44 @@
     window.addEventListener('resize', ()=>{ clearTimeout(t); t=setTimeout(applyHeroH,120); }, {passive:true});
     if('ResizeObserver' in window){ new ResizeObserver(applyHeroH).observe(hero); }
   })();
+
+  // === Hitung ulang jumlah booking aktif & fallback per-hari ===
+function refreshCounters(){
+  const now = Date.now();
+
+  document.querySelectorAll('#cardsRow .card-box').forEach(function(card){
+    // --- total booking aktif pada card (upcoming / sedang bermain) ---
+    let active = 0;
+    card.querySelectorAll('.booking-item').forEach(function(li){
+      const end = parseInt(li.getAttribute('data-end-ts'),10)||0;
+      if (!end || now <= end) active++; // hitung yg belum selesai
+    });
+    const bc = card.querySelector('.book-count');
+    if (bc) bc.textContent = active + ' booking';
+
+    // --- fallback "Belum ada booking..." per hari ---
+    card.querySelectorAll('.day-content').forEach(function(dc){
+      const list = dc.querySelector('.conversation-list');
+      const remain = list ? Array.from(list.querySelectorAll('.booking-item')).filter(function(li){
+        const end = parseInt(li.getAttribute('data-end-ts'),10)||0;
+        return !li.classList.contains('vanish') && (!end || now <= end);
+      }).length : 0;
+
+      let emptyNote = dc.querySelector('.empty-note');
+      if (remain === 0){
+        if (!emptyNote){
+          emptyNote = document.createElement('div');
+          emptyNote.className = 'empty-note text-muted small';
+          emptyNote.textContent = 'Belum ada booking pada tanggal ini.';
+          dc.appendChild(emptyNote);
+        }
+      } else {
+        if (emptyNote) emptyNote.remove();
+      }
+    });
+  });
+}
+
   </script>
 </body>
 </html>
