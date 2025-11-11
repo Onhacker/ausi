@@ -1614,7 +1614,7 @@ public function pay_qris($token = null){
   $needUnique = in_array($method, ['qris','transfer'], true);
 
   $kode = $needUnique
-    ? (((int)$row->kode_unik >= 1 && (int)$row->kode_unik <= 499) ? (int)$row->kode_unik : random_int(1,499))
+    ? (((int)$row->kode_unik >= 1 && (int)$row->kode_unik <= 99) ? (int)$row->kode_unik : random_int(1,99))
     : 0;
 
   $upd = [
