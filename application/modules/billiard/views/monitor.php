@@ -265,7 +265,7 @@
     @media (prefers-color-scheme:light){ .live-clock{ background:rgba(15,23,42,.62) } }
     .live-clock .lc-time{ font-weight:900; letter-spacing:.03em; line-height:1; font-size:clamp(22px,4.5vw,40px) }
     .live-clock .lc-date{ margin-top:4px; font-size:12px; font-weight:600; opacity:.9; white-space:nowrap }
-    .live-clock .lc-badge{ position:absolute; top:-8px; left:8px; background:#16a34a; color:#fff; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.04em; border:1px solid rgba(255,255,255,.15) }
+    .live-clock .lc-badge{ position:absolute; top:-14px; left:8px; background:#795548; color:#fff; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.04em; border:1px solid rgba(255,255,255,.15) }
 
     /* ===== FS CTA & BUTTON (tidak diubah) ===== */
     .fs-cta{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:10060 }
@@ -341,7 +341,7 @@
 
   <!-- Jam live (dipin ke kanan bawah di atas ticker) -->
   <div class="live-clock" id="liveClock" role="timer" aria-live="polite" aria-label="Jam lokal WITA">
-    <div class="lc-badge">WITA</div>
+    <div class="lc-badge">Waktu Siwa</div>
     <div class="lc-time" id="lcTime">00:00:00</div>
     <div class="lc-date" id="lcDate">Senin, 01 Januari 1970</div>
   </div>
