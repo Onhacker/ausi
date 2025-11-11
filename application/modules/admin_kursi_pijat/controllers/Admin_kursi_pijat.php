@@ -76,7 +76,7 @@ class Admin_kursi_pijat extends Admin_Controller {
 
         // ✅ TANGGAL dari created_at
         $tgl_raw = isset($r->created_at) ? (string)$r->created_at : '';
-        $tgl_fmt = ($tgl_raw !== '' ? date('d-m-Y', strtotime($tgl_raw)) : '-');
+        $tgl_fmt = ($tgl_raw !== '' ? date('d-m-Y H:i', strtotime($tgl_raw)) : '-');
 
         $row = [
             'cek'      => '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id_transaksi.'"><label></label></div>',
