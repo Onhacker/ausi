@@ -448,93 +448,106 @@
     function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]}); }
 
     function renderCards(cards){
-      if(!Array.isArray(cards) || cards.length===0){
-        // ====== EMPTY STATE: kiri teks, kanan video ======
-        var html = ''
-        + '<div class="col-12">'
-        + '  <div class="card-box empty-wrap">'
-        + '    <div class="empty-grid">'
-        + '      <div class="empty-left" role="status" aria-live="polite">'
-        + '        <div class="empty-hero">'
-        + '          <span class="emoji-8ball" aria-hidden="true">🎱</span>'
-        + '          <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
-        + '        </div>'
-        + '        <div class="empty-sub">Silahkan lalukan booking meja billiard segera.</div>'
-        + '        <div class="empty-divider" aria-hidden="true"></div>'
-        + '      </div>'
-        + '      <div class="empty-right">'
-        + '        <div class="empty-video" aria-label="Video pemutar 9-ball (diputar berulang)">'
-        + '          <div class="embed-16x9">'
-        + '            <iframe'
-        + '              id="ytLoop"'
-        + '              src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
-        + '              title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
-        + '              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
-        + '              referrerpolicy="strict-origin-when-cross-origin"'
-        + '              allowfullscreen></iframe>'
-        + '          </div>'
-        + '        </div>'
-        + '      </div>'
-        + '    </div>'
-        + '  </div>'
-        + '</div>';
-
-        rowEl.innerHTML = html;
-        refreshCounters();
-        setLive('idle');
-        return;
-      }
-
-      // ====== jika ADA data booking (kode lama tetap) ======
-      var html = '';
-      cards.forEach(function(c){
-        var count = parseInt(c.booking_count||0,10);
-        html += '<div class="col-xl-6 col-lg-12">';
-        html +=   '<div class="card-box mt-3" style="position:relative; padding-top:46px; padding-bottom:64px;">';
-        html +=     '<div class="meja-ribbon"><span>'+esc(c.nama_meja)+'</span></div>';
-        html +=     '<div class="book-count">'+count+' booking</div>';
-
-        (c.days||[]).forEach(function(d){
-          html += '<div class="day-row">';
-          html +=   '<div class="cal-ava" title="'+esc(d.tanggal_fmt)+'">';
-          html +=     '<div class="cal-tile" aria-label="'+esc(d.tanggal_fmt)+'">';
-          html +=       '<div class="cal-head">'+esc(d.mon)+'</div>';
-          html +=       '<div class="cal-day">'+esc(d.daynum)+'</div>';
-          html +=     '</div>';
-          html +=     '<div class="cal-cap mt-1">'+esc(String(d.weekday||'').toUpperCase())+'</div>';
-          html +=   '</div>';
-
-          html +=   '<div class="day-content">';
-          if(d.bookings && d.bookings.length){
-            html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
-            d.bookings.forEach(function(b){
-              html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
-              html +=   '<div class="conversation-text"><div class="ctext-wrap">';
-              html +=     '<div class="ct-head">';
-              html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' · '+parseInt(b.durasi_jam||0,10)+' jam <span class="tz">WITA</span></div>';
-              html +=       '<div class="ct-right mb-1">';
-              html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
-              html +=       '</div>';
-              html +=     '</div>';
-              html +=     '<div class="ct-meta">'+esc(b.nama||'Booking')+(b.hp_masked?(' · '+esc(b.hp_masked)):'')+'</div>';
-              html +=   '</div></div>';
-              html += '</li>';
-            });
-            html +=   '</ul>';
-          } else {
-            html +=   '<div class="text-muted small">Belum ada booking pada tanggal ini.</div>';
-          }
-          html +=   '</div>';
-          html += '</div>';
-          html += '<hr style="margin:10px 0">';
-        });
-
-        html +=   '</div>';
-        html += '</div>';
+  // Hitung total booking dari seluruh cards/days
+  function countBookings(list){
+    let n = 0;
+    (list||[]).forEach(c=>{
+      (c.days||[]).forEach(d=>{
+        n += Array.isArray(d.bookings) ? d.bookings.length : 0;
       });
-      rowEl.innerHTML = html;
-      refreshCounters();
-    }
+    });
+    return n;
+  }
+
+  var trulyEmpty = !Array.isArray(cards) || cards.length===0 || countBookings(cards)===0;
+
+  if (trulyEmpty){
+    // ====== EMPTY STATE: kiri teks, kanan video ======
+    var html = ''
+    + '<div class="col-12">'
+    + '  <div class="card-box empty-wrap">'
+    + '    <div class="empty-grid">'
+    + '      <div class="empty-left" role="status" aria-live="polite">'
+    + '        <div class="empty-hero">'
+    + '          <span class="emoji-8ball" aria-hidden="true">🎱</span>'
+    + '          <h3 class="empty-title">Belum ada bookingan billiard mendatang</h3>'
+    + '        </div>'
+    + '        <div class="empty-sub">Jadwal akan muncul otomatis saat ada booking baru.</div>'
+    + '        <div class="empty-divider" aria-hidden="true"></div>'
+    + '      </div>'
+    + '      <div class="empty-right">'
+    + '        <div class="empty-video" aria-label="Video pemutar 9-ball (diputar berulang)">'
+    + '          <div class="embed-16x9">'
+    + '            <iframe'
+    + '              id="ytLoop"'
+    + '              src="https://www.youtube.com/embed/4_nZL5pDl5U?autoplay=1&mute=1&loop=1&playlist=4_nZL5pDl5U&rel=0&modestbranding=1&playsinline=1&origin=<?= site_url() ?>"'
+    + '              title="EFREN REYES vs MICHAEL DEITCHMAN - 2022 Derby City Classic 9-Ball Division"'
+    + '              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+    + '              referrerpolicy="strict-origin-when-cross-origin"'
+    + '              allowfullscreen></iframe>'
+    + '          </div>'
+    + '        </div>'
+    + '      </div>'
+    + '    </div>'
+    + '  </div>'
+    + '</div>';
+
+    rowEl.innerHTML = html;
+    refreshCounters();
+    setLive('idle');
+    return;
+  }
+
+  // ====== ADA data booking (kode asli dipertahankan) ======
+  var html = '';
+  cards.forEach(function(c){
+    var count = parseInt(c.booking_count||0,10);
+    html += '<div class="col-xl-6 col-lg-12">';
+    html +=   '<div class="card-box mt-3" style="position:relative; padding-top:46px; padding-bottom:64px;">';
+    html +=     '<div class="meja-ribbon"><span>'+esc(c.nama_meja)+'</span></div>';
+    html +=     '<div class="book-count">'+count+' booking</div>';
+
+    (c.days||[]).forEach(function(d){
+      html += '<div class="day-row">';
+      html +=   '<div class="cal-ava" title="'+esc(d.tanggal_fmt)+'">';
+      html +=     '<div class="cal-tile" aria-label="'+esc(d.tanggal_fmt)+'">';
+      html +=       '<div class="cal-head">'+esc(d.mon)+'</div>';
+      html +=       '<div class="cal-day">'+esc(d.daynum)+'</div>';
+      html +=     '</div>';
+      html +=     '<div class="cal-cap mt-1">'+esc(String(d.weekday||'').toUpperCase())+'</div>';
+      html +=   '</div>';
+
+      html +=   '<div class="day-content">';
+      if(d.bookings && d.bookings.length){
+        html +=   '<ul class="conversation-list" style="height:auto;max-height:none;overflow:visible;width:auto;">';
+        d.bookings.forEach(function(b){
+          html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
+          html +=   '<div class="conversation-text"><div class="ctext-wrap">';
+          html +=     '<div class="ct-head">';
+          html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' · '+parseInt(b.durasi_jam||0,10)+' jam <span class="tz">WITA</span></div>';
+          html +=       '<div class="ct-right mb-1">';
+          html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
+          html +=       '</div>';
+          html +=     '</div>';
+          html +=     '<div class="ct-meta">'+esc(b.nama||'Booking')+(b.hp_masked?(' · '+esc(b.hp_masked)):'')+'</div>';
+          html +=   '</div></div>';
+          html += '</li>';
+        });
+        html +=   '</ul>';
+      } else {
+        html +=   '<div class="text-muted small">Belum ada booking pada tanggal ini.</div>';
+      }
+      html +=   '</div>';
+      html += '</div>';
+      html += '<hr style="margin:10px 0">';
+    });
+
+    html +=   '</div>';
+    html += '</div>';
+  });
+  rowEl.innerHTML = html;
+  refreshCounters();
+}
 
     // ================== Countdown (format kata Indonesia) ==================
 (function(){
