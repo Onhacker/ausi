@@ -963,6 +963,48 @@ $token = bin2hex(random_bytes(24));
 
     $label_wa = $use_voucher ? 'FREE' : ($is_cash ? 'CASH' : 'DRAFT');
 
+// === SNAPSHOT KE billiard_paid JIKA CASH (bukan voucher) ===
+if ($is_cash && !$use_voucher) {
+  // pastikan belum ada snapshot (idempotent)
+  $exists = $this->db->select('id_paid')
+                     ->from('billiard_paid')
+                     ->where('id_pesanan', $new_id)
+                     ->get()->row();
+
+  if (!$exists) {
+    // pakai nilai yang baru saja kita simpan agar konsisten
+    $paidRow = [
+      'id_pesanan'   => $new_id,
+      'kode_booking' => $kode,
+      'nama'         => $nama,
+      'no_hp'        => $no_hp,
+      'meja_id'      => $meja_id,
+      'nama_meja'    => $insert['nama_meja'],
+      'tanggal'      => $tanggal,
+      'jam_mulai'    => $jam_mulai,         // 'HH:MM:SS' ok (kolom varchar(8))
+      'jam_selesai'  => $jam_selesai,       // 'HH:MM:SS'
+      'durasi_jam'   => $durasi,
+      'harga_per_jam'=> $harga,
+      'subtotal'     => $subtotal,
+      'kode_unik'    => $kode_unik,         // cash = 0
+      'grand_total'  => $grand_total,       // cash = subtotal
+      'metode_bayar' => 'cash',
+      'access_token' => $token,
+      'paid_at'      => $insert['updated_at'], // atau date('Y-m-d H:i:s')
+      'source'       => 'admin',               // atau 'api' sesuai konteks endpoint
+    ];
+
+    $okPaid = $this->db->insert('billiard_paid', $paidRow);
+    if (!$okPaid) {
+      // jangan gagal total hanya karena snapshot; cukup log
+      log_message('error', 'Gagal insert snapshot billiard_paid untuk cash id='.$new_id.' q='.$this->db->last_query());
+    }
+  }
+}
+
+
+
+
 $this->db->trans_commit();
 
 $newRec = $this->mbi->get_by_token($token);
