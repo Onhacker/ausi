@@ -484,7 +484,8 @@ private function _monitor_cards_and_now(): array {
     ->where('tanggal >=', $yesterday)
     ->where('tanggal <=', $upperDate)
     ->where_in('meja_id', [1,2])   // HANYA MEJA 1 & 2
-    ->order_by('meja_id','ASC')
+    // ->order_by('meja_id','ASC')
+    ->order_by("FIELD(meja_id,1,2)", null, false)
     ->order_by('tanggal','ASC')
     ->order_by('jam_mulai','ASC')
     ->get()->result();
