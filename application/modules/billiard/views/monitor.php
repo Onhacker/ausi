@@ -448,6 +448,8 @@
     function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]}); }
 
     function renderCards(cards){
+      cards = (cards||[]).slice().sort((a,b)=> (a.meja_id - b.meja_id)); // 1 di kiri, 2 di kanan
+
   // Hitung total booking dari seluruh cards/days
   function countBookings(list){
     let n = 0;
