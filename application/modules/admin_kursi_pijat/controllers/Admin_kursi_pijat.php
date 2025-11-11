@@ -51,39 +51,43 @@ class Admin_kursi_pijat extends Admin_Controller {
     }
 
     /** ===== DataTables server-side ===== */
-    public function get_data(){
-        $list = $this->dm->get_data();
-        $data = [];
+   public function get_data(){
+    $list = $this->dm->get_data();
+    $data = [];
 
     // ✅ cek role admin dari session
-        $isAdmin = ($this->session->userdata('admin_username') === 'admin');
+    $isAdmin = ($this->session->userdata('admin_username') === 'admin');
 
-        foreach ($list as $r) {
-            $label = ($r->status==='selesai'?'Lunas':($r->status==='batal'?'Batal':'Belum Bayar'));
-            $badge = ($r->status==='selesai'?'success':($r->status==='batal'?'danger':'warning'));
+    foreach ($list as $r) {
+        $label = ($r->status==='selesai'?'Lunas':($r->status==='batal'?'Batal':'Belum Bayar'));
+        $badge = ($r->status==='selesai'?'success':($r->status==='batal'?'danger':'warning'));
 
-            $btnEdit  = '<button type="button" class="btn btn-sm btn-warning" onclick="edit('.(int)$r->id_transaksi.')"><i class="fe-edit"></i></button>';
-            $btnBayar = ($r->status==='baru')
+        $btnEdit  = '<button type="button" class="btn btn-sm btn-warning" onclick="edit('.(int)$r->id_transaksi.')"><i class="fe-edit"></i></button>';
+        $btnBayar = ($r->status==='baru')
             ? ' <button type="button" class="btn btn-sm btn-success ms-1" onclick="bayar('.(int)$r->id_transaksi.')"><i class="fe-check-circle"></i></button>'
             : '';
-            $btnBatal = ($r->status==='baru')
+        $btnBatal = ($r->status==='baru')
             ? ' <button type="button" class="btn btn-sm btn-danger ms-1" onclick="batal('.(int)$r->id_transaksi.')"><i class="fe-x-circle"></i></button>'
             : '';
-
         // ✅ tombol hapus hanya untuk admin
-            $btnHapus = $isAdmin
+        $btnHapus = $isAdmin
             ? ' <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="hapus('.(int)$r->id_transaksi.')"><i class="fe-trash-2"></i></button>'
             : '';
 
-            $row = [
-                'cek'    => '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id_transaksi.'"><label></label></div>',
-                'no'     => '',
-                'nama'   => htmlspecialchars($r->nama, ENT_QUOTES, 'UTF-8'),
-                'durasi' => (int)$r->durasi_menit.' menit',
-                'sesi'   => (int)$r->sesi.'x',
-                'total'  => $this->_rupiah($r->total_harga),
-                'status' => '<span class="badge badge-'.$badge.'">'.$label.'</span>',
-            'aksi'   => $btnEdit.$btnBayar.$btnBatal.$btnHapus, // ⬅️ disisipkan di sini
+        // ✅ TANGGAL dari created_at
+        $tgl_raw = isset($r->created_at) ? (string)$r->created_at : '';
+        $tgl_fmt = ($tgl_raw !== '' ? date('d-m-Y', strtotime($tgl_raw)) : '-');
+
+        $row = [
+            'cek'      => '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id_transaksi.'"><label></label></div>',
+            'no'       => '',
+            'nama'     => htmlspecialchars($r->nama, ENT_QUOTES, 'UTF-8'),
+            'tanggal'  => htmlspecialchars($tgl_fmt, ENT_QUOTES, 'UTF-8'), // ⬅️ baru
+            'durasi'   => (int)$r->durasi_menit.' menit',
+            'sesi'     => (int)$r->sesi.'x',
+            'total'    => $this->_rupiah($r->total_harga),
+            'status'   => '<span class="badge badge-'.$badge.'">'.$label.'</span>',
+            'aksi'     => $btnEdit.$btnBayar.$btnBatal.$btnHapus,
         ];
         $data[] = $row;
     }

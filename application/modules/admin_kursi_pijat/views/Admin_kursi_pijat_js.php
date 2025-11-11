@@ -114,24 +114,27 @@ $(document).ready(function(){
 
   // datatable
   table = $('#datable_1').DataTable({
-    processing: true, serverSide: true, responsive: true,
-    ajax: { url: "<?= site_url(strtolower($controller).'/get_data'); ?>", type: "POST" },
-    columns: [
-      { data: 'cek', orderable: false, searchable: false, className:'text-center' },
-      { data: 'no',  orderable: false, searchable: false },
-      { data: 'nama' },
-      { data: 'durasi', className:'text-nowrap' },
-      { data: 'sesi', className:'text-nowrap' },
-      { data: 'total', className:'text-nowrap' },
-      { data: 'status', orderable:false, searchable:false },
-      { data: 'aksi', orderable:false, searchable:false, className:'text-center' },
-    ],
-    order: [[1,'asc']],
-    rowCallback: function(row, data, displayIndex) {
-      const info = this.api().page.info();
-      $('td:eq(1)', row).html(info.start + displayIndex + 1);
-    }
-  });
+  processing: true, serverSide: true, responsive: true,
+  ajax: { url: "<?= site_url(strtolower($controller).'/get_data'); ?>", type: "POST" },
+  columns: [
+    { data: 'cek', orderable: false, searchable: false, className:'text-center' },
+    { data: 'no',  orderable: false, searchable: false },
+    { data: 'nama' },
+    { data: 'tanggal', className:'text-nowrap' }, // ⬅️ baru (posisi index 3)
+    { data: 'durasi', className:'text-nowrap' },
+    { data: 'sesi', className:'text-nowrap' },
+    { data: 'total', className:'text-nowrap' },
+    { data: 'status', orderable:false, searchable:false },
+    { data: 'aksi', orderable:false, searchable:false, className:'text-center' },
+  ],
+  // urutkan default berdasarkan Tanggal desc
+  order: [[3,'desc']],
+  rowCallback: function(row, data, displayIndex) {
+    const info = this.api().page.info();
+    $('td:eq(1)', row).html(info.start + displayIndex + 1);
+  }
+});
+
 
   // check-all
   $('#check-all').on('click', function(){ $('.data-check').prop('checked', this.checked); });

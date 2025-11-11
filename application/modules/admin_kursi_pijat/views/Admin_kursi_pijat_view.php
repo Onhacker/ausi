@@ -57,6 +57,7 @@
                 </th>
                 <th width="5%">No.</th>
                 <th>Nama</th>
+                 <th>Tanggal</th>
                 <th>Durasi</th>
                 <th>Sesi</th>
                 <th>Total</th>
