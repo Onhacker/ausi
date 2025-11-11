@@ -6,10 +6,11 @@
 /** @var array    $sumBil */
 /** @var array    $sumPen */
 /** @var array    $sumKP */
-/** @var int      $laba */          // (POS + BIL + KP + MANUAL - PENGELUARAN)
-/** @var int      $manualInput */   // penyesuaian manual 1–7
+/** @var int      $laba */   // (POS + BIL + KP - PENGELUARAN)
 /** @var callable $idr */
 ?>
+
+
 <table width="100%" cellspacing="0" cellpadding="0" border="0">
   <tr>
     <td>
@@ -30,21 +31,12 @@
           <td>Kursi Pijat</td>
           <td align="right"><?= $idr($sumKP['total'] ?? 0) ?></td>
         </tr>
-
-        <?php $hasManual = (int)($manualInput ?? 0) > 0; ?>
-        <?php if ($hasManual): ?>
-        <tr>
-          <td>Input Tgl 1–7 (Manual, tgl 05)</td>
-          <td align="right">+<?= $idr($manualInput) ?></td>
-        </tr>
-        <?php endif; ?>
-
         <tr>
           <td>Pengeluaran</td>
           <td align="right" style="color:#c62828">-<?= $idr($sumPen['total'] ?? 0) ?></td>
         </tr>
         <tr style="background-color:#f9fafb">
-          <td><b>LABA BERSIH (Cafe + Billiard + Kursi Pijat<?= $hasManual ? ' + Input Tgl 1–7' : '' ?> − Pengeluaran)</b></td>
+          <td><b>LABA BERSIH (Cafe + Billiard + Kursi Pijat + Input Tgl 1 - 7 − Pengeluaran)</b></td>
           <td align="right"><b><?= $idr($laba ?? 0) ?></b></td>
         </tr>
       </table>
@@ -95,14 +87,27 @@ $hasBil = !empty($sumBil['by_method']);
 <?php endif; ?>
 
 <br>
-
+<!-- 
+<table width="100%" cellspacing="0" cellpadding="5" border="1">
+  <tr style="background-color:#f2f3f4; font-weight:bold">
+    <td width="60%">Kursi Pijat</td>
+    <td width="40%" align="right">Jumlah</td>
+  </tr>
+  <tr>
+    <td>Total Transaksi</td>
+    <td align="right"><?= (int)($sumKP['count'] ?? 0) ?> trx</td>
+  </tr>
+  <tr>
+    <td>Total Omzet</td>
+    <td align="right"><?= $idr($sumKP['total'] ?? 0) ?></td>
+  </tr>
+</table>
+<br> -->
 <div style="margin-top:6px;color:#666;font-size:10pt;">
   <em>Catatan:</em>
   <ul style="margin:6px 0 0 18px; padding:0;">
-    <li><b>LABA BERSIH</b> = Cafe + Billiard + Kursi Pijat<?= $hasManual ? ' + Input Tgl 1–7 (Manual)' : '' ?> − Pengeluaran.</li>
-    <?php if ($hasManual): ?>
-      <li><b>Input Tgl 1–7 (Manual)</b> adalah penyesuaian sementara sebesar <?= $idr($manualInput) ?> pada tanggal <b>05</b>, akan dihapus setelah data asli 1–7 masuk ke sistem.</li>
-    <?php endif; ?>
+    <li><b>LABA BERSIH</b> = Cafe + Billiard + Kursi Pijat − Pengeluaran.</li>
+    <!-- <li>Pendapatan <b>Kursi Pijat</b> yang dihitung adalah transaksi berstatus <b>SELESAI</b> (default). Jika Anda memilih status lain, laporan mengikuti filter tersebut.</li> -->
     <li>Ongkir Delivery sudah termasuk dalam Omzet Cafe (POS). Laporan Kurir bersifat informasi (subset) dan tidak menambah laba bersih.</li>
   </ul>
 </div>

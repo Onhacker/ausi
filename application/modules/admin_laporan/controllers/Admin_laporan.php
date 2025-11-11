@@ -225,28 +225,103 @@ public function print_pengeluaran(){
     $this->_pdf($data['title'], $html, $filename);
 }
 
+// aktifan ini bulan depan
+// public function print_laba(){
+//     $f = $this->_parse_filter();
+
+//     $sumPos = $this->lm->sum_pos($f);
+//     $sumBil = $this->lm->sum_billiard($f);
+//     $sumPen = $this->lm->sum_pengeluaran($f);
+//     $sumKP  = $this->lm->sum_kursi_pijat($f);
+
+//     // Laba final: Cafe + Billiard + Kursi Pijat - Pengeluaran
+//     $laba = (int)$sumPos['total'] + (int)$sumBil['total'] + (int)$sumKP['total']  - (int)$sumPen['total'];
+
+//     $data = [
+//         'title'  => 'Laporan Laba',
+//         'period' => $this->_period_label($f),
+//         'sumPos' => $sumPos,
+//         'sumBil' => $sumBil,
+//         'sumPen' => $sumPen,
+//         'sumKP'  => $sumKP,
+//         'laba'   => $laba,
+//         'f'      => $f,
+//         'idr'    => function($x){ return $this->_idr($x); },
+//     ];
+
+//     $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+//     $safePeriod = trim($safePeriod, '_');
+//     if ($safePeriod === '') $safePeriod = date('Ymd');
+//     $filename = 'laporan_laba_' . $safePeriod . '.pdf';
+
+//     $html = $this->load->view('admin_laporan/pdf_laba', $data, true);
+//     $this->_pdf($data['title'], $html, $filename);
+// }
 
 public function print_laba(){
     $f = $this->_parse_filter();
 
+    // ===== SUM ASAL SISTEM =====
     $sumPos = $this->lm->sum_pos($f);
     $sumBil = $this->lm->sum_billiard($f);
     $sumPen = $this->lm->sum_pengeluaran($f);
     $sumKP  = $this->lm->sum_kursi_pijat($f);
 
-    // Laba final: Cafe + Billiard + Kursi Pijat - Pengeluaran
-    $laba = (int)$sumPos['total'] + (int)$sumBil['total'] + (int)$sumKP['total']  - (int)$sumPen['total'];
+    // ===== PENYESUAIAN MANUAL: Transaksi 1–7 tidak tercatat (hardcode sementara) =====
+    // Dihitung hanya jika periode laporan MENCAPAI tanggal 05 (bulan & tahun dari filter).
+    $manualInput = 0;                    // default
+    $manualNominal = 38377000;           // Rp 38.377.000
+    // Deteksi periode & bulan-tahun dari filter
+    $start = $f['date_from'] ?? $f['start'] ?? null;
+    $end   = $f['date_to']   ?? $f['end']   ?? null;
+
+    $yy = null; $mm = null;
+    if (!empty($start)) {                // range berbasis start/end
+        $yy = substr($start, 0, 4);
+        $mm = substr($start, 5, 2);
+    } elseif (!empty($f['bulan']) && !empty($f['tahun'])) {
+        $yy = (string)$f['tahun'];
+        $mm = str_pad((int)$f['bulan'], 2, '0', STR_PAD_LEFT);
+    } elseif (!empty($f['tanggal'])) {   // single date
+        $yy = substr($f['tanggal'], 0, 4);
+        $mm = substr($f['tanggal'], 5, 2);
+    } else {                              // fallback: bulan berjalan
+        $yy = date('Y');
+        $mm = date('m');
+    }
+
+    $d5 = $yy . '-' . $mm . '-05';
+    $includeManual = false;
+    if ($start && $end) {
+        $s = substr($start, 0, 10);
+        $e = substr($end,   0, 10);
+        $includeManual = ($d5 >= $s && $d5 <= $e);
+    } else {
+        // Jika bukan range eksplisit (mis. per-bulan / single-date yang sebulan itu),
+        // anggap penyesuaian berlaku untuk bulan tsb.
+        $includeManual = true;
+    }
+    if ($includeManual) { $manualInput = $manualNominal; }
+
+    // ===== LABA FINAL =====
+    // Laba final: Cafe + Billiard + Kursi Pijat + Manual − Pengeluaran
+    $laba = (int)($sumPos['total'] ?? 0)
+          + (int)($sumBil['total'] ?? 0)
+          + (int)($sumKP['total']  ?? 0)
+          + (int)$manualInput
+          - (int)($sumPen['total'] ?? 0);
 
     $data = [
-        'title'  => 'Laporan Laba',
-        'period' => $this->_period_label($f),
-        'sumPos' => $sumPos,
-        'sumBil' => $sumBil,
-        'sumPen' => $sumPen,
-        'sumKP'  => $sumKP,
-        'laba'   => $laba,
-        'f'      => $f,
-        'idr'    => function($x){ return $this->_idr($x); },
+        'title'        => 'Laporan Laba',
+        'period'       => $this->_period_label($f),
+        'sumPos'       => $sumPos,
+        'sumBil'       => $sumBil,
+        'sumPen'       => $sumPen,
+        'sumKP'        => $sumKP,
+        'manualInput'  => $manualInput,     // <-- dikirim ke view
+        'laba'         => $laba,
+        'f'            => $f,
+        'idr'          => function($x){ return $this->_idr($x); },
     ];
 
     $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
