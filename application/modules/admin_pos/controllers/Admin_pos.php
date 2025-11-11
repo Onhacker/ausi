@@ -249,7 +249,7 @@ public function index(){
     $this->db->where("id_identitas", "1");
     $ident = $this->db->get()->row();
 
-    $msg  = "Halo".($namaC ? " {$namaC}" : "").",\n";
+    $msg  = "Halo Kak ".($namaC ? " {$namaC}" : "").",\n";
     $msg .= "Ongkir pesanan #{$nomor} dari ".$ident->nama_website." telah diperbarui.\n\n";
 
     $msg .= "Rincian pesanan:\n";
@@ -868,7 +868,7 @@ private function _wa_paid_notice(array $paid_ids){
             $linkStruk  = site_url('produk/receipt/'.$kodeTampil);
             $namaSapaan = trim($o->nama ?: "kak");
 
-            $msg  = "Halo {$namaSapaan}, 👋\n\n";
+            $msg  = "Halo Kak {$namaSapaan}, 👋\n\n";
             $msg .= "✨ *PEMBAYARAN SUDAH DITERIMA!* ✅\n";
             $msg .= "Pesanan *#{$kodeTampil}* pada *{$waktu}*\n";
             $msg .= "──────────────────\n";
@@ -928,7 +928,7 @@ public function wa_reminder(){
     // Susun pesan berdasarkan tipe
     switch ($type){
         case 'payment':
-            $msg  = "Halo {$namaSapaan}, 👋\n\n";
+            $msg  = "Halo Kak {$namaSapaan}, 👋\n\n";
             $msg .= "Pengingat pembayaran untuk pesanan *#{$kodeTampil}* ({$waktu}).\n";
             $msg .= "Total yang perlu dibayar: *".$this->_idr($total)."*.\n";
             $msg .= "Selesaikan di sini ya:\n{$linkPay}\n\n";
@@ -942,7 +942,7 @@ public function wa_reminder(){
             if (!empty($o->courier_name)) {
                 $kurir = "Kurir: {$o->courier_name}".(!empty($o->courier_phone) ? " ({$o->courier_phone})" : "");
             }
-            $msg  = "Halo {$namaSapaan}, 👋\n\n";
+            $msg  = "Halo Kak {$namaSapaan}, 👋\n\n";
             $msg .= "Pengingat: pesanan *#{$kodeTampil}* dari *{$toko}* sedang diproses untuk *diantar*.\n";
             if ($addr !== '') $msg .= "Alamat: {$addr}\n";
             if ($kurir !== '') $msg .= "{$kurir}\n";
@@ -1377,7 +1377,7 @@ if (!$okStatus) {
     $kurirMsisdn = $this->_msisdn($kurirTelp); // sudah ada dipakai di bawah
 
     // SUSUN PESAN WA KURIR (dengan nomor + link WA customer)
-    $msgKurir = "Halo {$kurir->nama},\n".
+    $msgKurir = "Halo Kak {$kurir->nama},\n".
     "Anda ditugaskan untuk mengantar pesanan #{$nomor} dari {$toko}.\n".
     "Customer: {$custNm}\n".
     "Kontak Customer: ".($custPh ?: "-").($custMsisdn ? "\nWA: https://wa.me/{$custMsisdn}" : "")."\n".
@@ -1387,7 +1387,7 @@ if (!$okStatus) {
     "Mohon konfirmasi di sistem setelah pickup. Terima kasih.";
 
     // (opsional) pesan ke customer tetap seperti sebelumnya
-    $msgCust = "Halo {$custNm},\n".
+    $msgCust = "Halo Kak {$custNm},\n".
     "Kurir telah ditugaskan untuk pesanan #{$nomor} dari {$toko}.\n".
     "Kurir: {$kurir->nama}".($kurirTelp ? " ({$kurirTelp})" : "").($veh ? "\nKendaraan: {$veh}" : "")."\n".
     ($kurirTelp ? "Hubungi: https://wa.me/".$kurirMsisdn."\n" : "").

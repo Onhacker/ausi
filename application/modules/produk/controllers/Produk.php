@@ -1575,7 +1575,7 @@ private function _wa_notify_order_submit(object $ord, ?array $items = null): boo
 
     // Susun pesan
     $msg  =
-        "Halo {$ord->nama}, pesanan *{$ord->nomor}* ({$modeLabel}) di *{$brand_wa}* sudah kami terima ✅\n\n".
+        "Halo Kak {$ord->nama}, pesanan *{$ord->nomor}* ({$modeLabel}) di *{$brand_wa}* sudah kami terima ✅\n\n".
         "Rincian:\n{$itemsList}\n\n".
         "Subtotal: ".$idr((int)$ord->total)."\n".
         $ongkirTxt.
