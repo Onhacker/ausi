@@ -201,14 +201,19 @@ function applyPreset(){
   else if (p==='yesterday'){ from=startOfYesterday(); to=endOfYesterday(); }
   else if (p==='this_week'){ from=startOfWeekMon(); to=endOfToday(); }
   else if (p==='this_month'){ from=startOfMonth(); to=endOfToday(); }
-  else { return; }
+  else if (p==='range'){
+    $('#dt_from').val('');
+    $('#dt_to').val('');
+    return;
+  } else { return; }
   $('#dt_from').val(toInputValue(from));
   $('#dt_to').val(toInputValue(to));
 }
 
 $(document).ready(function(){
   // default preset
-  $('#preset').val('today'); applyPreset();
+  $('#preset').val('range'); applyPreset(); // akan mengosongkan dt_from/dt_to
+
 
   table = $('#table_rating').DataTable({
     pageLength: 10,
@@ -264,11 +269,12 @@ $(document).ready(function(){
   $('#preset').on('change', applyPreset);
   $('#btn-apply').on('click', function(){ reload_rating('apply'); });
   $('#btn-reset').on('click', function(){
-    $('#preset').val('today'); applyPreset();
-    $('#stars').val('all');
-    $('#has_review').val('all');
-    reload_rating('reset');
-  });
+  $('#preset').val('range'); applyPreset(); // kosongkan tanggal
+  $('#stars').val('all');
+  $('#has_review').val('all');
+  reload_rating('reset');
+});
+
 
   // simpan edit
   $('#btn-save-edit').on('click', save_edit);
@@ -276,6 +282,7 @@ $(document).ready(function(){
 
 /* ========= Edit / Delete ========= */
 function open_edit(id){
+  if (!id || isNaN(id)) { Swal.fire("Error","ID tidak valid","error"); return; }
   loader();
   $.getJSON("<?= site_url('admin_rating/get_one/') ?>"+id)
     .done(function(r){

@@ -39,6 +39,9 @@ class Admin_rating extends Admin_Controller {
             $data = [];
 
             foreach($list as $r){
+                // ===== ID INT (wajib, dipakai tombol & row.id)
+                $idInt = (int)$r->id;
+
                 // produk
                 $produk = $r->produk_nama ?: ('#'.$r->produk_id);
                 $produk_html = '<div><b>'.htmlspecialchars($produk,ENT_QUOTES,'UTF-8').'</b>'
@@ -69,7 +72,7 @@ class Admin_rating extends Admin_Controller {
                 $created   = $r->created_at ? date('d-m-Y H:i', strtotime($r->created_at)) : '-';
 
                 // actions
-                                $unameLower = strtolower((string)$this->session->userdata('admin_username'));
+                $unameLower = strtolower((string)$this->session->userdata('admin_username'));
                 $isAdmin    = ($unameLower === 'admin');
 
                 $btnEdit = $isAdmin
@@ -82,9 +85,8 @@ class Admin_rating extends Admin_Controller {
 
                 $aksi = '<div class="btn-group btn-group-sm" role="group">'.$btnEdit.$btnDelete.'</div>';
 
-
                 $row = [];
-                $row['id']         = $idInt;
+                $row['id']         = $idInt; // <— penting!
                 $row['no']         = '';
                 $row['produk']     = $produk_html;
                 $row['stars']      = $stars_html;
@@ -96,6 +98,7 @@ class Admin_rating extends Admin_Controller {
 
                 $data[] = $row;
             }
+
 
             $out = [
                 "draw"            => (int)$this->input->post('draw'),
