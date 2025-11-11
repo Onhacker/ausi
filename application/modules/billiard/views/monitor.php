@@ -556,7 +556,7 @@
           html += '<li class="booking-item" data-start-ts="'+(b.start_ts||0)+'" data-end-ts="'+(b.end_ts||0)+'">';
           html +=   '<div class="conversation-text"><div class="ctext-wrap">';
           html +=     '<div class="ct-head">';
-          html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' <span class="tz">WITA</span></div> · '+parseInt(b.durasi_jam||0,10)+' jam';
+          html +=       '<div class="ct-left">'+esc(b.jam_mulai)+' – '+esc(b.jam_selesai)+' </div> <span class="tz">WITA</span> · '+parseInt(b.durasi_jam||0,10)+' jam';
           html +=       '<div class="ct-right mb-1">';
           html +=         '<span class="status-pill"><span class="status-label">Mulai dalam</span> · <span class="cd">00:00:00</span></span>';
           html +=       '</div>';
