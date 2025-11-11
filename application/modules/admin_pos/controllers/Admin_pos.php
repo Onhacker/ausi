@@ -875,7 +875,7 @@ private function _wa_paid_notice(array $paid_ids){
             $msg .= "💰 Total Bayar : *".$this->_idr($total)."*\n";
             $msg .= "💳 Metode : {$metode}\n";
             $msg .= "──────────────────\n";
-            $msg .= "Pembayaran kamu sudah kami terima. Terima kasih sudah bertransaksi di *{$toko}*! 🙌\n\n";
+            $msg .= "Pembayaran kakak sudah kami terima. Terima kasih sudah bertransaksi di *{$toko}*! 🙌\n\n";
 
             $msg .= "🧾 Struk digital bisa dilihat di sini:\n{$linkStruk}\n\n";
 
@@ -931,7 +931,7 @@ public function wa_reminder(){
             $msg  = "Halo Kak {$namaSapaan}, 👋\n\n";
             $msg .= "Pengingat pembayaran untuk pesanan *#{$kodeTampil}* ({$waktu}).\n";
             $msg .= "Total yang perlu dibayar: *".$this->_idr($total)."*.\n";
-            $msg .= "Selesaikan di sini ya:\n{$linkPay}\n\n";
+            $msg .= "Selesaikan di sini ya kak:\n{$linkPay}\n\n";
             $msg .= "_Catatan: jika memilih *tunai*, kode unik tidak ikut ditagihkan._\n";
             $msg .= "Terima kasih 🙏";
             break;
