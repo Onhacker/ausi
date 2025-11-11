@@ -46,6 +46,7 @@ $kurir_nm   = trim((string)($order->courier_name ?? ''));
 $kurir_telp = trim((string)($order->courier_phone ?? '')); // ← tambahkan ini jika ada di payload
 $hasKurir   = ($kurir_id > 0 && $kurir_nm !== '');
 
+$is_paid_like = in_array($status, ['paid'], true);
 
 // ==== deteksi metode bayar ====
 $pm_raw = trim((string)($order->paid_method ?? ''));
@@ -200,7 +201,8 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
 
       </div>
     </div>
-    <?php if ($customer_phone !== ''): ?>
+    <?php if ($customer_phone !== '' && !$is_paid_like): ?>
+
   <div class="dropdown d-inline-block">
     <button type="button" class="btn btn-sm btn-success dropdown-toggle mb-2"
             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
