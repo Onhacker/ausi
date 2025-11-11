@@ -1,17 +1,7 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <!-- <div class="row"><div class="col-12">
-    <div class="page-title-box">
-      <div class="page-title-right">
-        <ol class="breadcrumb m-0">
-          <li class="breadcrumb-item active"><?= $subtitle; ?></li>
-        </ol>
-      </div>
-      <h4 class="page-title"><?= $title; ?></h4>
-    </div>
-  </div></div> -->
-
+ 
 
 
   <div class="card"><div class="card-body">
@@ -27,6 +17,9 @@
             <button type="button" onclick="reload_billiard_table('user')" class="btn btn-warning mb-2 btn-sm mr-2">
               <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
             </button>
+           
+            <!-- <small id="rs-selected" class="text-muted mb-2">ID terpilih: - (klik baris tabel untuk memilih)</small> -->
+
                   <!-- Filter status (custom-select bawaan template) -->
                   <div class="form-group mb-2 mr-2">
                     <label for="filter-status" class="sr-only">Status</label>
@@ -84,6 +77,7 @@
 <script>
 var table;
 var isReloading = false;
+window.selectedId = 0; // id booking yang terpilih via klik baris
 
 function loader(){ if (window.Swal) Swal.fire({title:"Proses...", allowOutsideClick:false, didOpen:()=>Swal.showLoading()}); }
 function close_loader(){ if (window.Swal) Swal.close(); }
@@ -148,11 +142,11 @@ $(document).ready(function(){
   });
 
   // Row click → detail (kecuali klik tombol)
-  $('#table_billiard tbody').on('click', 'tr', function(e){
-    if ($(e.target).closest('button, a, i').length) return;
-    const id = parseInt($(this).attr('data-id')||'0', 10);
-    if (id > 0){ show_detail(id); }
-  });
+$('#table_billiard').on('click', 'tbody tr', function(e){
+  if ($(e.target).closest('button, a, i').length) return; // jangan ganggu tombol
+  const id = parseInt($(this).attr('data-id')||'0', 10);
+  if (id > 0){ show_detail(id); }
+});
 
   // Filter berubah → reload
   $('#filter-status').on('change', function(){ reload_billiard_table('user'); });
@@ -175,9 +169,16 @@ function show_detail(id){
     .fail(function(){ close_loader(); Swal.fire("Error","Gagal mengambil detail","error"); });
 }
 
-function mark_paid_one(id){
-  Swal.fire({title:"Konfirmasi pembayaran #"+id+"?", icon:"question", showCancelButton:true})
-  .then(res=>{
+function mark_paid_one(el){
+  const id   = parseInt($(el).data('id')||0,10);
+  const nama = ($(el).data('nama')||'-');
+  const meja = ($(el).data('meja')||'-');
+  Swal.fire({
+    title: 'Lunasi pembayaran',
+    text: `${nama} — ${meja} (#${id})`,
+    icon: 'question',
+    showCancelButton: true
+  }).then(res=>{
     if (!res.isConfirmed) return;
     loader();
     $.post("<?= site_url('admin_billiard/mark_paid') ?>", {id:[id]})
@@ -190,9 +191,15 @@ function mark_paid_one(id){
   });
 }
 
-function mark_canceled_one(id){
-  Swal.fire({title:"Batalkan booking #"+id+"?", icon:"warning", showCancelButton:true, confirmButtonColor:"#d33"})
-  .then(res=>{
+function mark_canceled_one(el){
+  const id   = parseInt($(el).data('id')||0,10);
+  const nama = ($(el).data('nama')||'-');
+  const meja = ($(el).data('meja')||'-');
+  Swal.fire({
+    title: 'Batalkan booking?',
+    text: `${nama} — ${meja} (#${id})`,
+    icon: 'warning', showCancelButton:true, confirmButtonColor:"#d33"
+  }).then(res=>{
     if (!res.isConfirmed) return;
     loader();
     $.post("<?= site_url('admin_billiard/mark_canceled') ?>", {id:[id]})
@@ -205,9 +212,15 @@ function mark_canceled_one(id){
   });
 }
 
-function hapus_data_one(id){
-  Swal.fire({title:"Hapus data #"+id+"?", icon:"warning", showCancelButton:true, confirmButtonColor:"#d33"})
-  .then(res=>{
+function hapus_data_one(el){
+  const id   = parseInt($(el).data('id')||0,10);
+  const nama = ($(el).data('nama')||'-');
+  const meja = ($(el).data('meja')||'-');
+  Swal.fire({
+    title: 'Hapus data?',
+    text: `${nama} — ${meja} (#${id})`,
+    icon: 'warning', showCancelButton:true, confirmButtonColor:"#d33"
+  }).then(res=>{
     if (!res.isConfirmed) return;
     loader();
     $.post("<?= site_url('admin_billiard/hapus_data') ?>", {id:[id]})
@@ -219,4 +232,62 @@ function hapus_data_one(id){
       }).fail(function(){ close_loader(); Swal.fire('Error','Koneksi bermasalah / error 500','error'); });
   });
 }
+
+$('#table_billiard').on('click', '.btn-reschedule', function(e){
+  e.stopPropagation();
+  const $b   = $(this);
+  const id   = parseInt($b.data('id')||0,10);
+  const tgl  = String($b.data('tanggal')||'').slice(0,10);
+  const jam  = String($b.data('jam_mulai')||'').slice(0,5);
+  const nama = ($b.data('nama')||'-');
+  const meja = ($b.data('meja')||'-');
+
+  // kecil-kecilan: escape untuk jaga-jaga
+  const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  Swal.fire({
+    title: 'Reschedule',
+    // Pindahkan info ke HTML supaya tampil bareng input
+    html:
+      '<div class="mb-2"><b>'+esc(nama)+'</b> — '+esc(meja)+' <span class="text-muted">#'+id+'</span></div>' +
+      '<div class="d-flex align-items-center justify-content-center" style="gap:8px;flex-wrap:wrap;margin-top:8px">' +
+        '<input type="date" id="rsw-tgl" class="swal2-input" style="width:auto" value="'+(tgl||'')+'">' +
+        '<input type="time" id="rsw-jam" class="swal2-input" style="width:auto" step="300" value="'+(jam||'')+'">' +
+      '</div>',
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Simpan',
+    cancelButtonText: 'Batal',
+    preConfirm: ()=>{
+      const ntgl = ($('#rsw-tgl').val()||'').trim();
+      const njam = ($('#rsw-jam').val()||'').trim();
+      if (!ntgl || !njam){
+        Swal.showValidationMessage('Tanggal & Jam mulai wajib diisi');
+        return false;
+      }
+      return {tanggal: ntgl, jam: njam};
+    }
+  }).then(res=>{
+    if (!res.isConfirmed) return;
+    loader();
+    $.post("<?= site_url('admin_billiard/reschedule') ?>", {
+      id: id, tanggal: res.value.tanggal, jam_mulai: res.value.jam
+    })
+    .done(function(resp){
+      close_loader();
+      let r=resp; if (typeof resp==='string'){ try{ r=JSON.parse(resp);}catch(e){} }
+      if (!r || r.success!==true){
+        Swal.fire(r?.title||'Gagal', r?.pesan||'Reschedule ditolak.', 'error');
+        return;
+      }
+      Swal.fire(r.title, r.pesan, 'success');
+      reload_billiard_table('user');
+    })
+    .fail(function(){
+      close_loader();
+      Swal.fire('Error','Koneksi bermasalah / error 500','error');
+    });
+  });
+});
+
 </script>

@@ -391,6 +391,74 @@ private function _delete_paid_by_ids(array $ids): int{
     $this->db->where_in('id_pesanan', $ids)->delete($this->table_paid);
     return (int)$this->db->affected_rows();
 }
+/** Cek bentrok slot di meja yang sama (periksa lintas hari juga) */
+public function check_slot_conflict(int $meja_id, string $tanggal, string $jam_mulai, int $durasi_jam, ?int $exclude_id=null): array{
+    // Hitung rentang baru
+    if (strlen($jam_mulai) === 5) $jam_mulai .= ':00';
+    $startNew = strtotime($tanggal.' '.$jam_mulai);
+    $endNew   = strtotime('+'.$durasi_jam.' hours', $startNew);
+
+    // Cari booking lain +/-1 hari dari tanggal terkait (status selain 'batal')
+    $fromDate = date('Y-m-d', strtotime($tanggal.' -1 day'));
+    $toDate   = date('Y-m-d', strtotime($tanggal.' +1 day'));
+
+    $this->db->from('pesanan_billiard');
+    $this->db->where('meja_id', $meja_id);
+    $this->db->where('status <>', 'batal');
+    $this->db->where('tanggal >=', $fromDate);
+    $this->db->where('tanggal <=', $toDate);
+    if ($exclude_id){ $this->db->where('id_pesanan <>', $exclude_id); }
+    $rows = $this->db->get()->result();
+
+    $conflict_ids = [];
+    foreach($rows as $r){
+        $jm = strlen($r->jam_mulai)===5 ? $r->jam_mulai.':00' : $r->jam_mulai;
+        $js = strlen($r->jam_selesai)===5 ? $r->jam_selesai.':00' : $r->jam_selesai;
+
+        $s = strtotime($r->tanggal.' '.$jm);
+        $e = strtotime($r->tanggal.' '.$js);
+        if ($e <= $s){ $e = strtotime('+1 day', $e); } // handle lintas tengah malam
+
+        // Overlap jika: s < endNew && e > startNew
+        if ($s < $endNew && $e > $startNew){
+            $conflict_ids[] = (int)$r->id_pesanan;
+        }
+    }
+
+    return [
+        'conflict' => !empty($conflict_ids),
+        'ids'      => $conflict_ids
+    ];
+}
+
+/** Simpan perubahan jadwal + updated_at + naikkan edit_count (jika ada) */
+public function update_schedule(int $id, string $tanggal, string $jam_mulai, string $jam_selesai): bool{
+    $data = [
+        'tanggal'     => $tanggal,
+        'jam_mulai'   => $jam_mulai,
+        'jam_selesai' => $jam_selesai,
+        'updated_at'  => date('Y-m-d H:i:s'),
+    ];
+
+    // auto increment edit_count jika kolomnya ada
+    if ($this->db->field_exists('edit_count','pesanan_billiard')){
+        $this->db->set('edit_count', 'COALESCE(edit_count,0)+1', false);
+    }
+    $this->db->where('id_pesanan',$id)->update('pesanan_billiard',$data);
+    return $this->db->affected_rows() > 0;
+}
+
+/** Update jadwal di snapshot paid (jika ada barisnya) */
+public function update_paid_schedule(int $id_pesanan, string $tanggal, string $jam_mulai, string $jam_selesai): int{
+    $this->db->where('id_pesanan', $id_pesanan)
+             ->update($this->table_paid, [
+                 'tanggal'     => $tanggal,
+                 'jam_mulai'   => $jam_mulai,
+                 'jam_selesai' => $jam_selesai
+             ]);
+    return (int)$this->db->affected_rows(); // 0 jika tidak ada barisnya
+}
+
 
     
 

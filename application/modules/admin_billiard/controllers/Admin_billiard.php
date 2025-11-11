@@ -97,15 +97,42 @@ class Admin_billiard extends Admin_Controller {
             // ===== Metode
                 $metode_html = htmlspecialchars($r->metode_bayar ?: '-', ENT_QUOTES, 'UTF-8');
 
-            // ===== Aksi
-                $idInt = (int)$r->id_pesanan;
-                $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
-                $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')"><i class="fe-x-circle"></i></button>';
+                          // ... di dalam foreach($list as $r) { setelah $metode_html ... 
+                $idInt     = (int)$r->id_pesanan;
+                $namaPlain = trim((string)$r->nama) ?: '-';
+                $namaAttr  = htmlspecialchars($namaPlain, ENT_QUOTES, 'UTF-8');
+                $mejaName  = $r->nama_meja ?: ('Meja #'.$r->meja_id);
+                $mejaAttr  = htmlspecialchars($mejaName, ENT_QUOTES, 'UTF-8');
+
+                $btnResch = '<button type="button" class="btn btn-sm btn-success mr-1 btn-reschedule"
+                data-id="'.$idInt.'"
+                data-nama="'.$namaAttr.'"
+                data-meja="'.$mejaAttr.'"
+                data-tanggal="'.htmlspecialchars($r->tanggal ?: '', ENT_QUOTES, 'UTF-8').'"
+                data-jam_mulai="'.htmlspecialchars(substr((string)$r->jam_mulai,0,5), ENT_QUOTES, 'UTF-8').'"
+                title="Reschedule">
+                <i class="fe-clock"></i>
+                </button>';
+
+                // Tombol lain: kirim element (this) supaya bisa baca data-nama & data-meja
+                $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1"
+                                 data-id="'.$idInt.'" data-nama="'.$namaAttr.'" data-meja="'.$mejaAttr.'"
+                                 onclick="mark_paid_one(this)" title="Konfirmasi Bayar"><i class="fe-check-circle"></i></button>';
+
+                $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1"
+                                 data-id="'.$idInt.'" data-nama="'.$namaAttr.'" data-meja="'.$mejaAttr.'"
+                                 onclick="mark_canceled_one(this)" title="Batalkan"><i class="fe-x-circle"></i></button>';
+
                 $unameLower = strtolower((string)$this->session->userdata('admin_username'));
                 $btnDelete  = ($unameLower === 'admin')
-                ? '<button type="button" class="btn btn-sm btn-danger" onclick="hapus_data_one('.$idInt.')"><i class="fa fa-trash"></i></button>'
-                : '';
-                $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnCancel.$btnDelete.'</div>';
+                  ? '<button type="button" class="btn btn-sm btn-danger"
+                        data-id="'.$idInt.'" data-nama="'.$namaAttr.'" data-meja="'.$mejaAttr.'"
+                        onclick="hapus_data_one(this)" title="Hapus"><i class="fa fa-trash"></i></button>'
+                  : '';
+
+                $actionsHtml = '<div class="btn-group btn-group-sm" role="group">'.$btnPaid.$btnResch.$btnCancel.$btnDelete.'</div>';
+
+
 
             // ===== Build row
                 $row = [];
@@ -410,6 +437,84 @@ private function _pretty_hp(string $hp): string {
             "pesan"=>implode(' ', $msgs) ?: 'Tidak ada yang diproses.'
         ]);
     }
+
+    /** Reschedule (ubah tanggal main & jam mulai) + tolak jika bentrok */
+public function reschedule(){
+    $this->output->set_content_type('application/json');
+    try{
+        $id        = (int)$this->input->post('id');
+        $tanggal   = trim((string)$this->input->post('tanggal'));
+        $jam_mulai = trim((string)$this->input->post('jam_mulai'));
+
+        if ($id <= 0 || $tanggal === '' || $jam_mulai === ''){
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"ID, tanggal, dan jam mulai wajib diisi."]); return;
+        }
+
+        // Ambil data booking saat ini
+        $row = $this->dm->get_order($id);
+        if (!$row){
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Booking #$id tidak ditemukan."]); return;
+        }
+
+        // Durasi & normalisasi jam
+        $durasi = (int)$row->durasi_jam; if ($durasi <= 0) $durasi = 1;
+        if (strlen($jam_mulai) === 5) $jam_mulai .= ':00';
+
+        $startTs = strtotime($tanggal.' '.$jam_mulai);
+        if (!$startTs){
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Format tanggal/jam tidak valid."]); return;
+        }
+        $endTs = strtotime('+'.$durasi.' hours', $startTs);
+        $jam_selesai = date('H:i:s', $endTs);
+
+        // Tolak jika status batal
+        $st = strtolower((string)$row->status);
+        if ($st === 'batal'){
+            echo json_encode(["success"=>false,"title"=>"Ditolak","pesan"=>"Tidak bisa reschedule: status sudah dibatalkan."]); return;
+        }
+
+        // Cek bentrok slot
+        $cek = $this->dm->check_slot_conflict((int)$row->meja_id, $tanggal, $jam_mulai, $durasi, $id);
+        if (!empty($cek['conflict'])){
+            $ids = !empty($cek['ids']) ? (' #'.implode(', #',$cek['ids'])) : '';
+            echo json_encode([
+                "success"=>false,
+                "title"=>"Slot Bentrok",
+                "pesan"=>"Jadwal berbenturan dengan booking lain".$ids.". Silakan pilih waktu lain."
+            ]);
+            return;
+        }
+
+        // Update pesanan_billiard
+        $ok = $this->dm->update_schedule($id, $tanggal, $jam_mulai, $jam_selesai);
+        if (!$ok){
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Tidak bisa menyimpan reschedule."]); return;
+        }
+
+        // Update snapshot di billiard_paid (jika ada)
+        $paid_aff = $this->dm->update_paid_schedule($id, $tanggal, $jam_mulai, $jam_selesai);
+
+        // bersihkan cache publik
+        $this->purge_public_caches();
+
+        // Info untuk pesan
+        $nm        = trim((string)($row->nama ?? '')) ?: '-';
+        $meja_nama = isset($row->nama_meja) && $row->nama_meja !== ''
+            ? $row->nama_meja
+            : ($this->db->select('nama_meja')->get_where('meja_billiard', ['id_meja' => $row->meja_id])->row('nama_meja')
+               ?: ('MEJA #'.($row->meja_id ?? '')));
+
+        echo json_encode([
+            "success"=>true,
+            "title"=>"Berhasil",
+            "pesan"=>"{$nm} — {$meja_nama} dijadwalkan ke {$tanggal}, {$jam_mulai}–{$jam_selesai} (durasi {$durasi} jam)."
+                    .($paid_aff ? " Snapshot paid ikut diperbarui." : "")
+        ]);
+    }catch(\Throwable $e){
+        echo json_encode(["success"=>false,"title"=>"Error","pesan"=>$e->getMessage()]);
+    }
+}
+
     
     /** Ping untuk notifikasi ringan */
     public function ping(){
