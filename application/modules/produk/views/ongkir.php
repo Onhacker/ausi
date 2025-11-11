@@ -75,7 +75,7 @@ $batas_free    = (int)($rec->batas_free_ongkir ?? 0);
 	    </span>
 	    <span>Pilih Lokasi</span>
 	  </button>
-
+<!-- 
 	  <button
 	    type="button"
 	    id="btnUseMyLocation"
@@ -85,7 +85,7 @@ $batas_free    = (int)($rec->batas_free_ongkir ?? 0);
 	      <i class="mdi mdi-crosshairs-gps" aria-hidden="true"></i>
 	    </span>
 	    <span>Posisi saya</span>
-	  </button>
+	  </button> -->
 	</div>
 
 </div>
@@ -694,72 +694,181 @@ window.__applyOngkirFromMap = function () {
 
           m.on('click', function(e){ setDest(e.latlng.lat, e.latlng.lng); });
 
-          if (btnMyLoc && navigator.geolocation){
-            btnMyLoc.addEventListener('click', function(){
-              startLocLoading();
+          // if (btnMyLoc && navigator.geolocation){
+          //   btnMyLoc.addEventListener('click', function(){
+          //     startLocLoading();
 
-              navigator.geolocation.getCurrentPosition(
-                function (pos) {
-                  // ==== SUKSES ====
-                  var lat = pos.coords.latitude;
-                  var lng = pos.coords.longitude;
+          //     navigator.geolocation.getCurrentPosition(
+          //       function (pos) {
+          //         // ==== SUKSES ====
+          //         var lat = pos.coords.latitude;
+          //         var lng = pos.coords.longitude;
 
-                  // taruh pin tujuan + hitung ongkir dll
-                  setDest(lat, lng);
+          //         // taruh pin tujuan + hitung ongkir dll
+          //         setDest(lat, lng);
 
-                  // fokuskan peta ke posisi user
-                  try {
-                    m.flyTo([lat, lng], 16, { duration: 0.5 });
-                  } catch(e){}
+          //         // fokuskan peta ke posisi user
+          //         try {
+          //           m.flyTo([lat, lng], 16, { duration: 0.5 });
+          //         } catch(e){}
 
-                  // hentikan loading di tombol
-                  stopLocLoading();
+          //         // hentikan loading di tombol
+          //         stopLocLoading();
 
-                  // kasih feedback manis ke user (boleh kamu hapus nanti)
-                  if (window.Swal && Swal.fire) {
-                    Swal.fire({
-                      icon: 'success',
-                      title: 'Lokasi OK',
-                      html:
-                        'lat=' + lat.toFixed(6) +
-                        '<br>lng=' + lng.toFixed(6),
-                      timer: 2000,
-                      showConfirmButton: false
-                    });
-                  }
-                },
-                function (err) {
-                  // ==== GAGAL ====
-                  stopLocLoading();
+          //         // kasih feedback manis ke user (boleh kamu hapus nanti)
+          //         if (window.Swal && Swal.fire) {
+          //           Swal.fire({
+          //             icon: 'success',
+          //             title: 'Lokasi OK',
+          //             html:
+          //               'lat=' + lat.toFixed(6) +
+          //               '<br>lng=' + lng.toFixed(6),
+          //             timer: 2000,
+          //             showConfirmButton: false
+          //           });
+          //         }
+          //       },
+          //       function (err) {
+          //         // ==== GAGAL ====
+          //         stopLocLoading();
 
-                  const geoErr = {
-                    1: 'Izin lokasi ditolak',
-                    2: 'Lokasi tidak bisa didapat',
-                    3: 'Timeout GPS'
-                  };
-                  const detail = geoErr[err.code] || (err.message || ('error ' + err.code));
+          //         const geoErr = {
+          //           1: 'Izin lokasi ditolak',
+          //           2: 'Lokasi tidak bisa didapat',
+          //           3: 'Timeout GPS'
+          //         };
+          //         const detail = geoErr[err.code] || (err.message || ('error ' + err.code));
 
-                  // note tambahan kalau bukan https / bukan localhost
-                  const httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')
-                    ? '<br><small class="text-muted">Butuh koneksi <b>HTTPS</b> atau <code>localhost</code>.</small>'
-                    : '';
+          //         // note tambahan kalau bukan https / bukan localhost
+          //         const httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')
+          //           ? '<br><small class="text-muted">Butuh koneksi <b>HTTPS</b> atau <code>localhost</code>.</small>'
+          //           : '';
 
-                  if (window.Swal && Swal.fire) {
-                    Swal.fire({
-                      icon: 'warning',
-                      title: 'Lokasi nggak keambil 😅',
-                      html: detail + httpsNote,
-                      confirmButtonText: 'Sip'
-                    });
-                  } else {
-                    alert('Ups, lokasi nggak keambil: ' + detail);
-                  }
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-              );
+          //         if (window.Swal && Swal.fire) {
+          //           Swal.fire({
+          //             icon: 'warning',
+          //             title: 'Lokasi nggak keambil 😅',
+          //             html: detail + httpsNote,
+          //             confirmButtonText: 'Sip'
+          //           });
+          //         } else {
+          //           alert('Ups, lokasi nggak keambil: ' + detail);
+          //         }
+          //       },
+          //       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          //     );
+          //   });
+
+          // }
+          // ===== "Posisi Saya" di dalam modal: tampilkan konfirmasi dulu =====
+if (btnMyLoc) {
+  btnMyLoc.addEventListener('click', function(){
+    function ambilLokasiSetelahIzin(){
+      if (!navigator.geolocation){
+        if (infoEl) infoEl.innerHTML = '<div class="p-2 text-danger">Perangkat tidak mendukung geolokasi / GPS.</div>';
+        return;
+      }
+
+      startLocLoading();
+      if (infoEl) {
+        infoEl.innerHTML = '<div class="p-2">Meminta lokasi GPS…</div>';
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          // ==== SUKSES ====
+          var lat = +pos.coords.latitude;
+          var lng = +pos.coords.longitude;
+
+          // taruh pin + hitung rute / ongkir (ROAD_ONLY handled oleh calcRoute/updateInfo)
+          setDest(lat, lng);
+
+          // fokuskan peta ke posisi user
+          try { m.flyTo([lat, lng], 16, { duration: 0.5 }); } catch(e){}
+
+          stopLocLoading();
+
+          // feedback manis (opsional)
+          if (window.Swal && Swal.fire) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Lokasi OK',
+              html: 'lat=' + lat.toFixed(6) + '<br>lng=' + lng.toFixed(6),
+              timer: 2000,
+              showConfirmButton: false
             });
-
           }
+        },
+        function (err) {
+          // ==== GAGAL ====
+          stopLocLoading();
+
+          var geoErr = {1:'Izin lokasi ditolak', 2:'Lokasi tidak bisa didapat', 3:'Timeout GPS'};
+          var detail = geoErr[err.code] || (err.message || ('error ' + err.code));
+
+          var httpsNote = (!window.isSecureContext && location.hostname !== 'localhost')
+            ? '<br><small class="text-muted">Butuh koneksi <b>HTTPS</b> atau <code>localhost</code>.</small>'
+            : '';
+
+          if (window.Swal && Swal.fire) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Lokasi nggak keambil 😅',
+              html: detail + httpsNote,
+              confirmButtonText: 'Sip'
+            });
+          } else {
+            alert('Ups, lokasi nggak keambil: ' + detail);
+          }
+
+          if (infoEl) {
+            infoEl.innerHTML = '<div class="p-2 text-danger">Lokasi tidak diambil. Kamu bisa pilih titik manual di peta.</div>';
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    // ——— Konfirmasi seperti tombol di luar modal ———
+    if (window.Swal && Swal.fire){
+      Swal.fire({
+        title: 'Izinkan lokasi?',
+        html: `
+  <div style="font-size:.95em;line-height:1.4em;text-align:left">
+    <div style="margin-bottom:.5em;">Saya pakai lokasimu untuk:</div>
+    <ul style="margin:0 0 .75em 1.2em;padding:0;font-size:.9em;line-height:1.4em;list-style:disc;list-style-position:outside;">
+      <li>Hitung jarak</li>
+      <li>Estimasi ongkir antar</li>
+      <li>Cek apakah alamat kamu masih dalam jangkauan</li>
+    </ul>
+    <div style="font-size:.85em;color:#444;">Santai, lokasi kamu aman sesuai Syarat &amp; Kebijakan Privasi.</div>
+  </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Izinkan',
+        cancelButtonText: 'Batal'
+      }).then(function(res){
+        if (res.isConfirmed){
+          ambilLokasiSetelahIzin();
+        } else {
+          if (infoEl) {
+            infoEl.innerHTML = '<div class="p-2 text-danger">Lokasi tidak diambil. Kamu bisa pilih titik manual di peta.</div>';
+          }
+        }
+      });
+    } else {
+      // Fallback native confirm
+      var ok = confirm(
+        'Kami pakai lokasi buat hitung jarak & ongkir kurir, tidak untuk macam-macam.\n' +
+        'Izinkan ambil lokasi sekarang?'
+      );
+      if (ok) ambilLokasiSetelahIzin();
+      else if (infoEl) {
+        infoEl.innerHTML = '<div class="p-2 text-danger">Lokasi tidak diambil. Kamu bisa pilih titik manual di peta.</div>';
+      }
+    }
+  });
+}
 
           updateInfo();
         });
