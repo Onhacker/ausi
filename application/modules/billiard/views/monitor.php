@@ -312,6 +312,24 @@
       box-sizing: border-box;
     }
   </style>
+<style>
+  /* ===== FORCE LANDSCAPE OVERLAY ===== */
+  .rotate-guard{
+    position:fixed; inset:0; z-index:10090; display:none;
+    align-items:center; justify-content:center; text-align:center;
+    background:#0b1220; color:#fff; padding:24px;
+    border-top:1px solid rgba(255,255,255,.08);
+  }
+  .rotate-guard .ico{ font-size:64px; line-height:1; margin-bottom:10px; display:block; }
+  .rotate-guard h3{ margin:6px 0 8px; font-weight:800; }
+  .rotate-guard p{ margin:0; opacity:.9 }
+
+  /* Saat portrait, sembunyikan konten dan tampilkan overlay */
+  @media (orientation:portrait){
+    body.force-landscape #app-scroll{ display:none !important; }
+    body.force-landscape .rotate-guard{ display:flex; }
+  }
+</style>
 
   <!-- Tambahan CSS final video (biar prioritas paling bawah stylesheet) -->
   <style>
@@ -327,6 +345,13 @@
     <div class="lc-time" id="lcTime">00:00:00</div>
     <div class="lc-date" id="lcDate">Senin, 01 Januari 1970</div>
   </div>
+  <div class="rotate-guard" id="rotateGuard" role="dialog" aria-live="polite" aria-label="Mohon putar perangkat ke mode landscape">
+  <div>
+    <span class="ico" aria-hidden="true">🔁</span>
+    <h3>Putar ke Mode Landscape</h3>
+    <p>Layar ini didesain untuk posisi mendatar agar teks besar & rapi di TV.</p>
+  </div>
+</div>
 
   <!-- WRAPPER HALAMAN -->
   <div class="wrapper curved" style="--curve-h: 330px;" id="app-scroll">
@@ -952,5 +977,46 @@ function refreshCounters(){
 }
 
   </script>
+  <script>
+(function(){
+  // ====== Coba kunci orientasi ke landscape (saat fullscreen) ======
+  async function tryLockLandscape(){
+    try{
+      if (screen.orientation && screen.orientation.lock){
+        await screen.orientation.lock('landscape');
+      }
+    }catch(e){
+      // Diamkan; beberapa browser/iOS memang tidak mendukung
+    }
+  }
+
+  // Kunci lagi setiap kali status fullscreen berubah (masuk/keluar)
+  ['fullscreenchange','webkitfullscreenchange','msfullscreenchange'].forEach(function(evt){
+    document.addEventListener(evt, tryLockLandscape);
+  });
+
+  // Prime sekali pada interaksi pertama (biar tetap dianggap user-gesture)
+  document.addEventListener('pointerdown', function once(){
+    tryLockLandscape();
+    document.removeEventListener('pointerdown', once, true);
+  }, { once:true, capture:true });
+
+  // ====== Overlay: tampilkan jika device sedang portrait ======
+  function isLandscape(){ return window.matchMedia('(orientation: landscape)').matches; }
+  function applyGuard(){
+    // Bila tidak landscape -> paksa tampilkan overlay & sembunyikan konten
+    document.body.classList.toggle('force-landscape', !isLandscape());
+  }
+  applyGuard();
+  window.addEventListener('orientationchange', applyGuard);
+  window.addEventListener('resize', applyGuard);
+
+  // Jika kamu ingin extra-strong: kunci ulang setelah 300ms usai fullscreen
+  document.addEventListener('fullscreenchange', function(){
+    setTimeout(tryLockLandscape, 300);
+  });
+})();
+</script>
+
 </body>
 </html>
