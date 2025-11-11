@@ -792,7 +792,7 @@ if (btnMyLoc) {
           if (window.Swal && Swal.fire) {
             Swal.fire({
               icon: 'success',
-              title: 'Lokasi OK',
+              title: 'Lokasi ditemukan',
               html: 'lat=' + lat.toFixed(6) + '<br>lng=' + lng.toFixed(6),
               timer: 2000,
               showConfirmButton: false
