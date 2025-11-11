@@ -104,15 +104,26 @@ class Admin_billiard extends Admin_Controller {
                 $mejaName  = $r->nama_meja ?: ('Meja #'.$r->meja_id);
                 $mejaAttr  = htmlspecialchars($mejaName, ENT_QUOTES, 'UTF-8');
 
-                $btnResch = '<button type="button" class="btn btn-sm btn-success mr-1 btn-reschedule"
-                data-id="'.$idInt.'"
-                data-nama="'.$namaAttr.'"
-                data-meja="'.$mejaAttr.'"
-                data-tanggal="'.htmlspecialchars($r->tanggal ?: '', ENT_QUOTES, 'UTF-8').'"
-                data-jam_mulai="'.htmlspecialchars(substr((string)$r->jam_mulai,0,5), ENT_QUOTES, 'UTF-8').'"
-                title="Reschedule">
-                <i class="fe-clock"></i>
-                </button>';
+                
+                    $canReschedule = (!$isFinished && strtolower((string)$r->status) !== 'batal');
+
+                    if ($canReschedule) {
+                        $btnResch = '<button type="button" class="btn btn-sm btn-success mr-1 btn-reschedule"
+                                         data-id="'.$idInt.'"
+                                         data-nama="'.$namaAttr.'"
+                                         data-meja="'.$mejaAttr.'"
+                                         data-tanggal="'.htmlspecialchars($r->tanggal ?: '', ENT_QUOTES, 'UTF-8').'"
+                                         data-jam_mulai="'.htmlspecialchars(substr((string)$r->jam_mulai,0,5), ENT_QUOTES, 'UTF-8').'"
+                                         title="Reschedule">
+                                       <i class="fe-clock"></i>
+                                     </button>';
+                    } else {
+                        // tampilkan tombol non-aktif (tooltip menjelaskan alasannya)
+                        $btnResch = '<button type="button" class="btn btn-sm btn-outline-secondary mr-1" disabled
+                                         title="Tidak bisa reschedule: booking batal / sudah selesai main">
+                                       <i class="fe-clock"></i>
+                                     </button>';
+                    }
 
                 // Tombol lain: kirim element (this) supaya bisa baca data-nama & data-meja
                 $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1"
