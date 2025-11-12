@@ -5,7 +5,7 @@
   <th align="center" width="7%">No</th>
   <th align="center" width="16%">Tanggal</th>
   <th align="center" width="14%">Kategori</th>
-  <th align="center" width="35%">Nomor / Keterangan</th>
+  <th align="center" width="35%">Keterangan</th>
   <th align="center" width="12%">Metode</th>
   <th align="center" width="16%">Jumlah</th>
 </tr>
