@@ -39,12 +39,26 @@ class Admin_billiard extends Admin_Controller {
                 $kode = htmlspecialchars($r->kode_booking ?: '-', ENT_QUOTES, 'UTF-8');
 
             // Hitung apakah sudah selesai main
-                $endTs = null;
-                if (!empty($r->tanggal) && !empty($r->jam_selesai)) {
-                // asumsi $r->tanggal = YYYY-mm-dd, $r->jam_selesai = HH:ii(:ss)?
-                    $endTs = strtotime(trim($r->tanggal.' '.$r->jam_selesai));
-                }
-                $isFinished = $endTs && time() >= $endTs;
+                            // === Hitung apakah sudah selesai main (handle nyebrang tengah malam) ===
+            $startTs = null;
+            $endTs   = null;
+            $crossMidnight = false;
+
+            if (!empty($r->tanggal) && !empty($r->jam_mulai)) {
+                $startTs = strtotime(trim($r->tanggal.' '.$r->jam_mulai));
+            }
+            if (!empty($r->tanggal) && !empty($r->jam_selesai)) {
+                $endTs = strtotime(trim($r->tanggal.' '.$r->jam_selesai));
+            }
+
+            // Jika jam_selesai <= jam_mulai, berarti selesai di H+1
+            if ($startTs && $endTs && $endTs <= $startTs) {
+                $endTs += 86400; // +1 hari
+                $crossMidnight = true;
+            }
+
+            $isFinished = ($endTs && time() >= $endTs);
+
 
             // Tampilkan di kolom "Kode Booking":
             // - Jika selesai → "Selesai Main"
@@ -71,8 +85,14 @@ class Admin_billiard extends Admin_Controller {
 
             // ===== Waktu main
                 $tgl = $r->tanggal ? date('d-m-Y', strtotime($r->tanggal)) : '-';
-                $jam = "Jam ".trim(($r->jam_mulai ?: '').' - '.($r->jam_selesai ?: ''));
-                $waktu_html = $tgl.' ('.$durasi_html.')' .'<div class="text-blue small">'.htmlspecialchars($jam,ENT_QUOTES,'UTF-8').'</div>';
+
+                $jamMulai   = $r->jam_mulai   ? substr($r->jam_mulai, 0, 5)   : '';
+                $jamSelesai = $r->jam_selesai ? substr($r->jam_selesai, 0, 5) : '';
+                $jamLabel   = 'Jam '.$jamMulai.' - '.$jamSelesai.($crossMidnight ? ' (besok)' : '');
+
+                $waktu_html = $tgl.' ('.$durasi_html.')'
+                            . '<div class="text-blue small">'.htmlspecialchars($jamLabel, ENT_QUOTES, 'UTF-8').'</div>';
+
 
             // ===== Harga / Grand
                 $harga_jam = (int)$r->harga_per_jam;
