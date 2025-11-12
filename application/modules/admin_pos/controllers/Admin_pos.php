@@ -272,7 +272,7 @@ public function index(){
 
     /* ——— Catatan penutup ——— */
     $msg .= "\nSimpan nomor ini agar link bisa diklik.\n";
-    $msg .= "Pesan ini dikirim otomatis, mohon *jangan balas* pesan ini.\n";
+    $msg .= "Pesan ini dikirim otomatis.\n";
 
 
     $wa_sent = false;
@@ -883,7 +883,7 @@ private function _wa_paid_notice(array $paid_ids){
             $msg .= "Jangan lupa kasih rating & ulasan biar kami makin semangat! ⭐\n\n";
 
             $msg .= "Simpan kontak ini biar link bisa langsung diklik 📲\n";
-            $msg .= "_Pesan ini dikirim otomatis oleh sistem {$toko}, mohon tidak dibalas._\n";
+            $msg .= "_Pesan ini dikirim otomatis oleh sistem {$toko}_\n";
 
 
         // kirim via gateway WA kamu

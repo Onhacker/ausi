@@ -1588,7 +1588,7 @@ private function _wa_notify_order_submit(object $ord, ?array $items = null): boo
         "\nSilakan *pilih metode pembayaran* di tautan berikut:\n{$payUrl}\n\n".
         "ℹ️ *Catatan*: Kode unik hanya berlaku untuk metode *QRIS/Transfer*. Jika Anda memilih *Tunai*, *kode unik tidak ditagihkan*.\n".
         "✅ Abaikan pesan ini jika Anda sudah melakukan pembayaran.\n".
-        "— Pesan ini dikirim otomatis oleh sistem *AUSI Billiard & Cafe*. Mohon jangan dibalas.";
+        "— Pesan ini dikirim otomatis oleh sistem *AUSI Billiard & Cafe*.";
 
     // (Opsional) Normalisasi nomor HP ke format 62xxxxxxxxxx
     $toMsisdn = function(string $hp): string {

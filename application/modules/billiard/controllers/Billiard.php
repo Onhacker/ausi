@@ -2216,7 +2216,7 @@ private function _wa_ringkasan($rec, $metode, $status){
       $lines[] = "";
 
       // FOOTER OTOMATIS
-      $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
+      $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}._";
 
       $pesan = implode("\n", $lines);
 

@@ -393,7 +393,7 @@ private function _pretty_hp(string $hp): string {
 
         // INSTRUKSI KASIR
         // FOOTER
-        $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}. Mohon jangan dibalas._";
+        $lines[] = "📣 _Pesan ini dikirim otomatis oleh sistem {$site}._";
 
         $pesan = implode("\n", $lines);
 
