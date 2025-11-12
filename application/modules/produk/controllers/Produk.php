@@ -768,6 +768,16 @@ private function _csrf(){
 }
 
 
+public function points(){
+    $this->_nocache_headers();
+    $rec = $this->fm->web_me(); // kalau dipakai di head.php
+    $data = compact('rec');
+    $this->load->view('points_view', $data);
+}
+
+
+
+
     /** API set qty (plus/minus/input) */
     public function cart_update(){
          $this->_nocache_headers();
@@ -1221,8 +1231,11 @@ public function leave_table(){
         'catatan'      => ($catatan !== '' ? $catatan : null),
 
         // delivery fields
-        'customer_phone' => (($mode === 'delivery' || $mode === 'dinein') && $customer_phone !== '')
-                        ? $customer_phone : null,
+        // 'customer_phone' => (($mode === 'delivery' || $mode === 'dinein') && $customer_phone !== '')
+        //                 ? $customer_phone : null,
+                        // Simpan nomor HP jika diisi, untuk SEMUA mode (walkin/dinein/delivery)
+        'customer_phone' => ($customer_phone !== '' ? $customer_phone : null),
+
         'alamat_kirim'   => ($mode==='delivery') ? $alamat_kirim   : null,
         'delivery_fee'   => ($mode==='delivery') ? (int)$delivery_fee : 0,
         'delivery_status'=> ($mode==='delivery') ? 'waiting' : null,
@@ -1506,7 +1519,8 @@ private function _json_ok_and_flush_then_continue(array $payload){
 private function _wa_notify_order_submit(object $ord, ?array $items = null): bool
 {
     // Tanpa nomor HP: skip (tidak memblokir flow)
-    if (empty($ord->customer_phone)) return false;
+    // if (empty($ord->customer_phone)) return false;
+
 
     // Helper WA (pastikan send_wa_single tersedia)
     $this->load->helper('front');

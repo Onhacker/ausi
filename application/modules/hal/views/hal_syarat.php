@@ -13,15 +13,16 @@
         <!-- Header -->
         <header class="mb-3 mt-2 text-center">
           <div class="d-flex justify-content-center gap-2">
-            <span class="badge bg-light text-dark border">Versi 1.0</span>
-            <span class="badge bg-light text-dark border">Terakhir diperbarui: 23 Oktober 2025</span>
+            <span class="badge bg-light text-dark border">Versi 2.0</span>
+            <span class="badge bg-light text-dark border">Terakhir diperbarui: 13 November 2025</span>
+
           </div>
         </header>
 
         <!-- Daftar Isi -->
         <section class="card mb-3">
           <div class="card-body">
-            <h2 class="h6 mb-2">Daftar Isi</h2>
+            <h2 class="h4 mb-2">Daftar Isi</h2>
             <ol class="mb-0">
               <li><a href="#pendahuluan">Pendahuluan</a></li>
               <li><a href="#definisi">Definisi</a></li>
@@ -33,6 +34,8 @@
               <li><a href="#billiard">Booking Billiard</a></li>
               <li><a href="#pembayaran">Pembayaran, Biaya &amp; Promo</a></li>
               <li><a href="#voucher">Voucher &amp; Promo Main Gratis</a></li>
+              <li><a href="#voucher-order">Poin Loyalty &amp; Voucher Order Rp 200.000</a></li>
+
               <li><a href="#kebijakan-produk">Kebijakan Produk &amp; Kualitas</a></li>
               <li><a href="#larangan">Ketertiban, Keamanan &amp; Larangan</a></li>
               <li><a href="#privasi">Privasi &amp; Perlindungan Data</a></li>
@@ -213,6 +216,36 @@
             </ol>
           </div>
         </section>
+
+        <section id="voucher-order" class="card mb-3">
+    <div class="card-body">
+      <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 200.000</h2>
+
+      <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Bulanan)</h3>
+      <ul class="mb-3">
+        <li>Poin bertambah setiap transaksi dengan status <em>paid</em>.</li>
+        <li>Rumus poin: <span class="mono">poin = kode_unik + (total // 1000)</span> (contoh: 5.000→5; 50.000→50; 100.000→100).</li>
+        <li>Siklus poin <strong>reset otomatis setiap tanggal 1</strong> bulan berjalan (zona waktu WITA).</li>
+        <li>Total poin dapat dilihat melalui tautan khusus (token) pada halaman <em>Points</em>.</li>
+      </ul>
+
+      <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 200.000</h3>
+      <ul class="mb-3">
+        <li>Pengumuman penerima <strong>Voucher Order senilai Rp 200.000</strong> dilakukan <strong>setiap tanggal 1</strong> setiap bulan untuk periode bulan sebelumnya.</li>
+        <li>Pemilihan penerima mengacu pada akumulasi poin dan kepatuhan terhadap S&amp;K program; keputusan Pengelola bersifat final.</li>
+        <li>Voucher bersifat non-tunai, tidak dapat diuangkan, dan tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
+        <li>Voucher dikaitkan dengan nomor WhatsApp/akun yang terdaftar dan <strong>tidak dapat dipindahtangankan</strong>.</li>
+        <li>Masa berlaku voucher: <strong>30 hari sejak tanggal penerbitan</strong>, kecuali tertulis berbeda pada voucher.</li>
+        <li>Cara klaim: ikuti tautan yang dikirimkan via WhatsApp atau cek halaman <em>Points</em> dengan token Anda.</li>
+      </ul>
+
+      <h3 class="h4 mt-3 mb-2">C. Ketentuan Tambahan</h3>
+      <ul class="mb-0">
+        <li>Indikasi penyalahgunaan/manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
+        <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja untuk peningkatan layanan.</li>
+      </ul>
+    </div>
+  </section>
 
         <!-- Kebijakan Produk -->
         <section id="kebijakan-produk" class="card mb-3">

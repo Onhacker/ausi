@@ -3,6 +3,8 @@
 <!-- custom style untuk halaman menu -->
 <link rel="stylesheet"
       href="<?= base_url('assets/front/produk.min.css') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.css'); ?>">
+
+
 <?php
 // Cari ID kategori "Makanan" & "Minuman"
 $kat_makanan_id = '';
@@ -179,6 +181,7 @@ window.AUSI_CFG = {
 <!-- Custom logic kita -->
 <script src="<?= base_url('assets/front/produk.min.js') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.js'); ?>"></script>
 
+<?php $this->load->view("promo") ?>
 <?php $this->load->view("front_end/footer.php") ?>
 
 <?php $this->load->view("modal_produk.php") ?>

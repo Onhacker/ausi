@@ -417,6 +417,7 @@ class M_admin_pos extends CI_Model {
 
                 // Hapus file QRIS bila ada
                 $this->_delete_qris_file($id);
+                $this->_voucher_cafe_upsert_from_order($row, $now);
             } else {
                 $errors[] = $id;
             }
@@ -955,6 +956,108 @@ private function _bump_terlaris_for_order($pesanan_id){
     $this->db->query($sql, [$pesanan_id, $decay, $capDays]);
 }
 
+/** ================== LOYALTY / VOUCHER CAFE ================== */
+
+/** Normalisasi nomor HP ke msisdn (62...) sederhana */
+private function _norm_phone($s){
+    $s = preg_replace('/\D+/', '', (string)$s); // keep digits only
+    if ($s === '') return '';
+    if (strpos($s, '62') === 0) return $s;
+    if (strpos($s, '0') === 0)  return '62'.substr($s, 1);
+    return $s;
+}
+
+/** Token hex 32 uniq (hindari "token sama semua") */
+private function _rand_token_32(){
+    if (function_exists('random_bytes')) {
+        return bin2hex(random_bytes(16));
+    }
+    return md5(uniqid('', true).mt_rand());
+}
+
+/** Tanggal habis masa berlaku: 31-12-(tahun berjalan) */
+private function _end_of_year_date(){
+    return date('Y').'-12-31';
+}
+// ==== helper baru: first day of next month ====
+private function _first_of_next_month_date($refTs = null){
+    $t = $refTs ? strtotime($refTs) : time();
+    // contoh: 2025-11-13 -> 2025-12-01
+    return date('Y-m-01', strtotime('first day of +1 month', $t));
+}
+
+/**
+ * Upsert baris voucher_cafe untuk 1 order PAID.
+ * - points += (kode_unik + floor(total/1000))
+ * - transaksi_count += 1
+ * - total_rupiah += total
+ * - first_paid_at di-set saat pertama kali
+ * - last_paid_at selalu di-update
+ * - expired_at di-set ke akhir tahun berjalan
+ */
+private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
+    // Ambil field yang kita butuhkan, beserta fallback yang aman
+    $hp_raw  = isset($order_row->customer_phone) ? $order_row->customer_phone
+             : (isset($order_row->no_hp) ? $order_row->no_hp : '');
+    $hp      = $this->_norm_phone($hp_raw);
+    if ($hp === '') return; // tanpa nomor → abaikan
+
+    $nama    = isset($order_row->nama) ? trim((string)$order_row->nama) : null;
+    $kode    = (int)($order_row->kode_unik ?? 0);
+
+    // Tentukan total: prioritaskan grand_total, fallback lain bila ada
+    $total   = 0;
+    if (isset($order_row->grand_total)) {
+        $total = (int)$order_row->grand_total;
+    } elseif (isset($order_row->total)) {
+        $total = (int)$order_row->total;
+    } else {
+        $subtotal     = (int)($order_row->subtotal ?? 0);
+        $delivery_fee = (int)($order_row->delivery_fee ?? 0);
+        $total = $subtotal + $delivery_fee + $kode;
+    }
+    if ($total < 0) $total = 0;
+
+    // Rumus poin: kode_unik + angka_awal_total (ribuan)
+    $angka_awal_total = intdiv($total, 1000); // 5000→5, 50000→50, 100000→100
+    $poin_add         = max(0, $kode + $angka_awal_total);
+
+    $expired = $this->_first_of_next_month_date();
+
+    // Cek apakah sudah ada baris untuk customer_phone ini
+    $exist = $this->db->get_where('voucher_cafe', ['customer_phone' => $hp])->row();
+
+    if ($exist) {
+        // Update akumulasi
+        $upd = [
+            'points'          => (int)$exist->points + $poin_add,
+            'transaksi_count' => (int)$exist->transaksi_count + 1,
+            'total_rupiah'    => (int)$exist->total_rupiah + $total,
+            'last_paid_at'    => $paid_at,
+            // perpanjang/refresh kadaluarsa ke akhir tahun berjalan
+            'expired_at'      => $expired,
+            'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
+            'updated_at'      => $paid_at,
+        ];
+        $this->db->where('id', $exist->id)->update('voucher_cafe', $upd);
+    } else {
+        // Insert baru
+        $ins = [
+            'customer_phone'  => $hp,
+            'customer_name'   => ($nama !== null && $nama !== '') ? $nama : null,
+            'points'          => $poin_add,
+            'transaksi_count' => 1,
+            'total_rupiah'    => $total,
+            'first_paid_at'   => $paid_at,
+            'last_paid_at'    => $paid_at,
+            'expired_at'      => $expired,
+            'token'           => $this->_rand_token_32(),
+            'created_at'      => $paid_at,
+            'updated_at'      => $paid_at,
+        ];
+        $this->db->insert('voucher_cafe', $ins);
+    }
+}
 
 
 }
