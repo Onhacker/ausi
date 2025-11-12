@@ -131,7 +131,7 @@ public function fetch_pos(array $f): array {
 
         // gabungkan nomor + keterangan (untuk PDF kolom "Nomor / Ket")
         foreach($rows as $r){
-            $r->nomor_ket = trim(($r->nomor ? ('#'.$r->nomor.' ') : '').$r->keterangan);
+            $r->nomor_ket = $r->keterangan;
         }
         return $rows;
     }
