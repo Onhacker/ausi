@@ -362,13 +362,13 @@ private function _pretty_hp(string $hp): string {
 
         // DETAIL BOOKING
         // $lines[] = "📄 *Kode Booking:* " . ($rec->kode_booking ?? '-');
-        // $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
-        // $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
-        // $lines[] = "🪑 *Meja:* " . $meja_nama;
-        // $lines[] = "📅 *Tanggal:* " . $tgl_label;
-        // $lines[] = "⏰ *Jam:* " . $jamMulai . "–" . $jamSelesai;
-        // $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
-        // $lines[] = "";
+        $lines[] = "🙍 *Nama:* " . ($rec->nama ?? '-');
+        $lines[] = "📞 *HP:* "   . ($this->_pretty_hp($rec->no_hp ?? ''));
+        $lines[] = "🪑 *Meja:* " . $meja_nama;
+        $lines[] = "📅 *Tanggal:* " . $tgl_label;
+        $lines[] = "⏰ *Jam:* " . $jamMulai . "–" . $jamSelesai;
+        $lines[] = "⏳ *Durasi:* " . ($rec->durasi_jam ?? '-') . " Jam";
+        $lines[] = "";
 
         // // TARIF & BIAYA
         // $lines[] = "💸 *Tarif / Jam:* Rp" . number_format((int)($rec->harga_per_jam ?? 0),0,',','.');
