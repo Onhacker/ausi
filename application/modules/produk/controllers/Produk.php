@@ -772,6 +772,9 @@ public function points(){
     $this->_nocache_headers();
     $rec = $this->fm->web_me(); // kalau dipakai di head.php
     $data = compact('rec');
+    $data["title"]     = "Poin " . $rec->nama_website;
+    $data["deskripsi"] = "Kumpulkan Poin dan dapatkan voucher order " . $rec->nama_website . " ";
+    $data["prev"]      = base_url("assets/images/produk.webp");
     $this->load->view('points_view', $data);
 }
 
