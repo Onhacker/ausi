@@ -192,27 +192,28 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
       <?php endif; ?>
 
       <!-- INFO CARD -->
-      <div class="card mt-3">
-        <div class="card-body">
-          <h4 class="mb-2">Tingkatkan Poin & Raih Voucher Order Senilai Rp 50.000</h4>
-          <p class="mb-2">
-            Setiap transaksi <strong>berhasil</strong> langsung menambah poin Anda.
-            <strong>Makin sering order, makin cepat poin terkumpul</strong>—ayo lanjutkan belanja di AUSI!
-          </p>
-          <p class="mb-2">
-            Pengumuman <strong>voucher order</strong> dan rekap poin dilakukan
-            <strong>setiap hari Minggu</strong> untuk periode <strong>pekan sebelumnya</strong>. Pastikan nomor WhatsApp aktif agar tidak ketinggalan info.
-          </p>
-          <p class="mb-0 text-muted small">
-            Poin dihitung otomatis dari total belanja & komponen kode unik transaksi; periode mengikuti
-            <strong>siklus mingguan</strong> (Minggu 00:00 – Sabtu 23:59 WITA, reset Minggu 00:00).
-            <br>
-            <a href="<?php echo site_url('hal/#voucher-order'); ?>" class="text-decoration-underline">
-              Syarat &amp; Ketentuan berlaku
-            </a>
-          </p>
-        </div>
-      </div>
+    <div class="card mt-3">
+  <div class="card-body">
+    <h4 class="mb-2">Tingkatkan Poin &amp; Raih Voucher Order Senilai Rp 50.000</h4>
+    <p class="mb-2">
+      Setiap transaksi <strong>berhasil</strong> langsung menambah poin Anda.
+      <strong>Makin sering order, makin cepat poin terkumpul</strong>—ayo lanjutkan belanja di AUSI!
+    </p>
+    <p class="mb-2">
+      Rekap poin dan pengumuman <strong>voucher order</strong> dilakukan
+      <strong>setiap hari Minggu pukul 08:00 WITA</strong> untuk periode <strong>pekan sebelumnya</strong>.
+      Pastikan nomor WhatsApp aktif agar tidak ketinggalan info.
+    </p>
+    <p class="mb-0 text-muted small">
+      Poin dihitung otomatis dari total belanja &amp; komponen kode unik transaksi; periode mengikuti
+      <strong>siklus mingguan</strong> (Minggu 00:00 – Sabtu 23:59 WITA, reset otomatis Minggu 00:00).
+      <br>
+      <a href="<?php echo site_url('hal/#voucher-order'); ?>" class="text-decoration-underline">
+        Syarat &amp; Ketentuan berlaku
+      </a>
+    </p>
+  </div>
+</div>
 
     </div>
   </div>

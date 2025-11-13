@@ -217,35 +217,52 @@
           </div>
         </section>
 
-        <section id="voucher-order" class="card mb-3">
-          <div class="card-body">
-            <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 50.000 (Siklus Mingguan)</h2>
+      <section id="voucher-order" class="card mb-3">
+  <div class="card-body">
+    <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 50.000 (Siklus Mingguan)</h2>
 
-            <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Mingguan)</h3>
-            <ul class="mb-3">
-              <li>Poin bertambah setiap transaksi dengan status <em>paid</em>.</li>
-              <li>Rumus poin: <span class="mono">poin = kode_unik + (total // 1000)</span> (contoh: 5.000→5; 50.000→50; 100.000→100).</li>
-              <li>Siklus poin berlaku **per pekan** (Senin 00:00 – Minggu 23:59 WITA) dan **reset otomatis setiap Senin 00:00 WITA**.</li>
-              <li>Total poin pekan berjalan dapat dilihat melalui tautan khusus (token) pada halaman <em>Points</em>.</li>
-            </ul>
+    <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Mingguan)</h3>
+    <ul class="mb-3">
+      <li><strong>Status transaksi</strong> yang dihitung poin hanyalah <em>paid</em> (berhasil). Transaksi void/refund/batal tidak menambah poin.</li>
+      <li><strong>Rumus poin:</strong> <span class="mono">poin = kode_unik + (total // 1000)</span> &mdash; contoh: 5.000 → 5; 50.000 → 50; 100.000 → 100.</li>
+      <li><strong>Periode pekan:</strong> Minggu 00:00 &ndash; Sabtu 23:59 WITA.</li>
+      <li><strong>Reset otomatis:</strong> setiap <u>Minggu 00:00 WITA</u> (awal pekan baru). Pada saat ini, akumulasi pekan sebelumnya ditutup, dan perhitungan dimulai dari nol.</li>
+      <li><strong>Cek poin:</strong> total poin pekan berjalan bisa dilihat melalui tautan/token di halaman <em>Points</em>.</li>
+    </ul>
 
-            <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
-            <ul class="mb-3">
-              <li>Pengumuman penerima **Voucher Order senilai Rp 50.000** dilakukan **setiap Minggu** untuk periode **pekan sebelumnya**.</li>
-              <li>Pemilihan penerima mengacu pada akumulasi poin pekanan dan kepatuhan terhadap S&amp;K program; keputusan Pengelola bersifat final.</li>
-              <li>Voucher bersifat non-tunai, tidak dapat diuangkan, dan tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
-              <li>Voucher dikaitkan dengan nomor WhatsApp/akun yang terdaftar dan **tidak dapat dipindahtangankan**.</li>
-              <li>Masa berlaku voucher: **7 hari sejak tanggal penerbitan**, kecuali tertulis berbeda pada voucher.</li>
-              <li>Cara klaim: ikuti tautan yang dikirimkan via WhatsApp atau cek halaman <em>Points</em> dengan token Anda.</li>
-            </ul>
+    <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
+    <ul class="mb-3">
+      <li><strong>Pengumuman pemenang:</strong> setiap <u>Minggu pukul 08:00 WITA</u>, untuk periode <strong>pekan sebelumnya</strong>.</li>
+      <li><strong>Kriteria pemenang:</strong> pelanggan dengan poin tertinggi pada pekan tersebut.
+        <br><em>Urutan tie-breaker (jika poin sama):</em>
+        <ol class="mb-2 mt-1">
+          <li><strong>Total belanja (total_rupiah)</strong> lebih besar menang.</li>
+          <li><strong>Waktu transaksi terakhir (last_paid_at)</strong> lebih awal menang.</li>
+          <li><strong>Jumlah transaksi (transaksi_count)</strong> lebih banyak menang.</li>
+        </ol>
+      </li>
+      <li><strong>Nilai voucher:</strong> Rp 50.000, bersifat non-tunai dan tidak dapat diuangkan.</li>
+      <li><strong>Penggunaan promo:</strong> tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
+      <li><strong>Kepemilikan:</strong> voucher terikat ke nomor WhatsApp/akun terdaftar dan <u>tidak dapat dipindahtangankan</u>.</li>
+      <li><strong>Masa berlaku voucher:</strong> 7 (tujuh) hari kalender sejak tanggal penerbitan.</li>
+      <li><strong>Cara klaim:</strong> ikuti tautan yang dikirim via WhatsApp atau buka halaman <em>Points</em> menggunakan token Anda.</li>
+    </ul>
 
-            <h3 class="h4 mt-3 mb-2">C. Ketentuan Tambahan</h3>
-            <ul class="mb-0">
-              <li>Indikasi penyalahgunaan/manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
-              <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja untuk peningkatan layanan.</li>
-            </ul>
-          </div>
-        </section>
+    <h3 class="h4 mt-3 mb-2">C. Contoh Linimasa</h3>
+    <ul class="mb-3">
+      <li><strong>Periode dihitung:</strong> Minggu, 09 Nov 2025 00:00 &ndash; Sabtu, 15 Nov 2025 23:59 WITA.</li>
+      <li><strong>Reset otomatis:</strong> Minggu, 16 Nov 2025 00:00 WITA (mulai pekan baru).</li>
+      <li><strong>Pengumuman pemenang:</strong> Minggu, 16 Nov 2025 pukul 08:00 WITA.</li>
+    </ul>
+
+    <h3 class="h4 mt-3 mb-2">D. Ketentuan Tambahan</h3>
+    <ul class="mb-0">
+      <li>Indikasi penyalahgunaan atau manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
+      <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja demi peningkatan layanan.</li>
+      <li>Zona waktu yang digunakan: <strong>WITA (Asia/Makassar)</strong>.</li>
+    </ul>
+  </div>
+</section>
 
 
         <!-- Kebijakan Produk -->
