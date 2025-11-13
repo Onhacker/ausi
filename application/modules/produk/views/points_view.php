@@ -30,6 +30,7 @@ if ($token !== ''){
 /** Derivatif tampilan */
 /** Derivatif tampilan (siklus mingguan, reset Senin 00:00 WITA) */
 /** Derivatif tampilan (siklus mingguan, reset Minggu 00:00 WITA) */
+/** Derivatif tampilan (siklus mingguan, reset Minggu 00:00 WITA) */
 $hasData     = (bool)$vc;
 $shareLink   = $hasData && !empty($vc->token) ? site_url('produk/points/'.rawurlencode($vc->token)) : '';
 $shareLinkQ  = $hasData && !empty($vc->customer_phone) ? site_url('produk/points?phone='.rawurlencode($vc->customer_phone)) : '';
@@ -45,31 +46,18 @@ $w0        = (int)$now->format('w'); // 0=Sun..6=Sat
 $weekStart = (clone $now)->modify('-'.$w0.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
 $nextSun   = (clone $weekStart)->modify('+7 days');                 // Minggu depan 00:00
 
-// expiredAt prefer dari DB (diset backend ke Minggu 00:00), fallback ke $nextSun
-$expiredAt   = $hasData && !empty($vc->expired_at) ? (string)$vc->expired_at : $nextSun->format('Y-m-d H:i:s');
-$isExpired   = false;
-$daysLeftStr = '';
-$next1Label  = '';
-$weekRangeLabel = $weekStart->format('d/m/Y').' – '.(clone $weekStart)->modify('+6 days')->format('d/m/Y');
-
-try{
-  $exp = new DateTime($expiredAt, $tz);
-  $next1Label = $exp->format('d/m/Y');
-  if ($now >= $exp){
-    $isExpired   = true;
-    $daysLeftStr = 'Sudah kedaluwarsa';
-  } else {
-    $daysLeftStr = $now->diff($exp)->days.' hari lagi';
-  }
-}catch(\Throwable $e){
-  // fallback aman
-  $isExpired   = false;
-  $daysLeftStr = '';
-  $next1Label  = $nextSun->format('d/m/Y');
+// expiredAt: pakai dari DB jika ada (DATE), fallback ke Minggu depan 00:00
+if ($hasData && !empty($vc->expired_at)) {
+  // expired_at di DB bertipe DATE → anggap 00:00 WITA
+  $expiredAt = (new DateTime($vc->expired_at, $tz))->setTime(0,0,0);
+} else {
+  $expiredAt = $nextSun; // DateTime
 }
 
-// Simpan juga rentang pekan untuk UI (opsional)
-$weekRangeLabel = $start->format('d/m/Y').' – '.(clone $start)->modify('+6 days')->format('d/m/Y');
+$isExpired   = ($now >= $expiredAt);
+$daysLeftStr = $isExpired ? 'Sudah kedaluwarsa' : $now->diff($expiredAt)->days.' hari lagi';
+$next1Label  = $expiredAt->format('d/m/Y');
+$weekRangeLabel = $weekStart->format('d/m/Y').' – '.(clone $weekStart)->modify('+6 days')->format('d/m/Y');
 
 $next1Label  = ''; // mis. "01/12/2025"
 
