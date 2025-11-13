@@ -364,40 +364,81 @@ function buildSteps(mode){
 
 const ORDER_KEY = 'ausi_orders';
 
-  function ausiSaveOrderToLocal(res){
-    try {
-      let orders = [];
-      const raw = localStorage.getItem(ORDER_KEY);
-      if (raw) {
+function detectDeviceBrand(){
+  const ua = (navigator.userAgent || '').toLowerCase();
+  if (!ua) return 'Perangkat tidak dikenal';
+
+  // Apple
+  if (ua.includes('iphone'))   return 'Apple iPhone';
+  if (ua.includes('ipad'))     return 'Apple iPad';
+
+  // Brand Android populer di Indonesia
+  if (ua.includes('samsung') || ua.includes('sm-')) return 'Samsung';
+  if (ua.includes('redmi') || ua.includes('xiaomi') || ua.includes(' mi ')) return 'Xiaomi / Redmi';
+  if (ua.includes('oppo'))     return 'OPPO';
+  if (ua.includes('vivo'))     return 'vivo';
+  if (ua.includes('realme'))   return 'realme';
+  if (ua.includes('infinix'))  return 'Infinix';
+  if (ua.includes('tecno'))    return 'TECNO';
+  if (ua.includes('asus'))     return 'ASUS';
+  if (ua.includes('huawei'))   return 'Huawei';
+  if (ua.includes('lenovo'))   return 'Lenovo';
+
+  // OS fallback
+  if (ua.includes('android'))                      return 'Android (lainnya)';
+  if (ua.includes('windows'))                      return 'Windows';
+  if (ua.includes('mac os') || ua.includes('macintosh')) return 'macOS';
+
+  return 'Perangkat lain';
+}
+
+function ausiSaveOrderToLocal(order){
+  try {
+    if (!window.localStorage) return;
+
+    let orders = [];
+    const raw = localStorage.getItem(ORDER_KEY);
+    if (raw) {
+      try{
         orders = JSON.parse(raw);
         if (!Array.isArray(orders)) orders = [];
+      } catch(e){
+        orders = [];
       }
-
-      const nowISO = new Date().toISOString();
-      const newOrder = {
-        nomor:     res.nomor || '',      // misal "20251114010101-123"
-        redirect:  res.redirect || '',   // URL order_success
-        created_at: nowISO
-      };
-
-      // kalau nomor sudah ada -> update; kalau belum -> push
-      const idx = orders.findIndex(o => o.nomor === newOrder.nomor);
-      if (idx >= 0) {
-        orders[idx] = newOrder;
-      } else {
-        orders.push(newOrder);
-      }
-
-      // optional: batasi 50 terakhir
-      if (orders.length > 50) {
-        orders = orders.slice(-50);
-      }
-
-      localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
-    } catch (e){
-      console.warn('Gagal simpan riwayat pesanan ke localStorage', e);
     }
+
+    const nowISO = new Date().toISOString();
+
+    const newOrder = {
+      nomor:       order.nomor       || '',
+      redirect:    order.redirect    || '',
+      created_at:  order.created_at  || nowISO,
+      mode:        order.mode        || '',
+      status:      order.status      || '',
+      grand_total: Number(order.grand_total || 0),
+      paid_method: order.paid_method || '',
+      device_brand: detectDeviceBrand()
+    };
+
+    // kalau nomor sudah ada -> update; kalau belum -> push
+    const idx = orders.findIndex(o => o.nomor === newOrder.nomor);
+    if (idx >= 0) {
+      orders[idx] = newOrder;
+    } else {
+      orders.push(newOrder);
+    }
+
+    // batasi 50 terakhir
+    if (orders.length > 50) {
+      orders = orders.slice(-50);
+    }
+
+    localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
+    console.log('Riwayat order tersimpan:', newOrder);
+  } catch (e){
+    console.warn('Gagal simpan riwayat pesanan ke localStorage', e);
   }
+}
 
 
   // ====== Submit flow ======

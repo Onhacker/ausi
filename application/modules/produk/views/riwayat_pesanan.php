@@ -124,7 +124,6 @@ a {
     <span class="accent" aria-hidden="true"></span>
   </div>
 
-  <?php $this->load->view("judul_mode") ?>
 
   <div class="row">
     <div class="col-lg-12">
@@ -279,12 +278,13 @@ a {
       const statusColor = mapStatusColor(o.status);
       const amount      = o.grand_total || o.total || 0;
       const paidMethod  = (o.paid_method || '').toUpperCase();
+            const deviceBrand = o.device_brand || o.deviceLabel || '';
 
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex flex-column flex-wrap';
       li.style.animationDelay = (idx * 40) + 'ms';
 
-      li.innerHTML = `
+            li.innerHTML = `
         <div class="d-flex justify-content-between align-items-center flex-wrap">
           <div class="d-flex flex-column flex-grow-1 mr-2">
             <div class="d-flex align-items-center justify-content-between mb-1">
@@ -297,6 +297,7 @@ a {
             </div>
             <div class="order-meta">
               ${waktu ? `<span class="mr-2">🕒 ${waktu}</span>` : ''}
+              ${deviceBrand ? `<span class="mr-2">📱 ${deviceBrand}</span>` : ''}
               ${paidMethod ? `<span class="text-uppercase text-dark">Metode: ${paidMethod}</span>` : ''}
             </div>
           </div>
@@ -309,6 +310,7 @@ a {
         </div>
         <div class="order-divider"></div>
       `;
+
 
       listEl.appendChild(li);
 
@@ -377,4 +379,6 @@ a {
   // Render awal
   renderRiwayat();
 })();
+
+
 </script>
