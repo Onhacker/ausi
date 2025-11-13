@@ -39,15 +39,18 @@
   <!-- ====== MOBILE SQUARE (±360x400) ====== -->
   <svg class="is-mobile" viewBox="0 0 360 400" width="100%" role="dialog" aria-label="Promo poin & voucher">
     <defs>
+      <!-- BACKGROUND ORANGE (mobile) -->
       <linearGradient id="bgGradM" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#0369a1"/>
+        <stop offset="0%" stop-color="#fb923c"/>
+        <stop offset="100%" stop-color="#c2410c"/>
       </linearGradient>
       <linearGradient id="goldM" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#facc15"/><stop offset="100%" stop-color="#eab308"/>
       </linearGradient>
-      <!-- Biru untuk tombol OK (mobile) -->
+      <!-- ORANGE untuk tombol OK (mobile) -->
       <linearGradient id="btnBlueM" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#2563eb"/>
+        <stop offset="0%" stop-color="#fed7aa"/>
+        <stop offset="100%" stop-color="#ea580c"/>
       </linearGradient>
       <!-- Light glass untuk elemen lain (gunakan fill-opacity/ stroke-opacity, bukan rgba) -->
       <linearGradient id="btnLiteM" x1="0" y1="0" x2="1" y2="1">
@@ -146,7 +149,7 @@
         <text x="32" y="6" fill="#ffffff" font-size="13">Jangan tampilkan lagi bulan ini</text>
       </g>
       <g id="linkTerms" class="svg-link" transform="translate(12,50)">
-        <text x="0" y="0" fill="#ffffff" font-size="13" text-decoration="underline">Baca Selengkapnya S&K </text>
+        <text x="0" y="0" fill="#ffffff" font-size="13" text-decoration="underline">Baca Selengkapnya S&amp;K </text>
       </g>
       <g id="btnOK" class="svg-btn svg-hit" transform="translate(252,16)">
         <rect x="0" y="0" rx="12" ry="12" width="64" height="40" fill="url(#btnBlueM)" stroke="#ffffff" stroke-opacity=".4"/>
@@ -158,15 +161,18 @@
   <!-- ====== DESKTOP WIDE ====== -->
   <svg class="is-desktop" viewBox="0 0 820 260" width="100%" role="dialog" aria-label="Promo poin & voucher">
     <defs>
+      <!-- BACKGROUND ORANGE (desktop) -->
       <linearGradient id="bgGradD" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#0369a1"/>
+        <stop offset="0%" stop-color="#fb923c"/>
+        <stop offset="100%" stop-color="#c2410c"/>
       </linearGradient>
       <linearGradient id="goldD" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#facc15"/><stop offset="100%" stop-color="#eab308"/>
       </linearGradient>
-      <!-- Biru untuk tombol OK (desktop) -->
+      <!-- ORANGE untuk tombol OK (desktop) -->
       <linearGradient id="btnBlueD" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#2563eb"/>
+        <stop offset="0%" stop-color="#fed7aa"/>
+        <stop offset="100%" stop-color="#ea580c"/>
       </linearGradient>
       <linearGradient id="btnLiteD" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#ffffff" stop-opacity=".18"/>
@@ -234,15 +240,15 @@
 
     <g transform="translate(24,120)">
       <text x="0" y="0"  fill="#e5f3ff" font-size="15" font-weight="700">Tingkatkan transaksi order anda</text>
-      <text x="0" y="30" fill="#ffffff" font-size="24" font-weight="800">Dapatkan Poin & Raih Voucher Order</text>
-      <text x="0" y="56" fill="#ffffff" font-size="14">Pengumuman voucher & rekap poin <tspan font-weight="700">setiap hari minggu </tspan></text>
+      <text x="0" y="30" fill="#ffffff" font-size="24" font-weight="800">Dapatkan Poin &amp; Raih Voucher Order</text>
+      <text x="0" y="56" fill="#ffffff" font-size="14">Pengumuman voucher &amp; rekap poin <tspan font-weight="700">setiap hari minggu </tspan></text>
     </g>
 
     <!-- Footer (desktop) -->
     <g transform="translate(20,204)" id="footerDesktop">
       <rect x="0" y="0" rx="12" ry="12" width="780" height="52" fill="#ffffff" fill-opacity=".10" stroke="#ffffff" stroke-opacity=".18"/>
       <g id="linkTerms" class="svg-link" transform="translate(12,34)">
-        <text x="0" y="0" fill="#ffffff" font-size="14" text-decoration="underline">Syarat & Ketentuan berlaku</text>
+        <text x="0" y="0" fill="#ffffff" font-size="14" text-decoration="underline">Syarat &amp; Ketentuan berlaku</text>
       </g>
       <g id="toggleNoShow" class="svg-hit" transform="translate(356,30)">
         <rect x="0" y="-13" rx="10" ry="10" width="26" height="26" fill="url(#btnLiteD)" stroke="#ffffff" stroke-opacity=".4"/>

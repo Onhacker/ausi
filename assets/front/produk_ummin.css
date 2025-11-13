@@ -684,7 +684,10 @@
     }
   }
 
-
-.product-info .btn-detail.btn-icon-only-sm::after{ content: "lihat"; }
-.product-info .btn-add-cart.btn-icon-only-sm::after{ content: "order"; }
+.product-info .btn-detail.btn-icon-only-sm::after{
+  content: "\00a0lihat";
+}
+.product-info .btn-add-cart.btn-icon-only-sm::after{
+  content: "\00a0order";
+}
 
