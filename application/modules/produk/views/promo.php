@@ -86,8 +86,8 @@
 
     <!-- Close -->
     <g id="btnClose" class="svg-hit" transform="translate(328,20)">
-      <circle r="12" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".45" stroke-width="1.5"/>
-      <path d="M -5,-5 L 5,5 M -5,5 L 5,-5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+      <circle r="12" fill="#F54927" fill-opacity=".18" stroke="#000000" stroke-opacity=".45" stroke-width="1.5"/>
+      <path d="M -5,-5 L 5,5 M -5,5 L 5,-5" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>
     </g>
 
     <!-- Voucher badge -->
