@@ -34,7 +34,7 @@
               <li><a href="#billiard">Booking Billiard</a></li>
               <li><a href="#pembayaran">Pembayaran, Biaya &amp; Promo</a></li>
               <li><a href="#voucher">Voucher &amp; Promo Main Gratis</a></li>
-              <li><a href="#voucher-order">Poin Loyalty &amp; Voucher Order Rp 200.000</a></li>
+              <li><a href="#voucher-order">Poin Loyalty &amp; Voucher Order Rp 50.000</a></li>
 
               <li><a href="#kebijakan-produk">Kebijakan Produk &amp; Kualitas</a></li>
               <li><a href="#larangan">Ketertiban, Keamanan &amp; Larangan</a></li>
@@ -219,7 +219,7 @@
 
         <section id="voucher-order" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 200.000 (Siklus Mingguan)</h2>
+            <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 50.000 (Siklus Mingguan)</h2>
 
             <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Mingguan)</h3>
             <ul class="mb-3">
@@ -229,9 +229,9 @@
               <li>Total poin pekan berjalan dapat dilihat melalui tautan khusus (token) pada halaman <em>Points</em>.</li>
             </ul>
 
-            <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 200.000</h3>
+            <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
             <ul class="mb-3">
-              <li>Pengumuman penerima **Voucher Order senilai Rp 200.000** dilakukan **setiap Senin** untuk periode **pekan sebelumnya**.</li>
+              <li>Pengumuman penerima **Voucher Order senilai Rp 50.000** dilakukan **setiap Senin** untuk periode **pekan sebelumnya**.</li>
               <li>Pemilihan penerima mengacu pada akumulasi poin pekanan dan kepatuhan terhadap S&amp;K program; keputusan Pengelola bersifat final.</li>
               <li>Voucher bersifat non-tunai, tidak dapat diuangkan, dan tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
               <li>Voucher dikaitkan dengan nomor WhatsApp/akun yang terdaftar dan **tidak dapat dipindahtangankan**.</li>
