@@ -124,7 +124,7 @@
       <g fill="#fff" opacity=".85" transform="translate(10,4)">
         <path d="M7 0 L9 5 L14 7 L9 9 L7 14 L5 9 L0 7 L5 5 Z"/>
       </g>
-      <text x="16" y="36" fill="#fff" font-size="15" font-weight="700">Voucher</text>
+      <text x="16" y="36" fill="#fff" font-size="15" font-weight="700">Voucher Mingguan</text>
       <text x="16" y="62" fill="#fff" font-size="30" font-weight="800">Rp 50.000</text>
     </g>
 
@@ -228,7 +228,7 @@
         </use>
       </g>
 
-      <text x="20" y="44" fill="#fff" font-size="18" font-weight="700">Voucher</text>
+      <text x="20" y="44" fill="#fff" font-size="18" font-weight="700">Voucher Mingguan</text>
       <text x="20" y="76" fill="#fff" font-size="32" font-weight="800">Rp 50.000</text>
     </g>
 
