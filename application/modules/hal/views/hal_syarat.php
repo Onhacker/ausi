@@ -217,7 +217,7 @@
           </div>
         </section>
 
-      <section id="voucher-order" class="card mb-3">
+    <section id="voucher-order" class="card mb-3">
   <div class="card-body">
     <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 50.000 (Siklus Mingguan)</h2>
 
@@ -233,7 +233,11 @@
     <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
     <ul class="mb-3">
       <li><strong>Pengumuman pemenang:</strong> setiap <u>Minggu pukul 08:00 WITA</u>, untuk periode <strong>pekan sebelumnya</strong>.</li>
-      <li><strong>Kriteria pemenang:</strong> pelanggan dengan poin tertinggi pada pekan tersebut.
+
+      <li><strong>Jumlah pemenang per pekan:</strong> 2 (dua) orang.</li>
+
+      <li>
+        <strong>Pemenang 1 (poin tertinggi):</strong> pelanggan dengan poin tertinggi pada pekan tersebut.
         <br><em>Urutan tie-breaker (jika poin sama):</em>
         <ol class="mb-2 mt-1">
           <li><strong>Total belanja (total_rupiah)</strong> lebih besar menang.</li>
@@ -241,6 +245,12 @@
           <li><strong>Jumlah transaksi (transaksi_count)</strong> lebih banyak menang.</li>
         </ol>
       </li>
+
+      <li>
+        <strong>Pemenang 2 (acak):</strong> 1 (satu) pelanggan dipilih secara acak dari seluruh peserta yang memiliki poin &gt; 0 pada pekan tersebut
+        (tidak termasuk Pemenang 1).
+      </li>
+
       <li><strong>Nilai voucher:</strong> Rp 50.000, bersifat non-tunai dan tidak dapat diuangkan.</li>
       <li><strong>Penggunaan promo:</strong> tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
       <li><strong>Kepemilikan:</strong> voucher terikat ke nomor WhatsApp/akun terdaftar dan <u>tidak dapat dipindahtangankan</u>.</li>
