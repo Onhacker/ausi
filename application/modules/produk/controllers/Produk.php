@@ -779,8 +779,6 @@ public function points(){
 }
 
 
-
-
     /** API set qty (plus/minus/input) */
     public function cart_update(){
          $this->_nocache_headers();
