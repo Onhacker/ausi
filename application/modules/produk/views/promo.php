@@ -146,7 +146,7 @@
         <text x="32" y="6" fill="#ffffff" font-size="13">Jangan tampilkan lagi bulan ini</text>
       </g>
       <g id="linkTerms" class="svg-link" transform="translate(12,50)">
-        <text x="0" y="0" fill="#ffffff" font-size="13" text-decoration="underline">Syarat & Ketentuan berlaku</text>
+        <text x="0" y="0" fill="#ffffff" font-size="13" text-decoration="underline">Baca Selengkapnya S&K </text>
       </g>
       <g id="btnOK" class="svg-btn svg-hit" transform="translate(252,16)">
         <rect x="0" y="0" rx="12" ry="12" width="64" height="40" fill="url(#btnBlueM)" stroke="#ffffff" stroke-opacity=".4"/>
