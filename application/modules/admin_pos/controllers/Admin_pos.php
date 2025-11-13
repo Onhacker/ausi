@@ -828,68 +828,6 @@ public function mark_paid(){
         "pesan"   => implode(' ', $msgs) ?: 'Tidak ada yang diproses.'
     ]);
 }
-/**
- * Kirim WA konfirmasi bahwa pembayaran sudah diterima.
- * Dipanggil hanya untuk ID order yang benar-benar berhasil jadi "paid".
- *
- * @param array $paid_ids
- */
-// private function _wa_paid_notice(array $paid_ids){
-//     if (empty($paid_ids)) return;
-
-//     // Ambil info toko sekali saja
-//     $ident = $this->db->get('identitas')->row();
-//     $toko  = trim((string)($ident->nama_website ?? $ident->nama ?? 'AUSI BILLIARD & CAFE'));
-//     if ($toko === '') { $toko = 'AUSI BILLIARD & CAFE'; }
-
-//     // Ambil data order yang baru dilunasi (id, nomor, total, metode bayar, dll)
-//     $orders = $this->dm->get_orders_for_wa($paid_ids);
-//     if (!$orders) return;
-
-//     foreach ($orders as $o){
-//         // nomor hp customer dari pesanan
-//         $hpRaw = trim((string)($o->customer_phone ?? ''));
-//         if ($hpRaw === '') continue; // ga ada nomor -> skip
-
-//         // normalisasi ke format internasional (62xxx)
-//         $msisdn = $this->_msisdn($hpRaw);
-//         if ($msisdn === '') continue;
-
-//         // data basic pesanan
-//         $kode    = ($o->nomor !== '' ? $o->nomor : $o->id);
-//         $total   = (int)($o->grand_total ?? 0);
-//         $metode  = (string)($o->paid_method ?? '-');
-//         $waktu   = !empty($o->created_at)
-//             ? date('d/m/Y H:i', strtotime($o->created_at))
-//             : date('d/m/Y H:i');
-
-//         // susun pesan WA
-//             $kodeTampil = ($o->nomor !== '' ? $o->nomor : $o->id);
-//             $linkStruk  = site_url('produk/receipt/'.$kodeTampil);
-//             $namaSapaan = trim($o->nama ?: "kak");
-
-//             $msg  = "Halo Kak {$namaSapaan}, 👋\n\n";
-//             $msg .= "✨ *PEMBAYARAN SUDAH DITERIMA!* ✅\n";
-//             $msg .= "Pesanan *#{$kodeTampil}* pada *{$waktu}*\n";
-//             $msg .= "──────────────────\n";
-//             $msg .= "💰 Total Bayar : *".$this->_idr($total)."*\n";
-//             $msg .= "💳 Metode : {$metode}\n";
-//             $msg .= "──────────────────\n";
-//             $msg .= "Pembayaran kakak sudah kami terima. Terima kasih sudah bertransaksi di *{$toko}*! 🙌\n\n";
-
-//             $msg .= "🧾 Struk digital bisa dilihat di sini:\n{$linkStruk}\n\n";
-
-//             $msg .= "Kalau mau struk fisik, silakan ke kasir ya, Kak 💁‍♀️\n";
-//             $msg .= "Jangan lupa kasih rating & ulasan biar kami makin semangat! ⭐\n\n";
-
-//             $msg .= "Simpan kontak ini biar link bisa langsung diklik 📲\n";
-//             $msg .= "_Pesan ini dikirim otomatis oleh sistem {$toko}_\n";
-
-
-//         // kirim via gateway WA kamu
-//         $this->_wa_try($msisdn, $msg);
-//     }
-// }
 
 private function _wa_paid_notice(array $paid_ids){
     if (empty($paid_ids)) return;

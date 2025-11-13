@@ -353,91 +353,160 @@ class M_admin_pos extends CI_Model {
      * Bulk actions
      * ========================= */
     /** Bulk tandai paid (set tutup_transaksi=1, status=paid, segel durasi kasir, hapus qris) */
-    public function bulk_mark_paid(array $ids){
-        $ids = array_values(array_unique(array_map('intval', $ids)));
-        if (!$ids) return ["ok_count"=>0];
-
-        $ok_count = 0;
-        $blocked  = []; // paid_method kosong
-        $already  = []; // sudah paid/canceled
-        $notfound = [];
-        $errors   = [];
-
-        $this->db->trans_begin();
-        foreach ($ids as $id){
-            $row = $this->db->get_where('pesanan', ['id'=>$id])->row();
-
-            if (!$row){ $notfound[] = $id; continue; }
-
-            $st = strtolower((string)$row->status);
-            if (in_array($st, ['paid','canceled'], true)){
-                $already[] = $id;
-                continue;
-            }
-
-            // ❌ stop kalau belum ada metode pembayaran
-            $method = trim((string)$row->paid_method);
-            if ($method === ''){
-                $blocked[] = $id;
-                continue;
-            }
-
-            // ✔️ tandai paid + tutup_transaksi = 1 + segel durasi kasir
-            $now = date('Y-m-d H:i:s');
-
-            // hitung durasi kasir (start → now). Prioritas: kasir_start_at, fallback ke created_at
-            $startTs = null;
-            if (!empty($row->kasir_start_at)) {
-                $startTs = strtotime($row->kasir_start_at);
-            } else {
-                $startTs = strtotime($row->created_at);
-            }
-            $endTs  = strtotime($now);
-            $durSec = ($startTs && $endTs && $endTs >= $startTs) ? ($endTs - $startTs) : null;
-
-            $upd = [
-                'status'          => 'paid',
-                'tutup_transaksi' => 1,
-                'paid_at'         => $now,
-                'updated_at'      => $now,
-            ];
-            if (empty($row->kasir_end_at)) {
-                $upd['kasir_end_at'] = $now;
-            }
-            if (empty($row->kasir_duration_sec) && $durSec !== null) {
-                $upd['kasir_duration_sec'] = (int)$durSec;
-            }
-
-            $ok = $this->db->where('id', $id)->update('pesanan', $upd);
-            if ($ok){
-                $ok_count++;
-                $this->_bump_terlaris_for_order($id);
-                // Arsipkan ke *_paid
-                $this->_archive_paid($id);
-
-                // Hapus file QRIS bila ada
-                $this->_delete_qris_file($id);
-                // $this->_voucher_cafe_upsert_from_order($row, $now);
-            } else {
-                $errors[] = $id;
-            }
-
-        }
-
-        if ($this->db->trans_status() === FALSE){
-            $this->db->trans_rollback();
-        } else {
-            $this->db->trans_commit();
-        }
-
+    /** Bulk tandai paid (set tutup_transaksi=1, status=paid, segel durasi kasir, hapus qris) */
+/** Bulk tandai paid (set tutup_transaksi=1, status=paid, segel durasi kasir) */
+public function bulk_mark_paid(array $ids){
+    $ids = array_values(array_unique(array_map('intval', $ids)));
+    if (!$ids) {
         return [
-            "ok_count"     => $ok_count,
-            "blocked_ids"  => $blocked,
-            "already_ids"  => $already,
-            "notfound_ids" => $notfound,
-            "errors"       => $errors,
+            "ok_count"     => 0,
+            "blocked_ids"  => [],
+            "already_ids"  => [],
+            "notfound_ids" => [],
+            "errors"       => [],
         ];
     }
+
+    $ok_count = 0;
+    $blocked  = []; // paid_method kosong
+    $already  = []; // sudah paid/canceled
+    $notfound = [];
+    $errors   = [];
+
+    // 👉 Simpan payload order yang BERHASIL di-update.
+    // Setelah COMMIT baru kita jalankan efek samping (arsip, trending, voucher).
+    $payloads = [];
+
+    $this->db->trans_begin();
+
+    foreach ($ids as $id){
+        $row = $this->db->get_where('pesanan', ['id'=>$id])->row();
+
+        if (!$row){
+            $notfound[] = $id;
+            continue;
+        }
+
+        $st = strtolower((string)$row->status);
+        if (in_array($st, ['paid','canceled'], true)){
+            $already[] = $id;
+            continue;
+        }
+
+        // ❌ stop kalau belum ada metode pembayaran
+        $method = trim((string)$row->paid_method);
+        if ($method === ''){
+            $blocked[] = $id;
+            continue;
+        }
+
+        // ✔️ tandai paid + tutup_transaksi = 1 + segel durasi kasir
+        $now = date('Y-m-d H:i:s');
+
+        // hitung durasi kasir (start → now). Prioritas: kasir_start_at, fallback ke created_at
+        if (!empty($row->kasir_start_at)) {
+            $startTs = strtotime($row->kasir_start_at);
+        } else {
+            $startTs = strtotime($row->created_at);
+        }
+        $endTs  = strtotime($now);
+        $durSec = ($startTs && $endTs && $endTs >= $startTs) ? ($endTs - $startTs) : null;
+
+        $upd = [
+            'status'          => 'paid',
+            'tutup_transaksi' => 1,
+            'paid_at'         => $now,
+            'updated_at'      => $now,
+            // kalau mau sekalian pastikan tersimpan:
+            'paid_method'     => $method,
+        ];
+        if (empty($row->kasir_end_at)) {
+            $upd['kasir_end_at'] = $now;
+        }
+        if (empty($row->kasir_duration_sec) && $durSec !== null) {
+            $upd['kasir_duration_sec'] = (int)$durSec;
+        }
+
+        $ok = $this->db->where('id', $id)->update('pesanan', $upd);
+        if ($ok){
+            $ok_count++;
+
+            // Sinkronkan objek $row dengan nilai setelah update
+            $row->status          = 'paid';
+            $row->tutup_transaksi = 1;
+            $row->paid_at         = $now;
+            $row->updated_at      = $now;
+            $row->paid_method     = $method;
+
+            if (empty($row->kasir_end_at)) {
+                $row->kasir_end_at = $now;
+            }
+            if (empty($row->kasir_duration_sec) && $durSec !== null) {
+                $row->kasir_duration_sec = (int) $durSec;
+            }
+
+            // Simpan payload utk efek samping setelah COMMIT
+            $payloads[] = (object)[
+                'id'      => $id,
+                'order'   => $row,   // sekarang status-nya sudah 'paid'
+                'paid_at' => $now,
+            ];
+        } else {
+            $errors[] = $id;
+        }
+
+    }
+
+    if ($this->db->trans_status() === FALSE){
+        $this->db->trans_rollback();
+        // kalau rollback, kosongkan payload supaya tidak ada efek samping
+        $payloads = [];
+    } else {
+        $this->db->trans_commit();
+    }
+
+    // ====== EFek samping (tidak mempengaruhi transaksi utama) ======
+    foreach ($payloads as $p){
+        $oid = (int)$p->id;
+
+        // 1) Trending "terlaris"
+        try {
+            $this->_bump_terlaris_for_order($oid);
+        } catch (\Throwable $e){
+            log_message('error', 'bump_terlaris error for '.$oid.': '.$e->getMessage());
+        }
+
+        // 2) Arsip ke pesanan_paid & pesanan_item_paid
+        try {
+            $this->_archive_paid($oid);
+        } catch (\Throwable $e){
+            log_message('error', 'archive_paid error for '.$oid.': '.$e->getMessage());
+        }
+
+        // 3) Hapus file QRIS bila ada
+        try {
+            $this->_delete_qris_file($oid);
+        } catch (\Throwable $e){
+            log_message('error', 'delete_qris_file error for '.$oid.': '.$e->getMessage());
+        }
+
+        // 4) Loyalty / voucher (pakai helper yang sudah kamu buat)
+        try {
+            $this->_voucher_cafe_upsert_from_order($p->order, $p->paid_at);
+        } catch (\Throwable $e){
+            log_message('error', 'voucher_cafe_upsert error for '.$oid.': '.$e->getMessage());
+        }
+    }
+
+    return [
+        "ok_count"     => $ok_count,
+        "blocked_ids"  => $blocked,
+        "already_ids"  => $already,
+        "notfound_ids" => $notfound,
+        "errors"       => $errors,
+    ];
+}
+
 
     /** Batalkan (dipanggil controller) */
    public function bulk_mark_canceled(array $ids){
@@ -897,8 +966,9 @@ public function compact_items_for_orders(array $order_ids, ?int $cat_id = null):
  * @param array $ids daftar ID pesanan yang sukses jadi paid
  * @return array of stdClass
  */
-public function get_orders_for_wa(array $ids){
-    $ids = array_values(array_unique(array_map('intval',$ids)));
+public function get_orders_for_wa(array $ids)
+{
+    $ids = array_values(array_unique(array_map('intval', $ids)));
     if (!$ids) return [];
 
     return $this->db->select('
@@ -919,6 +989,7 @@ public function get_orders_for_wa(array $ids){
         ->get()
         ->result();
 }
+
 
 // di model:
 public function get_order_any($id){
@@ -1005,111 +1076,168 @@ private function _first_of_next_month_date($refTs = null){
  * - Jika pada transaksi baru paid_at >= expired_at (Minggu 00:00), maka RESET (mulai agregat baru).
  * - Jika belum lewat, tetap AKUMULASI di pekan berjalan.
  */
-private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
-    // ===== Normalisasi HP =====
-    $hp_raw  = isset($order_row->customer_phone) ? $order_row->customer_phone
-             : (isset($order_row->no_hp) ? $order_row->no_hp : '');
-    $hp      = $this->_norm_phone($hp_raw);
-    if ($hp === '') return; // tanpa nomor → abaikan
-
-    $nama    = isset($order_row->nama) ? trim((string)$order_row->nama) : null;
-    $kode    = (int)($order_row->kode_unik ?? 0);
-
-    // ===== Total (pakai grand_total bila ada) =====
-    if (isset($order_row->grand_total)) {
-        $total = (int)$order_row->grand_total;
-    } elseif (isset($order_row->total)) {
-        $total = (int)$order_row->total;
-    } else {
-        $subtotal     = (int)($order_row->subtotal ?? 0);
-        $delivery_fee = (int)($order_row->delivery_fee ?? 0);
-        $total = $subtotal + $delivery_fee + $kode;
+/**
+ * Reset mingguan: periode = Minggu 00:00 s.d. Sabtu 23:59:59 (WITA)
+ * expired_at = TANGGAL Minggu berikutnya (DATE)
+ * - Jika pada transaksi baru paid_at >= expired_at (Minggu 00:00), maka RESET (mulai agregat baru).
+ * - Jika belum lewat, tetap AKUMULASI di pekan berjalan.
+ *
+ * CATATAN:
+ * - Di sini kita matikan $db_debug sementara supaya error voucher TIDAK mematikan proses mark_paid.
+ * - Kalau ada error, cuma di-log.
+ */
+private function _voucher_cafe_upsert_from_order($order_row, $paid_at)
+{
+    // ===== 0) Kalau tabel nggak ada, langsung keluar =====
+    if (!$this->db->table_exists('voucher_cafe')) {
+        log_message('debug', '[LOYALTY] voucher_cafe tidak ada, skip.');
+        return;
     }
-    if ($total < 0) $total = 0;
 
-    // ===== Rumus poin =====
-    $angka_awal_total = intdiv($total, 1000);     // 5000→5; 50.000→50; 100.000→100
-    $poin_add         = max(0, $kode + $angka_awal_total);
+    // ===== 1) Matikan db_debug sementara supaya query error tidak fatal =====
+    $oldDebug = $this->db->db_debug;
+    $this->db->db_debug = false;
 
-    // ===== Waktu & batas reset pekan (WITA) =====
-    $tz = new DateTimeZone('Asia/Makassar'); // WITA
-    try { $paidDt = new DateTime($paid_at, $tz); }
-    catch (\Throwable $e) { $paidDt = new DateTime('now', $tz); }
+    try {
 
-    // 'w' => 0=Sunday..6=Saturday
-    $w          = (int)$paidDt->format('w'); // 0=Min
-    $weekStart  = (clone $paidDt)->modify('-'.$w.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
-    $nextReset  = (clone $weekStart)->modify('+7 days');                   // Minggu depan 00:00
-    $expiredYmd = $nextReset->format('Y-m-d'); // *** DATE ***
-
-    // ===== Ambil data existing per phone =====
-    $exist = $this->db->get_where('voucher_cafe', ['customer_phone' => $hp])->row();
-
-    // Helper kecil untuk baca expired_at (DATE) → DateTime 00:00 WITA
-    $parseExpired = function($ymd) use ($tz){
-        $ymd = trim((string)$ymd);
-        if ($ymd === '' || $ymd === '0000-00-00') return null;
-        try{
-            $dt = new DateTime($ymd, $tz);
-            $dt->setTime(0,0,0);
-            return $dt;
-        }catch(\Throwable $e){
-            return null;
+        // ===== 2) Normalisasi HP =====
+        $hp_raw  = isset($order_row->customer_phone) ? $order_row->customer_phone
+                 : (isset($order_row->no_hp) ? $order_row->no_hp : '');
+        $hp      = $this->_norm_phone($hp_raw);
+        if ($hp === '') {
+            log_message('debug', '[LOYALTY] order ID '.($order_row->id ?? '??').' tanpa HP, skip voucher.');
+            return;
         }
-    };
 
-    if ($exist) {
-        $expiredPrev = $parseExpired($exist->expired_at);
-        // Jika belum pernah diset, anggap periode baru
-        $isNewWeek = !$expiredPrev ? true : ($paidDt >= $expiredPrev);
+        $nama    = isset($order_row->nama) ? trim((string)$order_row->nama) : null;
+        $kode    = (int)($order_row->kode_unik ?? 0);
 
-        if ($isNewWeek) {
-            // ===== RESET mingguan: mulai agregat baru dari transaksi ini =====
-            $upd = [
+        // ===== 3) Total (pakai grand_total bila ada; fallback ke total) =====
+        if (isset($order_row->grand_total)) {
+            $total = (int)$order_row->grand_total;
+        } elseif (isset($order_row->total)) {
+            $total = (int)$order_row->total;
+        } else {
+            $subtotal     = (int)($order_row->subtotal ?? 0);
+            $delivery_fee = (int)($order_row->delivery_fee ?? 0);
+            $total        = $subtotal + $delivery_fee + $kode;
+        }
+        if ($total < 0) $total = 0;
+
+        // ===== 4) Rumus poin =====
+        $angka_awal_total = intdiv($total, 1000);     // 5000→5; 50.000→50; 100.000→100
+        $poin_add         = max(0, $kode + $angka_awal_total);
+
+        log_message('debug', sprintf(
+            '[LOYALTY] order ID %s, hp=%s, total=%d, kode=%d, poin_add=%d',
+            $order_row->id ?? '??', $hp, $total, $kode, $poin_add
+        ));
+
+        // ===== 5) Waktu & batas reset pekan (WITA) =====
+        $tz = new DateTimeZone('Asia/Makassar'); // WITA
+        try {
+            $paidDt = new DateTime($paid_at, $tz);
+        } catch (\Throwable $e) {
+            $paidDt = new DateTime('now', $tz);
+        }
+
+        // 'w' => 0=Sunday..6=Saturday
+        $w          = (int)$paidDt->format('w'); // 0=Min
+        $weekStart  = (clone $paidDt)->modify('-'.$w.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
+        $nextReset  = (clone $weekStart)->modify('+7 days');                   // Minggu depan 00:00
+        $expiredYmd = $nextReset->format('Y-m-d'); // *** DATE ***
+
+        // ===== 6) Ambil data existing per phone =====
+        $exist = $this->db->get_where('voucher_cafe', ['customer_phone' => $hp])->row();
+        $err   = $this->db->error();
+        if (!empty($err['code'])) {
+            log_message('error', 'voucher_cafe SELECT error: '.$err['code'].' - '.$err['message']);
+            return;
+        }
+
+        // Helper baca expired_at → DateTime WITA
+        $parseExpired = function($ymd) use ($tz){
+            $ymd = trim((string)$ymd);
+            if ($ymd === '' || $ymd === '0000-00-00') return null;
+            try{
+                $dt = new DateTime($ymd, $tz);
+                $dt->setTime(0,0,0);
+                return $dt;
+            }catch(\Throwable $e){
+                return null;
+            }
+        };
+
+        if ($exist) {
+            $expiredPrev = $parseExpired($exist->expired_at);
+            // Jika belum pernah diset, anggap periode baru
+            $isNewWeek = !$expiredPrev ? true : ($paidDt >= $expiredPrev);
+
+            if ($isNewWeek) {
+                log_message('debug', '[LOYALTY] reset pekan baru untuk '.$hp);
+                $upd = [
+                    'points'          => $poin_add,
+                    'transaksi_count' => 1,
+                    'total_rupiah'    => $total,
+                    'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
+                    'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
+                    'expired_at'      => $expiredYmd, // DATE: Minggu berikutnya
+                    'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
+                    'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
+                ];
+            } else {
+                log_message('debug', '[LOYALTY] akumulasi pekan berjalan untuk '.$hp);
+                $upd = [
+                    'points'          => (int)$exist->points + $poin_add,
+                    'transaksi_count' => (int)$exist->transaksi_count + 1,
+                    'total_rupiah'    => (int)$exist->total_rupiah + $total,
+                    'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
+                    'expired_at'      => $expiredYmd,
+                    'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
+                    'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
+                ];
+            }
+
+            $this->db->where('id', $exist->id)->update('voucher_cafe', $upd);
+            $err = $this->db->error();
+            if (!empty($err['code'])) {
+                log_message('error', 'voucher_cafe UPDATE error: '.$err['code'].' - '.$err['message']);
+            } else {
+                log_message('debug', '[LOYALTY] voucher UPDATE OK untuk '.$hp);
+            }
+
+        } else {
+            // ===== INSERT baru (pekan berjalan) =====
+            $token = $this->_rand_token_32_unique(); // pastikan unik
+
+            $ins = [
+                'customer_phone'  => $hp,
+                'customer_name'   => ($nama !== null && $nama !== '') ? $nama : null,
                 'points'          => $poin_add,
                 'transaksi_count' => 1,
                 'total_rupiah'    => $total,
                 'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
                 'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
-                'expired_at'      => $expiredYmd, // DATE: Minggu berikutnya
-                'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
+                'expired_at'      => $expiredYmd,      // DATE
+                'token'           => $token,
+                'created_at'      => $paidDt->format('Y-m-d H:i:s'),
                 'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
             ];
-        } else {
-            // ===== Masih pekan berjalan: AKUMULASI =====
-            $upd = [
-                'points'          => (int)$exist->points + $poin_add,
-                'transaksi_count' => (int)$exist->transaksi_count + 1,
-                'total_rupiah'    => (int)$exist->total_rupiah + $total,
-                'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
-                // perpanjang tetap ke Minggu depan dari paidDt (aman untuk tampilan count down)
-                'expired_at'      => $expiredYmd, 
-                'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
-                'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
-            ];
+            $this->db->insert('voucher_cafe', $ins);
+            $err = $this->db->error();
+            if (!empty($err['code'])) {
+                log_message('error', 'voucher_cafe INSERT error: '.$err['code'].' - '.$err['message']);
+            } else {
+                log_message('debug', '[LOYALTY] voucher INSERT OK untuk '.$hp.' token='.$token);
+            }
         }
 
-        $this->db->where('id', $exist->id)->update('voucher_cafe', $upd);
-
-    } else {
-        // ===== INSERT baru (pekan berjalan) =====
-        $token = $this->_rand_token_32_unique(); // pastikan unik
-        $ins = [
-            'customer_phone'  => $hp,
-            'customer_name'   => ($nama !== null && $nama !== '') ? $nama : null,
-            'points'          => $poin_add,
-            'transaksi_count' => 1,
-            'total_rupiah'    => $total,
-            'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
-            'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
-            'expired_at'      => $expiredYmd,      // DATE
-            'token'           => $token,
-            'created_at'      => $paidDt->format('Y-m-d H:i:s'),
-            'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
-        ];
-        $this->db->insert('voucher_cafe', $ins);
+    } finally {
+        // PENTING: selalu kembalikan db_debug ke nilai awal
+        $this->db->db_debug = $oldDebug;
     }
 }
+
 
 /**
  * Generate token 32 char dan pastikan unik (hindari token sama).
