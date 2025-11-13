@@ -2,7 +2,7 @@
 
 const CACHE_NAME  = 'ausi-41';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
-const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
+const SUPPRESS_5XX = false;                     // true = jangan teruskan 5xx asli ke klien
 
 /* HTML publik yang boleh dicache (path tanpa query) */
 const HTML_CACHE_WHITELIST = new Set([
@@ -186,7 +186,11 @@ self.addEventListener('fetch', (event) => {
           const key = pathKey(req);
           const cached = await caches.match(key) || await caches.match('/') || await caches.match(OFFLINE_URL);
           if (cached) return cached;
-          return new Response('Sementara tidak tersedia', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+          // Selalu beri offline.html dengan 200 agar user tidak lihat error HTTP
+          return new Response(await (await fetch(OFFLINE_URL)).text?.() ?? 'Offline', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' }
+          });
         }
 
         const cc = fresh.headers.get('cache-control') || '';
@@ -201,9 +205,10 @@ self.addEventListener('fetch', (event) => {
       } catch {
         const key = pathKey(req);
         return (await caches.match(key)) ||
-               (await caches.match('/')) ||
-               (await caches.match(OFFLINE_URL)) ||
-               new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+         (await caches.match('/')) ||
+         (await caches.match(OFFLINE_URL)) ||
+         new Response('Offline', { status: 200, headers: { 'Content-Type': 'text/html' } });
+
       }
     })());
     return;
