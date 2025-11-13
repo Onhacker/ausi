@@ -218,34 +218,35 @@
         </section>
 
         <section id="voucher-order" class="card mb-3">
-    <div class="card-body">
-      <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 200.000</h2>
+          <div class="card-body">
+            <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 200.000 (Siklus Mingguan)</h2>
 
-      <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Bulanan)</h3>
-      <ul class="mb-3">
-        <li>Poin bertambah setiap transaksi dengan status <em>paid</em>.</li>
-        <li>Rumus poin: <span class="mono">poin = kode_unik + (total // 1000)</span> (contoh: 5.000→5; 50.000→50; 100.000→100).</li>
-        <li>Siklus poin <strong>reset otomatis setiap tanggal 1</strong> bulan berjalan (zona waktu WITA).</li>
-        <li>Total poin dapat dilihat melalui tautan khusus (token) pada halaman <em>Points</em>.</li>
-      </ul>
+            <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Mingguan)</h3>
+            <ul class="mb-3">
+              <li>Poin bertambah setiap transaksi dengan status <em>paid</em>.</li>
+              <li>Rumus poin: <span class="mono">poin = kode_unik + (total // 1000)</span> (contoh: 5.000→5; 50.000→50; 100.000→100).</li>
+              <li>Siklus poin berlaku **per pekan** (Senin 00:00 – Minggu 23:59 WITA) dan **reset otomatis setiap Senin 00:00 WITA**.</li>
+              <li>Total poin pekan berjalan dapat dilihat melalui tautan khusus (token) pada halaman <em>Points</em>.</li>
+            </ul>
 
-      <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 200.000</h3>
-      <ul class="mb-3">
-        <li>Pengumuman penerima <strong>Voucher Order senilai Rp 200.000</strong> dilakukan <strong>setiap tanggal 1</strong> setiap bulan untuk periode bulan sebelumnya.</li>
-        <li>Pemilihan penerima mengacu pada akumulasi poin dan kepatuhan terhadap S&amp;K program; keputusan Pengelola bersifat final.</li>
-        <li>Voucher bersifat non-tunai, tidak dapat diuangkan, dan tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
-        <li>Voucher dikaitkan dengan nomor WhatsApp/akun yang terdaftar dan <strong>tidak dapat dipindahtangankan</strong>.</li>
-        <li>Masa berlaku voucher: <strong>30 hari sejak tanggal penerbitan</strong>, kecuali tertulis berbeda pada voucher.</li>
-        <li>Cara klaim: ikuti tautan yang dikirimkan via WhatsApp atau cek halaman <em>Points</em> dengan token Anda.</li>
-      </ul>
+            <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 200.000</h3>
+            <ul class="mb-3">
+              <li>Pengumuman penerima **Voucher Order senilai Rp 200.000** dilakukan **setiap Senin** untuk periode **pekan sebelumnya**.</li>
+              <li>Pemilihan penerima mengacu pada akumulasi poin pekanan dan kepatuhan terhadap S&amp;K program; keputusan Pengelola bersifat final.</li>
+              <li>Voucher bersifat non-tunai, tidak dapat diuangkan, dan tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
+              <li>Voucher dikaitkan dengan nomor WhatsApp/akun yang terdaftar dan **tidak dapat dipindahtangankan**.</li>
+              <li>Masa berlaku voucher: **7 hari sejak tanggal penerbitan**, kecuali tertulis berbeda pada voucher.</li>
+              <li>Cara klaim: ikuti tautan yang dikirimkan via WhatsApp atau cek halaman <em>Points</em> dengan token Anda.</li>
+            </ul>
 
-      <h3 class="h4 mt-3 mb-2">C. Ketentuan Tambahan</h3>
-      <ul class="mb-0">
-        <li>Indikasi penyalahgunaan/manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
-        <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja untuk peningkatan layanan.</li>
-      </ul>
-    </div>
-  </section>
+            <h3 class="h4 mt-3 mb-2">C. Ketentuan Tambahan</h3>
+            <ul class="mb-0">
+              <li>Indikasi penyalahgunaan/manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
+              <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja untuk peningkatan layanan.</li>
+            </ul>
+          </div>
+        </section>
+
 
         <!-- Kebijakan Produk -->
         <section id="kebijakan-produk" class="card mb-3">
