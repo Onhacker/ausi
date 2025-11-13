@@ -1,38 +1,21 @@
-/* ===== Service Worker ===== */
+/* ===== Service Worker (AUSI) — no-504-from-SW ===== */
 
-const CACHE_NAME  = 'ausi-40';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-41';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
+const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 
 /* HTML publik yang boleh dicache (path tanpa query) */
 const HTML_CACHE_WHITELIST = new Set([
-  '/',
-  '/home',
-  '/hal',
-  '/hal/kontak',
-  '/hal/privacy_policy',
-  '/hal/jadwal',
-  '/scan',
-  '/produk',
-  '/pijat',
-  '/review',
-  '/hal/review',
-  '/hal/pengumuman'
+  '/', '/home', '/hal', '/hal/kontak', '/hal/privacy_policy',
+  '/hal/jadwal', '/scan', '/produk', '/pijat', '/review',
+  '/hal/review', '/hal/pengumuman'
 ]);
 
 /* Precaches (URL asli, termasuk query). */
 const urlsToCache = [
-  '/',
-  '/home',
-  '/hal',
-  '/hal/kontak',
-  '/hal/privacy_policy',
-  '/hal/jadwal',
-  '/scan',
-  '/hal/pengumuman',
-  '/produk',
-  '/review',
-  '/hal/review',
-  '/pijat',
+  '/', '/home', '/hal', '/hal/kontak', '/hal/privacy_policy',
+  '/hal/jadwal', '/scan', '/hal/pengumuman', '/produk', '/review',
+  '/hal/review', '/pijat',
 
   '/developer/manifest?v=1',
   OFFLINE_URL,
@@ -90,7 +73,6 @@ const pathKey = (reqOrUrl) => {
   return (u.pathname.replace(/\/+$/, '') || '/');
 };
 
-/* Route yang TIDAK BOLEH di-cache (network-only) */
 const API_DENYLIST = [
   /^\/home\/chart(?:_?data)?(?:\/.*)?$/i,  // /home/chartdata atau /home/chart_data
   /^\/api\/?/i,                            // API umum
@@ -99,7 +81,6 @@ const API_DENYLIST = [
   /^\/admin_permohonan\/(export_excel|cetak_pdf)(?:\/.*)?$/i
 ];
 
-/* BYPASS sitemap & robots → selalu network-only, jangan pernah cache */
 const SITEMAP_BYPASS = [
   /^\/sitemap\.xml$/i,
   /^\/sitemap-static\.xml$/i,
@@ -155,11 +136,11 @@ self.addEventListener('activate', (event) => {
     const names = await caches.keys();
     await Promise.all(names.map((n) => (n === CACHE_NAME ? null : caches.delete(n))));
     await self.clients.claim();
+    console.log('[SW] active', CACHE_NAME);
   })());
 });
 
-/* ===== FETCH ===== */
-/* ===== FETCH (patched) ===== */
+/* ===== FETCH (no 504) ===== */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -168,15 +149,15 @@ self.addEventListener('fetch', (event) => {
   const accept = req.headers.get('accept') || '';
   const sameOrigin = url.origin === self.location.origin;
 
-  // === BYPASS manual untuk debug: tambahkan ?sw-bypass=1 di URL ===
-  if (url.searchParams.has('sw-bypass')) return; // biarkan browser fetch langsung
+  // BYPASS manual: tambahkan ?sw-bypass=1 pada URL saat debug
+  if (url.searchParams.has('sw-bypass')) return;
 
   if (RUNTIME_BYPASS.some(rx => rx.test(url.pathname))) {
-    event.respondWith(fetch(req)); // network only
+    event.respondWith(fetch(req));
     return;
   }
 
-  // 0a) BYPASS sitemap/robots → network-only & no-store
+  // BYPASS sitemap/robots → network-only & no-store
   if (sameOrigin && SITEMAP_BYPASS.some(rx => rx.test(url.pathname))) {
     event.respondWith(
       fetch(req, { cache: 'no-store', credentials: 'include' })
@@ -185,7 +166,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 0b) Network-only untuk route sensitif (tidak pernah di-cache)
+  // Network-only untuk route sensitif (tidak pernah di-cache)
   if (sameOrigin && API_DENYLIST.some(rx => rx.test(url.pathname))) {
     event.respondWith(
       fetch(req, { cache: 'no-store', credentials: 'include' })
@@ -200,6 +181,14 @@ self.addEventListener('fetch', (event) => {
       try {
         const fresh = await fetch(req, { cache: 'no-store', credentials: 'include' });
 
+        // MASK 5xx dari server agar tidak terlihat 504 di klien
+        if (SUPPRESS_5XX && fresh.status >= 500) {
+          const key = pathKey(req);
+          const cached = await caches.match(key) || await caches.match('/') || await caches.match(OFFLINE_URL);
+          if (cached) return cached;
+          return new Response('Sementara tidak tersedia', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+        }
+
         const cc = fresh.headers.get('cache-control') || '';
         const isNoStore = /no-store|private/i.test(cc) || fresh.headers.get('x-auth-logged-in') === '1';
 
@@ -211,7 +200,6 @@ self.addEventListener('fetch', (event) => {
         return fresh;
       } catch {
         const key = pathKey(req);
-        // fallback berurutan: path cache → root → offline.html → 503
         return (await caches.match(key)) ||
                (await caches.match('/')) ||
                (await caches.match(OFFLINE_URL)) ||
@@ -221,7 +209,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2) Aset same-origin → stale-while-revalidate + fallback TANPA bikin 504
+  // 2) Aset same-origin → stale-while-revalidate + fallback (tanpa 504)
   if (sameOrigin && isStaticAsset(req)) {
     event.respondWith((async () => {
       const c = await caches.open(CACHE_NAME);
@@ -229,12 +217,12 @@ self.addEventListener('fetch', (event) => {
       const hasV  = u.searchParams.has('v');
       const clean = hasV ? (u.origin + u.pathname) : null;
 
-      // 1) Coba exact match (dengan query)
+      // Exact match (dengan query)
       let cached = await c.match(req);
-      // 2) Jika tidak ada dan ini aset versi (?v=...), coba tanpa query
+      // Jika tidak ada dan ini aset versi (?v=...), coba tanpa query
       if (!cached && hasV) cached = await c.match(clean);
 
-      // 3) Revalidate di belakang layar (jangan simpan error)
+      // Revalidate di belakang layar; simpan hanya res.ok
       const updating = fetch(req, { cache: 'no-store', credentials: 'include' })
         .then(res => {
           if (res && res.ok) {
@@ -245,25 +233,35 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => null);
 
-      // 4) Prioritaskan cache; jika tidak ada, coba network; kalau tetap gagal,
-      //    fallback ke offline (bukan 504 buatan SW)
+      // Prioritaskan cache; jika tidak ada, coba network; jika gagal → offline
       return cached ||
              (await updating) ||
              (await caches.match(OFFLINE_URL)) ||
-             new Response('', { status: 503 }); // 503 lebih tepat untuk “sementara tidak tersedia”
+             new Response('Sementara tidak tersedia', { status: 503, headers: { 'Content-Type': 'text/plain' } });
     })());
     return;
   }
 
-  // 3) Lainnya:
-  //    - XHR same-origin yang bukan denylist
-  //    - Seluruh cross-origin (CDN/API pihak ketiga)
-  //    → network-first; jika gagal, JANGAN buat 504; berikan 503 kecil/JSON
+  // 3) Lainnya (XHR same-origin non-denylist & seluruh cross-origin)
   event.respondWith((async () => {
     try {
-      return await fetch(req, { cache: 'no-store', credentials: 'include' });
+      const res = await fetch(req, { cache: 'no-store', credentials: 'include' });
+
+      // MASK 5xx untuk API/asset non-HTML
+      if (SUPPRESS_5XX && res.status >= 500) {
+        const isJson = (req.headers.get('accept') || '').includes('application/json')
+                    || (req.headers.get('content-type') || '').includes('application/json');
+        if (isJson) {
+          return new Response(JSON.stringify({ ok:false, server:true, code: res.status }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        return (await caches.match(OFFLINE_URL)) ||
+               new Response('Sementara tidak tersedia', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      }
+      return res;
     } catch {
-      // Cross-origin tidak ada di cache; balas 503 agar klien bisa menampilkan overlay retry
       const isJson = (req.headers.get('accept') || '').includes('application/json')
                   || (req.headers.get('content-type') || '').includes('application/json');
       if (isJson) {
@@ -272,13 +270,11 @@ self.addEventListener('fetch', (event) => {
           headers: { 'Content-Type': 'application/json' }
         });
       }
-      // fallback umum
       return (await caches.match(OFFLINE_URL)) ||
              new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
     }
   })());
 });
-
 
 /* ===== MESSAGE ===== */
 self.addEventListener('message', (event) => {
