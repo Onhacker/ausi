@@ -417,7 +417,7 @@ class M_admin_pos extends CI_Model {
 
                 // Hapus file QRIS bila ada
                 $this->_delete_qris_file($id);
-                $this->_voucher_cafe_upsert_from_order($row, $now);
+                // $this->_voucher_cafe_upsert_from_order($row, $now);
             } else {
                 $errors[] = $id;
             }
