@@ -125,7 +125,7 @@
         <path d="M7 0 L9 5 L14 7 L9 9 L7 14 L5 9 L0 7 L5 5 Z"/>
       </g>
       <text x="16" y="36" fill="#fff" font-size="15" font-weight="700">Voucher</text>
-      <text x="16" y="62" fill="#fff" font-size="30" font-weight="800">Rp 200.000</text>
+      <text x="16" y="62" fill="#fff" font-size="30" font-weight="800">Rp 50.000</text>
     </g>
 
     <!-- Headline + desc -->
@@ -134,7 +134,7 @@
       <text x="0" y="32" fill="#ffffff" font-size="24" font-weight="800">Dapatkan Poin & Raih</text>
       <text x="0" y="62" fill="#ffffff" font-size="24" font-weight="800">Voucher Order</text>
       <text x="0" y="96"  fill="#ffffff" font-size="14">Pengumuman voucher & rekap poin</text>
-      <text x="0" y="116" fill="#ffffff" font-size="14"><tspan font-weight="700">setiap tanggal 1</tspan> tiap bulan.</text>
+      <text x="0" y="116" fill="#ffffff" font-size="14"><tspan font-weight="700">setiap hari minggu</tspan> </text>
     </g>
 
     <!-- Footer (mobile) -->
@@ -229,13 +229,13 @@
       </g>
 
       <text x="20" y="44" fill="#fff" font-size="18" font-weight="700">Voucher</text>
-      <text x="20" y="76" fill="#fff" font-size="32" font-weight="800">Rp 200.000</text>
+      <text x="20" y="76" fill="#fff" font-size="32" font-weight="800">Rp 50.000</text>
     </g>
 
     <g transform="translate(24,120)">
       <text x="0" y="0"  fill="#e5f3ff" font-size="15" font-weight="700">Tingkatkan transaksi order anda</text>
       <text x="0" y="30" fill="#ffffff" font-size="24" font-weight="800">Dapatkan Poin & Raih Voucher Order</text>
-      <text x="0" y="56" fill="#ffffff" font-size="14">Pengumuman voucher & rekap poin <tspan font-weight="700">setiap tanggal 1</tspan> tiap bulan.</text>
+      <text x="0" y="56" fill="#ffffff" font-size="14">Pengumuman voucher & rekap poin <tspan font-weight="700">setiap hari minggu </tspan></text>
     </g>
 
     <!-- Footer (desktop) -->

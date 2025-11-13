@@ -2,7 +2,7 @@
 
 const CACHE_NAME  = 'ausi-41';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
-const SUPPRESS_5XX = false;                     // true = jangan teruskan 5xx asli ke klien
+const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 
 /* HTML publik yang boleh dicache (path tanpa query) */
 const HTML_CACHE_WHITELIST = new Set([
