@@ -115,6 +115,10 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
   .empty-state .inner{ padding:16px; }
   .empty-state .emoji{ font-size:44px; line-height:1; margin-bottom:8px; }
   .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  .no-gutters>.col, .no-gutters>[class*="col-"] {
+    padding-right: 0;
+    padding-left: 16px !important;
+}
 </style>
 
 <div class="container-fluid">
@@ -140,7 +144,7 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
                   <span class="badge-soft badge-danger-soft">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
                 <?php else: ?>
                   <span class="badge-soft badge-ok-soft mr-2">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
-                  <span class="badge-soft"><?php echo e($daysLeftStr); ?></span>
+                  <span class="badge-soft mt-2"><?php echo e($daysLeftStr); ?></span>
                 <?php endif; ?>
                 <div class="mt-1 small text-light">
                   Periode pekan ini: <?php echo e($weekRangeLabel); ?> (WITA)
