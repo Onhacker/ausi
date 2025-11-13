@@ -29,27 +29,44 @@ if ($token !== ''){
 
 /** Derivatif tampilan */
 /** Derivatif tampilan (siklus mingguan, reset Senin 00:00 WITA) */
+/** Derivatif tampilan (siklus mingguan, reset Minggu 00:00 WITA) */
 $hasData     = (bool)$vc;
 $shareLink   = $hasData && !empty($vc->token) ? site_url('produk/points/'.rawurlencode($vc->token)) : '';
 $shareLinkQ  = $hasData && !empty($vc->customer_phone) ? site_url('produk/points?phone='.rawurlencode($vc->customer_phone)) : '';
 
-$tz       = new DateTimeZone('Asia/Makassar'); // WITA
-$now      = new DateTime('now', $tz);
+$tz   = new DateTimeZone('Asia/Makassar'); // WITA
+$now  = new DateTime('now', $tz);
 
 /**
- * Pekan didefinisikan Senin 00:00 – Minggu 23:59:59.
- * Reset = Senin 00:00 pekan berikutnya.
+ * Pekan: Minggu 00:00 – Sabtu 23:59:59
+ * Reset: Minggu 00:00 pekan berikutnya
  */
-$w        = (int)$now->format('N'); // 1=Senin..7=Minggu
-$start    = (clone $now)->modify('-'.($w-1).' days')->setTime(0,0,0);       // Senin 00:00 pekan ini
-$nextMon  = (clone $start)->modify('+7 days');                               // Senin depan 00:00
-$exp      = $nextMon;                                                        // waktu reset
-$today    = (clone $now)->setTime(0,0,0);
+$w0        = (int)$now->format('w'); // 0=Sun..6=Sat
+$weekStart = (clone $now)->modify('-'.$w0.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
+$nextSun   = (clone $weekStart)->modify('+7 days');                 // Minggu depan 00:00
 
-$isExpired   = ($now >= $exp); // jika sudah lewat Senin 00:00 (harusnya jarang ketika view dirender)
-$daysLeft    = $now->diff($exp);
-$daysLeftStr = ($daysLeft->invert ? 'Sudah kedaluwarsa' : $daysLeft->days.' hari lagi');
-$next1Label  = $exp->format('d/m/Y'); // label reset
+// expiredAt prefer dari DB (diset backend ke Minggu 00:00), fallback ke $nextSun
+$expiredAt   = $hasData && !empty($vc->expired_at) ? (string)$vc->expired_at : $nextSun->format('Y-m-d H:i:s');
+$isExpired   = false;
+$daysLeftStr = '';
+$next1Label  = '';
+$weekRangeLabel = $weekStart->format('d/m/Y').' – '.(clone $weekStart)->modify('+6 days')->format('d/m/Y');
+
+try{
+  $exp = new DateTime($expiredAt, $tz);
+  $next1Label = $exp->format('d/m/Y');
+  if ($now >= $exp){
+    $isExpired   = true;
+    $daysLeftStr = 'Sudah kedaluwarsa';
+  } else {
+    $daysLeftStr = $now->diff($exp)->days.' hari lagi';
+  }
+}catch(\Throwable $e){
+  // fallback aman
+  $isExpired   = false;
+  $daysLeftStr = '';
+  $next1Label  = $nextSun->format('d/m/Y');
+}
 
 // Simpan juga rentang pekan untuk UI (opsional)
 $weekRangeLabel = $start->format('d/m/Y').' – '.(clone $start)->modify('+6 days')->format('d/m/Y');
@@ -165,23 +182,23 @@ function mask_msisdn($s){
               <?php echo $hasData ? number_format((int)$vc->points,0,',','.') : '0'; ?>
             </div>
             <?php if ($hasData): ?>
-              <div class="mt-2">
-               <?php if ($isExpired): ?>
-                  <span class="badge-soft badge-danger-soft">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
-                <?php else: ?>
-                  <span class="badge-soft badge-ok-soft mr-2">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
-                  <span class="badge-soft"><?php echo e($daysLeftStr); ?></span>
-                <?php endif; ?>
+  <div class="mt-2">
+    <?php if ($isExpired): ?>
+      <span class="badge-soft badge-danger-soft">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
+    <?php else: ?>
+      <span class="badge-soft badge-ok-soft mr-2">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
+      <span class="badge-soft"><?php echo e($daysLeftStr); ?></span>
+    <?php endif; ?>
 
-                <!-- Opsional tampilkan rentang pekan -->
-                <div class="mt-1 small text-light">
-                  Periode pekan ini: <?php echo e($weekRangeLabel); ?> (WITA)
-                </div>
+    <!-- Rentang pekan -->
+    <div class="mt-1 small text-light">
+      Periode pekan ini: <?php echo e($weekRangeLabel); ?> (WITA)
+    </div>
+  </div>
+<?php else: ?>
+  <div class="mt-2"><span class="badge-soft">Belum ada data poin</span></div>
+<?php endif; ?>
 
-              </div>
-            <?php else: ?>
-              <div class="mt-2"><span class="badge-soft">Belum ada data poin</span></div>
-            <?php endif; ?>
           </div>
 
           <div class="text-right">
@@ -241,22 +258,24 @@ function mask_msisdn($s){
 
       <div class="card mt-3 ">
         <div class="card-body">
-          <h4 class="mb-2">Tingkatkan Poin & Raih Voucher Order Senilai Rp 50.000</h4>
-          <p class="mb-2">
-            Setiap transaksi <strong>berhasil</strong> langsung menambah poin Anda.
-            <strong>Makin sering order, makin cepat poin terkumpul</strong>—ayo lanjutkan belanja di AUSI untuk naik level lebih cepat!
-          </p>
-          <p class="mb-2">
-            Pengumuman <strong>voucher order</strong> dan rekap poin dilakukan
-            <strong>setiap Senin</strong> untuk periode <strong>pekan sebelumnya</strong>. Pastikan nomor WhatsApp aktif agar tidak ketinggalan info.
-          </p>
-          <p class="mb-0 text-muted small">
-            Poin dihitung otomatis dari total belanja & komponen kode unik transaksi; periode berlaku mengikuti <strong>siklus mingguan</strong> (Senin 00:00 – Minggu 23:59 WITA, reset Senin 00:00).
-            <br>
-            <a href="<?php echo site_url('hal/#voucher-order'); ?>" class="text-decoration-underline">
-              Syarat &amp; Ketentuan berlaku
-            </a>
-          </p>
+         <h4 class="mb-2">Tingkatkan Poin & Raih Voucher Order Senilai Rp 50.000</h4>
+         <p class="mb-2">
+          Setiap transaksi <strong>berhasil</strong> langsung menambah poin Anda.
+          <strong>Makin sering order, makin cepat poin terkumpul</strong>—ayo lanjutkan belanja di AUSI!
+        </p>
+        <p class="mb-2">
+          Pengumuman <strong>voucher order</strong> dan rekap poin dilakukan
+          <strong>setiap hari Minggu</strong> untuk periode <strong>pekan sebelumnya</strong>. Pastikan nomor WhatsApp aktif agar tidak ketinggalan info.
+        </p>
+        <p class="mb-0 text-muted small">
+          Poin dihitung otomatis dari total belanja & komponen kode unik transaksi; periode mengikuti
+          <strong>siklus mingguan</strong> (Minggu 00:00 – Sabtu 23:59 WITA, reset Minggu 00:00).
+          <br>
+          <a href="<?php echo site_url('hal/#voucher-order'); ?>" class="text-decoration-underline">
+            Syarat &amp; Ketentuan berlaku
+          </a>
+        </p>
+
         </div>
       </div>
 
