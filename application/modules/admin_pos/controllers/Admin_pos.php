@@ -968,7 +968,7 @@ private function _wa_paid_notice(array $paid_ids){
             $msg .= "💼 Total poin saat ini: *{$vcTotal}*\n";
         }
         $msg .= "🔗 Cek total poin & voucher: {$linkPoin}\n\n";
-        $msg .= "Tingkatkan transaksi Anda untuk mengumpulkan lebih banyak poin dan dapatkan voucher belanja di {$toko} hingga Rp200.000.\n";
+        $msg .= "Tingkatkan transaksi Anda untuk mengumpulkan lebih banyak poin dan dapatkan voucher belanja di {$toko} hingga Rp50.000 tiap minggu.\n";
         $msg .= "📢 Voucher baru diumumkan setiap hari minggu.\n\n";
         $msg .= "Terima kasih telah bertransaksi di *{$toko}* 🙌\n";
         $msg .= "Jika membutuhkan struk fisik, silakan ke kasir 💁‍♀️\n";
