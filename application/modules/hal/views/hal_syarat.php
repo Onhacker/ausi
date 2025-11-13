@@ -231,7 +231,7 @@
 
             <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
             <ul class="mb-3">
-              <li>Pengumuman penerima **Voucher Order senilai Rp 50.000** dilakukan **setiap Senin** untuk periode **pekan sebelumnya**.</li>
+              <li>Pengumuman penerima **Voucher Order senilai Rp 50.000** dilakukan **setiap Minggu** untuk periode **pekan sebelumnya**.</li>
               <li>Pemilihan penerima mengacu pada akumulasi poin pekanan dan kepatuhan terhadap S&amp;K program; keputusan Pengelola bersifat final.</li>
               <li>Voucher bersifat non-tunai, tidak dapat diuangkan, dan tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
               <li>Voucher dikaitkan dengan nomor WhatsApp/akun yang terdaftar dan **tidak dapat dipindahtangankan**.</li>

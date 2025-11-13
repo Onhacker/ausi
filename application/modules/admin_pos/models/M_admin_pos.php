@@ -996,7 +996,7 @@ private function _first_of_next_month_date($refTs = null){
  * - expired_at di-set ke akhir tahun berjalan
  */
 private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
-    // Ambil field yang kita butuhkan, beserta fallback yang aman
+    // ===== Normalisasi HP =====
     $hp_raw  = isset($order_row->customer_phone) ? $order_row->customer_phone
              : (isset($order_row->no_hp) ? $order_row->no_hp : '');
     $hp      = $this->_norm_phone($hp_raw);
@@ -1005,8 +1005,7 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
     $nama    = isset($order_row->nama) ? trim((string)$order_row->nama) : null;
     $kode    = (int)($order_row->kode_unik ?? 0);
 
-    // Tentukan total: prioritaskan grand_total, fallback lain bila ada
-    $total   = 0;
+    // ===== Total (pakai grand_total bila ada) =====
     if (isset($order_row->grand_total)) {
         $total = (int)$order_row->grand_total;
     } elseif (isset($order_row->total)) {
@@ -1018,30 +1017,59 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
     }
     if ($total < 0) $total = 0;
 
-    // Rumus poin: kode_unik + angka_awal_total (ribuan)
-    $angka_awal_total = intdiv($total, 1000); // 5000→5, 50000→50, 100000→100
+    // ===== Rumus poin =====
+    $angka_awal_total = intdiv($total, 1000);     // 5000→5; 50.000→50; 100.000→100
     $poin_add         = max(0, $kode + $angka_awal_total);
 
-    $expired = $this->_first_of_next_month_date();
+    // ===== Hitung batas reset pekan: Minggu 00:00 WITA =====
+    $tz = new DateTimeZone('Asia/Makassar'); // WITA
+    try { $paidDt = new DateTime($paid_at, $tz); }
+    catch (\Throwable $e) { $paidDt = new DateTime('now', $tz); }
 
-    // Cek apakah sudah ada baris untuk customer_phone ini
+    // 'w' => 0=Sunday..6=Saturday
+    $w          = (int)$paidDt->format('w');                // 0 untuk Minggu
+    $weekStart  = (clone $paidDt)->modify('-'.$w.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
+    $nextReset  = (clone $weekStart)->modify('+7 days');    // Minggu 00:00 pekan depan
+    $expired    = $nextReset->format('Y-m-d H:i:s');
+
+    // ===== Upsert per phone, reset saat lewat batas pekan =====
     $exist = $this->db->get_where('voucher_cafe', ['customer_phone' => $hp])->row();
 
     if ($exist) {
-        // Update akumulasi
-        $upd = [
-            'points'          => (int)$exist->points + $poin_add,
-            'transaksi_count' => (int)$exist->transaksi_count + 1,
-            'total_rupiah'    => (int)$exist->total_rupiah + $total,
-            'last_paid_at'    => $paid_at,
-            // perpanjang/refresh kadaluarsa ke akhir tahun berjalan
-            'expired_at'      => $expired,
-            'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
-            'updated_at'      => $paid_at,
-        ];
+        // cek apakah sudah memasuki pekan baru
+        $expiredPrev = null;
+        try { $expiredPrev = new DateTime((string)$exist->expired_at, $tz); } catch (\Throwable $e) {}
+        $isNewWeek = !$expiredPrev ? true : ($paidDt >= $expiredPrev);
+
+        if ($isNewWeek) {
+            // RESET mingguan: mulai agregat baru dari transaksi ini
+            $upd = [
+                'points'          => $poin_add,
+                'transaksi_count' => 1,
+                'total_rupiah'    => $total,
+                'first_paid_at'   => $paid_at,
+                'last_paid_at'    => $paid_at,
+                'expired_at'      => $expired, // Minggu 00:00 pekan depan
+                'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
+                'updated_at'      => $paid_at,
+            ];
+        } else {
+            // Masih pekan berjalan: akumulasi
+            $upd = [
+                'points'          => (int)$exist->points + $poin_add,
+                'transaksi_count' => (int)$exist->transaksi_count + 1,
+                'total_rupiah'    => (int)$exist->total_rupiah + $total,
+                'last_paid_at'    => $paid_at,
+                'expired_at'      => $expired, // tetap diarahkan ke Minggu 00:00 terdekat
+                'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
+                'updated_at'      => $paid_at,
+            ];
+        }
+
         $this->db->where('id', $exist->id)->update('voucher_cafe', $upd);
+
     } else {
-        // Insert baru
+        // INSERT baru untuk pekan berjalan
         $ins = [
             'customer_phone'  => $hp,
             'customer_name'   => ($nama !== null && $nama !== '') ? $nama : null,
@@ -1050,7 +1078,7 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
             'total_rupiah'    => $total,
             'first_paid_at'   => $paid_at,
             'last_paid_at'    => $paid_at,
-            'expired_at'      => $expired,
+            'expired_at'      => $expired,          // Minggu 00:00 pekan depan
             'token'           => $this->_rand_token_32(),
             'created_at'      => $paid_at,
             'updated_at'      => $paid_at,
@@ -1058,6 +1086,7 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
         $this->db->insert('voucher_cafe', $ins);
     }
 }
+
 
 
 }
