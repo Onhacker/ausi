@@ -995,6 +995,12 @@ private function _first_of_next_month_date($refTs = null){
  * - last_paid_at selalu di-update
  * - expired_at di-set ke akhir tahun berjalan
  */
+/**
+ * Reset mingguan: periode = Minggu 00:00 s.d. Sabtu 23:59:59 (WITA)
+ * expired_at = TANGGAL Minggu berikutnya (DATE, jam 00:00 WITA secara konseptual)
+ * - Jika pada transaksi baru paid_at >= expired_at (Minggu 00:00), maka RESET (mulai agregat baru).
+ * - Jika belum lewat, tetap AKUMULASI di pekan berjalan.
+ */
 private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
     // ===== Normalisasi HP =====
     $hp_raw  = isset($order_row->customer_phone) ? $order_row->customer_phone
@@ -1021,70 +1027,107 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at){
     $angka_awal_total = intdiv($total, 1000);     // 5000→5; 50.000→50; 100.000→100
     $poin_add         = max(0, $kode + $angka_awal_total);
 
-    // ===== Hitung batas reset pekan: Minggu 00:00 WITA =====
+    // ===== Waktu & batas reset pekan (WITA) =====
     $tz = new DateTimeZone('Asia/Makassar'); // WITA
     try { $paidDt = new DateTime($paid_at, $tz); }
     catch (\Throwable $e) { $paidDt = new DateTime('now', $tz); }
 
     // 'w' => 0=Sunday..6=Saturday
-    $w          = (int)$paidDt->format('w');                // 0 untuk Minggu
+    $w          = (int)$paidDt->format('w'); // 0=Min
     $weekStart  = (clone $paidDt)->modify('-'.$w.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
-    $nextReset  = (clone $weekStart)->modify('+7 days');    // Minggu 00:00 pekan depan
-    $expired    = $nextReset->format('Y-m-d H:i:s');
+    $nextReset  = (clone $weekStart)->modify('+7 days');                   // Minggu depan 00:00
+    $expiredYmd = $nextReset->format('Y-m-d'); // *** DATE ***
 
-    // ===== Upsert per phone, reset saat lewat batas pekan =====
+    // ===== Ambil data existing per phone =====
     $exist = $this->db->get_where('voucher_cafe', ['customer_phone' => $hp])->row();
 
+    // Helper kecil untuk baca expired_at (DATE) → DateTime 00:00 WITA
+    $parseExpired = function($ymd) use ($tz){
+        $ymd = trim((string)$ymd);
+        if ($ymd === '' || $ymd === '0000-00-00') return null;
+        try{
+            $dt = new DateTime($ymd, $tz);
+            $dt->setTime(0,0,0);
+            return $dt;
+        }catch(\Throwable $e){
+            return null;
+        }
+    };
+
     if ($exist) {
-        // cek apakah sudah memasuki pekan baru
-        $expiredPrev = null;
-        try { $expiredPrev = new DateTime((string)$exist->expired_at, $tz); } catch (\Throwable $e) {}
+        $expiredPrev = $parseExpired($exist->expired_at);
+        // Jika belum pernah diset, anggap periode baru
         $isNewWeek = !$expiredPrev ? true : ($paidDt >= $expiredPrev);
 
         if ($isNewWeek) {
-            // RESET mingguan: mulai agregat baru dari transaksi ini
+            // ===== RESET mingguan: mulai agregat baru dari transaksi ini =====
             $upd = [
                 'points'          => $poin_add,
                 'transaksi_count' => 1,
                 'total_rupiah'    => $total,
-                'first_paid_at'   => $paid_at,
-                'last_paid_at'    => $paid_at,
-                'expired_at'      => $expired, // Minggu 00:00 pekan depan
+                'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
+                'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
+                'expired_at'      => $expiredYmd, // DATE: Minggu berikutnya
                 'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
-                'updated_at'      => $paid_at,
+                'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
             ];
         } else {
-            // Masih pekan berjalan: akumulasi
+            // ===== Masih pekan berjalan: AKUMULASI =====
             $upd = [
                 'points'          => (int)$exist->points + $poin_add,
                 'transaksi_count' => (int)$exist->transaksi_count + 1,
                 'total_rupiah'    => (int)$exist->total_rupiah + $total,
-                'last_paid_at'    => $paid_at,
-                'expired_at'      => $expired, // tetap diarahkan ke Minggu 00:00 terdekat
+                'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
+                // perpanjang tetap ke Minggu depan dari paidDt (aman untuk tampilan count down)
+                'expired_at'      => $expiredYmd, 
                 'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
-                'updated_at'      => $paid_at,
+                'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
             ];
         }
 
         $this->db->where('id', $exist->id)->update('voucher_cafe', $upd);
 
     } else {
-        // INSERT baru untuk pekan berjalan
+        // ===== INSERT baru (pekan berjalan) =====
+        $token = $this->_rand_token_32_unique(); // pastikan unik
         $ins = [
             'customer_phone'  => $hp,
             'customer_name'   => ($nama !== null && $nama !== '') ? $nama : null,
             'points'          => $poin_add,
             'transaksi_count' => 1,
             'total_rupiah'    => $total,
-            'first_paid_at'   => $paid_at,
-            'last_paid_at'    => $paid_at,
-            'expired_at'      => $expired,          // Minggu 00:00 pekan depan
-            'token'           => $this->_rand_token_32(),
-            'created_at'      => $paid_at,
-            'updated_at'      => $paid_at,
+            'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
+            'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
+            'expired_at'      => $expiredYmd,      // DATE
+            'token'           => $token,
+            'created_at'      => $paidDt->format('Y-m-d H:i:s'),
+            'updated_at'      => $paidDt->format('Y-m-d H:i:s'),
         ];
         $this->db->insert('voucher_cafe', $ins);
     }
+}
+
+/**
+ * Generate token 32 char dan pastikan unik (hindari token sama).
+ * Menggunakan OPENSSL/Random_bytes bila ada.
+ */
+private function _rand_token_32_unique(){
+    $try = 0;
+    do{
+        $try++;
+        // token 32 hex chars
+        if (function_exists('random_bytes')) {
+            $token = bin2hex(random_bytes(16));
+        } elseif (function_exists('openssl_random_pseudo_bytes')) {
+            $token = bin2hex(openssl_random_pseudo_bytes(16));
+        } else {
+            $token = md5(uniqid((string)mt_rand(), true));
+        }
+        $exist = $this->db->get_where('voucher_cafe', ['token' => $token])->row();
+        if (!$exist) return $token;
+    } while ($try < 5);
+    // fallback ekstrem (sangat kecil kemungkinannya)
+    return md5(uniqid((string)mt_rand(), true).microtime(true));
 }
 
 
