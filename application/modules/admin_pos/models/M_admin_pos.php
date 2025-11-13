@@ -1112,26 +1112,28 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at)
         $nama    = isset($order_row->nama) ? trim((string)$order_row->nama) : null;
         $kode    = (int)($order_row->kode_unik ?? 0);
 
-        // ===== 3) Total (pakai grand_total bila ada; fallback ke total) =====
+                // ===== 3+4) Hitung poin pakai helper resmi (tanpa ongkir) =====
+        // supaya ANGKA poin di DB = ANGKA poin yang ditulis di WA
+        $poin_add = $this->_calc_loyalty_points_order($order_row);
+
+        // Untuk statistik rupiah pekanan, kita masih boleh pakai grand_total/total
         if (isset($order_row->grand_total)) {
-            $total = (int)$order_row->grand_total;
+            $total_rp = (int)$order_row->grand_total;
         } elseif (isset($order_row->total)) {
-            $total = (int)$order_row->total;
+            $total_rp = (int)$order_row->total;
         } else {
             $subtotal     = (int)($order_row->subtotal ?? 0);
             $delivery_fee = (int)($order_row->delivery_fee ?? 0);
-            $total        = $subtotal + $delivery_fee + $kode;
+            $kode         = (int)($order_row->kode_unik ?? 0);
+            $total_rp     = $subtotal + $delivery_fee + $kode;
         }
-        if ($total < 0) $total = 0;
-
-        // ===== 4) Rumus poin =====
-        $angka_awal_total = intdiv($total, 1000);     // 5000→5; 50.000→50; 100.000→100
-        $poin_add         = max(0, $kode + $angka_awal_total);
+        if ($total_rp < 0) $total_rp = 0;
 
         log_message('debug', sprintf(
-            '[LOYALTY] order ID %s, hp=%s, total=%d, kode=%d, poin_add=%d',
-            $order_row->id ?? '??', $hp, $total, $kode, $poin_add
+            '[LOYALTY] order ID %s, hp=%s, total_rp=%d, poin_add=%d',
+            $order_row->id ?? '??', $hp, $total_rp, $poin_add
         ));
+
 
         // ===== 5) Waktu & batas reset pekan (WITA) =====
         $tz = new DateTimeZone('Asia/Makassar'); // WITA
@@ -1178,7 +1180,7 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at)
                 $upd = [
                     'points'          => $poin_add,
                     'transaksi_count' => 1,
-                    'total_rupiah'    => $total,
+                    'total_rupiah'    => $total_rp,
                     'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
                     'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
                     'expired_at'      => $expiredYmd, // DATE: Minggu berikutnya
@@ -1190,7 +1192,7 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at)
                 $upd = [
                     'points'          => (int)$exist->points + $poin_add,
                     'transaksi_count' => (int)$exist->transaksi_count + 1,
-                    'total_rupiah'    => (int)$exist->total_rupiah + $total,
+                    'total_rupiah'    => (int)$exist->total_rupiah + $total_rp,
                     'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
                     'expired_at'      => $expiredYmd,
                     'customer_name'   => ($nama !== null && $nama !== '') ? $nama : $exist->customer_name,
@@ -1215,7 +1217,7 @@ private function _voucher_cafe_upsert_from_order($order_row, $paid_at)
                 'customer_name'   => ($nama !== null && $nama !== '') ? $nama : null,
                 'points'          => $poin_add,
                 'transaksi_count' => 1,
-                'total_rupiah'    => $total,
+                'total_rupiah'    => $total_rp,
                 'first_paid_at'   => $paidDt->format('Y-m-d H:i:s'),
                 'last_paid_at'    => $paidDt->format('Y-m-d H:i:s'),
                 'expired_at'      => $expiredYmd,      // DATE
