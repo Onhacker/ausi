@@ -905,6 +905,9 @@ public function get_orders_for_wa(array $ids){
             id,
             nomor,
             nama,
+            total,
+            kode_unik,
+            delivery_fee,
             grand_total,
             paid_method,
             created_at,
@@ -916,6 +919,7 @@ public function get_orders_for_wa(array $ids){
         ->get()
         ->result();
 }
+
 // di model:
 public function get_order_any($id){
   $live = $this->get_order_with_items($id);

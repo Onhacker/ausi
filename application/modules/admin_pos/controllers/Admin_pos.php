@@ -899,7 +899,7 @@ private function _wa_paid_notice(array $paid_ids){
     $toko  = trim((string)($ident->nama_website ?? $ident->nama ?? 'AUSI BILLIARD & CAFE'));
     if ($toko === '') { $toko = 'AUSI BILLIARD & CAFE'; }
 
-    // Pastikan method model mengembalikan field yg diperlukan (lihat patch #2 di bawah)
+    // Ambil data order yang baru dilunasi
     $orders = $this->dm->get_orders_for_wa($paid_ids);
     if (!$orders) return;
 
@@ -918,31 +918,29 @@ private function _wa_paid_notice(array $paid_ids){
             : date('d/m/Y H:i');
         $namaSapaan = trim($o->nama ?: "kak");
 
-        // total untuk hitung poin (prioritas grand_total)
+        // total bayar (untuk ditampilkan di WA)
+        // prioritas grand_total -> fallback total+ongkir+kode_unik
         $total = 0;
         if (isset($o->grand_total)) {
             $total = (int)$o->grand_total;
         } elseif (isset($o->total)) {
-            $total = (int)$o->total;
-        } else {
-            $subtotal     = (int)($o->subtotal ?? 0);
+            $total        = (int)$o->total;
             $delivery_fee = (int)($o->delivery_fee ?? 0);
-            $kode_unik_   = (int)($o->kode_unik ?? 0);
-            $total        = $subtotal + $delivery_fee + $kode_unik_;
+            $kode_unik    = (int)($o->kode_unik ?? 0);
+            $total        = $total + $delivery_fee + $kode_unik;
         }
         if ($total < 0) $total = 0;
 
-        // hitung poin tambahan utk order ini
-        $angka_awal_total = intdiv($total, 1000);
-        $poinAdd          = max(0, (int)($o->kode_unik ?? 0) + $angka_awal_total);
+        // 🔢 Hitung poin berdasarkan rumus resmi (tanpa ongkir)
+        $poinAdd = $this->_calc_loyalty_points_order($o);
 
-        // ambil token & total poin terbaru dari voucher_cafe (harusnya sudah di-upsert)
-        $vc        = $this->db->get_where('voucher_cafe', ['customer_phone' => $msisdn])->row();
-        $vcToken   = $vc->token        ?? null;
-        $vcTotal   = isset($vc->points) ? (int)$vc->points : null;
-        $vcExp     = $vc->expired_at   ?? null;
+        // Ambil token & total poin terbaru dari voucher_cafe
+        $vc      = $this->db->get_where('voucher_cafe', ['customer_phone' => $msisdn])->row();
+        $vcToken = $vc->token        ?? null;
+        $vcTotal = isset($vc->points) ? (int)$vc->points : null;
+        $vcExp   = $vc->expired_at   ?? null; // opsional kalau mau dipakai di teks
 
-        // link ke halaman poin/loyalty – ganti 'points' sesuai route kamu
+        // link ke halaman poin/loyalty
         $linkPoin = $vcToken
             ? site_url('produk/points/'.$vcToken)
             : site_url('produk/points?phone='.$msisdn);
@@ -950,17 +948,18 @@ private function _wa_paid_notice(array $paid_ids){
         // link struk
         $linkStruk  = site_url('produk/receipt/'.$kodeTampil);
 
-        // metode bayar (opsional tampilkan)
+        // metode bayar (opsional tampilkan apa adanya)
         $metode = (string)($o->paid_method ?? '-');
 
-        // susun pesan
-       $msg  = "Halo Kak {$namaSapaan} 👋\n\n";
+        // ===== SUSUN PESAN WA =====
+        $msg  = "Halo Kak {$namaSapaan} 👋\n\n";
         $msg .= "✨ *PEMBAYARAN TELAH DITERIMA* ✅\n";
         $msg .= "Pesanan *#{$kodeTampil}* pada *{$waktu}*\n";
         $msg .= "────────────────────\n";
         $msg .= "💰 Total bayar : *".$this->_idr($total)."*\n";
         $msg .= "💳 Metode      : {$metode}\n";
         $msg .= "🧾 Struk digital: {$linkStruk}\n\n";
+
         $msg .= "────────────────────\n";
         $msg .= "Selamat! Anda mendapatkan poin 🎉\n";
         $msg .= "🎯 *Poin loyalty*: +{$poinAdd} poin\n";
@@ -969,7 +968,8 @@ private function _wa_paid_notice(array $paid_ids){
         }
         $msg .= "🔗 Cek total poin & voucher: {$linkPoin}\n\n";
         $msg .= "Tingkatkan transaksi Anda untuk mengumpulkan lebih banyak poin dan dapatkan voucher belanja di {$toko} hingga Rp50.000 tiap minggu.\n";
-        $msg .= "📢 Voucher baru diumumkan setiap hari minggu.\n\n";
+        $msg .= "📢 Voucher baru diumumkan setiap hari Minggu.\n\n";
+
         $msg .= "Terima kasih telah bertransaksi di *{$toko}* 🙌\n";
         $msg .= "Jika membutuhkan struk fisik, silakan ke kasir 💁‍♀️\n";
         $msg .= "Jangan lupa berikan rating & ulasan ⭐\n\n";
@@ -979,6 +979,39 @@ private function _wa_paid_notice(array $paid_ids){
         $this->_wa_try($msisdn, $msg);
     }
 }
+
+
+/**
+ * Hitung poin loyalty untuk 1 order.
+ *
+ * Rumus:
+ *   poin = kode_unik + (total // 1000)
+ *
+ * Catatan:
+ * - total di sini = kolom `total` (belanja menu), TANPA ongkir, TANPA kode_unik.
+ * - kalau mau ubah logika (misal ongkir ikut poin), cukup edit fungsi ini saja.
+ */
+private function _calc_loyalty_points_order($o): int
+{
+    if (!$o) return 0;
+
+    // total belanja menu (bukan grand_total)
+    $total_menu = (int)($o->total ?? 0);
+    if ($total_menu < 0) $total_menu = 0;
+
+    // bonus poin dari kode unik
+    $kode_unik = (int)($o->kode_unik ?? 0);
+    if ($kode_unik < 0) $kode_unik = 0;
+
+    // 1 poin per Rp 1.000 belanja
+    $base = intdiv($total_menu, 1000);
+
+    $poin = $kode_unik + $base;
+    if ($poin < 0) $poin = 0;
+
+    return $poin;
+}
+
 
 
 public function wa_reminder(){
