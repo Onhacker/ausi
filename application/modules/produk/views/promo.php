@@ -47,10 +47,10 @@
       <linearGradient id="goldM" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#facc15"/><stop offset="100%" stop-color="#eab308"/>
       </linearGradient>
-      <!-- ORANGE untuk tombol OK (mobile) -->
+      <!-- BLUE untuk tombol OK (mobile) -->
       <linearGradient id="btnBlueM" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#fed7aa"/>
-        <stop offset="100%" stop-color="#ea580c"/>
+        <stop offset="0%" stop-color="#60a5fa"/>
+        <stop offset="100%" stop-color="#2563eb"/>
       </linearGradient>
       <!-- Light glass untuk elemen lain (gunakan fill-opacity/ stroke-opacity, bukan rgba) -->
       <linearGradient id="btnLiteM" x1="0" y1="0" x2="1" y2="1">
@@ -67,9 +67,21 @@
       </symbol>
     </defs>
 
-    <!-- Card -->
+    <!-- Card (MOBILE) — bentuk tidak beraturan -->
     <g filter="url(#shadowM)">
-      <rect x="4" y="4" rx="18" ry="18" width="352" height="392" fill="url(#bgGradM)"/>
+      <path
+        d="
+          M16,40
+          C80,4 180,0 320,24
+          C352,40 356,88 344,136
+          C332,184 360,224 336,272
+          C312,320 260,360 196,380
+          C132,400 76,388 40,360
+          C4,332 4,280 8,228
+          C12,176 0,112 16,40
+          Z"
+        fill="url(#bgGradM)"
+      />
     </g>
 
     <!-- Close -->
@@ -169,10 +181,10 @@
       <linearGradient id="goldD" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#facc15"/><stop offset="100%" stop-color="#eab308"/>
       </linearGradient>
-      <!-- ORANGE untuk tombol OK (desktop) -->
+      <!-- BLUE untuk tombol OK (desktop) -->
       <linearGradient id="btnBlueD" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#fed7aa"/>
-        <stop offset="100%" stop-color="#ea580c"/>
+        <stop offset="0%" stop-color="#60a5fa"/>
+        <stop offset="100%" stop-color="#2563eb"/>
       </linearGradient>
       <linearGradient id="btnLiteD" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#ffffff" stop-opacity=".18"/>
@@ -188,8 +200,23 @@
       </symbol>
     </defs>
 
+    <!-- Card (DESKTOP) — bentuk tidak beraturan -->
     <g filter="url(#shadowD)">
-      <rect x="4" y="4" rx="20" ry="20" width="812" height="252" fill="url(#bgGradD)"/>
+      <path
+        d="
+          M24,32
+          C120,0 260,-4 384,12
+          C508,28 640,20 720,32
+          C800,44 816,84 804,128
+          C792,172 812,212 772,236
+          C732,260 648,260 568,252
+          C488,244 412,248 332,252
+          C252,256 164,252 108,236
+          C52,220 20,192 16,160
+          C12,128 16,80 24,32
+          Z"
+        fill="url(#bgGradD)"
+      />
     </g>
 
     <g id="btnClose" class="svg-hit" transform="translate(774,18)">
