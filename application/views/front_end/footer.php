@@ -199,15 +199,32 @@
     </div>
     <div class="space-right"></div>
 
-    <!-- NONGKI -->
-    <div class="nav-item">
-      <a href="<?= base_url('cafe') ?>"
-         class="<?= ($uri == 'cafe') ? 'text-active' : 'text-dark' ?>"
-         data-navloading="1">
-        <i class="fas fa-mug-hot d-block mb-1"></i>
-        <span class="small">Cafe</span>
-      </a>
-    </div>
+ <!-- NONGKI / CAFE -->
+<div class="nav-item">
+  <a
+    href="<?= base_url('cafe') ?>"
+    class="<?= (
+        $uri == 'cafe'
+        || $uri == 'scan'
+        || $uri == 'produk/delivery'
+        || $uri == 'produk/walkin'
+        || $uri == 'produk/riwayat_pesanan'
+        || $uri == 'hal/jadwal'
+      ) ? 'text-active' : 'text-dark' ?>"
+    data-swaltarget="cafe-menu"
+    data-cafe="<?= base_url('cafe') ?>"
+    data-dinein="<?= base_url('scan') ?>"
+    data-delivery="<?= base_url('produk/delivery') ?>"
+    data-walkin="<?= base_url('produk/walkin') ?>"
+    data-history="<?= base_url('produk/riwayat_pesanan') ?>"
+    
+  >
+    <i class="fas fa-mug-hot d-block mb-1"></i>
+    <span class="small">Cafe</span>
+  </a>
+</div>
+
+
 
     <!-- MENU -->
     <div class="nav-item">
@@ -384,6 +401,134 @@ ease; */
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
       swapIconToSpinner(this);
       // biarkan lanjut ke href biasa
+    });
+  });
+  /* ==========================================================
+   * 3b. SWEETALERT MENU CAFE
+   * ========================================================== */
+  document.addEventListener('click', function(e){
+    const link = e.target.closest('a[data-swaltarget="cafe-menu"]');
+    if (!link) return;
+
+    // allow open in new tab
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) return;
+
+    e.preventDefault();
+
+    if (!window.Swal || !Swal.fire) {
+      // fallback: kalau SweetAlert belum loaded, langsung ke href biasa
+      window.location.href = link.getAttribute('href');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Mau apa di Café?',
+      icon: 'info',
+      iconHtml: '☕',
+      html: `
+        <div class="container-fluid px-0">
+          <div class="row no-gutters">
+           <div class="col-12 mb-2">
+              <button type="button" id="swalCafeHistory"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-history me-2 mr-2" aria-hidden="true"></i>
+                <span>Lihat Riwayat Order</span>
+              </button>
+            </div>
+            
+            
+            <div class="col-12 mb-2">
+              <button type="button" id="swalCafeDelivery"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-motorcycle me-2 mr-2" aria-hidden="true"></i>
+                <span>Pesan Antar (Delivery)</span>
+              </button>
+            </div>
+            <div class="col-12 mb-2">
+              <button type="button" id="swalCafeWalkin"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-shopping-bag me-2 mr-2" aria-hidden="true"></i>
+                <span>Bungkus (Takeaway)</span>
+              </button>
+            </div>
+          <div class="col-12 mb-2">
+              <button type="button" id="swalCafeDineIn"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-qrcode me-2 mr-2" aria-hidden="true"></i>
+                <span>Makan di Sini (Scan QR)</span>
+              </button>
+            </div>
+           <div class="col-12 mb-2">
+              <button type="button" id="swalCafeInfo"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-store me-2 mr-2" aria-hidden="true"></i>
+                <span>Info Café</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `,
+      showConfirmButton: false,
+      showDenyButton: false,
+      showCancelButton: false,
+      buttonsStyling: false,
+      showCloseButton: true,
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+      focusConfirm: false,
+      didOpen: () => {
+        const go = (u)=>{ if(u) window.location.href = u; };
+
+        const l = Swal.getPopup().closest('body')
+          .querySelector('a[data-swaltarget="cafe-menu"]');
+
+        function makeBtnLoading(btn){
+          if (!btn || btn.__loadingApplied) return;
+          btn.__loadingApplied = true;
+          btn.disabled = true;
+          btn.innerHTML = `
+            <div class="spinner-border spinner-border-sm swal-mini-spinner" role="status" aria-hidden="true"></div>
+            <span>Loading...</span>
+          `;
+        }
+
+        const btnInfo     = document.getElementById('swalCafeInfo');
+        const btnDineIn   = document.getElementById('swalCafeDineIn');
+        const btnDelivery = document.getElementById('swalCafeDelivery');
+        const btnWalkin   = document.getElementById('swalCafeWalkin');
+        const btnHistory  = document.getElementById('swalCafeHistory');
+        const btnSchedule = document.getElementById('swalCafeSchedule');
+
+        btnInfo?.addEventListener('click', () => {
+          makeBtnLoading(btnInfo);
+          go(l?.dataset.cafe || l?.getAttribute('href'));
+        });
+
+        btnDineIn?.addEventListener('click', () => {
+          makeBtnLoading(btnDineIn);
+          go(l?.dataset.dinein || l?.getAttribute('href'));
+        });
+
+        btnDelivery?.addEventListener('click', () => {
+          makeBtnLoading(btnDelivery);
+          go(l?.dataset.delivery || l?.getAttribute('href'));
+        });
+
+        btnWalkin?.addEventListener('click', () => {
+          makeBtnLoading(btnWalkin);
+          go(l?.dataset.walkin || l?.getAttribute('href'));
+        });
+
+        btnHistory?.addEventListener('click', () => {
+          makeBtnLoading(btnHistory);
+          go(l?.dataset.history || l?.getAttribute('href'));
+        });
+
+        btnSchedule?.addEventListener('click', () => {
+          makeBtnLoading(btnSchedule);
+          go(l?.dataset.schedule || l?.getAttribute('href'));
+        });
+      }
     });
   });
 

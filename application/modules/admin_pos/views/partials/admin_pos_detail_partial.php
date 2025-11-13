@@ -91,8 +91,11 @@ $canAssignKurir = ($is_delivery && !$hasKurir);
 // === Link order_success saat HP kosong ===
 $order_code  = trim((string)($order->nomor ?? $order->kode ?? $order->order_code ?? $order->order_key ?? $order->id ?? ''));
 $success_url = $order_code !== '' ? site_url('produk/order_success/'.$order_code) : site_url('produk/order_success');
-$pm_label    = $pm_raw !== '' ? $pm_raw : 'Lihat Order';
-if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tombol
+// $pm_label    = $pm_raw !== '' ? $pm_raw : 'Lihat Order';
+// if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tombol
+// Tombol link order: SELALU tampil sebagai "Lihat Order"
+$pm_label = 'Lihat Order';
+
 ?>
 <style>
   .card-order{ overflow:hidden; }
@@ -242,7 +245,7 @@ if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tomb
     </div>
   </div>
 
-  <!-- DETAIL PELANGGAN -->
+   <!-- DETAIL PELANGGAN -->
   <?php 
     $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan !== '' || (!$has_phone && $pm_raw !== ''));
     if ($show_detail):
@@ -253,39 +256,38 @@ if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tomb
         <div class="col-md-6">
           <?php if ($customer_name !== ''): ?>
             <div class="kv mb-1">
-              <div class="k">Nama</div><div class="v"><?= htmlspecialchars($customer_name, ENT_QUOTES, 'UTF-8'); ?></div>
+              <div class="k">Nama</div>
+              <div class="v"><?= htmlspecialchars($customer_name, ENT_QUOTES, 'UTF-8'); ?></div>
             </div>
           <?php endif; ?>
 
           <?php if ($has_phone): ?>
+            <!-- HP: hanya link telp, TANPA tombol salin -->
             <div class="kv mb-1 align-items-center">
               <div class="k">HP</div>
               <div class="v d-flex align-items-center">
                 <a class="mr-2" href="tel:<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
                   <?= htmlspecialchars($customer_phone, ENT_QUOTES, 'UTF-8'); ?>
                 </a>
-                <button type="button" class="btn btn-xxs btn-outline-secondary js-copy"
-                        data-copy="<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
-                  Salin
-                </button>
-              </div>
-            </div>
-          <?php else: ?>
-            <div class="kv mb-1 align-items-center">
-              <div class="k">Pembayaran</div>
-              <div class="v">
-                <?php if (!$is_paid_like): ?>
-                  <a class="btn btn-xs btn-outline-primary"
-                     href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
-                    <i class="fe-credit-card"></i>
-                    <?= htmlspecialchars($pm_label ?: 'Lihat Order', ENT_QUOTES, 'UTF-8'); ?>
-                  </a>
-                <?php else: ?>
-                  <span class="badge badge-success">Sudah Lunas</span>
-                <?php endif; ?>
               </div>
             </div>
           <?php endif; ?>
+
+          <!-- PEMBAYARAN: SELALU TAMPILKAN "Lihat Order", MESKIPUN SUDAH LUNAS -->
+          <div class="kv mb-1 align-items-center">
+            <div class="k">Pembayaran</div>
+            <div class="v d-flex align-items-center flex-wrap" style="gap:6px;">
+              <a class="btn btn-xs btn-outline-primary"
+                 href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                <i class="fe-credit-card"></i>
+                <?= htmlspecialchars($pm_label ?: 'Lihat Order', ENT_QUOTES, 'UTF-8'); ?>
+              </a>
+
+              <?php if ($is_paid_like): ?>
+                <span class="badge badge-success">Sudah Lunas</span>
+              <?php endif; ?>
+            </div>
+          </div>
         </div>
 
         <div class="col-md-6">
@@ -308,6 +310,7 @@ if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tomb
       </div>
     </div>
   <?php endif; ?>
+
 
   <!-- ITEM + TOTAL -->
   <div class="table-responsive">

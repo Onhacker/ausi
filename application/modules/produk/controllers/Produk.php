@@ -233,6 +233,23 @@ public function rate(){
 }
 
 
+ public function riwayat_pesanan(){
+    $this->_nocache_headers();
+    $rec = $this->fm->web_me();
+
+    // >>> default-kan delivery bila belum ada mode & bukan dine-in
+    $this->_maybe_expire_meja_session(120);   // 2 jam, silakan ubah
+    $this->_ensure_default_delivery_mode();   // pastikan cart__mode = 'delivery' kalau belum ada
+
+    $data["rec"]       = $rec;
+    $data["title"]     = "Riwayat Pesanan Anda";
+    $data["deskripsi"] = "Riwayat Pesanan " . $rec->nama_website . ".";
+
+    $data["prev"]      = base_url("assets/images/produk.webp");
+    $this->load->view('riwayat_pesanan', $data);
+}
+
+
 
   public function index(){
     $this->_nocache_headers();

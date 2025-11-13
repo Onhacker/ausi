@@ -361,6 +361,45 @@ function buildSteps(mode){
   return list;
 }
 
+
+const ORDER_KEY = 'ausi_orders';
+
+  function ausiSaveOrderToLocal(res){
+    try {
+      let orders = [];
+      const raw = localStorage.getItem(ORDER_KEY);
+      if (raw) {
+        orders = JSON.parse(raw);
+        if (!Array.isArray(orders)) orders = [];
+      }
+
+      const nowISO = new Date().toISOString();
+      const newOrder = {
+        nomor:     res.nomor || '',      // misal "20251114010101-123"
+        redirect:  res.redirect || '',   // URL order_success
+        created_at: nowISO
+      };
+
+      // kalau nomor sudah ada -> update; kalau belum -> push
+      const idx = orders.findIndex(o => o.nomor === newOrder.nomor);
+      if (idx >= 0) {
+        orders[idx] = newOrder;
+      } else {
+        orders.push(newOrder);
+      }
+
+      // optional: batasi 50 terakhir
+      if (orders.length > 50) {
+        orders = orders.slice(-50);
+      }
+
+      localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
+    } catch (e){
+      console.warn('Gagal simpan riwayat pesanan ke localStorage', e);
+    }
+  }
+
+
   // ====== Submit flow ======
   $('#btn-order').on('click', function(){
 
@@ -382,20 +421,6 @@ function buildSteps(mode){
       return;
     }
 
-    // Delivery fields
-    // let phone='', alamat='', ongkir=0;
-    // if (MODE === 'delivery') {
-    //   phone  = ($phone.val() || '').trim();
-    //   alamat = ($alamat.val() || '').trim();
-    //   if (IS_KASIR) {
-    //     const ong = ($ongkir.val() || '0').trim();
-    //     ongkir = parseInt(ong, 10) || 0; // tetap dikirim ke server, tapi TIDAK ditampilkan di SweetAlert
-    //   }
-    //   if (!phone || !alamat) {
-    //     Swal.fire({icon:'warning', title:'Lengkapi data delivery', text:'Telepon & alamat wajib untuk pengantaran.', allowOutsideClick:false});
-    //     return;
-    //   }
-    // }
 
     // Delivery fields
    let phone='', alamat='', ongkir=0, latVal='', lngVal='';
@@ -499,9 +524,23 @@ function buildSteps(mode){
         }
         // Hapus draft biar nggak ke-restore ke order berikutnya
         clearDraft();
+        ausiSaveOrderToLocal(r);
 
-        Swal.fire({ title:'Mantap! Pesanan diterima ✔️', icon:'success', timer:1300, showConfirmButton:false });
-        setTimeout(()=> { window.location.href = r.redirect; }, 900);
+        // Swal.fire({ title:'Mantap! Pesanan diterima ✔️', icon:'success', timer:1300, showConfirmButton:false });
+        Swal.fire({
+          title: 'Mantap! Pesanan diterima ✔️',
+          html: '<small>Lanjut ke metode pembayaran…</small>',
+          icon: 'success',
+            timer: 1300,              // popup auto-close dalam 1,3 detik
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false
+          }).then(() => {
+            // ⬅️ BARIS PENTING: redirect setelah popup bener-bener tertutup
+            window.location.href = r.redirect;
+          });
+
+        // setTimeout(()=> { window.location.href = r.redirect; }, 900);
       // }).fail(function(){
       //   stopProgressLoader(false); // <-- NEW
       //   Swal.fire('Error','Koneksi lagi ngambek, coba lagi ya.','error');
@@ -827,6 +866,8 @@ function finishAllProgressSteps(){
 <script>
   $(function(){ $('[data-toggle="tooltip"]').tooltip({ trigger:'hover focus' }); });
 </script>
+
+
 
 
 <?php $this->load->view("front_end/footer.php"); ?>
