@@ -715,6 +715,14 @@ private function _delete_archives_for_orders(array $order_ids): void
  * - Bila "kemarin wrap & hari ini normal & sekarang dini hari" → dipakai window kemarin.
  * - Opsi batas tutup eksklusif (tutup tepat di menit close).
  */
+/**
+ * Filter pesanan hanya dalam jendela operasional yang SEDANG AKTIF.
+ *
+ * - Baca jam buka/tutup per hari dari tabel identitas (op_mon_open/close, dst).
+ * - Support jam nyebrang hari, contoh Sabtu 10.00 → 01.00 (Minggu).
+ * - Kalau sekarang tidak berada di jam operasional (tidak dalam window), hasil = KOSONG.
+ * - Kalau sekarang berada di "ekor" Sabtu (Minggu dini hari < 01.00), window = Sabtu 10.00 → Minggu 01.00.
+ */
 private function _apply_today_window(): void
 {
     // ===== 1) Ambil konfigurasi dari identitas =====
@@ -731,33 +739,45 @@ private function _apply_today_window(): void
         LIMIT 1
     ")->row();
 
-    // ===== 2) Timezone & waktu sekarang =====
-    $tzStr = ($row && trim((string)$row->waktu) !== '') ? trim((string)$row->waktu) : 'Asia/Makassar';
-    try { $tz = new DateTimeZone($tzStr); } catch (\Throwable $e) { $tz = new DateTimeZone('Asia/Makassar'); }
+    // Kalau tidak ada baris identitas, batasi minimal ke HARI INI saja (anti "semua pesanan").
+    if (!$row) {
+        $today = date('Y-m-d');
+        $this->db->where('DATE(o.created_at) =', $today);
+        return;
+    }
 
-    $now = new DateTime('now', $tz);
-    $today      = $now->format('Y-m-d');
-    $yesterday  = (clone $now)->modify('-1 day')->format('Y-m-d');
-    $tomorrow   = (clone $now)->modify('+1 day')->format('Y-m-d');
-    $dowToday   = strtolower($now->format('D'));           // mon..sun
-    $dowYest    = strtolower((clone $now)->modify('-1 day')->format('D'));
+    // ===== 2) Timezone dan waktu sekarang =====
+    $tzStr = trim((string)($row->waktu ?? ''));
+    if ($tzStr === '') $tzStr = 'Asia/Makassar';
+    try {
+        $tz = new DateTimeZone($tzStr);
+    } catch (\Throwable $e) {
+        $tz = new DateTimeZone('Asia/Makassar');
+    }
 
-    // ===== 3) Helper normalisasi & menit =====
-    $norm = function($s){
+    $now      = new DateTime('now', $tz);
+    $today    = $now->format('Y-m-d');
+    $yestDate = (clone $now)->modify('-1 day')->format('Y-m-d');
+    $dowToday = strtolower($now->format('D'));                       // mon..sun
+    $dowYest  = strtolower((clone $now)->modify('-1 day')->format('D'));
+
+    // ===== 3) Helper normalisasi jam "10.00" → "10:00" =====
+    $norm = function($s) {
         $s = trim((string)$s);
         if ($s === '') return null;
         $s = str_replace('.', ':', $s);
         if (!preg_match('/^(\d{1,2}):([0-5]\d)$/', $s, $m)) return null;
-        $h = max(0, min(23, (int)$m[1])); $i = (int)$m[2];
+        $h = max(0, min(23, (int)$m[1]));
+        $i = (int)$m[2];
         return sprintf('%02d:%02d', $h, $i);
     };
-    $toMin = function($hhmm){
+    $toMin = function($hhmm) {
         if ($hhmm === null) return null;
         [$h,$i] = array_map('intval', explode(':', $hhmm));
-        return $h*60 + $i;
+        return $h * 60 + $i;
     };
 
-    // ===== 4) Pemetaan field per-hari =====
+    // ===== 4) Pemetaan kolom per hari =====
     $map = [
         'mon' => ['open'=>'op_mon_open','close'=>'op_mon_close','closed'=>'op_mon_closed'],
         'tue' => ['open'=>'op_tue_open','close'=>'op_tue_close','closed'=>'op_tue_closed'],
@@ -768,96 +788,113 @@ private function _apply_today_window(): void
         'sun' => ['open'=>'op_sun_open','close'=>'op_sun_close','closed'=>'op_sun_closed'],
     ];
 
-    // ===== 5) Ambil jam hari-ini & kemarin (fallback default bila kosong) =====
-    $defOpen = '08:00';
-    $defClose= '23:59';
+    $defOpen  = '08:00';
+    $defClose = '23:59';
 
-    $getDayCfg = function($dayKey) use ($row, $map, $norm, $defOpen, $defClose){
+    $getCfg = function($dayKey) use ($row, $map, $norm, $defOpen, $defClose) {
         if (!$row || !isset($map[$dayKey])) {
             return ['open'=>$defOpen,'close'=>$defClose,'closed'=>0];
         }
         $f = $map[$dayKey];
         $open  = $norm($row->{$f['open']}  ?? null) ?: $defOpen;
         $close = $norm($row->{$f['close']} ?? null) ?: $defClose;
-        $closed= !empty($row->{$f['closed']}) ? 1 : 0;
+        $closed = !empty($row->{$f['closed']}) ? 1 : 0;
+
         return ['open'=>$open,'close'=>$close,'closed'=>$closed];
     };
 
-    $cfgT = $getDayCfg($dowToday);
-    $cfgY = $getDayCfg($dowYest);
+    $cfgToday = $getCfg($dowToday);
+    $cfgYest  = $getCfg($dowYest);
 
-    $oT = $toMin($cfgT['open']);
-    $cT = $toMin($cfgT['close']);
-    $oY = $toMin($cfgY['open']);
-    $cY = $toMin($cfgY['close']);
-
-    // 24 jam jika open==close
-    $is24T = ($oT !== null && $cT !== null && $oT === $cT);
-    $is24Y = ($oY !== null && $cY !== null && $oY === $cY);
-
-    $wrapT = !$is24T && ($oT !== null && $cT !== null && $cT <= $oT); // contoh 08:00→01:00
-    $wrapY = !$is24Y && ($oY !== null && $cY !== null && $cY <= $oY);
-
-    $nowMin = (int)$now->format('H')*60 + (int)$now->format('i');
-
-    // ===== 6) Tentukan window aktif (today vs yesterday wrap) =====
-    // Opsi: close eksklusif? (true = tutup tepat di menit close)
-    $closeExclusive = true;
-
-    $useYesterdayWindow = false;
-
-    if ($is24T) {
-        // 24 jam hari ini -> pakai window full hari ini
-        $useYesterdayWindow = false;
-    } elseif ($wrapT) {
-        // Hari-ini wrap → jika sekarang dini hari (<= close) maka ini segmen after-midnight
-        if ($nowMin <= $cT) $useYesterdayWindow = true;
-    } elseif ($wrapY && !$cfgY['closed']) {
-        // Kemarin wrap & hari ini normal → jika sekarang dini hari (<= close kemarin) ikut window kemarin
-        if ($nowMin <= $cY) $useYesterdayWindow = true;
-    }
-
-    // Jika hari-ini ditandai closed:
-    // - Bila dini hari dan kemarin wrap → tetap gunakan window kemarin (after-midnight).
-    // - Selain itu → kosongkan hasil.
-    if ($cfgT['closed']) {
-        if (!($useYesterdayWindow && $wrapY && !$cfgY['closed'])) {
-            $this->db->where('1=', '0', false); // paksa kosong
-            return;
+    // ===== 5) Hitung window per hari (start/end DateTime string) =====
+    $buildWindow = function($dateYmd, array $cfg) use ($toMin) {
+        if (!empty($cfg['closed'])) {
+            return [null, null, false]; // closed
         }
+
+        $open  = $cfg['open'];
+        $close = $cfg['close'];
+
+        $oMin = $toMin($open);
+        $cMin = $toMin($close);
+
+        if ($oMin === null || $cMin === null) {
+            return [null, null, false];
+        }
+
+        // 24 jam (open == close)
+        if ($oMin === $cMin) {
+            $start = $dateYmd.' 00:00:00';
+            $end   = (new DateTime($dateYmd.' 00:00:00'))->modify('+1 day')->format('Y-m-d H:i:s');
+            return [$start, $end, false];
+        }
+
+        // Normal (tidak wrap)
+        if ($cMin > $oMin) {
+            $start = $dateYmd.' '.$open.':00';
+            $end   = $dateYmd.' '.$close.':00';
+            return [$start, $end, false];
+        }
+
+        // Wrap (nyebrang hari) contoh 10:00 → 01:00
+        $start = $dateYmd.' '.$open.':00';
+        $end   = (new DateTime($dateYmd.' 00:00:00'))->modify('+1 day')->format('Y-m-d').' '.$close.':00';
+        return [$start, $end, true];
+    };
+
+    [$startToday, $endToday, $wrapToday] = $buildWindow($today, $cfgToday);
+    [$startYest, $endYest, $wrapYest]    = $buildWindow($yestDate, $cfgYest);
+
+    // ===== 6) Tentukan window aktif berdasarkan "now" =====
+    $start = null;
+    $end   = null;
+
+    $nowTs = $now->getTimestamp();
+
+    $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) {
+        if (!$startStr || !$endStr) return false;
+        $s = new DateTime($startStr, $tz);
+        $e = new DateTime($endStr, $tz);
+        $sTs = $s->getTimestamp();
+        $eTs = $e->getTimestamp();
+        return ($nowTs >= $sTs && $nowTs < $eTs);
+    };
+
+    // Prioritas: window hari ini dulu
+    if ($inWindow($startToday, $endToday, $nowTs, $tz)) {
+        $start = $startToday;
+        $end   = $endToday;
+    }
+    // Kalau tidak sedang dalam window hari ini, cek apakah dia ekor window kemarin (wrap)
+    elseif ($wrapYest && $inWindow($startYest, $endYest, $nowTs, $tz)) {
+        $start = $startYest;
+        $end   = $endYest;
     }
 
-    // ===== 7) Bangun $start & $end (datetime) =====
-    if ($is24T) {
-        // 24 jam hari ini
-        $start = $today.' 00:00:00';
-        $end   = $tomorrow.' 00:00:00'; // eksklusif
-    } elseif ($useYesterdayWindow) {
-        // Segmen after-midnight milik window KEMARIN (wrap)
-        // start: YESTERDAY open → end: TODAY close
-        $start = $yesterday.' '.$cfgY['open'].':00';
-        $end   = $today    .' '.$cfgY['close'].':00';
-    } elseif ($wrapT) {
-        // Segmen siang hari-ini (open..23:59) milik TODAY
-        $start = $today   .' '.$cfgT['open'].':00';
-        $end   = $tomorrow.' '.$cfgT['close'].':00'; // close besok
-    } else {
-        // Window normal TODAY
-        $start = $today.' '.$cfgT['open'].':00';
-        $end   = $today.' '.$cfgT['close'].':00';
+    // ===== 7) Terapkan ke query utama =====
+    if (!$start || !$end) {
+        // Tidak sedang jam operasional → kosongkan hasil
+        $this->db->where('1 = 0', null, false);
+        log_message('debug', sprintf(
+            '[POS WINDOW] CLOSED now=%s tz=%s',
+            $now->format('Y-m-d H:i:s'),
+            $tz->getName()
+        ));
+        return;
     }
 
-    // ===== 8) Terapkan filter ke query utama =====
     $this->db->where('o.created_at >=', $start);
+    $this->db->where('o.created_at <',  $end);
 
-    if ($closeExclusive) {
-        // eksklusif: tepat di detik close dianggap sudah tutup
-        $this->db->where('o.created_at <',  $end);
-    } else {
-        // inklusif: tepat di detik close masih masuk
-        $this->db->where('o.created_at <=', $end);
-    }
+    log_message('debug', sprintf(
+        '[POS WINDOW] now=%s tz=%s start=%s end=%s',
+        $now->format('Y-m-d H:i:s'),
+        $tz->getName(),
+        $start,
+        $end
+    ));
 }
+
 
 
 /** Ringkas item per order (opsional filter kategori 1/2) */
