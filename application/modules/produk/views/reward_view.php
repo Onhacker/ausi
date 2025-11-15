@@ -33,7 +33,7 @@ if (!function_exists('mask_phone')) {
 }
 ?>
 
-<div class="container-fluid pb-4">
+<div class="container-fluid">
 
   <!-- HERO TITLE -->
   <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul halaman">
