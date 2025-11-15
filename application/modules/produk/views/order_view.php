@@ -221,6 +221,37 @@
          autocomplete="email">
 </div>
 
+<!-- KODE VOUCHER (opsional) -->
+<div class="form-group col-md-6">
+  <label class="d-flex align-items-center">
+    <span>Kode Voucher <small class="text-muted ml-1">(opsional)</small></span>
+    <span class="help-icon pretty"
+          data-toggle="tooltip"
+          data-placement="right"
+          title="Masukkan kode voucher promo yang kamu punya.">
+      ?
+    </span>
+  </label>
+  <div class="input-group">
+    <input type="text"
+           class="form-control"
+           name="voucher_code"
+           id="voucher_code"
+           placeholder="Contoh: CAF250115001"
+           autocomplete="off"
+           style="text-transform:uppercase;">
+    <div class="input-group-append">
+      <button class="btn btn-outline-secondary" type="button" id="btn-clear-voucher">
+        Hapus
+      </button>
+    </div>
+  </div>
+  <small class="text-muted">
+    Biarkan kosong jika tidak punya voucher.
+  </small>
+</div>
+
+
 
           <div class="form-group col-md-6">
             <label for="catatan">Catatan</label>
@@ -275,6 +306,7 @@
       $catatan: $form.find('textarea[name="catatan"]'),
       $phone:   $form.find('input[name="phone"]'),
       $email:   $form.find('input[name="email"]'),
+      $voucher: $form.find('input[name="voucher_code"]'), // <-- NEW
       $alamat:  $form.find('textarea[name="alamat"]'),
       $ongkir:  $form.find('input[name="ongkir"]')
     };
@@ -285,10 +317,11 @@
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return;
     const d = JSON.parse(raw)||{};
-    const { $nama, $catatan, $phone, $alamat, $ongkir, $email } = getFormElems();
+     const { $nama, $catatan, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems();
 
     if (d.nama != null)     $nama.val(d.nama);
     if (d.email != null)    $email.val(d.email);  // <-- NEW
+    if (d.voucher_code != null)$voucher.val(d.voucher_code); // <-- NEW
 
     if (MODE==='delivery'){
       if (d.phone != null)  $phone.val(d.phone);
@@ -300,10 +333,11 @@
 }
 
 function saveDraft() {
-  const { $nama, $phone, $alamat, $ongkir, $email } = getFormElems();
+  const { $nama, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems(); // <-- tambah $voucher
   const data = {
     nama:  ($nama.val()||'').trim(),
-    email: ($email.val()||'').trim()  // <-- NEW
+    email: ($email.val()||'').trim(),  // <-- NEW
+    voucher_code: ($voucher.val()||'').trim().toUpperCase() // <-- NEW
   };
   if (MODE==='delivery'){
     data.phone  = ($phone.val()||'').trim();
@@ -328,6 +362,12 @@ function saveDraft() {
   // Restore saat load
   $(document).ready(loadDraft);
 
+  $(document).on('click', '#btn-clear-voucher', function(){
+  $('#voucher_code').val('');
+  if (typeof scheduleSaveDraft === 'function') {
+    scheduleSaveDraft();
+  }
+});
   // Listen perubahan input agar auto-save
   // ⟵ KECUALIKAN #catatan dari trigger penyimpanan
   $(document).on('input change', '#form-order input, #form-order textarea:not(#catatan)', scheduleSaveDraft);
@@ -352,7 +392,9 @@ function buildSteps(mode){
     // fallback = walkin / bungkus
     list.push('Catat pesanan kamu buat dibungkus… 🛍️');
   }
-
+  if ($('input[name="voucher_code"]').val().trim() !== '') {
+    list.push('Cek dan validasi kode vouchermu… 🎟️');
+  }
   // Step akhir yang sama buat semua mode
   list.push('Bikin nomor order biar resmi… 🧾');
   list.push('Simpan ke sistem kasir… 💾');
@@ -444,14 +486,16 @@ function ausiSaveOrderToLocal(order){
   // ====== Submit flow ======
   $('#btn-order').on('click', function(){
 
-    const { $form, $nama, $catatan, $phone, $alamat, $ongkir, $email } = getFormElems(); // <-- tambahkan $email
+    const { $form, $nama, $catatan, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems();
     const email = ($email.val() || '').trim();
-
+    const voucherCode = ($voucher.val() || '').trim().toUpperCase(); // <-- NEW
     const fd    = new FormData($form[0]);
 
     const nama    = ($nama.val() || '').trim();
     const catatan = ($catatan.val() || '').trim(); // boleh dipakai, tapi TIDAK disimpan
-
+    if (voucherCode) {
+      fd.set('voucher_code', voucherCode);
+    }
     if (!nama) {
       Swal.fire({
         icon: 'warning',
@@ -517,6 +561,7 @@ function ausiSaveOrderToLocal(order){
           <div><b>Alamat</b>: ${$('<div>').text(alamat).html()}</div>
         ` : ''}
          ${email ? `<div><b>Email</b>: ${$('<div>').text(email).html()}</div>` : ''} 
+          ${voucherCode ? `<div><b>Voucher</b>: ${$('<div>').text(voucherCode).html()}</div>` : ''} 
         ${catatan ? `<div><b>Catatan</b>: ${$('<div>').text(catatan).html()}</div>` : ''}
         <div><b>Atas Nama</b>: ${$('<div>').text(nama).html()}</div>
       </div>

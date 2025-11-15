@@ -155,7 +155,7 @@ if (!function_exists('nav_class')) {
       $menu_patterns = [
         'admin_permohonan','admin_profil/detail_profil','booking',
         'admin_dashboard/monitor','admin_pos','admin_user','hal/kontak',
-        'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*'
+        'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*', 'admin_voucher_cafe*'
       ];
     ?>
     <div class="nav-item">
@@ -241,7 +241,13 @@ $showKeuLap =
     user_can_mod(['admin_laporan/index']) ||
     user_can_mod(['admin_rating']); // <- tambahkan ini, pisahkan or-nya
 
-    $showMaster    = user_can_mod(['admin_produk']) || user_can_mod(['admin_kategori_produk']) || user_can_mod(['admin_kurir']) || user_can_mod(['admin_unit_lain']);
+    $showMaster    =
+    user_can_mod(['admin_produk']) ||
+    user_can_mod(['admin_kategori_produk']) ||
+    user_can_mod(['admin_kurir']) ||
+    user_can_mod(['admin_unit_lain']) ||
+    user_can_mod(['admin_voucher_cafe']); // <-- tambah ini
+
     $showAdmin     = user_can_mod(['admin_user']) || user_can_mod(['admin_setting_web']) || user_can_mod(['admin_pengumuman']);
   ?>
 
@@ -368,6 +374,13 @@ $showKeuLap =
       </a>
     <?php endif; ?>
 
+    <?php if (user_can_mod(['admin_voucher_cafe'])): ?>
+      <a id="quick-voucher-cafe-link" href="<?= site_url('admin_voucher_cafe') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎁</span><span>Voucher Cafe</span>
+      </a>
+    <?php endif; ?>
+
+
     <?php if (user_can_mod(['admin_kurir'])): ?>
       <a id="quick-kurir-link" href="<?= site_url('admin_kurir') ?>" class="menu-item">
         <span class="emoji" data-anim="cart" aria-hidden="true">🛵</span><span>Kurir</span>
@@ -457,6 +470,7 @@ $showKeuLap =
   // ===== Master Data / Operasional =====
   admin_produk:          { a: document.getElementById("quick-produk-link") },
   admin_kategori_produk: { a: document.getElementById("quick-kategori-link") },
+  admin_voucher_cafe:    { a: document.getElementById("quick-voucher-cafe-link") }, // <-- TAMBAHAN
   admin_meja:            { a: document.getElementById("quick-meja-link") },
 
   // ===== POS / Transaksi =====

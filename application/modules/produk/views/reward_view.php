@@ -118,12 +118,12 @@ if (!function_exists('mask_phone')) {
                     <div class="reward-row">
                       <span class="reward-row-label">Status</span>
                       <span class="reward-pill pill-blue">
-                        Dipilih secara acak
+                        Dipilih secara acak Oleh Sistem
                       </span>
                     </div>
 
                     <div class="reward-note">
-                      Semua pelanggan yang bertransaksi di periode ini memiliki peluang yang sama.
+                      Semua pelanggan yang bertransaksi di periode ini memiliki peluang yang sama dan Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
                     </div>
                   </div>
                 </div>
@@ -163,8 +163,12 @@ if (!function_exists('mask_phone')) {
 
             <p class="mt-3 mb-0 small text-muted">
               No. WhatsApp disensor demi menjaga privasi pelanggan.
-              Hadiah dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
+              Voucher dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
             </p>
+            <p class="mt-2 mb-0 small text-dark">
+              Peraih voucher ditentukan sepenuhnya oleh Robot Ausi, dengan metode poin tertinggi dan undian acak oleh Robot Ausi dari semua pelanggan yang memiliki poin pada periode tersebut, tanpa campur tangan manusia.
+            </p>
+
 
           <?php else: ?>
 
@@ -248,6 +252,7 @@ if (!function_exists('mask_phone')) {
                   </div>
                 </div>
               </div>
+
             </div>
 
           <?php endif; ?>

@@ -9,14 +9,23 @@
 <?php
   // ===== hitung konteks & total tampilan =====
   $is_delivery   = strtolower($order->mode ?? '') === 'delivery';
-  $delivery_fee  = (int)($order->delivery_fee ?? 0);
-  $subtotal_view = (int)($total ?? 0);
-  // pastikan ambil kode_unik yang sudah diset di _set_verifikasi('transfer')
-  $kode_unik     = (int)($kode_unik ?? ($order->kode_unik ?? 0));
+$delivery_fee  = (int)($order->delivery_fee ?? 0);
+$subtotal_view = (int)($total ?? 0);
+// pastikan ambil kode_unik yang sudah diset di _set_verifikasi('transfer')
+$kode_unik     = (int)($kode_unik ?? ($order->kode_unik ?? 0));
 
-  // fallback kalau grand_total belum ikut terset
-  $grand_fallback = $subtotal_view + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
-  $grand_display  = (int)($grand_total ?? $order->grand_total ?? $grand_fallback);
+// voucher
+$voucher_disc = (int)($order->voucher_disc ?? 0);
+$voucher_code = trim((string)($order->voucher_code ?? ''));
+$has_voucher  = ($voucher_disc > 0);
+
+// fallback kalau grand_total belum ikut terset di DB
+$subtotal_after_voucher = $subtotal_view - $voucher_disc;
+if ($subtotal_after_voucher < 0) $subtotal_after_voucher = 0;
+
+$grand_fallback = $subtotal_after_voucher + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
+$grand_display  = (int)($grand_total ?? $order->grand_total ?? $grand_fallback);
+
 
   // status & ref (untuk polling)
   $status_now = strtolower($order->status ?? 'pending');
@@ -75,7 +84,14 @@
             <span class="text-dark">Subtotal</span>
             <span>Rp <?= number_format($subtotal_view,0,',','.') ?></span>
           </div>
-
+           <?php if ($has_voucher): ?>
+  <div class="line">
+    <span class="text-dark">
+      Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+    </span>
+    <span class="text-danger">- <?= number_format($voucher_disc,0,',','.') ?></span>
+  </div>
+  <?php endif; ?>
           <?php if ($is_delivery && $delivery_fee > 0): ?>
           <div class="line">
             <span class="text-dark">Ongkir</span>
@@ -174,6 +190,14 @@
           <strong>Subtotal</strong>
           <strong>Rp <?= number_format($subtotal_view,0,',','.') ?></strong>
         </div>
+        <?php if ($has_voucher): ?>
+          <div class="d-flex justify-content-between">
+            <span>
+              Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+            </span>
+            <span class="text-danger">- <?= number_format($voucher_disc,0,',','.') ?></span>
+          </div>
+        <?php endif; ?>
 
         <?php if ($is_delivery && $delivery_fee > 0): ?>
         <div class="d-flex justify-content-between">

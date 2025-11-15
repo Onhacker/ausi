@@ -352,48 +352,90 @@ public function get_dataa(){
         $isBar     = ($uname === 'bar');
 
         // === Formatter METODE (hanya: Cash, QRIS, Transfer) ===
-        $fmt_method = function($raw) {
-            $rawStr = (string)$raw;
-            $s = strtolower(trim($rawStr));
-            if ($s === '' || $s === '-' || $s === 'unknown') {
-                return '<span class="text-muted">—</span>';
-            }
+        // === Formatter METODE (Cash / QRIS / Transfer + penanda Voucher) ===
+$fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
+    $rawStr = (string)$raw;
+    $s      = strtolower(trim($rawStr));
+    $chips  = [];
 
-            // pecah token (dukung json array / string gabungan)
-            $tokens = [];
-            if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
-                $tmp = json_decode($rawStr, true);
-                if (is_array($tmp)) {
-                    foreach ($tmp as $v) { $tokens[] = strtolower(trim((string)$v)); }
+    // builder chip metode
+    $chip = function($icon,$label,$cls){
+        return '<span class="badge badge-pill '.$cls.' mr-1 mb-1">'
+             .   '<i class="mdi '.$icon.' mr-1"></i>'.$label
+             . '</span>';
+    };
+
+    // ==== METODE PEMBAYARAN (cash / qris / transfer) ====
+    if ($s !== '' && $s !== '-' && $s !== 'unknown') {
+        $tokens = [];
+
+        // dukung format JSON (array string)
+        if ($s[0] === '[' || $s[0] === '{') {
+            $tmp = json_decode($rawStr, true);
+            if (is_array($tmp)) {
+                foreach ($tmp as $v) {
+                    $tokens[] = strtolower(trim((string)$v));
                 }
             }
-            if (!$tokens) {
-                $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
-            }
+        }
 
-            // normalisasi -> flag 3 jenis saja
-            $has = ['cash'=>false, 'qris'=>false, 'transfer'=>false];
-            foreach ($tokens as $t) {
-                if (preg_match('/^(cash|tunai)$/', $t))                           $has['cash'] = true;
-                elseif (preg_match('/^(qris|qr|scan)$/', $t))                      $has['qris'] = true;
-                elseif (preg_match('/^(transfer|tf|bank|bca|bri|bni|mandiri)$/', $t)) $has['transfer'] = true;
-            }
+        // fallback: pecah manual
+        if (!$tokens) {
+            $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+        }
 
-            // builder chip
-            $chip = function($icon,$label,$cls){
-                return '<span class="badge badge-pill '.$cls.' mr-1 mb-1">'
-                     .   '<i class="mdi '.$icon.' mr-1"></i>'.$label
-                     . '</span>';
-            };
+        // flag 3 jenis metode
+        $has = ['cash'=>false, 'qris'=>false, 'transfer'=>false];
+        foreach ($tokens as $t) {
+            if (preg_match('/^(cash|tunai)$/', $t))                             $has['cash']     = true;
+            elseif (preg_match('/^(qris|qr|scan)$/', $t))                      $has['qris']     = true;
+            elseif (preg_match('/^(transfer|tf|bank|bca|bri|bni|mandiri)$/', $t)) $has['transfer'] = true;
+        }
 
-            $out = '';
-            if ($has['cash'])     $out .= $chip('mdi-cash',           'Tunai',    'badge-success');
-            if ($has['qris'])     $out .= $chip('mdi-qrcode-scan',    'QRIS',     'badge-info');
-            if ($has['transfer']) $out .= $chip('mdi-bank-transfer',  'Transfer', 'badge-secondary');
+        if ($has['cash'])     $chips[] = $chip('mdi-cash',          'Tunai',    'badge-success');
+        if ($has['qris'])     $chips[] = $chip('mdi-qrcode-scan',   'QRIS',     'badge-info');
+        if ($has['transfer']) $chips[] = $chip('mdi-bank-transfer', 'Transfer', 'badge-secondary');
+    }
 
-            if ($out === '') return '<span class="text-muted">—</span>'; // selain 3, sembunyikan
-            return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem" title="'.htmlspecialchars($rawStr, ENT_QUOTES, 'UTF-8').'">'.$out.'</div>';
-        };
+    // ==== PENANDA VOUCHER (kalau ada) ====
+    $voucher_disc = (int)$voucher_disc;
+    $codeTrim     = trim((string)$voucher_code);
+
+    if ($voucher_disc > 0 || $codeTrim !== '') {
+        $labelV = 'Voucher';
+        if ($codeTrim !== '') {
+            $labelV .= ' ('.htmlspecialchars($codeTrim, ENT_QUOTES, 'UTF-8').')';
+        }
+
+        $chips[] =
+            '<span class="badge badge-pill badge-warning mr-1 mb-1">'
+          .   '<i class="mdi mdi-ticket-percent mr-1"></i>'.$labelV
+          . '</span>';
+    }
+
+    // kalau sama sekali tidak ada chip
+    if (!$chips) {
+        return '<span class="text-muted">—</span>';
+    }
+
+    // tooltip gabungan (metode + info voucher)
+    $titleParts = [];
+    if ($rawStr !== '') {
+        $titleParts[] = 'Metode: '.$rawStr;
+    }
+    if ($voucher_disc > 0) {
+        $titleParts[] = 'Voucher '.($codeTrim !== '' ? $codeTrim : '')
+                      .' (potongan Rp '.number_format($voucher_disc,0,',','.').')';
+    }
+    $title = implode(' | ', $titleParts);
+
+    return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
+         . ($title ? ' title="'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'"' : '')
+         . '>'
+         . implode('', $chips)
+         . '</div>';
+};
+
 
         $list = $this->dm->get_data();
         $data = [];
@@ -600,7 +642,15 @@ public function get_dataa(){
               . '</span>';
 
             // 9. metode
-            $row['metode'] = ($isKitchen || $isBar) ? '' : $fmt_method($r->paid_method ?? '');
+            // 9. metode (kasir/admin: metode + penanda voucher)
+                $row['metode'] = ($isKitchen || $isBar)
+                    ? ''
+                    : $fmt_method(
+                        $r->paid_method ?? '',
+                        $r->voucher_code ?? null,
+                        $r->voucher_disc ?? 0
+                      );
+
 
             // 10. aksi (hanya kasir/admin)
             if (!$isKitchen && !$isBar) {

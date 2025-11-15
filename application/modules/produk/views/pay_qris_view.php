@@ -13,13 +13,22 @@
   $delivery_fee  = (int)($order->delivery_fee ?? 0);
   $subtotal_view = (int)($total ?? 0);
 
-  // Ambil dari DB langsung agar pasti konsisten
-  $kode_unik     = isset($order->kode_unik)   ? (int)$order->kode_unik   : 0;
-  $grand_db      = isset($order->grand_total) ? (int)$order->grand_total : null;
+  // voucher
+  $voucher_disc = (int)($order->voucher_disc ?? 0);
+  $voucher_code = trim((string)($order->voucher_code ?? ''));
+  $has_voucher  = ($voucher_disc > 0);
 
-  // Fallback jika grand_total belum ada
-  $grand_fallback = $subtotal_view + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
+  // Ambil dari DB langsung agar pasti konsisten
+  $kode_unik = isset($order->kode_unik)   ? (int)$order->kode_unik   : 0;
+  $grand_db  = isset($order->grand_total) ? (int)$order->grand_total : null;
+
+  // Fallback jika grand_total belum ada di DB
+  $subtotal_after_voucher = $subtotal_view - $voucher_disc;
+  if ($subtotal_after_voucher < 0) $subtotal_after_voucher = 0;
+
+  $grand_fallback = $subtotal_after_voucher + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
   $grand_display  = $grand_db ?? (int)($grand_total ?? $grand_fallback);
+
 ?>
 
   <div class="row">
@@ -82,7 +91,14 @@
           <div class="text-dark">Subtotal</div>
           <div>Rp <?= number_format($subtotal_view,0,',','.') ?></div>
         </div>
-
+        <?php if ($has_voucher): ?>
+        <div class="d-flex justify-content-between">
+          <div class="text-dark">
+            Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+          </div>
+          <div class="text-danger">- <?= number_format($voucher_disc,0,',','.') ?></div>
+        </div>
+        <?php endif; ?>
         <?php if ($is_delivery && $delivery_fee > 0): ?>
         <div class="d-flex justify-content-between">
           <div class="text-dark">Ongkir</div>
@@ -154,6 +170,14 @@
           <strong>Subtotal</strong>
           <strong>Rp <?= number_format($subtotal_view,0,',','.') ?></strong>
         </div>
+        <?php if ($has_voucher): ?>
+          <div class="d-flex justify-content-between">
+            <span>
+              Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+            </span>
+            <span class="text-danger">- <?= number_format($voucher_disc,0,',','.') ?></span>
+          </div>
+        <?php endif; ?>
 
         <?php if ($is_delivery && $delivery_fee > 0): ?>
         <div class="d-flex justify-content-between">

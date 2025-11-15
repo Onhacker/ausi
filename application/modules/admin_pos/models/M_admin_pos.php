@@ -84,7 +84,8 @@ class M_admin_pos extends CI_Model {
         o.status,o.courier_id,o.courier_name,
         o.status_pesanan_kitchen, o.kitchen_done_at, o.kitchen_duration_s,
         o.status_pesanan_bar,     o.bar_done_at,     o.bar_duration_s,
-        o.grand_total, o.tutup_transaksi, o.kode_unik, o.catatan
+        o.grand_total, o.tutup_transaksi, o.kode_unik, o.catatan ,o.voucher_code
+    ,o.voucher_disc
     ');
 
     // ... (filter status & kategori yang sudah ada)

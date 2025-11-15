@@ -127,18 +127,36 @@
       <g fill="#fff" opacity=".85" transform="translate(10,4)">
         <path d="M7 0 L9 5 L14 7 L9 9 L7 14 L5 9 L0 7 L5 5 Z"/>
       </g>
-      <text x="16" y="36" fill="#fff" font-size="15" font-weight="700">Voucher Mingguan</text>
+      <text x="16" y="30" fill="#fff" font-size="15" font-weight="700">Voucher Mingguan @ 2 Org</text>
       <text x="16" y="62" fill="#fff" font-size="30" font-weight="800">Rp 50.000</text>
     </g>
 
     <!-- Headline + desc -->
     <g transform="translate(20,140)">
-      <text x="0" y="0"  fill="#e5f3ff" font-size="15" font-weight="700">Tingkatkan transaksi order anda</text>
-      <text x="0" y="32" fill="#ffffff" font-size="24" font-weight="800">Dapatkan Poin & Raih</text>
-      <text x="0" y="62" fill="#ffffff" font-size="24" font-weight="800">Voucher Order</text>
-      <text x="0" y="96"  fill="#ffffff" font-size="14">Pengumuman voucher & rekap poin</text>
-      <text x="0" y="116" fill="#ffffff" font-size="14"><tspan font-weight="700">setiap hari minggu</tspan> </text>
-    </g>
+  <text x="0" y="0"  fill="#e5f3ff" font-size="15" font-weight="700">
+    Tingkatkan transaksi order anda
+  </text>
+  <text x="0" y="32" fill="#ffffff" font-size="24" font-weight="800">
+    Dapatkan Poin &amp; Raih
+  </text>
+  <text x="0" y="62" fill="#ffffff" font-size="24" font-weight="800">
+    Voucher Order
+  </text>
+  <text x="0" y="96"  fill="#ffffff" font-size="14">
+    Pengumuman voucher &amp; rekap poin
+  </text>
+  <text x="0" y="116" fill="#ffffff" font-size="14">
+    <tspan font-weight="700">setiap hari minggu</tspan>
+  </text>
+
+  <!-- BARIS LINK: Produk/Reward bisa diklik -->
+  <text id="linkReward" class="svg-link" x="0" y="136"
+        fill="#ffffff" font-size="14">
+    Lihat pemenang
+    <tspan font-weight="700" text-decoration="underline"> Disini</tspan>
+  </text>
+</g>
+
 
     <!-- Footer (mobile) -->
     <g transform="translate(16,292)">
@@ -146,7 +164,7 @@
       <g id="toggleNoShow" class="svg-hit" transform="translate(12,22)">
         <rect x="0" y="-11" rx="9" ry="9" width="24" height="24" fill="url(#btnLiteM)" stroke="#ffffff" stroke-opacity=".4"/>
         <path id="chkMark" d="M4,0 L9,6 L19,-8" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
-        <text x="32" y="6" fill="#ffffff" font-size="13">Jangan tampilkan lagi bulan ini</text>
+        <text x="32" y="6" fill="#ffffff" font-size="13">Jangan tampilkan lagi Minggu ini</text>
       </g>
       <g id="linkTerms" class="svg-link" transform="translate(12,50)">
         <text x="0" y="0" fill="#ffffff" font-size="13" text-decoration="underline">Baca Selengkapnya S&amp;K </text>
@@ -253,7 +271,7 @@
       <g id="toggleNoShow" class="svg-hit" transform="translate(356,30)">
         <rect x="0" y="-13" rx="10" ry="10" width="26" height="26" fill="url(#btnLiteD)" stroke="#ffffff" stroke-opacity=".4"/>
         <path id="chkMark" d="M5,1 L11,8 L21,-8" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
-        <text x="36" y="6" fill="#ffffff" font-size="13">Jangan tampilkan lagi bulan ini</text>
+        <text x="36" y="6" fill="#ffffff" font-size="13">Jangan tampilkan lagi Minggu ini</text>
       </g>
       <g id="btnOK" class="svg-btn svg-hit" transform="translate(700,6)">
         <rect x="0" y="0" rx="14" ry="14" width="72" height="40" fill="url(#btnBlueD)" stroke="#ffffff" stroke-opacity=".4"/>
@@ -269,7 +287,19 @@
   if(!wrap) return;
 
   var now = new Date();
-  var key = 'ausi_pts_hint_svg_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0');
+
+  // fungsi kecil untuk dapat key per-minggu, misalnya: 2025W03
+  function getWeekKey(d){
+    var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var dayNum = date.getUTCDay() || 7;            // Senin=1 ... Minggu=7
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    return date.getUTCFullYear() + 'W' + String(weekNo).padStart(2,'0');
+  }
+
+  var key = 'ausi_pts_hint_svg_' + getWeekKey(now);
+
 
   try { if(localStorage.getItem(key)==='hide'){ wrap.remove(); return; } } catch(e){}
 
@@ -285,6 +315,8 @@
   var linkTerms = svg.getElementById('linkTerms');
   var toggle    = svg.getElementById('toggleNoShow');
   var chkMark   = svg.getElementById('chkMark');
+  var linkReward = svg.getElementById('linkReward');
+
   var persist   = false;
 
   function closeBanner(save){
@@ -304,6 +336,9 @@
   if (linkTerms) linkTerms.addEventListener('click', function(){
     window.location.href = "<?= site_url('hal/#voucher-order'); ?>";
   });
+    if (linkReward) linkReward.addEventListener('click', function(){
+  window.location.href = "<?= site_url('produk/reward'); ?>";
+});
   if (btnOK)    btnOK.addEventListener('click',   function(){ closeBanner(persist); });
   if (btnClose) btnClose.addEventListener('click',function(){ closeBanner(false); });
 

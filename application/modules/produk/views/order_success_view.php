@@ -107,6 +107,10 @@ $is_delivery   = ($mode === 'delivery');
 $delivery_fee    = (int)($order->delivery_fee ?? 0);
 $customer_phone  = trim((string)($order->customer_phone ?? ''));
 $alamat_kirim    = trim((string)($order->alamat_kirim ?? ''));
+// Voucher
+$voucher_disc = (int)($order->voucher_disc ?? 0);
+$voucher_code = trim((string)($order->voucher_code ?? ''));
+$has_voucher  = ($voucher_disc > 0);
 
 if (!isset($total)) {
   $total = 0;
@@ -115,11 +119,17 @@ if (!isset($total)) {
 
 $kode_unik   = (int)($order->kode_unik ?? 0);
 
+// Subtotal setelah voucher (fallback, kalau kolom grand_total kosong)
+$subtotal_after_voucher = $total - $voucher_disc;
+if ($subtotal_after_voucher < 0) $subtotal_after_voucher = 0;
+
 /* Total bayar:
-   - dinein/walkin: total + kode unik
-   - delivery     : total + ongkir + kode unik */
+   - dinein/walkin: total - voucher + kode unik
+   - delivery     : total - voucher + ongkir + kode unik
+   (kalau kolom grand_total di DB sudah ada, kita pakai itu) */
 $grand_total = (int)($order->grand_total ??
-              ($total + ($is_delivery ? $delivery_fee : 0) + $kode_unik));
+              ($subtotal_after_voucher + ($is_delivery ? $delivery_fee : 0) + $kode_unik));
+
 
 /* Metode terkunci? (kalau sudah dipilih sebelumnya) */
 $locked_method = strtolower(trim((string)(
@@ -214,6 +224,22 @@ list($status_label, $status_class) = status_badge($status);
             <div class="v"><?= nl2br(html_escape($note_text)) ?></div>
           </div>
           <?php endif; ?>
+          <?php if ($has_voucher): ?>
+            <div class="col-sm-12 mb-1 kv">
+              <div class="k">Voucher</div>
+              <div class="v">
+                <?php if ($voucher_code): ?>
+                  <code><?= html_escape($voucher_code) ?></code>
+                  <?php else: ?>
+                    <code>VOUCHER</code>
+                  <?php endif; ?>
+                  <span class="ml-1">
+                    &mdash; Potongan Rp <?= number_format($voucher_disc, 0, ',', '.') ?>
+                  </span>
+                </div>
+              </div>
+            <?php endif; ?>
+
         </div>
       </div>
 
@@ -350,6 +376,14 @@ list($status_label, $status_class) = status_badge($status);
             <span class="dark">Subtotal</span>
             <span class="money">Rp <?= number_format((int)$total,0,',','.') ?></span>
           </div>
+          <?php if ($has_voucher): ?>
+            <div class="d-flex justify-content-between">
+              <span class="dark">
+                Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+              </span>
+              <span class="money text-danger">- <?= number_format($voucher_disc,0,',','.') ?></span>
+            </div>
+          <?php endif; ?>
 
           <?php if ($is_delivery && $delivery_fee > 0): ?>
           <div class="d-flex justify-content-between">
@@ -476,7 +510,14 @@ list($status_label, $status_class) = status_badge($status);
               <td colspan="4" class="text-right">Total</td>
               <td class="text-right">Rp <?= number_format((int)$total,0,',','.') ?></td>
             </tr>
-
+            <?php if ($has_voucher): ?>
+              <tr>
+                <td colspan="4" class="text-right">
+                  Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+                </td>
+                <td class="text-right">- <?= number_format($voucher_disc,0,',','.') ?></td>
+              </tr>
+            <?php endif; ?>
             <?php if ($is_delivery && $delivery_fee > 0): ?>
             <tr>
               <td colspan="4" class="text-right">Ongkir</td>
@@ -530,7 +571,14 @@ list($status_label, $status_class) = status_badge($status);
           <div class="font-weight-600">Total</div>
           <div class="font-weight-700">Rp <?= number_format((int)$total,0,',','.') ?></div>
         </div>
-
+        <?php if ($has_voucher): ?>
+          <div class="d-flex justify-content-between align-items-center border-top pt-2">
+            <div class="font-weight-600">
+              Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+            </div>
+            <div class="font-weight-700">- <?= number_format($voucher_disc,0,',','.') ?></div>
+          </div>
+        <?php endif; ?>
         <?php if ($is_delivery && $delivery_fee > 0): ?>
         <div class="d-flex justify-content-between align-items-center border-top pt-2">
           <div class="font-weight-600">Ongkir</div>

@@ -784,6 +784,179 @@ public function cart(){
     $this->load->view('cart_view', $data);
 }
 
+/**
+ * Buat voucher mingguan untuk pemenang, hanya sekali per minggu per customer.
+ *
+ * @param object|null $winner       row pemenang (punya customer_name, customer_phone)
+ * @param string      $jenis_reward 'top' atau 'random'
+ * @param DateTime    $now          waktu sekarang (Asia/Makassar)
+ */
+private function _create_weekly_voucher_if_needed($winner, string $jenis_reward, DateTime $now)
+{
+    if (!$winner) return;
+
+    // tanggal mulai & expired voucher (1 minggu)
+    $mulai   = (clone $now)->setTime(0, 0, 0);   // hari ini jam 00:00
+    $selesai = (clone $mulai)->modify('+6 day'); // total 7 hari
+
+    $weekDate = $mulai->format('Y-m-d');  // untuk YEARWEEK()
+    $weekNo   = $now->format('W');
+    $yearIso  = $now->format('o');
+
+    // Cek apakah SUDAH ADA voucher mingguan utk customer ini di minggu ini
+    $exists = $this->db
+        ->from('voucher_cafe_manual')
+        ->where('jenis_voucher', 'mingguan')
+        ->where('no_hp', $winner->customer_phone)
+        ->where("YEARWEEK(tgl_mulai, 3) = YEARWEEK(".$this->db->escape($weekDate).", 3)", null, false)
+        ->count_all_results() > 0;
+
+    if ($exists) {
+        // sudah pernah dibuat, jangan dobel
+        return;
+    }
+
+    // =============== KONFIGURASI VOUCHER ===============
+    $tipe           = 'nominal';
+    $nilai          = 50000;      // Rp 50.000
+    $minimalBelanja = 50000;      // minimal belanja Rp 50.000
+    $maxPotongan    = 0;          // 0 = tanpa batas
+    $kuotaKlaim     = 1;          // hanya bisa dipakai 1x
+
+    if ($jenis_reward === 'top') {
+        $keterangan = "Reward Mingguan - Poin Tertinggi {$yearIso}-W{$weekNo}";
+    } else {
+        $keterangan = "Reward Mingguan - Pemenang Acak {$yearIso}-W{$weekNo}";
+    }
+    // ===================================================
+
+    // Generate kode voucher unik
+    $kode = $this->_generate_voucher_code();
+
+    $insertData = [
+        'kode_voucher'    => $kode,
+        'nama'            => $winner->customer_name,
+        'no_hp'           => $winner->customer_phone,
+        'tipe'            => $tipe,
+        'jenis_voucher'   => 'mingguan',
+        'nilai'           => $nilai,
+        'minimal_belanja' => $minimalBelanja,
+        'max_potongan'    => $maxPotongan,
+        'tgl_mulai'       => $mulai->format('Y-m-d'),
+        'tgl_selesai'     => $selesai->format('Y-m-d'),
+        'kuota_klaim'     => $kuotaKlaim,
+        'klaim_terpakai'  => 0,
+        'status'          => 1,
+        'keterangan'      => $keterangan,
+        'created_at'      => $now->format('Y-m-d H:i:s'),
+        'created_by'      => 'system-reward',
+        'updated_at'      => null,
+        'updated_by'      => null,
+    ];
+
+    $this->db->insert('voucher_cafe_manual', $insertData);
+}
+
+/**
+ * Generate kode voucher acak (8 karakter) dan unik di tabel voucher_cafe_manual.
+ */
+private function _generate_voucher_code(): string
+{
+    $chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // tanpa 0/O/1/I
+    $length = 8;
+
+    do {
+        $code = '';
+        for ($i = 0; $i < $length; $i++) {
+            $code .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+
+        $exists = $this->db
+            ->from('voucher_cafe_manual')
+            ->where('kode_voucher', $code)
+            ->count_all_results() > 0;
+
+    } while ($exists);
+
+    return $code;
+}
+
+public function reward_cron()
+{
+    // Hanya boleh dipanggil via CLI (cron), bukan lewat browser
+    if ( ! $this->input->is_cli_request()) {
+        show_error('No direct script access allowed', 403);
+    }
+
+    $this->_nocache_headers();
+    date_default_timezone_set('Asia/Makassar');
+
+    // waktu sekarang WITA
+    $now = new DateTime('now', new DateTimeZone('Asia/Makassar'));
+    $dow = (int)$now->format('w'); // 0 = Minggu
+
+    // jam 08:00 hari ini
+    $todayAnnouncement = (clone $now)->setTime(8, 0, 0);
+    $isSunday          = ($dow === 0);
+    $isAnnouncementTime = $isSunday && ($now >= $todayAnnouncement);
+
+    if (! $isAnnouncementTime) {
+        echo "Bukan waktu pengumuman. Sekarang: ".$now->format('Y-m-d H:i:s').PHP_EOL;
+        return;
+    }
+
+    // ======= CARI PEMENANG =======
+
+    // peraih poin tertinggi
+    $winner_top = $this->db
+        ->select('id, customer_name, customer_phone, points')
+        ->from('voucher_cafe')
+        ->where('points >', 0)
+        ->order_by('points', 'DESC')
+        ->order_by('last_paid_at', 'DESC')
+        ->limit(1)
+        ->get()
+        ->row();
+
+    $winner_random = null;
+
+    if ($winner_top) {
+        // seed berdasarkan tahun+miggu (mis: 202546)
+        $weekSeed = (int)$now->format('oW');
+
+        // pemenang acak yang KONSISTEN 1 minggu
+        $winner_random = $this->db
+            ->select('id, customer_name, customer_phone, points')
+            ->from('voucher_cafe')
+            ->where('points >', 0)
+            ->where('id !=', $winner_top->id)
+            ->order_by("RAND({$weekSeed})", '', false)
+            ->limit(1)
+            ->get()
+            ->row();
+    }
+
+    // ======= AUTO BUAT VOUCHER MINGGUAN (HANYA DARI CRON) =======
+    $this->_create_weekly_voucher_if_needed($winner_top, 'top', $now);
+    $this->_create_weekly_voucher_if_needed($winner_random, 'random', $now);
+    // ============================================================
+
+    echo "Cron reward selesai.\n";
+
+    if ($winner_top) {
+        echo "Pemenang Top   : {$winner_top->customer_name} ({$winner_top->customer_phone})\n";
+    } else {
+        echo "Tidak ada pemenang Top (tidak ada points > 0)\n";
+    }
+
+    if ($winner_random) {
+        echo "Pemenang Random: {$winner_random->customer_name} ({$winner_random->customer_phone})\n";
+    } else {
+        echo "Pemenang Random: tidak ada / hanya 1 peserta\n";
+    }
+}
+
+
 
 public function reward()
 {
@@ -797,27 +970,25 @@ public function reward()
     $dow = (int)$now->format('w'); // 0 = Minggu
 
     // jam 08:00 hari ini
-    $todayAnnouncement = (clone $now)->setTime(8, 0, 0);
-    $isSunday = ($dow === 0);
+    $todayAnnouncement  = (clone $now)->setTime(8, 0, 0);
+    $isSunday           = ($dow === 0);
     $isAnnouncementTime = $isSunday && ($now >= $todayAnnouncement);
 
-    // ====== MODE TES (BIAR LANGSUNG KELIHATAN TAMPILAN) ======
-    // kalau mau tes tampilan SEKARANG, buka baris di bawah:
+    // --- MODE TES (kalau mau paksa di browser, hapus //) ---
     // $isAnnouncementTime = true;
-    // ========================================================
+    // -------------------------------------------------------
 
     // jadwal pengumuman berikutnya (Minggu 08:00)
-    $daysUntilSunday = (7 - $dow) % 7;
+    $daysUntilSunday  = (7 - $dow) % 7;
     $nextAnnouncement = (clone $now)->modify("+{$daysUntilSunday} day")->setTime(8, 0, 0);
     if ($nextAnnouncement <= $now) {
         $nextAnnouncement->modify('+7 day');
     }
 
-    $winner_top = null;
+    $winner_top    = null;
     $winner_random = null;
 
     if ($isAnnouncementTime) {
-
         // peraih poin tertinggi
         $winner_top = $this->db
             ->select('id, customer_name, customer_phone, points')
@@ -839,11 +1010,17 @@ public function reward()
                 ->from('voucher_cafe')
                 ->where('points >', 0)
                 ->where('id !=', $winner_top->id)
-                ->order_by("RAND({$weekSeed})", '', false) // <─ pakai seed
+                ->order_by("RAND({$weekSeed})", '', false)
                 ->limit(1)
                 ->get()
                 ->row();
         }
+
+        // === DI SINI HALAMAN reward JUGA BOLEH INSERT VOUCHER ===
+        // helper ini SUDAH cek ke tabel, jadi tidak akan dobel insert
+        $this->_create_weekly_voucher_if_needed($winner_top, 'top', $now);
+        $this->_create_weekly_voucher_if_needed($winner_random, 'random', $now);
+        // ========================================================
     }
 
     $data = [
@@ -860,6 +1037,9 @@ public function reward()
 
     $this->load->view('reward_view', $data);
 }
+
+
+
 
 
 public function points(){
@@ -1014,6 +1194,10 @@ public function submit_order(){
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return $this->_json_err('Format email tidak valid.');
     }
+    $voucher_code_raw = trim($this->input->post('voucher_code', true) ?: '');
+    $voucher_code     = $voucher_code_raw !== '' ? strtoupper($voucher_code_raw) : '';
+    $voucher_disc = 0;
+    $voucher_id   = null;
 
     // === Validasi jam layanan (buka/tutup harian; support nyebrang hari) ===
     // Ambil konfigurasi dari tabel identitas (JANGAN diubah: tetap $rec)
@@ -1303,14 +1487,123 @@ public function submit_order(){
     $meja_kode = $this->session->userdata('guest_meja_kode');
     $meja_nama = $this->session->userdata('guest_meja_nama');
 
-    // === Hitung grand total TAHAP SUBMIT (tanpa kode unik) ===
-    // base_total = subtotal + ongkir (jika delivery)
-    $base_total  = (int)$total + ($mode === 'delivery' ? (int)$delivery_fee : 0);
-    $kode = random_int(1, 99);
-    $kode_unik   = $kode;                    // <-- kode unik BELUM dipakai di sini
-    $grand_total = $base_total+$kode_unik;          // <-- kunci awal; akan di-update di _set_verifikasi()
+    // ==== VALIDASI VOUCHER MANUAL (voucher_cafe_manual) ====
+        if ($voucher_code !== '') {
+            // Ambil voucher
+            $v = $this->db->where('kode_voucher', $voucher_code)
+                          ->limit(1)
+                          ->get('voucher_cafe_manual')
+                          ->row();
 
-    $this->db->trans_begin();
+            if (!$v) {
+                return $this->_json_err('Kode voucher tidak ditemukan.');
+            }
+
+            // Status aktif?
+            if ((int)$v->status !== 1) {
+                return $this->_json_err('Voucher ini tidak aktif.');
+            }
+
+            // Cek tanggal berlaku
+            $today = $now->format('Y-m-d');
+            if (!empty($v->tgl_mulai) && $today < $v->tgl_mulai) {
+                return $this->_json_err('Voucher belum mulai berlaku.');
+            }
+            if (!empty($v->tgl_selesai) && $today > $v->tgl_selesai) {
+                return $this->_json_err('Voucher sudah kedaluwarsa.');
+            }
+
+            // Kuota klaim
+            if ((int)$v->klaim_terpakai >= (int)$v->kuota_klaim) {
+                return $this->_json_err('Voucher sudah habis digunakan.');
+            }
+
+            // Minimal belanja (hanya dari subtotal barang, TANPA ongkir)
+            $minBel = (int)$v->minimal_belanja;
+            if ($minBel > 0 && $total < $minBel) {
+                return $this->_json_err(
+                    'Minimal belanja untuk voucher ini Rp '.number_format($minBel,0,',','.')
+                );
+            }
+
+            // Kalau voucher dikunci ke no_hp tertentu → cocokan dengan phone user
+            if (!empty($v->no_hp)) {
+                $vhp = preg_replace('/\D+/', '', $v->no_hp);
+                $chp = preg_replace('/\D+/', '', $customer_phone);
+
+                if ($chp === '') {
+                    return $this->_json_err('Voucher ini khusus untuk nomor WhatsApp tertentu. Mohon isi kolom No. WhatsApp terlebih dahulu.');
+                }
+
+                // Normalisasi 62xxxx → 0xxxx
+                $normPhone = function($p){
+                    if (strpos($p, '62') === 0) return '0'.substr($p, 2);
+                    return $p;
+                };
+                $vhpNorm = $normPhone($vhp);
+                $chpNorm = $normPhone($chp);
+
+                // Cek 8 digit terakhir sama
+                if (substr($vhpNorm, -8) !== substr($chpNorm, -8)) {
+                    return $this->_json_err('Kode voucher tidak cocok dengan nomor WhatsApp yang terdaftar.');
+                }
+            }
+
+            // Hitung diskon dari subtotal barang
+            $eligible  = (int)$total;     // diskon hanya dihitung dari makanan/minuman
+            $nilai     = (int)$v->nilai;
+            $disc      = 0;
+
+            if ($v->tipe === 'persen') {
+                if ($nilai <= 0 || $nilai > 100) {
+                    return $this->_json_err('Konfigurasi voucher persen tidak valid.');
+                }
+                $disc = (int)round($eligible * $nilai / 100);
+                $maxPot = (int)$v->max_potongan;
+                if ($maxPot > 0 && $disc > $maxPot) {
+                    $disc = $maxPot;
+                }
+            } else {
+                // nominal
+                if ($nilai <= 0) {
+                    return $this->_json_err('Nilai voucher tidak valid.');
+                }
+                $disc = $nilai;
+            }
+
+            if ($disc <= 0) {
+                return $this->_json_err('Voucher ini belum bisa digunakan untuk nominal belanja sekarang.');
+            }
+            if ($disc > $eligible) {
+                $disc = $eligible;
+            }
+
+            $voucher_disc = $disc;
+            $voucher_id   = (int)$v->id;
+        }
+        // ==== END VALIDASI VOUCHER ====
+
+    // === Hitung grand total TAHAP SUBMIT (tanpa kode unik) ===
+        // === Hitung grand total TAHAP SUBMIT (setelah voucher, sebelum kode unik) ===
+    // Subtotal setelah diskon voucher (diskon hanya dari subtotal barang)
+    $subtotal_setelah_voucher = (int)$total - (int)$voucher_disc;
+    if ($subtotal_setelah_voucher < 0) {
+        $subtotal_setelah_voucher = 0;
+    }
+
+    // base_total = subtotal_setelah_voucher + ongkir (jika delivery)
+    $base_total  = $subtotal_setelah_voucher + ($mode === 'delivery' ? (int)$delivery_fee : 0);
+
+    // kode unik tetap seperti biasa
+    $kode = random_int(1, 99);
+    $kode_unik   = $kode;
+    $grand_total = $base_total + $kode_unik;
+
+
+
+        
+
+        $this->db->trans_begin();
 
     // Selalu BUAT ORDER BARU (tanpa append)
     $nomor = date('YmdHis').'-'.mt_rand(100,999);
@@ -1321,14 +1614,9 @@ public function submit_order(){
         'meja_nama'    => $meja_nama ?: null,
         'cart_id'      => $cart_id ?: null,
         'nama'         => $nama,
-        'email'        => ($email !== '' ? $email : null),  // NEW
-
+        'email'        => ($email !== '' ? $email : null),
         'catatan'      => ($catatan !== '' ? $catatan : null),
 
-        // delivery fields
-        // 'customer_phone' => (($mode === 'delivery' || $mode === 'dinein') && $customer_phone !== '')
-        //                 ? $customer_phone : null,
-                        // Simpan nomor HP jika diisi, untuk SEMUA mode (walkin/dinein/delivery)
         'customer_phone' => ($customer_phone !== '' ? $customer_phone : null),
 
         'alamat_kirim'   => ($mode==='delivery') ? $alamat_kirim   : null,
@@ -1338,11 +1626,15 @@ public function submit_order(){
         'dest_lng'       => ($mode==='delivery') ? $dest_lng : 0,
         'distance_m'     => ($mode==='delivery') ? $distance_m : 0,
 
-        // totals (tanpa kode unik dulu)
-        'total'        => (int)$total,          // subtotal barang
-        'kode_unik'    => $kode_unik,                    // akan diisi saat pilih QRIS/transfer
-        'grand_total'  => (int)$grand_total,    // base_total
-        'status'       => 'pending',            // menunggu verifikasi / pilih metode
+        // voucher
+        'voucher_code' => ($voucher_disc > 0 ? $voucher_code : null),
+        'voucher_disc' => (int)$voucher_disc,
+
+        // totals
+        'total'        => (int)$total,        // subtotal barang
+        'kode_unik'    => $kode_unik,
+        'grand_total'  => (int)$grand_total,  // subtotal - voucher + ongkir + kode_unik
+        'status'       => 'pending',
         'paid_method'  => null,
         'paid_at'      => null,
         'created_at'   => date('Y-m-d H:i:s'),
@@ -1350,7 +1642,7 @@ public function submit_order(){
     $this->db->insert('pesanan', $order_data);
     $order_id = (int)$this->db->insert_id();
 
-    // ========= Tambahan: map nama & kategori produk (untuk isi pi.nama & pi.id_kategori) =========
+    // ========= Tambahan: map nama & kategori produk =========
     $id_set = [];
     foreach($items as $it){ $id_set[(int)$it->produk_id] = true; }
 
@@ -1358,8 +1650,10 @@ public function submit_order(){
     $map_kat  = [];
     if ($id_set){
         $ids = array_keys($id_set);
-        // ambil sekalian kategori_id dari tabel produk
-        $prods = $this->db->select('id, nama, kategori_id')->from('produk')->where_in('id', $ids)->get()->result();
+        $prods = $this->db->select('id, nama, kategori_id')
+                          ->from('produk')
+                          ->where_in('id', $ids)
+                          ->get()->result();
         foreach($prods as $p){
             $pid = (int)$p->id;
             $map_nama[$pid] = $p->nama;
@@ -1369,15 +1663,15 @@ public function submit_order(){
 
     // Insert detail
     $actor = ($mode === 'dinein')
-    ? ($nama ?: ($meja_nama ?: ($meja_kode ?: 'customer')))
-        : $mode; // tandai 'walkin' atau 'delivery' sebagai added_by
+        ? ($nama ?: ($meja_nama ?: ($meja_kode ?: 'customer')))
+        : $mode; // 'walkin' / 'delivery'
 
-        foreach($items as $it){
-            $pid   = (int)$it->produk_id;
-            $qty   = (int)$it->qty;
-            $harga = (int)$it->harga;
-            $nm    = $it->nama ?? ($map_nama[$pid] ?? null);
-        $katId = $map_kat[$pid] ?? null; // kategori produk
+    foreach($items as $it){
+        $pid   = (int)$it->produk_id;
+        $qty   = (int)$it->qty;
+        $harga = (int)$it->harga;
+        $nm    = $it->nama ?? ($map_nama[$pid] ?? null);
+        $katId = $map_kat[$pid] ?? null;
 
         $rowIns = [
             'pesanan_id'  => $order_id,
@@ -1394,69 +1688,88 @@ public function submit_order(){
         $this->db->insert('pesanan_item', $rowIns);
     }
 
-    // Tutup cart & bereskan session keranjang (biar order tidak nempel)
-    if ($cart_id){
-        $this->db->where('id', $cart_id)
-         ->where('status', 'open') // guard opsional
-         ->update('cart_meja', [
-           'status'     => 'submitted',
-             'sesi_key'   => null,                 // <— penting
-             'updated_at' => date('Y-m-d H:i:s'),
-         ]);
+    // Jika ada voucher dan diskonnya > 0 → update klaim_terpakai
+    if ($voucher_id && $voucher_disc > 0) {
+        $this->db
+            ->set('klaim_terpakai', 'klaim_terpakai+1', false)
+            ->set('updated_at', date('Y-m-d H:i:s'))
+            ->set('updated_by', $nama ?: 'customer')
+            ->where('id', $voucher_id)
+            ->where('klaim_terpakai < kuota_klaim', null, false);
 
-         $this->session->unset_userdata('cart_meja_id');
-     } else {
-        $this->session->unset_userdata('cart__walkin');
+        $aff = $this->db->update('voucher_cafe_manual');
+
+        if ($aff < 1) {
+            $this->db->trans_rollback();
+            return $this->_json_err('Voucher sudah tidak dapat digunakan. Silakan cek kembali atau pakai voucher lain.');
+        }
     }
 
+    // Tutup cart di DB (tanpa sentuh session dulu)
+    if ($cart_id){
+        $this->db->where('id', $cart_id)
+                 ->where('status', 'open')
+                 ->update('cart_meja', [
+                     'status'     => 'submitted',
+                     'sesi_key'   => null,
+                     'updated_at' => date('Y-m-d H:i:s'),
+                 ]);
+    }
+
+    // Cek transaksi
     if ($this->db->trans_status() === FALSE){
         $this->db->trans_rollback();
         return $this->_json_err('Gagal membuat pesanan');
     }
     $this->db->trans_commit();
-    // setelah $this->db->trans_commit();
+
+    // ⬇️ Baru di sini: bereskan session keranjang
+    if ($cart_id){
+        $this->session->unset_userdata('cart_meja_id');
+    } else {
+        $this->session->unset_userdata('cart__walkin');
+    }
+
+    // setelah commit, baru ambil order
     $order = $this->db->get_where('pesanan', ['id' => (int)$order_id])->row();
 
-       // === Setelah $this->db->trans_commit() ===
     $redirectUrl = site_url('produk/order_success/'.$nomor);
 
-    // Siapkan objek ringkas untuk WA
     $ordForWa = (object)[
-      'id'            => (int)$order->id,
-      'nomor'         => (string)$order->nomor,
-      'nama'          => (string)$nama,
-      'mode'          => (string)$mode,
-      'customer_phone'=> (string)$customer_phone,
-      'total'         => (int)$order->total,
-  'delivery_fee'  => (int)$order->delivery_fee,   // 1 = gratis
-  'grand_total'   => (int)$order->grand_total,
-  'kode_unik'     => (int)$order->kode_unik,      // <— PENTING
-  'alamat_kirim'  => $alamat_kirim ?: null,
-  'dest_lat'      => (float)$dest_lat,
-  'dest_lng'      => (float)$dest_lng,
-  'meja'          => $meja_nama ?: $meja_kode ?: null,
-  'catatan'       => (string)$catatan,
-];
-    // === 3.a KIRIM RESPON KE USER SEKARANG (tidak nunggu WA) ===
-$this->_json_ok_and_flush_then_continue([
-    'order_id' => (int)$order_id,
-    'nomor'    => $nomor ?: $order_id,
-    'message'  => 'Pesanan dibuat (status pending)',
-    'redirect' => $redirectUrl
-]);
+        'id'             => (int)$order->id,
+        'nomor'          => (string)$order->nomor,
+        'nama'           => (string)$nama,
+        'mode'           => (string)$mode,
+        'customer_phone' => (string)$customer_phone,
+        'total'          => (int)$order->total,
+        'delivery_fee'   => (int)$order->delivery_fee,   // 1 = gratis
+        'grand_total'    => (int)$order->grand_total,
+        'kode_unik'      => (int)$order->kode_unik,
+        'alamat_kirim'   => $alamat_kirim ?: null,
+        'dest_lat'       => (float)$dest_lat,
+        'dest_lng'       => (float)$dest_lng,
+        'meja'           => $meja_nama ?: $meja_kode ?: null,
+        'catatan'        => (string)$catatan,
+        'voucher_code'   => ($voucher_disc > 0 ? $voucher_code : null),
+        'voucher_disc'   => (int)$voucher_disc,
+    ];
 
-    // === 3.b LANJUTKAN KIRIM WA DI BELAKANG (user sudah dapat respons) ===
-try {
-        // Kita sudah punya $items di atas (array of object)
-    $this->_wa_notify_order_submit($ordForWa, $items);
-} catch (\Throwable $e) {
-    log_message('error', 'Send WA async failed: '.$e->getMessage());
+    $this->_json_ok_and_flush_then_continue([
+        'order_id' => (int)$order_id,
+        'nomor'    => $nomor ?: $order_id,
+        'message'  => 'Pesanan dibuat (status pending)',
+        'redirect' => $redirectUrl
+    ]);
+
+    try {
+        $this->_wa_notify_order_submit($ordForWa, $items);
+    } catch (\Throwable $e) {
+        log_message('error', 'Send WA async failed: '.$e->getMessage());
+    }
+
+    exit;
 }
 
-    // Pastikan tidak ada output lagi
-exit;
-
-}
 
 /**
  * Kirim WA ke customer ketika order delivery BERHASIL dibuat.
@@ -2021,53 +2334,117 @@ private function _mark_paid_and_end($id, $method){
 
 private function _set_verifikasi($id, $method){
     $id  = (int)$id;
-    $row = $this->db->get_where('pesanan', ['id'=>$id])->row();
-    if (!$row) show_404();
+    $row = $this->db->get_where('pesanan', ['id' => $id])->row();
+    if (!$row) {
+        return false; // jangan show_404 dari helper kecil
+    }
 
-    $subtotal    = (int)($row->total ?? 0);
-    $deliveryFee = (int)($row->delivery_fee ?? 0);
-    $isDelivery  = (strtolower($row->mode ?? '') === 'delivery');
+    // ===== Ambil angka dasar dari pesanan =====
+    $subtotal     = (int)($row->total ?? 0);            // subtotal barang (sebelum voucher)
+    $voucher_disc = (int)($row->voucher_disc ?? 0);     // potongan voucher (kalau ada)
+    $deliveryFee  = (int)($row->delivery_fee ?? 0);     // BIARKAN apa adanya (termasuk sentinel 1)
+    $mode         = strtolower((string)($row->mode ?? ''));
+    $isDelivery   = ($mode === 'delivery');
 
-    // base total = subtotal + ongkir (kalau delivery)
-    $baseTotal = $subtotal + ($isDelivery ? $deliveryFee : 0);
+    // Subtotal setelah potongan voucher
+    $subtotal_after_voucher = $subtotal - $voucher_disc;
+    if ($subtotal_after_voucher < 0) {
+        $subtotal_after_voucher = 0;
+    }
 
+    // base total = subtotal_setelah_voucher + ongkir (kalau delivery)
+    $baseTotal = $subtotal_after_voucher + ($isDelivery ? $deliveryFee : 0);
+
+    // Normalisasi method
+    $method     = strtolower((string)$method);
     $needUnique = in_array($method, ['qris','transfer'], true);
 
-    $kode = 0;
+    // ===== Kode unik =====
+    $kode = 0; // default untuk CASH
     if ($needUnique){
         // jaga kode unik 1..499 (re-use kalau sudah ada yang valid)
         $kode = (int)($row->kode_unik ?? 0);
         if ($kode < 1 || $kode > 499) {
-            $kode = random_int(1, 499);
+            try {
+                $kode = random_int(1, 499);
+            } catch (\Throwable $e) {
+                $kode = mt_rand(1, 499);
+            }
         }
     }
 
+    // CASH  -> grand_total = baseTotal         (tanpa kode unik)
+    // QRIS / TRANSFER -> grand_total = baseTotal + kode_unik
+    $grandTotal = $baseTotal + $kode;
+
     $upd = [
         'status'      => 'verifikasi',
-        'paid_method' => $method,                 // cash | qris | transfer
-        'kode_unik'   => $kode,                   // 0 utk cash
-        'grand_total' => $baseTotal + $kode,      // tambah unik kalau perlu
+        'paid_method' => $method,      // cash | qris | transfer
+        'kode_unik'   => $kode,        // 0 utk cash
+        'grand_total' => $grandTotal,  // sudah termasuk voucher & ongkir
         'updated_at'  => date('Y-m-d H:i:s'),
     ];
 
     $this->db->where('id', $id)->update('pesanan', $upd);
+
+    return $this->db->affected_rows() > 0;
 }
+
+
+// private function _set_verifikasi($id, $method){
+//     $id  = (int)$id;
+//     $row = $this->db->get_where('pesanan', ['id'=>$id])->row();
+//     if (!$row) show_404();
+
+//     $subtotal    = (int)($row->total ?? 0);
+//     $deliveryFee = (int)($row->delivery_fee ?? 0);
+//     $isDelivery  = (strtolower($row->mode ?? '') === 'delivery');
+
+//     // base total = subtotal + ongkir (kalau delivery)
+//     $baseTotal = $subtotal + ($isDelivery ? $deliveryFee : 0);
+
+//     $needUnique = in_array($method, ['qris','transfer'], true);
+
+//     $kode = 0;
+//     if ($needUnique){
+//         // jaga kode unik 1..499 (re-use kalau sudah ada yang valid)
+//         $kode = (int)($row->kode_unik ?? 0);
+//         if ($kode < 1 || $kode > 499) {
+//             $kode = random_int(1, 499);
+//         }
+//     }
+
+//     $upd = [
+//         'status'      => 'verifikasi',
+//         'paid_method' => $method,                 // cash | qris | transfer
+//         'kode_unik'   => $kode,                   // 0 utk cash
+//         'grand_total' => $baseTotal + $kode,      // tambah unik kalau perlu
+//         'updated_at'  => date('Y-m-d H:i:s'),
+//     ];
+
+//     $this->db->where('id', $id)->update('pesanan', $upd);
+// }
 
 
 
 /* ====== TUNAI: langsung lunas (boleh tetap) ====== */
 public function pay_cash($ref = null){
-   $this->_nocache_headers();
-   if (!$ref) show_404();
+    $this->_nocache_headers();
+    if (!$ref) show_404();
 
-   $row = $this->_get_order_by_ref($ref);
-   if (!$row) show_404();
+    $row = $this->_get_order_by_ref($ref);
+    if (!$row) show_404();
 
-   if (!in_array(strtolower($row->status ?? ''), ['paid','canceled'], true)){
-	        // set ke verifikasi (tanpa kode unik) → grand_total = base total
-       $this->_set_verifikasi((int)$row->id, 'cash');
-   }
-   return redirect('produk/order_success/'.rawurlencode($row->nomor));
+    // Kalau sudah LUNAS / dibatalkan, langsung ke ringkasan
+    if (in_array(strtolower($row->status ?? ''), ['paid','canceled'], true)){
+        return redirect('produk/order_success/'.rawurlencode($row->nomor));
+    }
+
+    // CASH:
+    // grand_total = (total - voucher_disc) + ongkir (kalau delivery), TANPA kode_unik
+    $this->_set_verifikasi((int)$row->id, 'cash');
+
+    return redirect('produk/order_success/'.rawurlencode($row->nomor));
 }
 
 
@@ -2171,9 +2548,25 @@ private function _qris_set_amount(string $payload, $amount): string {
        $order = $this->db->get_where('pesanan', ['id'=>(int)$row->id])->row();
        [$order2, $items, $total, $meja_info] = $this->_order_bundle($row->id);
 
-       $rec         = $this->fm->web_me();
-       $kode_unik   = (int)($order->kode_unik ?? 0);
-       $grand_total = (int)($order->grand_total ?? ($total + $kode_unik));
+       $rec = $this->fm->web_me();
+
+// dasar perhitungan
+       $kode_unik    = (int)($order->kode_unik ?? 0);
+       $subtotal     = (int)($order->total ?? $total ?? 0);
+       $delivery_fee = (int)($order->delivery_fee ?? 0);
+       $voucher_disc = (int)($order->voucher_disc ?? 0);
+       $mode         = strtolower((string)($order->mode ?? ''));
+       $is_delivery  = ($mode === 'delivery');
+
+// subtotal setelah voucher
+       $subtotal_after_voucher = $subtotal - $voucher_disc;
+       if ($subtotal_after_voucher < 0) $subtotal_after_voucher = 0;
+
+// kalau di DB sudah ada grand_total, pakai itu;
+// kalau belum, fallback = subtotal_after_voucher + ongkir (kalau delivery) + kode_unik
+       $grand_total = (int)($order->grand_total
+        ?? ($subtotal_after_voucher + ($is_delivery ? $delivery_fee : 0) + $kode_unik));
+
 
 
         // 1) QRIS BASE (punya kamu). PASTIKAN tanpa spasi/linebreak.
@@ -2335,22 +2728,36 @@ public function pay_transfer($ref = null){
     [$order2, $items, $total, $meja_info] = $this->_order_bundle($row->id);
     $rec   = $this->fm->web_me();
     $order = $this->db->get_where('pesanan', ['id'=>(int)$row->id])->row();
+    $mode         = strtolower((string)($order->mode ?? ''));
+    $is_delivery  = ($mode === 'delivery');
+    $subtotal     = (int)($order->total ?? $total ?? 0);
+    $delivery_fee = (int)($order->delivery_fee ?? 0);
+    $voucher_disc = (int)($order->voucher_disc ?? 0);
+    $kode_unik    = (int)($order->kode_unik ?? 0);
 
-    $data = [
+    // subtotal setelah voucher
+    $subtotal_after_voucher = $subtotal - $voucher_disc;
+    if ($subtotal_after_voucher < 0) $subtotal_after_voucher = 0;
+
+    $grand_total_calc  = $subtotal_after_voucher + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
+    $grand_total_final = (int)($order->grand_total ?? $grand_total_calc);
+
+   $data = [
         'title'       => 'Verifikasi Pembayaran (Transfer)',
         'deskripsi'   => 'Silakan transfer sesuai nominal total bayar berikut, kemudian tunggu verifikasi kasir.',
         'prev'        => base_url('assets/images/icon_app.png'),
         'rec'         => $rec,
         'order'       => $order2 ?: $order,
         'items'       => $items,
-        'total'       => (int)($order->total ?? $total ?? 0),
-        'kode_unik'   => (int)($order->kode_unik ?? 0),
-        'grand_total' => (int)($order->grand_total ?? (($order->total ?? 0) + ($order->kode_unik ?? 0))),
+        'total'       => $subtotal,           // ← pakai subtotal yang sudah kita hitung
+        'kode_unik'   => $kode_unik,
+        'grand_total' => $grand_total_final,  // ← sudah termasuk voucher + ongkir + kode_unik
         'meja_info'   => $meja_info,
         'bank_list'   => [
             ['bank'=>'BNI','atas_nama'=>'Afrisal','no_rek'=>'1980870276'],
         ],
     ];
+
     $this->load->view('pay_transfer_view', $data);
 }
 

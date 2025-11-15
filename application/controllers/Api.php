@@ -10,7 +10,7 @@ class Api extends MX_Controller {
     }
 
 
-    public function get_menu_desktop()
+  public function get_menu_desktop()
 {
     $this->load->library('user_agent');
     $this->load->helper('menu');
@@ -20,158 +20,167 @@ class Api extends MX_Controller {
     $username  = (string)$this->session->userdata('admin_username');
 
     // ====== Definisi menu (rapi) ======
-$MENU_DEF = [
-    [
-        'label'   => 'Statistik',
-        'url'     => site_url('admin_laporan/chart'),
-        'icon'    => 'mdi mdi-chart-areaspline',
-        'require' => ['Statistik','dashboard','admin_laporan/chart'],
-    ],
-  
-    [
-        'label'   => 'Produk',
-        'url'     => site_url('admin_produk'),
-        'icon'    => 'mdi mdi-package-variant-closed',
-        'require' => ['Produk','admin_produk'],
-    ],
-];
+    $MENU_DEF = [
+        [
+            'label'   => 'Statistik',
+            'url'     => site_url('admin_laporan/chart'),
+            'icon'    => 'mdi mdi-chart-areaspline',
+            'require' => ['Statistik','dashboard','admin_laporan/chart'],
+        ],
+        [
+            'label'   => 'Produk',
+            'url'     => site_url('admin_produk'),
+            'icon'    => 'mdi mdi-package-variant-closed',
+            'require' => ['Produk','admin_produk'],
+        ],
+    ];
 
-// ====== POS ======
-$MENU_DEF[] = [
-    'label'   => 'POS',
-    'icon'    => 'mdi mdi-cash-register',
-    'children'=> [
-        [
-            'label'   => 'POS Caffe',
-            'url'     => site_url('admin_pos'),
-            'icon'    => 'mdi mdi-coffee-outline',
-            'require' => ['POS Caffe','admin_pos','user'],
+    // ====== POS ======
+    $MENU_DEF[] = [
+        'label'   => 'POS',
+        'icon'    => 'mdi mdi-cash-register',
+        'children'=> [
+            [
+                'label'   => 'POS Caffe',
+                'url'     => site_url('admin_pos'),
+                'icon'    => 'mdi mdi-coffee-outline',
+                'require' => ['POS Caffe','admin_pos','user'],
+            ],
+            [
+                'label'   => 'POS Billiard',
+                'url'     => site_url('admin_billiard'),
+                'icon'    => 'mdi mdi-billiards',
+                'require' => ['POS Billiard','admin_billiard','user'],
+            ],
+            [
+                'label'   => 'POS Kursi Pijat',
+                'url'     => site_url('admin_kursi_pijat'),
+                'icon'    => 'mdi mdi-seat-recline-extra',
+                'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
+            ],
+            [
+                'label'   => 'Pengeluaran',
+                'url'     => site_url('admin_pengeluaran'),
+                'icon'    => 'mdi mdi-cash-minus',
+                'require' => ['Pengeluaran','admin_pengeluaran','user'],
+            ],
         ],
-        [
-            'label'   => 'POS Billiard',
-            'url'     => site_url('admin_billiard'),
-            'icon'    => 'mdi mdi-billiards',
-            'require' => ['POS Billiard','admin_billiard','user'],
-        ],
-        [
-          'label'   => 'POS Kursi Pijat',
-          'url'     => site_url('admin_kursi_pijat'),
-          'icon'    => 'mdi mdi-seat-recline-extra',
-          'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
-      ],
-
-        [
-            'label'   => 'Pengeluaran',
-            'url'     => site_url('admin_pengeluaran'),
-            'icon'    => 'mdi mdi-cash-minus',
-            'require' => ['Pengeluaran','admin_pengeluaran','user'],
-        ],
-    ],
-];
-
-// ====== Riwayat Transaksi ======
-$MENU_DEF[] = [
-    'label'   => 'Riwayat Transaksi',
-    'icon'    => 'mdi mdi-history',
-    'children'=> [
-        [
-            'label'   => 'Caffe',
-            'url'     => site_url('admin_pos_riwayat'),
-            'icon'    => 'mdi mdi-coffee',
-            'require' => ['Caffe','admin_pos_riwayat','user'],
-        ],
-        [
-            'label'   => 'Billiard',
-            'url'     => site_url('admin_riwayat_billiard'),
-            'icon'    => 'mdi mdi-billiards',
-            'require' => ['Billiard','admin_riwayat_billiard','user'],
-        ],
-    ],
-];
-
-// ====== Laporan (disisipkan di sini) ======
-// ====== Laporan (single item) ======
+    ];
 
 
-$MENU_DEF[] = [
-    'label'   => 'Laporan',
-    'icon'    => 'mdi mdi-file-chart',
-    'children'=> [
-        [
-            'label'   => 'Laporan Keuangan',
-            'url'     => site_url('admin_laporan'),
-            'icon'    => 'mdi mdi-file-chart',
-            'require' => ['Laporan','admin_laporan','user'],
-        ],
-        [
-            'label'   => 'Laporan Rating Produk',
-            'url'     => site_url('admin_rating'),
-            'icon'    => 'mdi mdi-star-outline',
-            'require' => ['Laporan Rating Produk','admin_rating','user'],
-        ],
-    ],
-];
 
+    // ====== Riwayat Transaksi ======
+    $MENU_DEF[] = [
+        'label'   => 'Riwayat Transaksi',
+        'icon'    => 'mdi mdi-history',
+        'children'=> [
+            [
+                'label'   => 'Caffe',
+                'url'     => site_url('admin_pos_riwayat'),
+                'icon'    => 'mdi mdi-coffee',
+                'require' => ['Caffe','admin_pos_riwayat','user'],
+            ],
+            [
+                'label'   => 'Billiard',
+                'url'     => site_url('admin_riwayat_billiard'),
+                'icon'    => 'mdi mdi-billiards',
+                'require' => ['Billiard','admin_riwayat_billiard','user'],
+            ],
+        ],
+    ];
 
-// ====== Master (hanya muncul jika user punya akses child-nya) ======
-$MENU_DEF[] = [
-    'label'   => 'Master',
-    'icon'    => 'mdi mdi-cog-outline',
-    'children'=> [
-        [
-            'label'   => 'Setting System',
-            'url'     => site_url('admin_setting_web'),
-            'icon'    => 'mdi mdi-cog',
-            'require' => ['Setting System','admin_setting_web','user'],
+    // ====== Voucher (BARU) ======
+    $MENU_DEF[] = [
+        'label'   => 'Voucher',
+        'icon'    => 'mdi mdi-ticket-percent',
+        'children'=> [
+            [
+                'label'   => 'Voucher Cafe',
+                'url'     => site_url('admin_voucher_cafe'),
+                'icon'    => 'mdi mdi-coffee-outline',
+                'require' => ['Voucher Cafe','admin_voucher_cafe','user'],
+            ],
         ],
-        [
-            'label'   => 'Meja Cafe',
-            'url'     => site_url('admin_meja'),
-            'icon'    => 'mdi mdi-table-chair',
-            'require' => ['Meja','admin_meja'],
-        ],
-        [
-            'label'   => 'Meja Billiard',
-            'url'     => site_url('admin_meja_billiard'),
-            'icon'    => 'mdi mdi-table-chair',
-            'require' => ['Meja Billiard','admin_meja_billiard','user'],
-        ],
-        [
-            'label'   => 'Kurir',
-            'url'     => site_url('admin_kurir'),
-            'icon'    => 'mdi mdi-table-chair',
-            'require' => ['Kurir','admin_kurir','user'],
-        ],
-        [
-            'label'   => 'Kategori Produk',
-            'url'     => site_url('admin_kategori_produk'),
-            'icon'    => 'mdi mdi-tag-multiple-outline',
-            'require' => ['Kategori','admin_kategori_produk','user'],
-        ],
-        [
-            'label'   => 'Unit Lain',
-            'url'     => site_url('admin_unit_lain'),
-            'icon'    => 'mdi mdi-domain-plus',
-            'require' => ['Unit Lain','admin_unit_lain','user'],
-        ],
-        
-        [
-            'label'   => 'Pengumuman',
-            'url'     => site_url('admin_pengumuman'),
-            'icon'    => 'mdi mdi-bullhorn-outline',
-            'require' => ['Pengumuman','admin_pengumuman','user'],
-        ],
-        
-        [
-            'label'   => 'Manajemen User',
-            'url'     => site_url('admin_user'),
-            'icon'    => 'mdi mdi-account-cog-outline',
-            'require' => ['Manajemen User','admin_user','user'],
-        ],
-    ],
-];
+    ];
 
-   
+    // ====== Laporan ======
+    $MENU_DEF[] = [
+        'label'   => 'Laporan',
+        'icon'    => 'mdi mdi-file-chart',
+        'children'=> [
+            [
+                'label'   => 'Laporan Keuangan',
+                'url'     => site_url('admin_laporan'),
+                'icon'    => 'mdi mdi-file-chart',
+                'require' => ['Laporan','admin_laporan','user'],
+            ],
+            [
+                'label'   => 'Laporan Rating Produk',
+                'url'     => site_url('admin_rating'),
+                'icon'    => 'mdi mdi-star-outline',
+                'require' => ['Laporan Rating Produk','admin_rating','user'],
+            ],
+        ],
+    ];
+
+    
+
+    // ====== Master (hanya muncul jika user punya akses child-nya) ======
+    $MENU_DEF[] = [
+        'label'   => 'Master',
+        'icon'    => 'mdi mdi-cog-outline',
+        'children'=> [
+            [
+                'label'   => 'Setting System',
+                'url'     => site_url('admin_setting_web'),
+                'icon'    => 'mdi mdi-cog',
+                'require' => ['Setting System','admin_setting_web','user'],
+            ],
+            [
+                'label'   => 'Meja Cafe',
+                'url'     => site_url('admin_meja'),
+                'icon'    => 'mdi mdi-table-chair',
+                'require' => ['Meja','admin_meja'],
+            ],
+            [
+                'label'   => 'Meja Billiard',
+                'url'     => site_url('admin_meja_billiard'),
+                'icon'    => 'mdi mdi-table-chair',
+                'require' => ['Meja Billiard','admin_meja_billiard','user'],
+            ],
+            [
+                'label'   => 'Kurir',
+                'url'     => site_url('admin_kurir'),
+                'icon'    => 'mdi mdi-table-chair',
+                'require' => ['Kurir','admin_kurir','user'],
+            ],
+            [
+                'label'   => 'Kategori Produk',
+                'url'     => site_url('admin_kategori_produk'),
+                'icon'    => 'mdi mdi-tag-multiple-outline',
+                'require' => ['Kategori','admin_kategori_produk','user'],
+            ],
+            [
+                'label'   => 'Unit Lain',
+                'url'     => site_url('admin_unit_lain'),
+                'icon'    => 'mdi mdi-domain-plus',
+                'require' => ['Unit Lain','admin_unit_lain','user'],
+            ],
+            [
+                'label'   => 'Pengumuman',
+                'url'     => site_url('admin_pengumuman'),
+                'icon'    => 'mdi mdi-bullhorn-outline',
+                'require' => ['Pengumuman','admin_pengumuman','user'],
+            ],
+            [
+                'label'   => 'Manajemen User',
+                'url'     => site_url('admin_user'),
+                'icon'    => 'mdi mdi-account-cog-outline',
+                'require' => ['Manajemen User','admin_user','user'],
+            ],
+        ],
+    ];
+
     // ====== Header dasar ======
     $this->output->set_content_type('application/json');
 
@@ -195,12 +204,11 @@ $MENU_DEF[] = [
     ]);
 
     // ====== ETag sensitif user & akses ======
-    // Hash-kan juga "allowed set" agar ETag berubah saat hak akses berubah
-    $allowed = allowed_module_slugs();
+    $allowed     = allowed_module_slugs();
     $allowed_sig = is_array($allowed) ? md5(json_encode(array_keys($allowed))) : (string)$allowed;
 
     $signature = $username.'|'.$level.'|'.md5(json_encode($MENU_DEF)).'|'.$allowed_sig.'|'.md5($html);
-    $etag = 'W/"menu-'.substr(sha1($signature), 0, 20).'"';
+    $etag      = 'W/"menu-'.substr(sha1($signature), 0, 20).'"';
 
     // 304 handling
     $ifNoneMatch = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? trim($_SERVER['HTTP_IF_NONE_MATCH']) : '';
@@ -216,7 +224,7 @@ $MENU_DEF[] = [
     // Header cache untuk respons 200
     $this->output
         ->set_header('ETag: '.$etag)
-        ->set_header('Cache-Control: private, max-age=900, stale-while-revalidate=600') // 15 menit, SWR 10 menit
+        ->set_header('Cache-Control: private, max-age=900, stale-while-revalidate=600')
         ->set_header('Vary: Cookie')
         ->set_header('X-Menu-Version: '.$etag);
 
@@ -225,6 +233,7 @@ $MENU_DEF[] = [
         "menu"    => $html
     ]);
 }
+
 public function get_menu_mobile()
 {
     $this->load->helper('menu'); // butuh user_can_mod(), allowed_module_slugs()
@@ -247,145 +256,153 @@ public function get_menu_mobile()
     // HANYA menu yang benar-benar ada di modal frontend
     // Urutkan juga sesuai tampilan modal biar konsisten
     $ACTIONS_DEF = [
-    // ===== Statistik (tambahan agar match desktop) =====
-            [
-                'id'      => 'admin_laporan_chart',
-                'label'   => 'Statistik',
-                'url'     => site_url('admin_laporan/chart'),
-                'icon'    => 'mdi mdi-chart-areaspline',
-                'require' => ['Statistik','dashboard','admin_laporan/chart'],
-            ],
+        // ===== Statistik =====
+        [
+            'id'      => 'admin_laporan_chart',
+            'label'   => 'Statistik',
+            'url'     => site_url('admin_laporan/chart'),
+            'icon'    => 'mdi mdi-chart-areaspline',
+            'require' => ['Statistik','dashboard','admin_laporan/chart'],
+        ],
 
-            // ===== Produk / Master barang =====
-            [
-                'id'      => 'admin_produk',
-                'label'   => 'Produk',
-                'url'     => site_url('admin_produk'),
-                'icon'    => 'mdi mdi-package-variant-closed',
-                'require' => ['Produk','admin_produk'],
-            ],
-            [
-                'id'      => 'admin_kategori_produk',
-                'label'   => 'Kategori Produk',
-                'url'     => site_url('admin_kategori_produk'),
-                'icon'    => 'mdi mdi-tag-multiple-outline',
-                'require' => ['Kategori','admin_kategori_produk','user'],
-            ],
+        // ===== Produk / Master barang =====
+        [
+            'id'      => 'admin_produk',
+            'label'   => 'Produk',
+            'url'     => site_url('admin_produk'),
+            'icon'    => 'mdi mdi-package-variant-closed',
+            'require' => ['Produk','admin_produk'],
+        ],
+        [
+            'id'      => 'admin_kategori_produk',
+            'label'   => 'Kategori Produk',
+            'url'     => site_url('admin_kategori_produk'),
+            'icon'    => 'mdi mdi-tag-multiple-outline',
+            'require' => ['Kategori','admin_kategori_produk','user'],
+        ],
 
-            // ===== POS & Transaksi jalan =====
-            [
-                'id'      => 'admin_pos',
-                'label'   => 'POS Caffe',
-                'url'     => site_url('admin_pos'),
-                'icon'    => 'mdi mdi-coffee-outline',
-                'require' => ['POS Caffe','admin_pos','user'],
-            ],
-            [
-                'id'      => 'admin_billiard',
-                'label'   => 'POS Billiard',
-                'url'     => site_url('admin_billiard'),
-                'icon'    => 'mdi mdi-billiards',
-                'require' => ['POS Billiard','admin_billiard','user'],
-            ],
-            [
-                'id'      => 'admin_kursi_pijat',
-                'label'   => 'POS Kursi Pijat',
-                'url'     => site_url('admin_kursi_pijat'),
-                'icon'    => 'mdi mdi-seat-recline-extra',
-                'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
-            ],
-            [
-                'id'      => 'admin_pengeluaran',
-                'label'   => 'Pengeluaran',
-                'url'     => site_url('admin_pengeluaran'),
-                'icon'    => 'mdi mdi-cash-minus',
-                'require' => ['Pengeluaran','admin_pengeluaran','user'],
-            ],
+        // ===== POS & Transaksi jalan =====
+        [
+            'id'      => 'admin_pos',
+            'label'   => 'POS Caffe',
+            'url'     => site_url('admin_pos'),
+            'icon'    => 'mdi mdi-coffee-outline',
+            'require' => ['POS Caffe','admin_pos','user'],
+        ],
+        [
+            'id'      => 'admin_billiard',
+            'label'   => 'POS Billiard',
+            'url'     => site_url('admin_billiard'),
+            'icon'    => 'mdi mdi-billiards',
+            'require' => ['POS Billiard','admin_billiard','user'],
+        ],
+        [
+            'id'      => 'admin_kursi_pijat',
+            'label'   => 'POS Kursi Pijat',
+            'url'     => site_url('admin_kursi_pijat'),
+            'icon'    => 'mdi mdi-seat-recline-extra',
+            'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
+        ],
+        [
+            'id'      => 'admin_pengeluaran',
+            'label'   => 'Pengeluaran',
+            'url'     => site_url('admin_pengeluaran'),
+            'icon'    => 'mdi mdi-cash-minus',
+            'require' => ['Pengeluaran','admin_pengeluaran','user'],
+        ],
 
-            // ===== Riwayat =====
-            [
-                'id'      => 'admin_pos_riwayat',
-                'label'   => 'Riwayat Caffe',
-                'url'     => site_url('admin_pos_riwayat'),
-                'icon'    => 'mdi mdi-coffee', // seragam spt desktop child
-                'require' => ['Caffe','admin_pos_riwayat','user'],
-            ],
-            [
-                'id'      => 'admin_riwayat_billiard',
-                'label'   => 'Riwayat Billiard',
-                'url'     => site_url('admin_riwayat_billiard'),
-                'icon'    => 'mdi mdi-billiards', // seragam spt desktop child
-                'require' => ['Billiard','admin_riwayat_billiard','user'],
-            ],
+        // ===== Riwayat =====
+        [
+            'id'      => 'admin_pos_riwayat',
+            'label'   => 'Riwayat Caffe',
+            'url'     => site_url('admin_pos_riwayat'),
+            'icon'    => 'mdi mdi-coffee',
+            'require' => ['Caffe','admin_pos_riwayat','user'],
+        ],
+        [
+            'id'      => 'admin_riwayat_billiard',
+            'label'   => 'Riwayat Billiard',
+            'url'     => site_url('admin_riwayat_billiard'),
+            'icon'    => 'mdi mdi-billiards',
+            'require' => ['Billiard','admin_riwayat_billiard','user'],
+        ],
 
-            // ===== Laporan =====
-            [
-                'id'      => 'admin_laporan',
-                'label'   => 'Laporan Keuangan',
-                'url'     => site_url('admin_laporan'),
-                'icon'    => 'mdi mdi-file-chart',
-                'require' => ['Laporan','admin_laporan','user'],
-            ],
-            [
-                'id'      => 'admin_rating',
-                'label'   => 'Laporan Rating Produk',
-                'url'     => site_url('admin_rating'),
-                'icon'    => 'mdi mdi-star-outline',
-                'require' => ['Laporan Rating Produk','admin_rating','user'],
-            ],
+        // ===== Laporan =====
+        [
+            'id'      => 'admin_laporan',
+            'label'   => 'Laporan Keuangan',
+            'url'     => site_url('admin_laporan'),
+            'icon'    => 'mdi mdi-file-chart',
+            'require' => ['Laporan','admin_laporan','user'],
+        ],
+        [
+            'id'      => 'admin_rating',
+            'label'   => 'Laporan Rating Produk',
+            'url'     => site_url('admin_rating'),
+            'icon'    => 'mdi mdi-star-outline',
+            'require' => ['Laporan Rating Produk','admin_rating','user'],
+        ],
 
-            // ===== Master / Pengaturan =====
-            [
-                'id'      => 'admin_user',
-                'label'   => 'Manajemen User',
-                'url'     => site_url('admin_user'),
-                'icon'    => 'mdi mdi-account-cog-outline', // samakan dgn desktop
-                'require' => ['Manajemen User','admin_user','user'],
-            ],
-            [
-                'id'      => 'admin_setting_web',
-                'label'   => 'Pengaturan Sistem',
-                'url'     => site_url('admin_setting_web'),
-                'icon'    => 'mdi mdi-cog', // samakan dgn desktop
-                'require' => ['Setting System','admin_setting_web','user'],
-            ],
-            [
-                'id'      => 'admin_unit_lain',
-                'label'   => 'Unit Lain',
-                'url'     => site_url('admin_unit_lain'),
-                'icon'    => 'mdi mdi-domain-plus',
-                'require' => ['Unit Lain','admin_unit_lain','user'],
-            ],
-            [
-                'id'      => 'admin_pengumuman',
-                'label'   => 'Pengumuman',
-                'url'     => site_url('admin_pengumuman'),
-                'icon'    => 'mdi mdi-bullhorn-outline',
-                'require' => ['Pengumuman','admin_pengumuman','user'],
-            ],
-            [
-                'id'      => 'admin_meja',
-                'label'   => 'Meja',
-                'url'     => site_url('admin_meja'),
-                'icon'    => 'mdi mdi-table-chair',
-                'require' => ['Meja','admin_meja'],
-            ],
-            [
-                'id'      => 'admin_meja_billiard',
-                'label'   => 'Meja Billiard',
-                'url'     => site_url('admin_meja_billiard'),
-                'icon'    => 'mdi mdi-table-chair',
-                'require' => ['Meja Billiard','admin_meja_billiard','user'],
-            ],
-            [
-                'id'      => 'admin_kurir',
-                'label'   => 'Kurir',
-                'url'     => site_url('admin_kurir'),
-                'icon'    => 'mdi mdi-moped-outline', // <-- ganti ikon kurir
-                'require' => ['Kurir','admin_kurir','user'],
-            ],
-        ];
+        // ===== Voucher (BARU) =====
+        [
+            'id'      => 'admin_voucher_cafe',
+            'label'   => 'Voucher Cafe',
+            'url'     => site_url('admin_voucher_cafe'),
+            'icon'    => 'mdi mdi-ticket-percent',
+            'require' => ['Voucher Cafe','admin_voucher_cafe','user'],
+        ],
 
+        // ===== Master / Pengaturan =====
+        [
+            'id'      => 'admin_user',
+            'label'   => 'Manajemen User',
+            'url'     => site_url('admin_user'),
+            'icon'    => 'mdi mdi-account-cog-outline',
+            'require' => ['Manajemen User','admin_user','user'],
+        ],
+        [
+            'id'      => 'admin_setting_web',
+            'label'   => 'Pengaturan Sistem',
+            'url'     => site_url('admin_setting_web'),
+            'icon'    => 'mdi mdi-cog',
+            'require' => ['Setting System','admin_setting_web','user'],
+        ],
+        [
+            'id'      => 'admin_unit_lain',
+            'label'   => 'Unit Lain',
+            'url'     => site_url('admin_unit_lain'),
+            'icon'    => 'mdi mdi-domain-plus',
+            'require' => ['Unit Lain','admin_unit_lain','user'],
+        ],
+        [
+            'id'      => 'admin_pengumuman',
+            'label'   => 'Pengumuman',
+            'url'     => site_url('admin_pengumuman'),
+            'icon'    => 'mdi mdi-bullhorn-outline',
+            'require' => ['Pengumuman','admin_pengumuman','user'],
+        ],
+        [
+            'id'      => 'admin_meja',
+            'label'   => 'Meja',
+            'url'     => site_url('admin_meja'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['Meja','admin_meja'],
+        ],
+        [
+            'id'      => 'admin_meja_billiard',
+            'label'   => 'Meja Billiard',
+            'url'     => site_url('admin_meja_billiard'),
+            'icon'    => 'mdi mdi-table-chair',
+            'require' => ['Meja Billiard','admin_meja_billiard','user'],
+        ],
+        [
+            'id'      => 'admin_kurir',
+            'label'   => 'Kurir',
+            'url'     => site_url('admin_kurir'),
+            'icon'    => 'mdi mdi-moped-outline',
+            'require' => ['Kurir','admin_kurir','user'],
+        ],
+    ];
 
     // Filter berdasarkan hak akses aktual user
     $allowed_actions = [];
@@ -401,14 +418,14 @@ public function get_menu_mobile()
     }
 
     // Bangun ETag supaya client bisa pakai 304 Not Modified
-    $allowed = allowed_module_slugs();
+    $allowed     = allowed_module_slugs();
     $allowed_sig = is_array($allowed)
         ? md5(json_encode(array_keys($allowed)))
         : (string)$allowed;
 
     $payload_sig = md5(json_encode($allowed_actions));
     $signature   = $username.'|'.$level.'|'.$allowed_sig.'|'.$payload_sig;
-    $etag = 'W/"mobile-'.substr(sha1($signature), 0, 20).'"';
+    $etag        = 'W/"mobile-'.substr(sha1($signature), 0, 20).'"';
 
     $ifNoneMatch = isset($_SERVER['HTTP_IF_NONE_MATCH'])
         ? trim($_SERVER['HTTP_IF_NONE_MATCH'])

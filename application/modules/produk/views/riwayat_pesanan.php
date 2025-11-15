@@ -116,6 +116,14 @@ a {
     text-decoration: none;
     background-color: #fff0;
 }
+
+  #riwayat-pagination{
+    font-size:.78rem;
+  }
+  #riwayat-pagination .page-link{
+    padding:.15rem .5rem;
+  }
+
 </style>
 
 <div class="container-fluid">
@@ -151,6 +159,27 @@ a {
 
           <ul id="riwayat-list" class="list-group list-group-flush mb-1"></ul>
 
+          <!-- PAGINASI RIWAYAT -->
+          <div id="riwayat-pagination"
+               class="d-flex justify-content-between align-items-center mt-2 d-none">
+            <small id="riwayat-range" class="text-muted"></small>
+            <nav aria-label="Navigasi riwayat pesanan">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item disabled" id="riwayat-prev-wrap">
+                  <button class="page-link" type="button" id="riwayat-prev" aria-label="Sebelumnya">
+                    &laquo;
+                  </button>
+                </li>
+                <li class="page-item disabled" id="riwayat-next-wrap">
+                  <button class="page-link" type="button" id="riwayat-next" aria-label="Berikutnya">
+                    &raquo;
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+
+
           <!-- JUMLAH PESANAN DI BAWAH LIST -->
           
         </div>
@@ -170,9 +199,11 @@ a {
 <?php $this->load->view("front_end/footer.php") ?>
 
 <script>
-// Halaman riwayat pesanan (perangkat ini)
+// Halaman riwayat pesanan (perangkat ini) dengan pagination (5 per halaman)
 (function(){
-  const KEY            = 'ausi_orders';
+  const KEY       = 'ausi_orders';
+  const PAGE_SIZE = 5;
+
   const listEl         = document.getElementById('riwayat-list');
   const emptyEl        = document.getElementById('riwayat-empty');
   const countEl        = document.getElementById('riwayat-count');
@@ -180,7 +211,18 @@ a {
   const btnRefresh     = document.getElementById('btn-refresh-riwayat');
   const loadingOverlay = document.getElementById('riwayat-loading');
 
+  // elemen pagination
+  const paginationWrap = document.getElementById('riwayat-pagination');
+  const rangeEl        = document.getElementById('riwayat-range');
+  const prevItem       = document.getElementById('riwayat-prev-wrap');
+  const nextItem       = document.getElementById('riwayat-next-wrap');
+  const prevBtn        = document.getElementById('riwayat-prev');
+  const nextBtn        = document.getElementById('riwayat-next');
+
   if (!listEl) return;
+
+  let ordersCache = []; // semua data (sudah di-reverse)
+  let currentPage = 1;
 
   function loadOrdersFromStorage(){
     let orders = [];
@@ -197,15 +239,22 @@ a {
     return orders;
   }
 
-    function formatWaktu(iso){
+  function formatWaktu(iso){
     if (!iso) return '';
     try {
       const d = new Date(iso);
       if (isNaN(d.getTime())) return '';
 
-      const hari    = d.toLocaleDateString('id-ID', { weekday: 'long' });              // Senin, Selasa, dst
-      const tanggal = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-      const jam     = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      const hari    = d.toLocaleDateString('id-ID', { weekday: 'long' });
+      const tanggal = d.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      const jam     = d.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
 
       // Contoh: "Senin, 14 Nov 2025 19.03"
       return `${hari}, ${tanggal} ${jam}`;
@@ -213,7 +262,6 @@ a {
       return '';
     }
   }
-
 
   function idr(n){
     const num = Number(n || 0);
@@ -248,28 +296,75 @@ a {
     return 'secondary';
   }
 
-  function renderRiwayat(){
+  // Update tampilan pagination (info range + tombol prev/next)
+  function updatePagination(total){
+    if (!paginationWrap) return;
+
+    // kalau tidak ada data atau total <= page size, sembunyikan pagination
+    if (!total || total <= PAGE_SIZE){
+      paginationWrap.classList.add('d-none');
+      return;
+    }
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    paginationWrap.classList.remove('d-none');
+
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    let end     = currentPage * PAGE_SIZE;
+    if (end > total) end = total;
+
+    if (rangeEl){
+      rangeEl.textContent = `Menampilkan ${start}–${end} dari ${total} pesanan`;
+    }
+
+    if (prevItem){
+      if (currentPage <= 1) prevItem.classList.add('disabled');
+      else prevItem.classList.remove('disabled');
+    }
+
+    if (nextItem){
+      if (currentPage >= totalPages) nextItem.classList.add('disabled');
+      else nextItem.classList.remove('disabled');
+    }
+  }
+
+  function renderRiwayat(page){
     const orders = loadOrdersFromStorage();
+    ordersCache  = orders.slice().reverse(); // terbaru di atas
+    const total  = ordersCache.length;
+
+    if (typeof page === 'number') currentPage = page;
+    else currentPage = 1;
+
     listEl.innerHTML = '';
 
     // Tidak ada data
-    if (!orders.length){
+    if (!total){
       if (emptyEl) emptyEl.classList.remove('d-none');
       if (countEl){
         countEl.classList.remove('d-none');
         countEl.textContent = 'Belum ada pesanan yang tersimpan.';
       }
+      updatePagination(0);
       return;
     }
 
     if (emptyEl) emptyEl.classList.add('d-none');
     if (countEl){
       countEl.classList.remove('d-none');
-      countEl.textContent = orders.length + ' pesanan tersimpan di perangkat ini.';
+      countEl.textContent = total + ' pesanan tersimpan di perangkat ini.';
     }
 
-    // Tampilkan yang terbaru di atas
-    orders.slice().reverse().forEach(function(o, idx){
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex   = startIndex + PAGE_SIZE;
+    const slice      = ordersCache.slice(startIndex, endIndex);
+
+    slice.forEach(function(o, idx){
       const nomor       = o.nomor || '(tanpa nomor)';
       const url         = o.redirect || '#';
       const waktu       = formatWaktu(o.created_at || o.createdAt);
@@ -278,13 +373,13 @@ a {
       const statusColor = mapStatusColor(o.status);
       const amount      = o.grand_total || o.total || 0;
       const paidMethod  = (o.paid_method || '').toUpperCase();
-            const deviceBrand = o.device_brand || o.deviceLabel || '';
+      const deviceBrand = o.device_brand || o.deviceLabel || '';
 
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex flex-column flex-wrap';
       li.style.animationDelay = (idx * 40) + 'ms';
 
-            li.innerHTML = `
+      li.innerHTML = `
         <div class="d-flex justify-content-between align-items-center flex-wrap">
           <div class="d-flex flex-column flex-grow-1 mr-2">
             <div class="d-flex align-items-center justify-content-between mb-1">
@@ -310,7 +405,6 @@ a {
         </div>
         <div class="order-divider"></div>
       `;
-
 
       listEl.appendChild(li);
 
@@ -341,16 +435,18 @@ a {
         window.location.href = url;
       });
     });
+
+    updatePagination(total);
   }
 
-  // Tombol refresh (jika nanti mau dipakai lagi)
+  // Tombol refresh
   if (btnRefresh){
     btnRefresh.addEventListener('click', function(){
-      renderRiwayat();
+      renderRiwayat(currentPage || 1);
     });
   }
 
-  // Tombol hapus riwayat (jika nanti mau diaktifkan)
+  // Tombol hapus riwayat
   if (btnClear){
     btnClear.addEventListener('click', function(){
       if (typeof Swal !== 'undefined'){
@@ -364,21 +460,48 @@ a {
         }).then(function(res){
           if (res.isConfirmed){
             localStorage.removeItem(KEY);
-            renderRiwayat();
+            currentPage = 1;
+            renderRiwayat(1);
           }
         });
       } else {
         if (confirm('Hapus semua riwayat pesanan di perangkat ini?')){
           localStorage.removeItem(KEY);
-          renderRiwayat();
+          currentPage = 1;
+          renderRiwayat(1);
         }
       }
     });
   }
 
+  // Navigasi prev/next
+  if (prevBtn){
+    prevBtn.addEventListener('click', function(){
+      if (prevItem && prevItem.classList.contains('disabled')) return;
+      if (currentPage > 1){
+        currentPage--;
+        renderRiwayat(currentPage);
+        // Scroll ke atas list (opsional)
+        listEl.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+    });
+  }
+
+  if (nextBtn){
+    nextBtn.addEventListener('click', function(){
+      if (nextItem && nextItem.classList.contains('disabled')) return;
+      const total      = ordersCache.length;
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      if (currentPage < totalPages){
+        currentPage++;
+        renderRiwayat(currentPage);
+        listEl.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+    });
+  }
+
   // Render awal
-  renderRiwayat();
+  renderRiwayat(1);
 })();
-
-
 </script>
+

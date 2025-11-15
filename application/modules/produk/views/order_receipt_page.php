@@ -86,15 +86,26 @@
     $total = 0;
     foreach ($items as $it) { $total += (int)($it->subtotal ?? 0); }
   }
-  $total       = (int)$total;
+   $total       = (int)$total;
   $kodeUnik    = (int)($order->kode_unik ?? 0);
   $isDelivery  = ($modeRaw === 'delivery');
   $deliveryFee = (int)($order->delivery_fee ?? 0);
 
-  $grandFallback = $total + ($isDelivery ? $deliveryFee : 0) + $kodeUnik;
-  $grandTotal    = isset($order->grand_total) && $order->grand_total !== null
-  ? (int)$order->grand_total
-  : $grandFallback;
+  // ==== Voucher (dari kolom pesanan) ====
+  $voucherCode = isset($order->voucher_code) ? trim((string)$order->voucher_code) : '';
+  $voucherDisc = (int)($order->voucher_disc ?? 0);
+  $hasVoucher  = ($voucherDisc > 0);
+
+  // grand total fallback: subtotal - voucher + ongkir + kode unik
+  $baseAfterVoucher = $total - $voucherDisc;
+  if ($baseAfterVoucher < 0) $baseAfterVoucher = 0;
+
+  $grandFallback = $baseAfterVoucher + ($isDelivery ? $deliveryFee : 0) + $kodeUnik;
+
+  $grandTotal = isset($order->grand_total) && $order->grand_total !== null
+      ? (int)$order->grand_total
+      : $grandFallback;
+
 
   $logoUrl     = isset($store->logo_url) && $store->logo_url ? (string)$store->logo_url : null;
   $paidMethod  = strtolower($order->paid_method ?? '');
@@ -266,6 +277,18 @@
                 <div class="value"><?= esc($statusLabel) ?></div>
               </div>
             </div>
+                          <?php if ($hasVoucher): ?>
+                <div class="row">
+                  <div class="label">Voucher</div>
+                  <div class="value">
+                    <?php if ($voucherCode !== ''): ?>
+                      <?= esc($voucherCode) ?> (<?= rupiah($voucherDisc) ?>)
+                    <?php else: ?>
+                      Potongan voucher <?= rupiah($voucherDisc) ?>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              <?php endif; ?>
 
             <div class="hr-strong"></div>
 
@@ -292,11 +315,32 @@
             </table>
 
             <!-- Totals -->
-            <div class="totbox">
+                        <div class="totbox">
               <?php if ($paymentRef !== ''): ?>
                 <div class="totrow">
                   <div class="tlabel">Ref/Trx</div>
                   <div class="tval"><?= esc($paymentRef) ?></div>
+                </div>
+              <?php endif; ?>
+
+              <div class="totrow">
+                <div class="tlabel">Subtotal</div>
+                <div class="tval"><?= rupiah($total) ?></div>
+              </div>
+
+              <?php if ($hasVoucher): ?>
+                <div class="totrow">
+                  <div class="tlabel">
+                    Voucher<?php if ($voucherCode !== ''): ?> (<?= esc($voucherCode) ?>)<?php endif; ?>
+                  </div>
+                  <div class="tval">- <?= rupiah($voucherDisc) ?></div>
+                </div>
+              <?php endif; ?>
+
+              <?php if ($isDelivery && $deliveryFee > 0): ?>
+                <div class="totrow">
+                  <div class="tlabel">Ongkir</div>
+                  <div class="tval"><?= rupiah($deliveryFee) ?></div>
                 </div>
               <?php endif; ?>
 
@@ -308,22 +352,11 @@
               <?php endif; ?>
 
               <div class="totrow">
-                <div class="tlabel">Total</div>
-                <div class="tval"><?= rupiah($total) ?></div>
-              </div>
-
-              <?php if ($isDelivery && $deliveryFee > 0): ?>
-                <div class="totrow">
-                  <div class="tlabel">Ongkir</div>
-                  <div class="tval"><?= rupiah($deliveryFee) ?></div>
-                </div>
-              <?php endif; ?>
-
-              <div class="totrow">
                 <div class="tlabel">Total Pembayaran</div>
                 <div class="tval"><?= rupiah($grandTotal) ?></div>
               </div>
             </div>
+
 
             <div class="hr"></div>
 
