@@ -582,19 +582,20 @@ ease; */
         </button>
       </div>
       <div class="col-12 mb-2">
-        <button type="button" id="swalBtnHistory"
-          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-          <span class="me-2 mr-2" aria-hidden="true">🎱</span>
-          <span>Tarif Meja Billiard</span>
-        </button>
-      </div>
-      <div class="col-12 mb-2">
         <button type="button" id="swalBtnList"
           class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
           <span class="me-2 mr-2" aria-hidden="true">📋</span>
           <span>Jadwal Main Billiard</span>
         </button>
       </div>
+      <div class="col-12 mb-2">
+        <button type="button" id="swalBtnHistory"
+          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+          <span class="me-2 mr-2" aria-hidden="true">🎱</span>
+          <span>Tarif Meja Billiard</span>
+        </button>
+      </div>
+      
       <div class="col-12">
         <button type="button" id="swalBtnGratis"
           class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
