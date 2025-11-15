@@ -442,7 +442,7 @@ ease; */
               <button type="button" id="swalReward"
                 class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
                 <i class="fas fa-gift me-2 mr-2" aria-hidden="true"></i>
-                <span>Lihat Reward</span>
+                <span>Lihat Reward Mingguan</span>
               </button>
             </div>
 

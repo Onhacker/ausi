@@ -65,32 +65,32 @@ if (!function_exists('mask_phone')) {
 
               <!-- Poin tertinggi -->
               <div class="col-md-6">
-                <div class="h-100 p-3 p-md-4 rounded border-0"
-                     style="background:linear-gradient(135deg,#fff7d6,#ffe5a1);box-shadow:0 6px 16px rgba(0,0,0,.06);">
-                  <div class="d-flex align-items-center mb-2 text-start">
-                    <div class="me-3 fs-3">🏆</div>
-                    <div>
-                      <div class="small text-uppercase text-muted">Peraih Poin Tertinggi</div>
-                      <div class="fw-bold fs-5 mb-0">
-                        <?= html_escape($winner_top->customer_name ?: 'Tanpa Nama'); ?>
-                      </div>
-                    </div>
+                <div class="reward-card reward-card-top mb-2">
+                  <div class="reward-card-header">
+                    <span class="reward-emoji">🏆</span>
+                    <span class="reward-label">Peraih Poin Tertinggi</span>
                   </div>
 
-                  <div class="text-start small mb-1">
-                    No. WA:
-                    <span class="fw-semibold">
+                  <div class="reward-name">
+                    <?= html_escape($winner_top->customer_name ?: 'Tanpa Nama'); ?>
+                  </div>
+
+                  <div class="reward-row">
+                    <span class="reward-row-label">No. WA</span>
+                    <span class="reward-row-value">
                       <?= html_escape(mask_phone($winner_top->customer_phone)); ?>
                     </span>
                   </div>
-                  <div class="text-start small mb-2">
-                    Total poin:
-                    <span class="badge bg-success">
+
+                  <div class="reward-row">
+                    <span class="reward-row-label">Total poin</span>
+                    <span class="reward-pill pill-green">
                       <?= (int)$winner_top->points; ?> poin
                     </span>
                   </div>
-                  <div class="text-start small text-muted fst-italic">
-                    Berhak atas voucher order senilai <strong>Rp 50.000*</strong>.
+
+                  <div class="reward-note">
+                    Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
                   </div>
                 </div>
               </div>
@@ -98,31 +98,31 @@ if (!function_exists('mask_phone')) {
               <!-- Pemenang acak -->
               <?php if (!empty($winner_random)): ?>
                 <div class="col-md-6">
-                  <div class="h-100 p-3 p-md-4 rounded border-0"
-                       style="background:linear-gradient(135deg,#e6f3ff,#d4e8ff);box-shadow:0 6px 16px rgba(0,0,0,.06);">
-                    <div class="d-flex align-items-center mb-2 text-start">
-                      <div class="me-3 fs-3">🎲</div>
-                      <div>
-                        <div class="small text-uppercase text-muted">Pemenang Acak</div>
-                        <div class="fw-bold fs-5 mb-0">
-                          <?= html_escape($winner_random->customer_name ?: 'Tanpa Nama'); ?>
-                        </div>
-                      </div>
+                  <div class="reward-card reward-card-random">
+                    <div class="reward-card-header">
+                      <span class="reward-emoji">🎲</span>
+                      <span class="reward-label">Pemenang Acak</span>
                     </div>
 
-                    <div class="text-start small mb-1">
-                      No. WA:
-                      <span class="fw-semibold">
+                    <div class="reward-name">
+                      <?= html_escape($winner_random->customer_name ?: 'Tanpa Nama'); ?>
+                    </div>
+
+                    <div class="reward-row">
+                      <span class="reward-row-label">No. WA</span>
+                      <span class="reward-row-value">
                         <?= html_escape(mask_phone($winner_random->customer_phone)); ?>
                       </span>
                     </div>
-                    <div class="text-start small mb-2">
-                      Status:
-                      <span class="badge bg-info">
+
+                    <div class="reward-row">
+                      <span class="reward-row-label">Status</span>
+                      <span class="reward-pill pill-blue">
                         Dipilih secara acak
                       </span>
                     </div>
-                    <div class="text-start small text-muted fst-italic">
+
+                    <div class="reward-note">
                       Semua pelanggan yang bertransaksi di periode ini memiliki peluang yang sama.
                     </div>
                   </div>
@@ -134,7 +134,7 @@ if (!function_exists('mask_phone')) {
             <!-- Countdown menuju pengumuman minggu berikutnya -->
             <div class="mt-3">
               <p class="mb-1 text-dark small">
-                Hitung mundur menuju pengumuman minggu berikutnya:
+                Hitung mundur menuju pengumuman berikutnya:
               </p>
               <div id="reward-countdown"
                    class="reward-countdown-wrap"
@@ -157,12 +157,12 @@ if (!function_exists('mask_phone')) {
                 </div>
               </div>
               <p class="mb-0 mt-2 text-dark small">
-                Waktu mengikuti zona <strong>SIWA</strong>.
+                Waktu mengikuti zona <strong>WITA (Asia/Makassar)</strong>.
               </p>
             </div>
 
             <p class="mt-3 mb-0 small text-muted">
-              No. WhatsApp disensor demi menjaga privasi pelanggan.  
+              No. WhatsApp disensor demi menjaga privasi pelanggan.
               Hadiah dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
             </p>
 
@@ -284,47 +284,132 @@ if (!function_exists('mask_phone')) {
 </div>
 
 <style>
+  /* Kartu pemenang */
+  .reward-card{
+    border-radius:16px;
+    padding:16px 14px 14px;
+    text-align:left;
+    box-shadow:0 6px 16px rgba(15,23,42,.06);
+  }
+  @media (min-width:768px){
+    .reward-card{ padding:18px 20px 16px; }
+  }
+  .reward-card-top{
+    background:linear-gradient(135deg,#fff7d6,#ffe5a1);
+  }
+  .reward-card-random{
+    background:linear-gradient(135deg,#e6f3ff,#d4e8ff);
+  }
+  .reward-card-header{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:.8rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:#ffff;
+    margin-bottom:6px;
+  }
+  .reward-emoji{
+    font-size:1rem;
+  }
+  .reward-label{
+    white-space:nowrap;
+  }
+  .reward-name{
+    font-weight:700;
+    font-size:1.1rem;
+    margin-bottom:6px;
+    color:#ffff;
+  }
+  .reward-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:.9rem;
+    margin-bottom:4px;
+    gap:8px;
+  }
+  .reward-row-label{
+    color:#ffff;
+    font-weight:500;
+  }
+  .reward-row-value{
+    font-weight:600;
+    color:#ffff;
+  }
+  .reward-pill{
+    display:inline-flex;
+    align-items:center;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:.75rem;
+    font-weight:600;
+    background:rgba(255,255,255,.9);
+  }
+  .pill-green{
+    background:#16a34a;
+    color:#f9fafb;
+  }
+  .pill-blue{
+    background:#0ea5e9;
+    color:#f9fafb;
+  }
+  .reward-note{
+    margin-top:6px;
+    font-size:.8rem;
+    color:#6b7280;
+    font-style:italic;
+  }
+
+  /* Countdown pill (angka putih, label ada spasi) */
   .reward-countdown-wrap{
     display:flex;
     justify-content:center;
     flex-wrap:wrap;
     gap:8px;
   }
-
   .reward-countdown-item{
     min-width:72px;
     padding:6px 12px;
     border-radius:999px;
-    background:#111827;              /* pill gelap */
+    background:#111827;
     border:1px solid #111827;
-    display:inline-flex;             /* supaya angka & teks 1 baris */
+    display:inline-flex;
     align-items:baseline;
     justify-content:center;
-    gap:4px;                         /* ⬅️ spasi antara angka & JAM/MENIT/DETIK */
+    gap:4px;
   }
-
   .reward-countdown-value{
     font-size:1.1rem;
     font-weight:700;
     line-height:1;
-    color:#ffffff;                   /* ⬅️ angka putih */
+    color:#ffffff;
   }
-
   .reward-countdown-label{
     font-size:.78rem;
     text-transform:uppercase;
     letter-spacing:.08em;
-    color:#e5e7eb;                   /* teks unit abu-abu muda */
+    color:#e5e7eb;
   }
 
   @media (prefers-color-scheme: dark){
+    .reward-card-top{
+      background:linear-gradient(135deg,#3f3f26,#4f4925);
+    }
+    .reward-card-random{
+      background:linear-gradient(135deg,#1f2937,#0f172a);
+    }
+    .reward-note{
+      color:#e5e7eb;
+    }
     .reward-countdown-item{
       background:#020617;
       border-color:#020617;
     }
   }
 </style>
-
 
 <script>
 (function () {
@@ -375,7 +460,7 @@ if (!function_exists('mask_phone')) {
       if (days <= 0) {
         boxDays.style.display = 'none';
       } else {
-        boxDays.style.display = 'flex';
+        boxDays.style.display = 'inline-flex';
         elDays.textContent = days;
       }
     }
@@ -385,7 +470,7 @@ if (!function_exists('mask_phone')) {
       if (hours <= 0) {
         boxHours.style.display = 'none';
       } else {
-        boxHours.style.display = 'flex';
+        boxHours.style.display = 'inline-flex';
         elHours.textContent = pad2(hours);
       }
     }
@@ -395,14 +480,14 @@ if (!function_exists('mask_phone')) {
       if (minutes <= 0) {
         boxMinutes.style.display = 'none';
       } else {
-        boxMinutes.style.display = 'flex';
+        boxMinutes.style.display = 'inline-flex';
         elMinutes.textContent = pad2(minutes);
       }
     }
 
-    // Detik: tetap tampil, meskipun 0 (biar countdown tidak hilang total)
+    // Detik: tetap tampil
     if (elSeconds && boxSeconds) {
-      boxSeconds.style.display = 'flex';
+      boxSeconds.style.display = 'inline-flex';
       elSeconds.textContent = pad2(seconds);
     }
   }

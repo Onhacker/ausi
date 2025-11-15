@@ -802,9 +802,8 @@ public function reward()
     $isAnnouncementTime = $isSunday && ($now >= $todayAnnouncement);
 
     // ====== MODE TES (BIAR LANGSUNG KELIHATAN TAMPILAN) ======
-    // kalau mau tes tampilan SEKARANG, buka komentar baris di bawah:
+    // kalau mau tes tampilan SEKARANG, buka baris di bawah:
     // $isAnnouncementTime = true;
-    // kalau sudah cocok, nanti tutup lagi (pakai // di depan baris di atas)
     // ========================================================
 
     // jadwal pengumuman berikutnya (Minggu 08:00)
@@ -818,6 +817,7 @@ public function reward()
     $winner_random = null;
 
     if ($isAnnouncementTime) {
+
         // peraih poin tertinggi
         $winner_top = $this->db
             ->select('id, customer_name, customer_phone, points')
@@ -829,14 +829,17 @@ public function reward()
             ->get()
             ->row();
 
-        // pemenang acak (beda id dengan poin tertinggi)
         if ($winner_top) {
+            // seed berdasarkan tahun+miggu (mis: 202546)
+            $weekSeed = (int)$now->format('oW');
+
+            // pemenang acak yang KONSISTEN 1 minggu
             $winner_random = $this->db
                 ->select('id, customer_name, customer_phone, points')
                 ->from('voucher_cafe')
                 ->where('points >', 0)
                 ->where('id !=', $winner_top->id)
-                ->order_by('RAND()')
+                ->order_by("RAND({$weekSeed})", '', false) // <─ pakai seed
                 ->limit(1)
                 ->get()
                 ->row();
@@ -857,6 +860,7 @@ public function reward()
 
     $this->load->view('reward_view', $data);
 }
+
 
 public function points(){
     $this->_nocache_headers();
