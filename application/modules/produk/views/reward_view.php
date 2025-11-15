@@ -36,8 +36,8 @@ if (!function_exists('mask_phone')) {
 <div class="container-fluid pb-4">
 
   <!-- HERO TITLE -->
-  <div class="hero-title ausi-hero-center mb-3" role="banner" aria-label="Judul halaman">
-    <h1 class="text mb-0">POIN &amp; REWARD</h1>
+  <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul halaman">
+    <h1 class="text mb-0"><?php echo $title ?></h1>
     <span class="accent ausi-accent" aria-hidden="true"></span>
   </div>
 
