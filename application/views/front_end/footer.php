@@ -424,60 +424,61 @@ ease; */
     }
 
     Swal.fire({
-      title: 'Mau apa di Café?',
-      icon: 'info',
-      iconHtml: '☕',
-      html: `
-        <div class="container-fluid px-0">
-          <div class="row no-gutters">
-           <div class="col-12 mb-2">
-              <button type="button" id="swalCafeHistory"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-history me-2 mr-2" aria-hidden="true"></i>
-                <span>Lihat Riwayat Order</span>
-              </button>
-            </div>
-
-           <div class="col-12 mb-2">
-              <button type="button" id="swalReward"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-gift me-2 mr-2" aria-hidden="true"></i>
-                <span>Lihat Reward Mingguan</span>
-              </button>
-            </div>
-
-            
-            
-            <div class="col-12 mb-2">
-              <button type="button" id="swalCafeDelivery"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-motorcycle me-2 mr-2" aria-hidden="true"></i>
-                <span>Pesan Antar (Delivery)</span>
-              </button>
-            </div>
-            <div class="col-12 mb-2">
-              <button type="button" id="swalCafeWalkin"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-shopping-bag me-2 mr-2" aria-hidden="true"></i>
-                <span>Bungkus (Takeaway)</span>
-              </button>
-            </div>
-          <div class="col-12 mb-2">
-              <button type="button" id="swalCafeDineIn"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-qrcode me-2 mr-2" aria-hidden="true"></i>
-                <span>Makan di Sini (Scan QR)</span>
-              </button>
-            </div>
-           <div class="col-12 mb-2">
-              <button type="button" id="swalCafeInfo"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-store me-2 mr-2" aria-hidden="true"></i>
-                <span>Info Café</span>
-              </button>
-            </div>
-          </div>
+  title: 'Mau apa di Café?',
+  icon: 'info',
+  iconHtml: '☕',
+  html: `
+    <div class="container-fluid px-0">
+      <div class="row no-gutters">
+        <div class="col-12 mb-2">
+          <button type="button" id="swalCafeHistory"
+            class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+            <span class="me-2 mr-2" aria-hidden="true">🧾</span>
+            <span>Riwayat Order Anda</span>
+          </button>
         </div>
+
+        <div class="col-12 mb-2">
+          <button type="button" id="swalReward"
+            class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+            <span class="me-2 mr-2" aria-hidden="true">🎁</span>
+            <span>Reward Mingguan</span>
+          </button>
+        </div>
+
+        <div class="col-12 mb-2">
+          <button type="button" id="swalCafeDelivery"
+            class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+            <span class="me-2 mr-2" aria-hidden="true">🛵</span>
+            <span>Pesan Antar (Delivery)</span>
+          </button>
+        </div>
+
+        <div class="col-12 mb-2">
+          <button type="button" id="swalCafeWalkin"
+            class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+            <span class="me-2 mr-2" aria-hidden="true">🛍️</span>
+            <span>Bungkus (Takeaway)</span>
+          </button>
+        </div>
+
+        <div class="col-12 mb-2">
+          <button type="button" id="swalCafeDineIn"
+            class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+            <span class="me-2 mr-2" aria-hidden="true">🍽️</span>
+            <span>Makan di Sini (Scan QR)</span>
+          </button>
+        </div>
+
+        <div class="col-12 mb-2">
+          <button type="button" id="swalCafeInfo"
+            class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+            <span class="me-2 mr-2" aria-hidden="true">🏠</span>
+            <span>Info Café</span>
+          </button>
+        </div>
+      </div>
+    </div>
       `,
       showConfirmButton: false,
       showDenyButton: false,
@@ -571,39 +572,39 @@ ease; */
       icon: 'info',
       iconHtml: '🎱',
       html: `
-        <div class="container-fluid px-0">
-          <div class="row no-gutters">
-            <div class="col-12 mb-2">
-              <button type="button" id="swalBtnBooking"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-calendar-plus me-2 mr-2" aria-hidden="true"></i>
-                <span>Booking Main Billiard</span>
-              </button>
-            </div>
-            <div class="col-12 mb-2">
-              <button type="button" id="swalBtnHistory"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="mdi mdi-billiards me-2 mr-2" aria-hidden="true"></i>
-                <span>Tarif Meja Billiard</span>
-              </button>
-            </div>
-            <div class="col-12 mb-2">
-              <button type="button" id="swalBtnList"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-clipboard-list me-2 mr-2" aria-hidden="true"></i>
-                <span>Jadwal Main Billiard</span>
-              </button>
-            </div>
-            <div class="col-12">
-              <button type="button" id="swalBtnGratis"
-                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-                <i class="fas fa-ticket-alt me-2 mr-2" aria-hidden="true"></i>
-                <span>Cek Voucher Gratis Main</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      `,
+  <div class="container-fluid px-0">
+    <div class="row no-gutters">
+      <div class="col-12 mb-2">
+        <button type="button" id="swalBtnBooking"
+          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+          <span class="me-2 mr-2" aria-hidden="true">📅</span>
+          <span>Booking Main Billiard</span>
+        </button>
+      </div>
+      <div class="col-12 mb-2">
+        <button type="button" id="swalBtnHistory"
+          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+          <span class="me-2 mr-2" aria-hidden="true">🎱</span>
+          <span>Tarif Meja Billiard</span>
+        </button>
+      </div>
+      <div class="col-12 mb-2">
+        <button type="button" id="swalBtnList"
+          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+          <span class="me-2 mr-2" aria-hidden="true">📋</span>
+          <span>Jadwal Main Billiard</span>
+        </button>
+      </div>
+      <div class="col-12">
+        <button type="button" id="swalBtnGratis"
+          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+          <span class="me-2 mr-2" aria-hidden="true">🎟️</span>
+          <span>Cek Voucher Gratis Main</span>
+        </button>
+      </div>
+    </div>
+  </div>
+`,
       showConfirmButton: false,
       showDenyButton: false,
       showCancelButton: false,
