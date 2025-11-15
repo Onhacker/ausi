@@ -161,7 +161,7 @@ if (!function_exists('mask_phone')) {
               </p>
             </div>
 
-            <p class="mt-3 mb-0 small text-muted">
+            <p class="mt-3 mb-0 small text-dark">
               No. WhatsApp disensor demi menjaga privasi pelanggan.
               Voucher dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
             </p>
@@ -182,18 +182,8 @@ if (!function_exists('mask_phone')) {
             </div>
 
             <h4 class="mb-2">Nantikan Pengumuman Reward</h4>
-            <p class="mb-2 text-dark">
-              Pengumuman <strong>poin tertinggi</strong> dan <strong>1 pemenang acak</strong>
-              akan tampil di halaman ini setiap <strong>Minggu, pukul 08.00 WITA</strong>.
-            </p>
-
-            <p class="mb-3 text-dark small">
-              Pastikan Anda selalu menggunakan nomor WhatsApp yang sama saat order,
-              agar sistem dapat mencatat dan mengakumulasi poin secara otomatis.
-            </p>
-
             <!-- Countdown tepat di bawah "Nantikan Pengumuman Reward" -->
-            <div class="mb-3">
+            <div class="mb-1">
               <p class="mb-1 text-dark small">
                 Hitung mundur menuju pengumuman berikutnya:
               </p>
@@ -221,6 +211,17 @@ if (!function_exists('mask_phone')) {
                 Waktu mengikuti zona <strong>WITA (Asia/Makassar)</strong>.
               </p>
             </div>
+            <p class="mb-2 text-dark">
+              Pengumuman <strong>poin tertinggi</strong> dan <strong>1 pemenang acak</strong>
+              akan tampil di halaman ini setiap <strong>Minggu, pukul 08.00 WITA</strong>.
+            </p>
+
+            <p class="mb-3 text-dark small">
+              Pastikan Anda selalu menggunakan nomor WhatsApp yang sama saat order,
+              agar sistem dapat mencatat dan mengakumulasi poin secara otomatis.
+            </p>
+
+            
 
             <!-- Mini timeline periode mingguan -->
             <div class="row g-2 justify-content-center text-start text-md-center">
@@ -228,7 +229,7 @@ if (!function_exists('mask_phone')) {
                 <div class="p-2 rounded"
                      style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
                   <div class="small fw-bold text-dark mb-1">Kumpulkan Poin</div>
-                  <div class="small text-muted">
+                  <div class="small text-dark">
                     Poin dihitung dari setiap transaksi yang <strong>berhasil dibayar</strong>.
                   </div>
                 </div>
@@ -237,7 +238,7 @@ if (!function_exists('mask_phone')) {
                 <div class="p-2 rounded"
                      style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
                   <div class="small fw-bold text-dark mb-1">Periode Mingguan</div>
-                  <div class="small text-muted">
+                  <div class="small text-dark">
                     Rekap poin: <br>
                     <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
                   </div>
@@ -247,8 +248,18 @@ if (!function_exists('mask_phone')) {
                 <div class="p-2 rounded"
                      style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
                   <div class="small fw-bold text-dark mb-1">Pengumuman</div>
-                  <div class="small text-muted">
+                  <div class="small text-dark">
                     Hasil diumumkan <strong>Minggu 08:00 WITA</strong> langsung di halaman ini.
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <div class="p-2 rounded"
+                     style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
+                  <div class="small fw-bold text-dark mb-1">Metode</div>
+                  <div class="small text-dark">
+                   Peraih voucher ditentukan sepenuhnya oleh <strong>Robot Ausi</strong>, dengan metode poin tertinggi dan undian acak oleh <strong>Robot Ausi</strong> dari semua pelanggan yang memiliki poin pada periode tersebut, tanpa campur tangan manusia.
                   </div>
                 </div>
               </div>
@@ -423,7 +434,7 @@ if (!function_exists('mask_phone')) {
 
   const targetStr = '<?= isset($next_announcement_iso) ? $next_announcement_iso : ''; ?>';
   if (!targetStr) {
-    wrap.innerHTML = '<span class="small text-muted">-</span>';
+    wrap.innerHTML = '<span class="small text-dark">-</span>';
     return;
   }
 
