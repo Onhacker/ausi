@@ -210,6 +210,7 @@
         || $uri == 'produk/walkin'
         || $uri == 'produk/riwayat_pesanan'
         || $uri == 'hal/jadwal'
+        || $uri == 'produk/reward'
       ) ? 'text-active' : 'text-dark' ?>"
     data-swaltarget="cafe-menu"
     data-cafe="<?= base_url('cafe') ?>"
@@ -217,6 +218,7 @@
     data-delivery="<?= base_url('produk/delivery') ?>"
     data-walkin="<?= base_url('produk/walkin') ?>"
     data-history="<?= base_url('produk/riwayat_pesanan') ?>"
+    data-reward="<?= base_url('produk/reward') ?>"
     
   >
     <i class="fas fa-mug-hot d-block mb-1"></i>
@@ -435,6 +437,15 @@ ease; */
                 <span>Lihat Riwayat Order</span>
               </button>
             </div>
+
+           <div class="col-12 mb-2">
+              <button type="button" id="swalReward"
+                class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+                <i class="fas fa-gift me-2 mr-2" aria-hidden="true"></i>
+                <span>Lihat Reward</span>
+              </button>
+            </div>
+
             
             
             <div class="col-12 mb-2">
@@ -497,6 +508,7 @@ ease; */
         const btnDelivery = document.getElementById('swalCafeDelivery');
         const btnWalkin   = document.getElementById('swalCafeWalkin');
         const btnHistory  = document.getElementById('swalCafeHistory');
+        const btnreward  = document.getElementById('swalReward');
         const btnSchedule = document.getElementById('swalCafeSchedule');
 
         btnInfo?.addEventListener('click', () => {
@@ -522,6 +534,11 @@ ease; */
         btnHistory?.addEventListener('click', () => {
           makeBtnLoading(btnHistory);
           go(l?.dataset.history || l?.getAttribute('href'));
+        });
+
+        btnreward?.addEventListener('click', () => {
+          makeBtnLoading(btnreward);
+          go(l?.dataset.reward || l?.getAttribute('href'));
         });
 
         btnSchedule?.addEventListener('click', () => {
@@ -635,6 +652,8 @@ ease; */
           makeBtnLoading(btnHistory);
           go(l?.dataset.history || l?.dataset.list || l?.getAttribute('href'));
         });
+
+       
       }
     });
   });

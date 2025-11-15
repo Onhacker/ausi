@@ -14,52 +14,52 @@ class Produk extends MX_Controller {
 
     /* ================== Helpers Umum ================== */
     /** Respon SANGAT sensitif / real-time / user-session */
-        private function _nocache_headers(){
-            $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-            $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
-            $this->output->set_header('Pragma: no-cache');
-        }
+    private function _nocache_headers(){
+        $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+        $this->output->set_header('Pragma: no-cache');
+    }
 
-        /** Boleh cache SEBENTAR di sisi browser user sendiri (bukan publik/CDN) */
-        private function _private_cache_headers($seconds = 60){
-            $this->output->set_header('Cache-Control: private, max-age='.$seconds);
-            $this->output->set_header('Pragma: private');
-        }
+    /** Boleh cache SEBENTAR di sisi browser user sendiri (bukan publik/CDN) */
+    private function _private_cache_headers($seconds = 60){
+        $this->output->set_header('Cache-Control: private, max-age='.$seconds);
+        $this->output->set_header('Pragma: private');
+    }
 
-        /** Boleh cache PUBLIK karena isinya statis / umum */
-        private function _public_cache_headers($seconds = 3600){
-            $this->output->set_header('Cache-Control: public, max-age='.$seconds);
-            $this->output->set_header('Pragma: public');
-        }
+    /** Boleh cache PUBLIK karena isinya statis / umum */
+    private function _public_cache_headers($seconds = 3600){
+        $this->output->set_header('Cache-Control: public, max-age='.$seconds);
+        $this->output->set_header('Pragma: public');
+    }
 
 
     /** Token unik per-perangkat/session (hex 32 chars) */
-private function _client_token(){
-    $tok = $this->session->userdata('client_token');
-    if (!$tok) {
-        try { $tok = bin2hex(random_bytes(16)); }
-        catch (\Throwable $e) { $tok = md5(uniqid('', true)); }
-        $this->session->set_userdata('client_token', $tok);
+    private function _client_token(){
+        $tok = $this->session->userdata('client_token');
+        if (!$tok) {
+            try { $tok = bin2hex(random_bytes(16)); }
+            catch (\Throwable $e) { $tok = md5(uniqid('', true)); }
+            $this->session->set_userdata('client_token', $tok);
+        }
+        return $tok;
     }
-    return $tok;
-}
 
-public function katalog(){
-    $rec = $this->fm->web_me();
+    public function katalog(){
+        $rec = $this->fm->web_me();
 
-    $data["rec"]       = $rec;
-    $data["title"]     = "Menu & Produk - ".$rec->nama_website;
-    $data["deskripsi"] = "Daftar menu ".$rec->nama_website." ".$rec->kabupaten;
-    $data["prev"]      = base_url("assets/images/produk.webp");
+        $data["rec"]       = $rec;
+        $data["title"]     = "Menu & Produk - ".$rec->nama_website;
+        $data["deskripsi"] = "Daftar menu ".$rec->nama_website." ".$rec->kabupaten;
+        $data["prev"]      = base_url("assets/images/produk.webp");
 
-    $data["kategoris"] = $this->pm->get_categories();
+        $data["kategoris"] = $this->pm->get_categories();
 
     // tidak usah session-mode
-    $data["q"]         = '';
-    $data["kategori"]  = '';
-    $data["sort"]      = 'bestseller';
+        $data["q"]         = '';
+        $data["kategori"]  = '';
+        $data["sort"]      = 'bestseller';
 
-    $data["meja_info"] = null;
+        $data["meja_info"] = null;
     $data["mode"]      = 'delivery'; // default public aja, bukan real session
 
     // penting: JANGAN panggil _maybe_expire_meja_session()
@@ -71,7 +71,7 @@ public function katalog(){
 
 public function scan_qr(){
     $this->_nocache_headers();
-	$this->output->set_header('Permissions-Policy: camera=(self)');
+    $this->output->set_header('Permissions-Policy: camera=(self)');
     $this->output->set_header("Feature-Policy: camera 'self'");
 
     // data dasar buat view
@@ -96,15 +96,15 @@ public function scan_qr(){
 }
 
 
-    private function _hard_reset_guest_context(){
-        $this->session->unset_userdata([
-            'guest_meja_id','guest_meja_kode','guest_meja_nama',
-            'cart_meja_id','cart__walkin','cart_meta','scan_ts',
+private function _hard_reset_guest_context(){
+    $this->session->unset_userdata([
+        'guest_meja_id','guest_meja_kode','guest_meja_nama',
+        'cart_meja_id','cart__walkin','cart_meta','scan_ts',
             'cart__mode' // NOTE: reset juga mode walkin/delivery
         ]);
-    }
+}
 
-    private function _begin_customer_flow($meja_row){
+private function _begin_customer_flow($meja_row){
     // mulai sesi baru per scan
     $this->session->sess_regenerate(TRUE);
     $this->_hard_reset_guest_context();
@@ -126,21 +126,21 @@ public function scan_qr(){
 }
 
 
-    private function _end_customer_flow_and_go_receipt($order_id){
+private function _end_customer_flow_and_go_receipt($order_id){
         // hapus semua konteks customer
-        $this->_hard_reset_guest_context();
+    $this->_hard_reset_guest_context();
         $this->session->sess_destroy(); // paksa sesi benar2 berakhir
         redirect('produk/receipt/'.(int)$order_id);
         exit;
     }
-public function rate(){
-    $this->_nocache_headers();
-    if (strtoupper($this->input->method(true)) !== 'POST') {
-        return $this->_json(['success'=>false,'pesan'=>'Method not allowed'], 405);
-    }
+    public function rate(){
+        $this->_nocache_headers();
+        if (strtoupper($this->input->method(true)) !== 'POST') {
+            return $this->_json(['success'=>false,'pesan'=>'Method not allowed'], 405);
+        }
 
-    $id     = (int)$this->input->post('id');
-    $stars  = (int)$this->input->post('stars');
+        $id     = (int)$this->input->post('id');
+        $stars  = (int)$this->input->post('stars');
     $review = trim((string)($this->input->post('review', true) ?? '')); // xss_clean
     $nama   = trim((string)($this->input->post('nama',   true) ?? '')); // xss_clean
 
@@ -171,8 +171,8 @@ public function rate(){
 
     // Cek rating sebelumnya dari perangkat yang sama
     $prev = $this->db->select('id,stars,review,nama')
-        ->get_where('produk_rating', ['produk_id'=>$id, 'client_token'=>$token])
-        ->row();
+    ->get_where('produk_rating', ['produk_id'=>$id, 'client_token'=>$token])
+    ->row();
 
     if ($prev) {
         $diff = $stars - (int)$prev->stars;
@@ -188,7 +188,7 @@ public function rate(){
 
         if ($diff !== 0) {
             $this->db->set('rating_sum', 'rating_sum + '.(int)$diff, false)
-                     ->where('id', $id)->update('produk');
+            ->where('id', $id)->update('produk');
         }
     } else {
         $this->db->insert('produk_rating', [
@@ -203,16 +203,16 @@ public function rate(){
         ]);
 
         $this->db->set('rating_sum',   'rating_sum + '.(int)$stars, false)
-                 ->set('rating_count', 'rating_count + 1',          false)
-                 ->where('id', $id)->update('produk');
+        ->set('rating_count', 'rating_count + 1',          false)
+        ->where('id', $id)->update('produk');
     }
 
     // Recalc avg
     $agg = $this->db->select('rating_sum, rating_count')
-                    ->get_where('produk', ['id'=>$id])->row();
+    ->get_where('produk', ['id'=>$id])->row();
     $avg = ($agg && (int)$agg->rating_count > 0)
-        ? round(((int)$agg->rating_sum) / (int)$agg->rating_count, 2)
-        : 0.00;
+    ? round(((int)$agg->rating_sum) / (int)$agg->rating_count, 2)
+    : 0.00;
 
     $this->db->where('id', $id)->update('produk', ['rating_avg'=>$avg]);
 
@@ -233,7 +233,7 @@ public function rate(){
 }
 
 
- public function riwayat_pesanan(){
+public function riwayat_pesanan(){
     $this->_nocache_headers();
     $rec = $this->fm->web_me();
 
@@ -251,7 +251,7 @@ public function rate(){
 
 
 
-  public function index(){
+public function index(){
     $this->_nocache_headers();
     $rec = $this->fm->web_me();
 
@@ -271,19 +271,19 @@ public function rate(){
     // $data['kategori_produk_sub'] = $this->pm->get_subcategories_for_placeholder();
     // Kirim sub-kategori + nama kategori induk ke view
     $data['sub_kat_for_placeholder'] = $this->db->select('s.nama AS sub_nama, c.nama AS kategori_nama')
-        ->from('kategori_produk_sub s')
-        ->join('kategori_produk c', 'c.id = s.kategori_id', 'left')
+    ->from('kategori_produk_sub s')
+    ->join('kategori_produk c', 'c.id = s.kategori_id', 'left')
         ->where('s.is_active', 1) // sesuaikan kalau kolomnya beda
         ->order_by('c.nama', 'ASC')
         ->order_by('s.nama', 'ASC')
         ->get()->result();
 
-    $data["sort"]      = $this->input->get('sort', true) ?: 'random';
+        $data["sort"]      = $this->input->get('sort', true) ?: 'random';
 
     // info meja (kalau dine-in)
-    $meja_kode         = $this->session->userdata('guest_meja_kode');
-    $meja_nama         = $this->session->userdata('guest_meja_nama');
-    $data['meja_info'] = $meja_kode ? ($meja_nama ?: $meja_kode) : null;
+        $meja_kode         = $this->session->userdata('guest_meja_kode');
+        $meja_nama         = $this->session->userdata('guest_meja_nama');
+        $data['meja_info'] = $meja_kode ? ($meja_nama ?: $meja_kode) : null;
 
     // mode aktif
     $explicitMode      = $this->session->userdata('cart__mode'); // bisa 'delivery', 'walkin', dsb
@@ -306,8 +306,8 @@ public function rate(){
 }
 
 
-    /* ----------------- Helper Meja/Cart ----------------- */
-   private function _ensure_active_cart_id(){
+/* ----------------- Helper Meja/Cart ----------------- */
+private function _ensure_active_cart_id(){
     $meja_kode = $this->session->userdata('guest_meja_kode');
     if (!$meja_kode) return null;
 
@@ -321,35 +321,35 @@ public function rate(){
 }
 
 
-    private function _get_active_cart_id(){
-        $id = (int)$this->session->userdata('cart_meja_id');
-        if ($id > 0) return $id;
-        return $this->_ensure_active_cart_id();
-    }
+private function _get_active_cart_id(){
+    $id = (int)$this->session->userdata('cart_meja_id');
+    if ($id > 0) return $id;
+    return $this->_ensure_active_cart_id();
+}
 
-    /* ----------------- Listing & Detail ------------------ */
+/* ----------------- Listing & Detail ------------------ */
 
-    public function struk(){
-        $this->_nocache_headers();
-        $rec = $this->fm->web_me();
+public function struk(){
+    $this->_nocache_headers();
+    $rec = $this->fm->web_me();
 
-        $data["rec"]       = $rec;
-        $data["title"]     = "Struk";
-        $data["deskripsi"] = "Daftar produk di ".$rec->nama_website." ".$rec->kabupaten.".";
-        $data["prev"]      = base_url("assets/images/icon_app.png");
-        
+    $data["rec"]       = $rec;
+    $data["title"]     = "Struk";
+    $data["deskripsi"] = "Daftar produk di ".$rec->nama_website." ".$rec->kabupaten.".";
+    $data["prev"]      = base_url("assets/images/icon_app.png");
 
-        $data["kategoris"] = $this->pm->get_categories();
-        $data["q"]         = $this->input->get('q', true) ?: '';
-        $data["kategori"]  = $this->input->get('kategori', true) ?: '';
-        $data["sort"]      = $this->input->get('sort', true) ?: 'new';
 
-        $meja_kode         = $this->session->userdata('guest_meja_kode');
-        $meja_nama         = $this->session->userdata('guest_meja_nama');
-        $data['meja_info'] = $meja_kode ? ($meja_nama ?: $meja_kode) : null;
+    $data["kategoris"] = $this->pm->get_categories();
+    $data["q"]         = $this->input->get('q', true) ?: '';
+    $data["kategori"]  = $this->input->get('kategori', true) ?: '';
+    $data["sort"]      = $this->input->get('sort', true) ?: 'new';
 
-        $this->load->view('produk_view', $data);
-    }
+    $meja_kode         = $this->session->userdata('guest_meja_kode');
+    $meja_nama         = $this->session->userdata('guest_meja_nama');
+    $data['meja_info'] = $meja_kode ? ($meja_nama ?: $meja_kode) : null;
+
+    $this->load->view('produk_view', $data);
+}
 
 private function _ensure_db()
 {
@@ -366,18 +366,18 @@ private function _db_fail_response_if_any()
     if (!empty($err['code'])) {
         log_message('error', 'DB ERROR '.$err['code'].': '.$err['message'].' | SQL: '.$this->db->last_query());
         $this->output->set_content_type('application/json')
-            ->set_status_header(500)
-            ->set_output(json_encode([
-                'success' => false,
-                'error'   => 'Database error',
-                'code'    => $err['code'],
-            ]));
+        ->set_status_header(500)
+        ->set_output(json_encode([
+            'success' => false,
+            'error'   => 'Database error',
+            'code'    => $err['code'],
+        ]));
         exit;
     }
 }
 
 
-   public function list_ajax(){
+public function list_ajax(){
     $this->_nocache_headers();
     $this->_ensure_db();
 
@@ -443,7 +443,7 @@ private function _db_fail_response_if_any()
     if ($sort === 'random') {
         // $seed = (string)($this->input->get('seed', true) ?? '');
         $tmp_seed = $this->input->get('seed', true);
-$seed = (string)($tmp_seed !== null ? $tmp_seed : '');
+        $seed = (string)($tmp_seed !== null ? $tmp_seed : '');
         if ($seed === '') $seed = date('Ymd'); // deterministik harian
     }
     $this->output->set_header('X-Prod-Seed: '.$seed);
@@ -510,14 +510,14 @@ public function subkategori($kategori_id = null){
     $kategori_id = (int)$kategori_id;
     if ($kategori_id <= 0){
         return $this->output->set_content_type('application/json')
-            ->set_output(json_encode(['success'=>false,'data'=>[]]));
+        ->set_output(json_encode(['success'=>false,'data'=>[]]));
     }
     $rows = $this->db->select('id, nama, slug')
-        ->from('kategori_produk_sub')
-        ->where(['kategori_id'=>$kategori_id, 'is_active'=>1])
-        ->order_by('nama','ASC')->get()->result();
+    ->from('kategori_produk_sub')
+    ->where(['kategori_id'=>$kategori_id, 'is_active'=>1])
+    ->order_by('nama','ASC')->get()->result();
     return $this->output->set_content_type('application/json')
-        ->set_output(json_encode(['success'=>true,'data'=>$rows]));
+    ->set_output(json_encode(['success'=>true,'data'=>$rows]));
 }
 
 
@@ -561,25 +561,25 @@ public function detail($slug = null){
 }
 
 
-    public function detail_modal(){
-        $this->_nocache_headers();
+public function detail_modal(){
+    $this->_nocache_headers();
     	// sleep(3);
-        $slug = $this->input->get('slug', true);
-        if (!$slug){
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode(['success'=>false,'html'=>'<div class="p-3 text-danger">Slug tidak diberikan</div>']));
-        }
-        $prod = $this->pm->get_by_slug($slug);
-        if (!$prod){
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode(['success'=>false,'html'=>'<div class="p-3 text-danger">Produk tidak ditemukan</div>']));
-        }
-        $html = $this->load->view('partials/produk_detail_modal_partial', ['product'=>$prod], true);
+    $slug = $this->input->get('slug', true);
+    if (!$slug){
         return $this->output->set_content_type('application/json')
-            ->set_output(json_encode(['success'=>true,'html'=>$html,'title'=>$prod->nama]));
+        ->set_output(json_encode(['success'=>false,'html'=>'<div class="p-3 text-danger">Slug tidak diberikan</div>']));
     }
+    $prod = $this->pm->get_by_slug($slug);
+    if (!$prod){
+        return $this->output->set_content_type('application/json')
+        ->set_output(json_encode(['success'=>false,'html'=>'<div class="p-3 text-danger">Produk tidak ditemukan</div>']));
+    }
+    $html = $this->load->view('partials/produk_detail_modal_partial', ['product'=>$prod], true);
+    return $this->output->set_content_type('application/json')
+    ->set_output(json_encode(['success'=>true,'html'=>$html,'title'=>$prod->nama]));
+}
 
-    /* ----------------- Cart Actions ------------------ */
+/* ----------------- Cart Actions ------------------ */
 
 public function review_list(){
     // optional: amankan akses non-ajax
@@ -600,7 +600,7 @@ public function review_list(){
         $payload = ['success'=>false,'pesan'=>'Produk tidak valid'];
         if ($this->config->item('csrf_protection')) $payload['csrf'] = $this->_csrf();
         return $this->output->set_content_type('application/json')
-            ->set_output(json_encode($payload));
+        ->set_output(json_encode($payload));
     }
 
     // pastikan model sudah diload: $this->load->model('Produk_model','pm'); di __construct
@@ -623,7 +623,7 @@ public function review_list(){
     if ($this->config->item('csrf_protection')) $payload['csrf'] = $this->_csrf();
 
     return $this->output->set_content_type('application/json')
-        ->set_output(json_encode($payload));
+    ->set_output(json_encode($payload));
 }
 
 private function _csrf(){
@@ -634,105 +634,105 @@ private function _csrf(){
 }
 
 
-    public function add_to_cart(){
-        $this->_nocache_headers();
-        $id  = (int)$this->input->post('id');
-        $qty = max(1, (int)$this->input->post('qty'));
+public function add_to_cart(){
+    $this->_nocache_headers();
+    $id  = (int)$this->input->post('id');
+    $qty = max(1, (int)$this->input->post('qty'));
 
-        $row = $this->db->select('id,nama,sku,harga,stok,gambar,link_seo,is_active')
-                        ->get_where('produk', ['id'=>$id, 'is_active'=>1])->row();
+    $row = $this->db->select('id,nama,sku,harga,stok,gambar,link_seo,is_active')
+    ->get_where('produk', ['id'=>$id, 'is_active'=>1])->row();
 
-        if (!$row) {
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode([
-                    'success' => false,
-                    'title'   => 'Gagal',
-                    'pesan'   => 'Produknya gak ketemu nih 😅',
-                ]));
-        }
+    if (!$row) {
+        return $this->output->set_content_type('application/json')
+        ->set_output(json_encode([
+            'success' => false,
+            'title'   => 'Gagal',
+            'pesan'   => 'Produknya gak ketemu nih 😅',
+        ]));
+    }
 
         // normalisasi nama produk untuk respon
-        $nama       = ucwords(trim((string)$row->nama));
-        $qty_label  = ($qty > 1) ? " (x{$qty})" : '';
-        $msg_ok     = "Masuk keranjang {$qty_label} 🎉";
-        $msg_fail   = "Belum bisa nambahin ‘{$nama}’, coba lagi ya 🙏";
+    $nama       = ucwords(trim((string)$row->nama));
+    $qty_label  = ($qty > 1) ? " (x{$qty})" : '';
+    $msg_ok     = "Masuk keranjang {$qty_label} 🎉";
+    $msg_fail   = "Belum bisa nambahin ‘{$nama}’, coba lagi ya 🙏";
 
         // ====== Mode dengan cart_id (punya meja / session terhubung) ======
-        $cart_id = $this->_get_active_cart_id();
-        if ($cart_id) {
-            $ok    = $this->cm->add_item($cart_id, (int)$row->id, $qty, (int)$row->harga);
-            if ($ok) { $this->_touch_meja_session(); }
-            $count = (int)$this->cm->count_items($cart_id);
+    $cart_id = $this->_get_active_cart_id();
+    if ($cart_id) {
+        $ok    = $this->cm->add_item($cart_id, (int)$row->id, $qty, (int)$row->harga);
+        if ($ok) { $this->_touch_meja_session(); }
+        $count = (int)$this->cm->count_items($cart_id);
 
             // meta meja
-            $meta = $this->session->userdata('cart_meta') ?: [];
-            $meta['meja'] = [
-                'id'   => (int)$this->session->userdata('guest_meja_id'),
-                'kode' => $this->session->userdata('guest_meja_kode'),
-                'nama' => $this->session->userdata('guest_meja_nama'),
-            ];
-            $this->session->set_userdata('cart_meta', $meta);
+        $meta = $this->session->userdata('cart_meta') ?: [];
+        $meta['meja'] = [
+            'id'   => (int)$this->session->userdata('guest_meja_id'),
+            'kode' => $this->session->userdata('guest_meja_kode'),
+            'nama' => $this->session->userdata('guest_meja_nama'),
+        ];
+        $this->session->set_userdata('cart_meta', $meta);
 
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode([
-                    'success' => (bool)$ok,
-                    'count'   => $count,
-                    'title'   => $ok ? 'Mantap!' : 'Oops!',
-                    'pesan'   => $ok ? $msg_ok : $msg_fail,
-                    'produk'  => $nama,
-                    'qty'     => $qty,
-                ]));
-        }
+        return $this->output->set_content_type('application/json')
+        ->set_output(json_encode([
+            'success' => (bool)$ok,
+            'count'   => $count,
+            'title'   => $ok ? 'Mantap!' : 'Oops!',
+            'pesan'   => $ok ? $msg_ok : $msg_fail,
+            'produk'  => $nama,
+            'qty'     => $qty,
+        ]));
+    }
 
         // ====== Mode Walk-in/Delivery (keranjang di session) ======
-        $cart = $this->session->userdata('cart__walkin') ?: [];
+    $cart = $this->session->userdata('cart__walkin') ?: [];
 
-        if (isset($cart[$id])) {
+    if (isset($cart[$id])) {
             // tambah qty pada item yang sudah ada
-            $cart[$id]['qty'] += $qty;
-        } else {
-            $cart[$id] = [
-                'id'    => (int)$row->id,
-                'nama'  => $nama,
-                'harga' => (int)$row->harga,
-                'qty'   => $qty,
-                'slug'  => $row->link_seo,
-                'gambar'=> $row->gambar
-            ];
-        }
-        $this->session->set_userdata('cart__walkin', $cart);
+        $cart[$id]['qty'] += $qty;
+    } else {
+        $cart[$id] = [
+            'id'    => (int)$row->id,
+            'nama'  => $nama,
+            'harga' => (int)$row->harga,
+            'qty'   => $qty,
+            'slug'  => $row->link_seo,
+            'gambar'=> $row->gambar
+        ];
+    }
+    $this->session->set_userdata('cart__walkin', $cart);
 
         // hitung total item di keranjang (akumulasi qty)
-        $count = 0; foreach($cart as $c){ $count += (int)$c['qty']; }
+    $count = 0; foreach($cart as $c){ $count += (int)$c['qty']; }
 
+    return $this->output->set_content_type('application/json')
+    ->set_output(json_encode([
+        'success' => true,
+        'count'   => (int)$count,
+        'title'   => 'Mantap!',
+        'pesan'   => $msg_ok,
+        'produk'  => $nama,
+        'qty'     => $qty,
+    ]));
+}
+
+public function cart_count(){
+    $this->_nocache_headers();
+    $cart_id = $this->_get_active_cart_id();
+    if ($cart_id) {
+        $count = $this->cm->count_items($cart_id);
         return $this->output->set_content_type('application/json')
-            ->set_output(json_encode([
-                'success' => true,
-                'count'   => (int)$count,
-                'title'   => 'Mantap!',
-                'pesan'   => $msg_ok,
-                'produk'  => $nama,
-                'qty'     => $qty,
-            ]));
+        ->set_output(json_encode(['success'=>true, 'count'=>(int)$count]));
     }
+    $cart = $this->session->userdata('cart__walkin') ?: [];
+    $cnt=0; foreach($cart as $c){ $cnt+=(int)$c['qty']; }
+    return $this->output->set_content_type('application/json')
+    ->set_output(json_encode(['success'=>true, 'count'=>(int)$cnt]));
+}
 
-    public function cart_count(){
-        $this->_nocache_headers();
-        $cart_id = $this->_get_active_cart_id();
-        if ($cart_id) {
-            $count = $this->cm->count_items($cart_id);
-            return $this->output->set_content_type('application/json')
-                ->set_output(json_encode(['success'=>true, 'count'=>(int)$count]));
-        }
-        $cart = $this->session->userdata('cart__walkin') ?: [];
-        $cnt=0; foreach($cart as $c){ $cnt+=(int)$c['qty']; }
-        return $this->output->set_content_type('application/json')
-            ->set_output(json_encode(['success'=>true, 'count'=>(int)$cnt]));
-    }
-
-    /** Halaman Cart */
-    public function cart(){
-        $this->_nocache_headers();
+/** Halaman Cart */
+public function cart(){
+    $this->_nocache_headers();
     $rec = $this->fm->web_me();
     $this->_maybe_expire_meja_session(120);
 
@@ -785,6 +785,79 @@ private function _csrf(){
 }
 
 
+public function reward()
+{
+    $this->_nocache_headers();
+    date_default_timezone_set('Asia/Makassar');
+
+    $rec = $this->fm->web_me();
+
+    // waktu sekarang WITA
+    $now = new DateTime('now', new DateTimeZone('Asia/Makassar'));
+    $dow = (int)$now->format('w'); // 0 = Minggu
+
+    // jam 08:00 hari ini
+    $todayAnnouncement = (clone $now)->setTime(8, 0, 0);
+    $isSunday = ($dow === 0);
+    $isAnnouncementTime = $isSunday && ($now >= $todayAnnouncement);
+
+    // ====== MODE TES (BIAR LANGSUNG KELIHATAN TAMPILAN) ======
+    // kalau mau tes tampilan SEKARANG, buka komentar baris di bawah:
+    // $isAnnouncementTime = true;
+    // kalau sudah cocok, nanti tutup lagi (pakai // di depan baris di atas)
+    // ========================================================
+
+    // jadwal pengumuman berikutnya (Minggu 08:00)
+    $daysUntilSunday = (7 - $dow) % 7;
+    $nextAnnouncement = (clone $now)->modify("+{$daysUntilSunday} day")->setTime(8, 0, 0);
+    if ($nextAnnouncement <= $now) {
+        $nextAnnouncement->modify('+7 day');
+    }
+
+    $winner_top = null;
+    $winner_random = null;
+
+    if ($isAnnouncementTime) {
+        // peraih poin tertinggi
+        $winner_top = $this->db
+            ->select('id, customer_name, customer_phone, points')
+            ->from('voucher_cafe')
+            ->where('points >', 0)
+            ->order_by('points', 'DESC')
+            ->order_by('last_paid_at', 'DESC')
+            ->limit(1)
+            ->get()
+            ->row();
+
+        // pemenang acak (beda id dengan poin tertinggi)
+        if ($winner_top) {
+            $winner_random = $this->db
+                ->select('id, customer_name, customer_phone, points')
+                ->from('voucher_cafe')
+                ->where('points >', 0)
+                ->where('id !=', $winner_top->id)
+                ->order_by('RAND()')
+                ->limit(1)
+                ->get()
+                ->row();
+        }
+    }
+
+    $data = [
+        'rec'                   => $rec,
+        'winner_top'            => $winner_top,
+        'winner_random'         => $winner_random,
+        'is_announcement_time'  => $isAnnouncementTime,
+        'next_announcement_iso' => $nextAnnouncement->format('c'),
+    ];
+
+    $data["title"]     = "Reward " . $rec->nama_website;
+    $data["deskripsi"] = "Reward voucher order " . $rec->nama_website . " ";
+    $data["prev"]      = base_url("assets/images/home.webp");
+
+    $this->load->view('reward_view', $data);
+}
+
 public function points(){
     $this->_nocache_headers();
     $rec = $this->fm->web_me(); // kalau dipakai di head.php
@@ -796,67 +869,67 @@ public function points(){
 }
 
 
-    /** API set qty (plus/minus/input) */
-    public function cart_update(){
-         $this->_nocache_headers();
-        $produk_id = (int)$this->input->post('produk_id');
-        $qty       = (int)$this->input->post('qty');
+/** API set qty (plus/minus/input) */
+public function cart_update(){
+   $this->_nocache_headers();
+   $produk_id = (int)$this->input->post('produk_id');
+   $qty       = (int)$this->input->post('qty');
 
-        if ($produk_id <= 0) return $this->_json_err('Produk tidak valid');
+   if ($produk_id <= 0) return $this->_json_err('Produk tidak valid');
 
-        $cart_id = $this->_get_active_cart_id();
-        if ($cart_id){
-            $p = $this->db->select('harga')->get_where('produk',['id'=>$produk_id])->row();
-            $harga = $p ? (int)$p->harga : null;
-            $ok = $this->cm->set_qty($cart_id, $produk_id, $qty, $harga);
-            $count = $this->cm->count_items($cart_id);
-            $total = $this->cm->sum_total($cart_id);
-            return $this->_json_ok(['count'=>$count, 'total'=>$total, 'ok'=>(bool)$ok]);
-        }
+   $cart_id = $this->_get_active_cart_id();
+   if ($cart_id){
+    $p = $this->db->select('harga')->get_where('produk',['id'=>$produk_id])->row();
+    $harga = $p ? (int)$p->harga : null;
+    $ok = $this->cm->set_qty($cart_id, $produk_id, $qty, $harga);
+    $count = $this->cm->count_items($cart_id);
+    $total = $this->cm->sum_total($cart_id);
+    return $this->_json_ok(['count'=>$count, 'total'=>$total, 'ok'=>(bool)$ok]);
+}
 
         // walkin/delivery
-        $cart = $this->session->userdata('cart__walkin') ?: [];
-        if (!isset($cart[$produk_id])) {
-            return $this->_json_err('Item tidak ada di keranjang');
-        }
-        if ($qty <= 0) unset($cart[$produk_id]);
-        else $cart[$produk_id]['qty'] = $qty;
-        $this->session->set_userdata('cart__walkin', $cart);
+$cart = $this->session->userdata('cart__walkin') ?: [];
+if (!isset($cart[$produk_id])) {
+    return $this->_json_err('Item tidak ada di keranjang');
+}
+if ($qty <= 0) unset($cart[$produk_id]);
+else $cart[$produk_id]['qty'] = $qty;
+$this->session->set_userdata('cart__walkin', $cart);
 
-        $count=0; $total=0;
-        foreach($cart as $c){ $count += (int)$c['qty']; $total += (int)$c['qty'] * (int)$c['harga']; }
-        return $this->_json_ok(['count'=>$count,'total'=>$total]);
-    }
+$count=0; $total=0;
+foreach($cart as $c){ $count += (int)$c['qty']; $total += (int)$c['qty'] * (int)$c['harga']; }
+return $this->_json_ok(['count'=>$count,'total'=>$total]);
+}
 
-    /** API remove baris */
-    public function cart_remove(){
-         $this->_nocache_headers();
-        $produk_id = (int)$this->input->post('produk_id');
-        if ($produk_id <= 0) return $this->_json_err('Produk tidak valid');
+/** API remove baris */
+public function cart_remove(){
+   $this->_nocache_headers();
+   $produk_id = (int)$this->input->post('produk_id');
+   if ($produk_id <= 0) return $this->_json_err('Produk tidak valid');
 
-        $cart_id = $this->_get_active_cart_id();
-        if ($cart_id){
-            $ok = $this->cm->remove_item($cart_id, $produk_id);
-            $count = $this->cm->count_items($cart_id);
-            $total = $this->cm->sum_total($cart_id);
-            return $this->_json_ok(['count'=>$count,'total'=>$total,'ok'=>(bool)$ok]);
-        }
+   $cart_id = $this->_get_active_cart_id();
+   if ($cart_id){
+    $ok = $this->cm->remove_item($cart_id, $produk_id);
+    $count = $this->cm->count_items($cart_id);
+    $total = $this->cm->sum_total($cart_id);
+    return $this->_json_ok(['count'=>$count,'total'=>$total,'ok'=>(bool)$ok]);
+}
 
-        $cart = $this->session->userdata('cart__walkin') ?: [];
-        if (isset($cart[$produk_id])) unset($cart[$produk_id]);
-        $this->session->set_userdata('cart__walkin', $cart);
+$cart = $this->session->userdata('cart__walkin') ?: [];
+if (isset($cart[$produk_id])) unset($cart[$produk_id]);
+$this->session->set_userdata('cart__walkin', $cart);
 
-        $count=0; $total=0;
-        foreach($cart as $c){ $count += (int)$c['qty']; $total += (int)$c['qty'] * (int)$c['harga']; }
-        return $this->_json_ok(['count'=>$count,'total'=>$total]);
-    }
+$count=0; $total=0;
+foreach($cart as $c){ $count += (int)$c['qty']; $total += (int)$c['qty'] * (int)$c['harga']; }
+return $this->_json_ok(['count'=>$count,'total'=>$total]);
+}
 
 
-    /* ----------------- Order Pages ------------------ */
+/* ----------------- Order Pages ------------------ */
 
-    /** Halaman Order (konfirmasi) */
-    public function order(){
-        $this->_nocache_headers();
+/** Halaman Order (konfirmasi) */
+public function order(){
+    $this->_nocache_headers();
     $rec = $this->fm->web_me();
 
     // >>> default-kan delivery bila belum ada mode & bukan dine-in
@@ -920,15 +993,15 @@ public function leave_table(){
     redirect('produk');
 }
 
-    private function _touch_meja_session(){
+private function _touch_meja_session(){
     if ($this->session->userdata('guest_meja_kode')) {
         $this->session->set_userdata('scan_ts', time());
     }
 }
 
 
-    /** Submit order → buat pesanan & item dari cart */
-  public function submit_order(){
+/** Submit order → buat pesanan & item dari cart */
+public function submit_order(){
     $this->_nocache_headers();
     $this->_maybe_expire_meja_session(120);
     $nama    = trim($this->input->post('nama', true) ?: '');
@@ -943,7 +1016,7 @@ public function leave_table(){
     $rec = $this->db->get('identitas')->row(); // pastikan tabel identitas ada
     $tzName = (!empty($rec->waktu) ? (string)$rec->waktu : 'Asia/Makassar');
     $abbrTZ = ($tzName==='Asia/Jakarta' ? 'WIB'
-            : ($tzName==='Asia/Makassar' ? 'WITA'
+        : ($tzName==='Asia/Makassar' ? 'WITA'
             : ($tzName==='Asia/Jayapura' ? 'WIT' : '')));
     try { $tz = new DateTimeZone($tzName); } catch (\Throwable $e) { $tz = new DateTimeZone('Asia/Makassar'); $tzName='Asia/Makassar'; }
     $now = new DateTime('now', $tz);
@@ -1054,10 +1127,10 @@ public function leave_table(){
     // Tolak order jika di luar jam layanan
     if (!$inWindow){
         $msg = 'Pesanan hanya dapat dibuat pada jam layanan: '
-            . ($openStr ? $dot($openStr) : '-')
-            . '–'
-            . ($closeStr ? $dot($closeStr) : '-')
-            . ($abbrTZ ? ' '.$abbrTZ : '');
+        . ($openStr ? $dot($openStr) : '-')
+        . '–'
+        . ($closeStr ? $dot($closeStr) : '-')
+        . ($abbrTZ ? ' '.$abbrTZ : '');
         return $this->_json_err($msg);
     }
     // === END validasi jam layanan ===
@@ -1120,7 +1193,7 @@ public function leave_table(){
         $is_free    = ($total >= $batas_free);
         $this->load->helper('ongkir');
         if ($is_free) {
-            
+
             // === GRATIS ONGKIR: tidak wajib token; tetap validasi koordinat & radius di server
             if ($post_lat < -90 || $post_lat > 90 || $post_lng < -180 || $post_lng > 180) {
                 return $this->_json_err('Koordinat tidak valid.');
@@ -1292,14 +1365,14 @@ public function leave_table(){
 
     // Insert detail
     $actor = ($mode === 'dinein')
-        ? ($nama ?: ($meja_nama ?: ($meja_kode ?: 'customer')))
+    ? ($nama ?: ($meja_nama ?: ($meja_kode ?: 'customer')))
         : $mode; // tandai 'walkin' atau 'delivery' sebagai added_by
 
-    foreach($items as $it){
-        $pid   = (int)$it->produk_id;
-        $qty   = (int)$it->qty;
-        $harga = (int)$it->harga;
-        $nm    = $it->nama ?? ($map_nama[$pid] ?? null);
+        foreach($items as $it){
+            $pid   = (int)$it->produk_id;
+            $qty   = (int)$it->qty;
+            $harga = (int)$it->harga;
+            $nm    = $it->nama ?? ($map_nama[$pid] ?? null);
         $katId = $map_kat[$pid] ?? null; // kategori produk
 
         $rowIns = [
@@ -1322,13 +1395,13 @@ public function leave_table(){
         $this->db->where('id', $cart_id)
          ->where('status', 'open') // guard opsional
          ->update('cart_meja', [
-             'status'     => 'submitted',
+           'status'     => 'submitted',
              'sesi_key'   => null,                 // <— penting
              'updated_at' => date('Y-m-d H:i:s'),
          ]);
 
-        $this->session->unset_userdata('cart_meja_id');
-    } else {
+         $this->session->unset_userdata('cart_meja_id');
+     } else {
         $this->session->unset_userdata('cart__walkin');
     }
 
@@ -1344,13 +1417,13 @@ public function leave_table(){
     $redirectUrl = site_url('produk/order_success/'.$nomor);
 
     // Siapkan objek ringkas untuk WA
-   $ordForWa = (object)[
-  'id'            => (int)$order->id,
-  'nomor'         => (string)$order->nomor,
-  'nama'          => (string)$nama,
-  'mode'          => (string)$mode,
-  'customer_phone'=> (string)$customer_phone,
-  'total'         => (int)$order->total,
+    $ordForWa = (object)[
+      'id'            => (int)$order->id,
+      'nomor'         => (string)$order->nomor,
+      'nama'          => (string)$nama,
+      'mode'          => (string)$mode,
+      'customer_phone'=> (string)$customer_phone,
+      'total'         => (int)$order->total,
   'delivery_fee'  => (int)$order->delivery_fee,   // 1 = gratis
   'grand_total'   => (int)$order->grand_total,
   'kode_unik'     => (int)$order->kode_unik,      // <— PENTING
@@ -1361,23 +1434,23 @@ public function leave_table(){
   'catatan'       => (string)$catatan,
 ];
     // === 3.a KIRIM RESPON KE USER SEKARANG (tidak nunggu WA) ===
-    $this->_json_ok_and_flush_then_continue([
-        'order_id' => (int)$order_id,
-        'nomor'    => $nomor ?: $order_id,
-        'message'  => 'Pesanan dibuat (status pending)',
-        'redirect' => $redirectUrl
-    ]);
+$this->_json_ok_and_flush_then_continue([
+    'order_id' => (int)$order_id,
+    'nomor'    => $nomor ?: $order_id,
+    'message'  => 'Pesanan dibuat (status pending)',
+    'redirect' => $redirectUrl
+]);
 
     // === 3.b LANJUTKAN KIRIM WA DI BELAKANG (user sudah dapat respons) ===
-    try {
+try {
         // Kita sudah punya $items di atas (array of object)
-        $this->_wa_notify_order_submit($ordForWa, $items);
-    } catch (\Throwable $e) {
-        log_message('error', 'Send WA async failed: '.$e->getMessage());
-    }
+    $this->_wa_notify_order_submit($ordForWa, $items);
+} catch (\Throwable $e) {
+    log_message('error', 'Send WA async failed: '.$e->getMessage());
+}
 
     // Pastikan tidak ada output lagi
-    exit;
+exit;
 
 }
 
@@ -1505,13 +1578,13 @@ public function leave_table(){
 //     }
 // }
 
-    
+
 /** Kirim JSON sekarang ke client, lalu lanjut proses di server (non-blocking untuk user) */
 private function _json_ok_and_flush_then_continue(array $payload){
     // siapkan output
     $out = array_merge(['success'=>true], $payload);
     $this->output->set_content_type('application/json')
-                 ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+    ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 
     // lepas kunci session supaya request berikutnya tidak nunggu
     @session_write_close();
@@ -1551,10 +1624,10 @@ private function _wa_notify_order_submit(object $ord, ?array $items = null): boo
     // Ambil items dari DB bila tidak diberikan
     if ($items === null) {
         $items = $this->db->select('nama, qty, harga')
-                          ->from('pesanan_item')
-                          ->where('pesanan_id', (int)$ord->id)
-                          ->order_by('id','asc')
-                          ->get()->result();
+        ->from('pesanan_item')
+        ->where('pesanan_id', (int)$ord->id)
+        ->order_by('id','asc')
+        ->get()->result();
     }
 
     // Formatter rupiah
@@ -1595,32 +1668,32 @@ private function _wa_notify_order_submit(object $ord, ?array $items = null): boo
 
     // Kode unik (tampilkan hanya jika > 0)
     $kodeUnikLine = ((int)($ord->kode_unik ?? 0) > 0)
-        ? "Kode Unik: ".$idr((int)$ord->kode_unik)."\n"
-        : '';
+    ? "Kode Unik: ".$idr((int)$ord->kode_unik)."\n"
+    : '';
 
     // Alamat / Pin / Catatan
     $alamatLine  = !empty($ord->alamat_kirim) ? "Alamat: {$ord->alamat_kirim}\n" : '';
     $pinLine     = (!empty($ord->dest_lat) && !empty($ord->dest_lng))
-        ? "Pin lokasi: https://www.google.com/maps/?q={$ord->dest_lat},{$ord->dest_lng}\n"
-        : '';
+    ? "Pin lokasi: https://www.google.com/maps/?q={$ord->dest_lat},{$ord->dest_lng}\n"
+    : '';
     $catatanLine = !empty($ord->catatan) ? "Catatan: {$ord->catatan}\n" : '';
 
     // Susun pesan
     $msg  =
-        "Halo Kak {$ord->nama}, pesanan *{$ord->nomor}* ({$modeLabel}) di *{$brand_wa}* sudah kami terima ✅\n\n".
-        "Rincian:\n{$itemsList}\n\n".
-        "Subtotal: ".$idr((int)$ord->total)."\n".
-        $ongkirTxt.
-        $kodeUnikLine.
-        "Grand Total: ".$idr((int)$ord->grand_total)."\n".
-        $mejaText.
-        $alamatLine.
-        $pinLine.
-        $catatanLine.
-        "\nSilakan *pilih metode pembayaran* di tautan berikut:\n{$payUrl}\n\n".
-        "ℹ️ *Catatan*: Kode unik hanya berlaku untuk metode *QRIS/Transfer*. Jika Anda memilih *Tunai*, *kode unik tidak ditagihkan*.\n".
-        "✅ Abaikan pesan ini jika Anda sudah melakukan pembayaran.\n".
-        "— Pesan ini dikirim otomatis oleh sistem *AUSI Billiard & Cafe*.";
+    "Halo Kak {$ord->nama}, pesanan *{$ord->nomor}* ({$modeLabel}) di *{$brand_wa}* sudah kami terima ✅\n\n".
+    "Rincian:\n{$itemsList}\n\n".
+    "Subtotal: ".$idr((int)$ord->total)."\n".
+    $ongkirTxt.
+    $kodeUnikLine.
+    "Grand Total: ".$idr((int)$ord->grand_total)."\n".
+    $mejaText.
+    $alamatLine.
+    $pinLine.
+    $catatanLine.
+    "\nSilakan *pilih metode pembayaran* di tautan berikut:\n{$payUrl}\n\n".
+    "ℹ️ *Catatan*: Kode unik hanya berlaku untuk metode *QRIS/Transfer*. Jika Anda memilih *Tunai*, *kode unik tidak ditagihkan*.\n".
+    "✅ Abaikan pesan ini jika Anda sudah melakukan pembayaran.\n".
+    "— Pesan ini dikirim otomatis oleh sistem *AUSI Billiard & Cafe*.";
 
     // (Opsional) Normalisasi nomor HP ke format 62xxxxxxxxxx
     $toMsisdn = function(string $hp): string {
@@ -1643,69 +1716,69 @@ private function _wa_notify_order_submit(object $ord, ?array $items = null): boo
 
 
 
-    private function _clear_guest_session(){
-        $this->session->unset_userdata([
-            'guest_meja_id','guest_meja_kode','guest_meja_nama','cart_meja_id',
-            'cart__walkin','cart_meta','cart__mode'
-        ]);
-    }
+private function _clear_guest_session(){
+    $this->session->unset_userdata([
+        'guest_meja_id','guest_meja_kode','guest_meja_nama','cart_meja_id',
+        'cart__walkin','cart_meta','cart__mode'
+    ]);
+}
 
-    /** Ambil order + items + total dari ID/KODE/nomor. */
-    private function _order_bundle($ref){
-        $order = null; $items = []; $total = 0; $meja_info = null;
+/** Ambil order + items + total dari ID/KODE/nomor. */
+private function _order_bundle($ref){
+    $order = null; $items = []; $total = 0; $meja_info = null;
 
         // header
-        if (ctype_digit((string)$ref)) {
-            $order = $this->db->get_where('pesanan', ['id' => (int)$ref])->row();
-        } else {
-            $order = $this->db->get_where('pesanan', ['nomor' => $ref])->row();
-            if (!$order && $this->db->field_exists('kode','pesanan')) {
-                $order = $this->db->get_where('pesanan', ['kode' => $ref])->row();
-            }
+    if (ctype_digit((string)$ref)) {
+        $order = $this->db->get_where('pesanan', ['id' => (int)$ref])->row();
+    } else {
+        $order = $this->db->get_where('pesanan', ['nomor' => $ref])->row();
+        if (!$order && $this->db->field_exists('kode','pesanan')) {
+            $order = $this->db->get_where('pesanan', ['kode' => $ref])->row();
         }
-        if (!$order) return [null, [], 0, null];
+    }
+    if (!$order) return [null, [], 0, null];
 
         // items
-        $q = $this->db->select('
-                pi.produk_id,
-                COALESCE(pi.nama, p.nama) AS nama,
-                pi.harga, pi.qty,
-                (pi.harga * pi.qty) AS subtotal,
-                pi.tambahan,
-                p.gambar, p.link_seo AS slug, p.stok
-            ')
-            ->from('pesanan_item pi')
-            ->join('produk p', 'p.id = pi.produk_id', 'left')
-            ->where('pi.pesanan_id', (int)$order->id)
-            ->order_by('pi.id','ASC');
-        $items = $q->get()->result();
+    $q = $this->db->select('
+        pi.produk_id,
+        COALESCE(pi.nama, p.nama) AS nama,
+        pi.harga, pi.qty,
+        (pi.harga * pi.qty) AS subtotal,
+        pi.tambahan,
+        p.gambar, p.link_seo AS slug, p.stok
+        ')
+    ->from('pesanan_item pi')
+    ->join('produk p', 'p.id = pi.produk_id', 'left')
+    ->where('pi.pesanan_id', (int)$order->id)
+    ->order_by('pi.id','ASC');
+    $items = $q->get()->result();
 
-        $total = 0;
-        foreach ($items as $it){
-            $it->harga    = (int)round((float)$it->harga);
-            $it->qty      = (int)$it->qty;
-            $it->subtotal = (int)$it->harga * (int)$it->qty;
-            $total += $it->subtotal;
-            $it->tambahan = isset($it->tambahan) ? (int)$it->tambahan : 0;
-        }
-
-        $kode_unik   = (int)($order->kode_unik ?? 0);
-        $grand_total = isset($order->grand_total) && (int)$order->grand_total > 0
-                     ? (int)$order->grand_total
-                     : ((int)$total + (int)$kode_unik);
-
-        // simpan ke object agar view gampang pakai
-        $order->kode_unik   = $kode_unik;
-        $order->grand_total = $grand_total;
-
-        // --- Info meja
-        if (!empty($order->meja_nama))      $meja_info = $order->meja_nama;
-        elseif (!empty($order->meja_kode))  $meja_info = $order->meja_kode;
-
-        return [$order, $items, $total, $meja_info];
+    $total = 0;
+    foreach ($items as $it){
+        $it->harga    = (int)round((float)$it->harga);
+        $it->qty      = (int)$it->qty;
+        $it->subtotal = (int)$it->harga * (int)$it->qty;
+        $total += $it->subtotal;
+        $it->tambahan = isset($it->tambahan) ? (int)$it->tambahan : 0;
     }
 
-    public function order_success($ref = null){
+    $kode_unik   = (int)($order->kode_unik ?? 0);
+    $grand_total = isset($order->grand_total) && (int)$order->grand_total > 0
+    ? (int)$order->grand_total
+    : ((int)$total + (int)$kode_unik);
+
+        // simpan ke object agar view gampang pakai
+    $order->kode_unik   = $kode_unik;
+    $order->grand_total = $grand_total;
+
+        // --- Info meja
+    if (!empty($order->meja_nama))      $meja_info = $order->meja_nama;
+    elseif (!empty($order->meja_kode))  $meja_info = $order->meja_kode;
+
+    return [$order, $items, $total, $meja_info];
+}
+
+public function order_success($ref = null){
     $this->_nocache_headers();
     if (!$ref) show_404();
 
@@ -1740,7 +1813,7 @@ private function _wa_notify_order_submit(object $ord, ?array $items = null): boo
 private function _ensure_default_delivery_mode(){
     // Jangan ganggu kalau sudah dine-in (punya meja/cart aktif)
     $has_meja = (bool)$this->session->userdata('guest_meja_kode')
-             || (bool)$this->session->userdata('cart_meja_id');
+    || (bool)$this->session->userdata('cart_meja_id');
     if ($has_meja) return;
 
     // Kalau belum ada pilihan mode sama sekali → set default delivery
@@ -1754,9 +1827,9 @@ private function _email_order_confirmation($order_id){
     if (!$order || empty($order->email)) return;
 
     $items = $this->db->select('nama, qty, harga, subtotal')
-                      ->from('pesanan_item')
-                      ->where('pesanan_id', $order_id)
-                      ->order_by('id','asc')->get()->result();
+    ->from('pesanan_item')
+    ->where('pesanan_id', $order_id)
+    ->order_by('id','asc')->get()->result();
 
     // Identitas/app name
     $web = $this->fm->web_me();
@@ -1793,7 +1866,7 @@ private function _email_order_confirmation($order_id){
     try { $this->email->send(); } catch (\Throwable $e) { log_message('error', 'Email order gagal: '.$e->getMessage()); }
 }
 
-   public function set_mode_walkin(){
+public function set_mode_walkin(){
     // Hapus jejak meja agar pasti walkin
     $this->_hard_reset_guest_context();
     $this->session->set_userdata('cart__mode', 'walkin');
@@ -1831,36 +1904,36 @@ private function _maybe_expire_meja_session($minutes = 120){
 }
 
 
-    /** Cetak struk thermal */
-    public function order_print($id = null){
-        $this->_nocache_headers();
-        if (!$id) show_404();
-        [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
-        if (!$order) show_404();
-        $data = compact('order','items','total','meja_info');
-        $this->load->view('order_receipt_view', $data);
-    }
+/** Cetak struk thermal */
+public function order_print($id = null){
+    $this->_nocache_headers();
+    if (!$id) show_404();
+    [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
+    if (!$order) show_404();
+    $data = compact('order','items','total','meja_info');
+    $this->load->view('order_receipt_view', $data);
+}
 
-    /** Halaman struk full page (untuk cetak) */
-    public function receipt($ref = null){
-	    $this->_nocache_headers();
-	    if (!$ref) show_404();
+/** Halaman struk full page (untuk cetak) */
+public function receipt($ref = null){
+   $this->_nocache_headers();
+   if (!$ref) show_404();
 
-	    [$order, $items, $total, $meja_info] = $this->_order_bundle($ref);
-	    if (!$order) show_404();
+   [$order, $items, $total, $meja_info] = $this->_order_bundle($ref);
+   if (!$order) show_404();
 
-	    $rec = $this->fm->web_me();
-	    $data = compact('order','items','total','meja_info','rec');
-	    $data["title"]     = "Struk";
-	    $data["deskripsi"] = "Struk Pembayaran";
-	    $data["prev"]      = base_url("assets/images/icon_app.png");
+   $rec = $this->fm->web_me();
+   $data = compact('order','items','total','meja_info','rec');
+   $data["title"]     = "Struk";
+   $data["deskripsi"] = "Struk Pembayaran";
+   $data["prev"]      = base_url("assets/images/icon_app.png");
 
-	    $this->load->view('order_receipt_page', $data);
+   $this->load->view('order_receipt_page', $data);
 
-	}
+}
 
 
-    /* ----------------- Tag Meja (QR) ------------------ */
+/* ----------------- Tag Meja (QR) ------------------ */
     // public function tag($kode = null){
     //     $kode = trim((string)$kode);
     //     if ($kode === '') return redirect('produk');
@@ -1880,69 +1953,69 @@ private function _maybe_expire_meja_session($minutes = 120){
     //     return redirect('produk');
     // }
 
-    public function tag($kode = null, $token = null){
-        $kode  = trim((string)$kode);
-        $token = trim((string)$token);
+public function tag($kode = null, $token = null){
+    $kode  = trim((string)$kode);
+    $token = trim((string)$token);
 
-        if ($kode === '' || $token === '') {
-            return redirect('produk');
-        }
+    if ($kode === '' || $token === '') {
+        return redirect('produk');
+    }
 
         // validasi pola kode meja (opsional, biar spam ke DB berkurang)
-        if (!preg_match('/^[A-Z0-9]{3,10}$/', $kode)) {
-            $this->_hard_reset_guest_context();
-            $this->session->sess_regenerate(TRUE);
-            return redirect('produk');
-        }
-
-
-        $row = $this->db->get_where('meja', [
-            'kode'     => $kode,
-            'qr_token' => $token,
-            'status'   => 'aktif'
-        ])->row();
-
-        if ($row) {
-            $this->_begin_customer_flow($row);
-
-            if ($this->session->userdata('cart')) {
-                $this->session->unset_userdata('cart');
-            }
-
-            $this->session->set_flashdata('cart_reset_title', $row->nama);
-            $this->session->set_flashdata(
-                'cart_reset_msg',
-                'Kamu akan order di '.$row->nama.'. Tolong pastikan kamu duduk di '.$row->nama.', jangan pindah-pindah ya. 👍'
-            );
-
-            // penting: regenerasi session id saat "claim" meja
-            $this->session->sess_regenerate(TRUE);
-
-        } else {
-            $this->_hard_reset_guest_context();
-            $this->session->sess_regenerate(TRUE);
-        }
-
+    if (!preg_match('/^[A-Z0-9]{3,10}$/', $kode)) {
+        $this->_hard_reset_guest_context();
+        $this->session->sess_regenerate(TRUE);
         return redirect('produk');
     }
 
 
-    /* ----------------- Pembayaran (tanpa API) ------------------ */
-    private function _mark_paid_and_end($id, $method){
-        $id = (int)$id;
-        $row = $this->db->get_where('pesanan',['id'=>$id])->row();
-        if (!$row) show_404();
-        if (!in_array($row->status, ['paid','canceled'], true)){
-            $this->db->where('id',$id)->update('pesanan', [
-                'status'      => 'paid',
+    $row = $this->db->get_where('meja', [
+        'kode'     => $kode,
+        'qr_token' => $token,
+        'status'   => 'aktif'
+    ])->row();
+
+    if ($row) {
+        $this->_begin_customer_flow($row);
+
+        if ($this->session->userdata('cart')) {
+            $this->session->unset_userdata('cart');
+        }
+
+        $this->session->set_flashdata('cart_reset_title', $row->nama);
+        $this->session->set_flashdata(
+            'cart_reset_msg',
+            'Kamu akan order di '.$row->nama.'. Tolong pastikan kamu duduk di '.$row->nama.', jangan pindah-pindah ya. 👍'
+        );
+
+            // penting: regenerasi session id saat "claim" meja
+        $this->session->sess_regenerate(TRUE);
+
+    } else {
+        $this->_hard_reset_guest_context();
+        $this->session->sess_regenerate(TRUE);
+    }
+
+    return redirect('produk');
+}
+
+
+/* ----------------- Pembayaran (tanpa API) ------------------ */
+private function _mark_paid_and_end($id, $method){
+    $id = (int)$id;
+    $row = $this->db->get_where('pesanan',['id'=>$id])->row();
+    if (!$row) show_404();
+    if (!in_array($row->status, ['paid','canceled'], true)){
+        $this->db->where('id',$id)->update('pesanan', [
+            'status'      => 'paid',
                 'paid_method' => $method,      // cash | qris | transfer
                 'paid_at'     => date('Y-m-d H:i:s'),
             ]);
-        }
-        $this->_end_customer_flow_and_go_receipt($id);
     }
+    $this->_end_customer_flow_and_go_receipt($id);
+}
 
-    private function _set_verifikasi($id, $method){
+private function _set_verifikasi($id, $method){
     $id  = (int)$id;
     $row = $this->db->get_where('pesanan', ['id'=>$id])->row();
     if (!$row) show_404();
@@ -1978,180 +2051,180 @@ private function _maybe_expire_meja_session($minutes = 120){
 
 
 
-    /* ====== TUNAI: langsung lunas (boleh tetap) ====== */
-    public function pay_cash($ref = null){
-	    $this->_nocache_headers();
-	    if (!$ref) show_404();
+/* ====== TUNAI: langsung lunas (boleh tetap) ====== */
+public function pay_cash($ref = null){
+   $this->_nocache_headers();
+   if (!$ref) show_404();
 
-	    $row = $this->_get_order_by_ref($ref);
-	    if (!$row) show_404();
+   $row = $this->_get_order_by_ref($ref);
+   if (!$row) show_404();
 
-	    if (!in_array(strtolower($row->status ?? ''), ['paid','canceled'], true)){
+   if (!in_array(strtolower($row->status ?? ''), ['paid','canceled'], true)){
 	        // set ke verifikasi (tanpa kode unik) → grand_total = base total
-	        $this->_set_verifikasi((int)$row->id, 'cash');
-	    }
-	    return redirect('produk/order_success/'.rawurlencode($row->nomor));
-	}
+       $this->_set_verifikasi((int)$row->id, 'cash');
+   }
+   return redirect('produk/order_success/'.rawurlencode($row->nomor));
+}
 
 
     // --- Helper CRC-16/CCITT-FALSE untuk Tag 63
-    private function _crc16_ccitt_false(string $s): int {
-        $poly = 0x1021; $crc = 0xFFFF;
-        $len = strlen($s);
-        for ($i=0; $i<$len; $i++) {
-            $crc ^= (ord($s[$i]) << 8);
-            for ($b=0; $b<8; $b++) {
-                $crc = ($crc & 0x8000) ? (($crc << 1) ^ $poly) : ($crc << 1);
-                $crc &= 0xFFFF;
-            }
+private function _crc16_ccitt_false(string $s): int {
+    $poly = 0x1021; $crc = 0xFFFF;
+    $len = strlen($s);
+    for ($i=0; $i<$len; $i++) {
+        $crc ^= (ord($s[$i]) << 8);
+        for ($b=0; $b<8; $b++) {
+            $crc = ($crc & 0x8000) ? (($crc << 1) ^ $poly) : ($crc << 1);
+            $crc &= 0xFFFF;
         }
-        return $crc;
     }
+    return $crc;
+}
 
     // Set/replace Tag 54 (amount) lalu hitung ulang CRC (Tag 63)
-    private function _qris_set_amount(string $payload, $amount): string {
+private function _qris_set_amount(string $payload, $amount): string {
 	    // === 1) Parse TLV top-level sampai Tag 63 ===
-	    $tags = []; $i = 0; $n = strlen($payload);
-	    while ($i + 4 <= $n) {
-	        $tag = substr($payload, $i, 2);
-	        $len = intval(substr($payload, $i + 2, 2), 10);
-	        $i += 4;
-	        if ($len < 0 || $i + $len > $n) break;
-	        $val = substr($payload, $i, $len);
-	        $i += $len;
-	        $tags[] = [$tag, $len, $val];
+   $tags = []; $i = 0; $n = strlen($payload);
+   while ($i + 4 <= $n) {
+       $tag = substr($payload, $i, 2);
+       $len = intval(substr($payload, $i + 2, 2), 10);
+       $i += 4;
+       if ($len < 0 || $i + $len > $n) break;
+       $val = substr($payload, $i, $len);
+       $i += $len;
+       $tags[] = [$tag, $len, $val];
 	        if ($tag === '63') break; // CRC – berhenti
 	    }
 
 	    // === 2) Filter: buang Tag 54 (Amount) & Tag 63 (CRC lama) ===
 	    $filtered = [];
 	    foreach ($tags as [$t, $l, $v]) {
-	        if ($t === '54' || $t === '63') continue;
-	        $filtered[] = [$t, $l, $v];
-	    }
+           if ($t === '54' || $t === '63') continue;
+           $filtered[] = [$t, $l, $v];
+       }
 
 	    // === 3) Normalisasi nominal (tanpa pemisah ribuan) ===
-	    $amt = (float)$amount;
-	    if (!is_finite($amt) || $amt < 0) { $amt = 0.0; }
+       $amt = (float)$amount;
+       if (!is_finite($amt) || $amt < 0) { $amt = 0.0; }
 
 	    // QRIS/EMV pakai titik desimal; trimming nol di belakang
-	    if (fmod($amt, 1.0) == 0.0) {
-	        $amtStr = (string)intval($amt);
-	    } else {
-	        $amtStr = number_format($amt, 2, '.', '');
-	        $amtStr = rtrim(rtrim($amtStr, '0'), '.');
-	        if ($amtStr === '') $amtStr = '0';
-	    }
-	    $len54 = strlen($amtStr);
-	    if ($len54 > 99) {
+       if (fmod($amt, 1.0) == 0.0) {
+           $amtStr = (string)intval($amt);
+       } else {
+           $amtStr = number_format($amt, 2, '.', '');
+           $amtStr = rtrim(rtrim($amtStr, '0'), '.');
+           if ($amtStr === '') $amtStr = '0';
+       }
+       $len54 = strlen($amtStr);
+       if ($len54 > 99) {
 	        // sangat tidak mungkin, tapi jaga-jaga
-	        $amtStr = substr($amtStr, 0, 99);
-	        $len54  = strlen($amtStr);
-	    }
-	    $len54_2d = str_pad((string)$len54, 2, '0', STR_PAD_LEFT);
+           $amtStr = substr($amtStr, 0, 99);
+           $len54  = strlen($amtStr);
+       }
+       $len54_2d = str_pad((string)$len54, 2, '0', STR_PAD_LEFT);
 
 	    // === 4) Rakit ulang: pertahankan urutan tag, sisipkan 54 di posisi yang benar (sebelum tag > 54) ===
-	    $body = '';
-	    $inserted54 = false;
-	    foreach ($filtered as [$t, $l, $v]) {
+       $body = '';
+       $inserted54 = false;
+       foreach ($filtered as [$t, $l, $v]) {
 	        // Saat menemukan tag yang lebih besar dari 54 dan 54 belum disisipkan → selipkan 54 dulu
-	        if (!$inserted54 && ctype_digit($t) && intval($t, 10) > 54) {
-	            $body .= '54' . $len54_2d . $amtStr;
-	            $inserted54 = true;
-	        }
-	        $body .= $t . str_pad((string)$l, 2, '0', STR_PAD_LEFT) . $v;
-	    }
+           if (!$inserted54 && ctype_digit($t) && intval($t, 10) > 54) {
+               $body .= '54' . $len54_2d . $amtStr;
+               $inserted54 = true;
+           }
+           $body .= $t . str_pad((string)$l, 2, '0', STR_PAD_LEFT) . $v;
+       }
 	    // Jika semua tag <= 54, 54 belum tersisip → taruh 54 sebelum CRC
-	    if (!$inserted54) {
-	        $body .= '54' . $len54_2d . $amtStr;
-	    }
+       if (!$inserted54) {
+           $body .= '54' . $len54_2d . $amtStr;
+       }
 
 	    // === 5) Hitung ulang CRC (Tag 63) ===
-	    $toCrc = $body . '6304';
-	    $crc = strtoupper(dechex($this->_crc16_ccitt_false($toCrc)));
-	    $crc = str_pad($crc, 4, '0', STR_PAD_LEFT);
+       $toCrc = $body . '6304';
+       $crc = strtoupper(dechex($this->_crc16_ccitt_false($toCrc)));
+       $crc = str_pad($crc, 4, '0', STR_PAD_LEFT);
 
-	    return $toCrc . $crc;
-	}
+       return $toCrc . $crc;
+   }
 
 
-    public function pay_qris($ref = null){
-	    $this->_nocache_headers();
-	    if (!$ref) show_404();
+   public function pay_qris($ref = null){
+       $this->_nocache_headers();
+       if (!$ref) show_404();
 
-	    $row = $this->_get_order_by_ref($ref);
-	    if (!$row) show_404();
-	    $orderId = (int)$row->id;
-    $orderNo = (string)$row->nomor;
-	    if (in_array(strtolower($row->status ?? ''), ['paid','canceled'], true)){
-	        return redirect('produk/order_success/'.rawurlencode($row->nomor));
-	    }
+       $row = $this->_get_order_by_ref($ref);
+       if (!$row) show_404();
+       $orderId = (int)$row->id;
+       $orderNo = (string)$row->nomor;
+       if (in_array(strtolower($row->status ?? ''), ['paid','canceled'], true)){
+           return redirect('produk/order_success/'.rawurlencode($row->nomor));
+       }
 
 	    // Tandai metode verifikasi + kode unik + grand_total
-	    $this->_set_verifikasi((int)$row->id, 'qris');
+       $this->_set_verifikasi((int)$row->id, 'qris');
 
         // Re-fetch order + bundle item/total
-        $order = $this->db->get_where('pesanan', ['id'=>(int)$row->id])->row();
-	    [$order2, $items, $total, $meja_info] = $this->_order_bundle($row->id);
+       $order = $this->db->get_where('pesanan', ['id'=>(int)$row->id])->row();
+       [$order2, $items, $total, $meja_info] = $this->_order_bundle($row->id);
 
-	    $rec         = $this->fm->web_me();
-	    $kode_unik   = (int)($order->kode_unik ?? 0);
-	    $grand_total = (int)($order->grand_total ?? ($total + $kode_unik));
+       $rec         = $this->fm->web_me();
+       $kode_unik   = (int)($order->kode_unik ?? 0);
+       $grand_total = (int)($order->grand_total ?? ($total + $kode_unik));
 
 
         // 1) QRIS BASE (punya kamu). PASTIKAN tanpa spasi/linebreak.
-        $BASE_QRIS = '00020101021126590013ID.CO.BNI.WWW011893600009150432388702096072939380303UMI51440014ID.CO.QRIS.WWW0215ID10254388495450303UMI5204793253033605802ID5922AUSI BILLIARD DAN CAFE6004WAJO61059099262070703A0163048CA7';
+       $BASE_QRIS = '00020101021126590013ID.CO.BNI.WWW011893600009150432388702096072939380303UMI51440014ID.CO.QRIS.WWW0215ID10254388495450303UMI5204793253033605802ID5922AUSI BILLIARD DAN CAFE6004WAJO61059099262070703A0163048CA7';
 
         // 2) Sisipkan Tag 54 (amount) + CRC baru
-        $payload = $this->_qris_set_amount($BASE_QRIS, $grand_total);
+       $payload = $this->_qris_set_amount($BASE_QRIS, $grand_total);
 
         // 3) Generate PNG QR (uploads/qris/order_{id}.png)
-        $dir = FCPATH.'uploads/qris';
-        if (!is_dir($dir)) @mkdir($dir, 0775, true);
-        $png = $dir."/order_{$orderId}.png";
+       $dir = FCPATH.'uploads/qris';
+       if (!is_dir($dir)) @mkdir($dir, 0775, true);
+       $png = $dir."/order_{$orderId}.png";
 
-        $qr_ok = false;
-        if (file_exists(APPPATH.'libraries/Ciqrcode.php') || file_exists(APPPATH.'libraries/ciqrcode.php')) {
-            $this->load->library('ciqrcode');
-            $params = [
-                'data'     => $payload,
-                'level'    => 'H',
-                'size'     => 8,
-                'savename' => $png
-            ];
-            $qr_ok = $this->ciqrcode->generate($params);
-        }
-        if (!$qr_ok && !file_exists($png)) {
+       $qr_ok = false;
+       if (file_exists(APPPATH.'libraries/Ciqrcode.php') || file_exists(APPPATH.'libraries/ciqrcode.php')) {
+        $this->load->library('ciqrcode');
+        $params = [
+            'data'     => $payload,
+            'level'    => 'H',
+            'size'     => 8,
+            'savename' => $png
+        ];
+        $qr_ok = $this->ciqrcode->generate($params);
+    }
+    if (!$qr_ok && !file_exists($png)) {
             // fallback kosong agar tidak error jika library tidak ada
-            $im = imagecreatetruecolor(360,360); imagepng($im,$png); imagedestroy($im);
-        }
+        $im = imagecreatetruecolor(360,360); imagepng($im,$png); imagedestroy($im);
+    }
 
         // 4) Overlay logo di tengah (jika ada)
-        $logoPath = FCPATH.'assets/images/logo_admin.png';
-        if (file_exists($logoPath) && file_exists($png)) {
+    $logoPath = FCPATH.'assets/images/logo_admin.png';
+    if (file_exists($logoPath) && file_exists($png)) {
             $this->_overlay_logo_on_png($png, $logoPath, 0.22); // 22% lebar QR
         }
 
         // URL gambar QR yang dipakai di view
-         $qris_img = base_url('uploads/qris/order_'.$orderId.'.png');
+        $qris_img = base_url('uploads/qris/order_'.$orderId.'.png');
 
-    $data = [
-        'title'       => 'Pembayaran via QRIS',
-        'deskripsi'   => 'Silakan scan QRIS dan bayar sesuai total, lalu tunggu verifikasi kasir.',
-        'prev'        => base_url('assets/images/icon_app.png'),
-        'rec'         => $rec,
-        'order'       => $order2 ?: $order,
-        'items'       => $items,
-        'total'       => (int)$total,
-        'kode_unik'   => $kode_unik,
-        'grand_total' => $grand_total,
-        'meja_info'   => $meja_info,
-        'qris_img'    => $qris_img,
-        'bank_list'   => [],
+        $data = [
+            'title'       => 'Pembayaran via QRIS',
+            'deskripsi'   => 'Silakan scan QRIS dan bayar sesuai total, lalu tunggu verifikasi kasir.',
+            'prev'        => base_url('assets/images/icon_app.png'),
+            'rec'         => $rec,
+            'order'       => $order2 ?: $order,
+            'items'       => $items,
+            'total'       => (int)$total,
+            'kode_unik'   => $kode_unik,
+            'grand_total' => $grand_total,
+            'meja_info'   => $meja_info,
+            'qris_img'    => $qris_img,
+            'bank_list'   => [],
         'qris_payload'=> $payload, // dari prosesmu
     ];
     $this->load->view('pay_qris_view', $data);
-    }
+}
 
     /**
      * Tumpuk logo transparan di tengah file PNG QR.
@@ -2242,8 +2315,8 @@ private function _maybe_expire_meja_session($minutes = 120){
 
 
 
-    /* ====== TRANSFER: verifikasi + kode unik + halaman instruksi ====== */
-    public function pay_transfer($ref = null){
+/* ====== TRANSFER: verifikasi + kode unik + halaman instruksi ====== */
+public function pay_transfer($ref = null){
     $this->_nocache_headers();
     if (!$ref) show_404();
 
@@ -2278,118 +2351,118 @@ private function _maybe_expire_meja_session($minutes = 120){
 }
 
 
-    private function _get_order_by_ref($ref){
-	    $ref = (string)$ref;
-	    if ($ref === '') return null;
-	    if (ctype_digit($ref)) {
-	        return $this->db->get_where('pesanan', ['id'=>(int)$ref])->row();
-	    }
-	    return $this->db->get_where('pesanan', ['nomor'=>$ref])->row();
-	}
+private function _get_order_by_ref($ref){
+   $ref = (string)$ref;
+   if ($ref === '') return null;
+   if (ctype_digit($ref)) {
+       return $this->db->get_where('pesanan', ['id'=>(int)$ref])->row();
+   }
+   return $this->db->get_where('pesanan', ['nomor'=>$ref])->row();
+}
 
 
-    /** Upload bukti (transfer) → selesai flow + ke struk */
-    public function upload_bukti($id = null){
-        $this->_nocache_headers();
-        $id = (int)$id;
-        if ($id <= 0) show_404();
+/** Upload bukti (transfer) → selesai flow + ke struk */
+public function upload_bukti($id = null){
+    $this->_nocache_headers();
+    $id = (int)$id;
+    if ($id <= 0) show_404();
 
-        $order = $this->db->get_where('pesanan', ['id'=>$id])->row();
-        if (!$order) show_404();
+    $order = $this->db->get_where('pesanan', ['id'=>$id])->row();
+    if (!$order) show_404();
 
-        $config = [
-            'upload_path'   => FCPATH.'uploads/bukti/',
-            'allowed_types' => 'jpg|jpeg|png|webp|pdf',
-            'max_size'      => 4096,
-            'encrypt_name'  => true,
-        ];
-        if (!is_dir($config['upload_path'])) @mkdir($config['upload_path'], 0775, true);
-        $this->load->library('upload', $config);
+    $config = [
+        'upload_path'   => FCPATH.'uploads/bukti/',
+        'allowed_types' => 'jpg|jpeg|png|webp|pdf',
+        'max_size'      => 4096,
+        'encrypt_name'  => true,
+    ];
+    if (!is_dir($config['upload_path'])) @mkdir($config['upload_path'], 0775, true);
+    $this->load->library('upload', $config);
 
-        if (!$this->upload->do_upload('bukti')){
-            $this->session->set_flashdata('upload_err', $this->upload->display_errors('', ''));
-            return redirect('produk/pay_transfer/'.$id);
-        }
+    if (!$this->upload->do_upload('bukti')){
+        $this->session->set_flashdata('upload_err', $this->upload->display_errors('', ''));
+        return redirect('produk/pay_transfer/'.$id);
+    }
 
-        $up  = $this->upload->data();
-        $rel = 'uploads/bukti/'.$up['file_name'];
+    $up  = $this->upload->data();
+    $rel = 'uploads/bukti/'.$up['file_name'];
 
-        $this->db->where('id', $id)->update('pesanan', [
-            'bukti_bayar' => $rel,
-            'paid_method' => 'transfer',
+    $this->db->where('id', $id)->update('pesanan', [
+        'bukti_bayar' => $rel,
+        'paid_method' => 'transfer',
             'status'      => 'paid',            // ⬅️ tandai LUNAS setelah upload
             'paid_at'     => date('Y-m-d H:i:s'),
             'updated_at'  => date('Y-m-d H:i:s'),
         ]);
 
-        $this->session->set_flashdata('upload_ok', 'Bukti transfer berhasil diunggah.');
+    $this->session->set_flashdata('upload_ok', 'Bukti transfer berhasil diunggah.');
         // selesai flow → ke halaman struk & hapus session
-        $this->_end_customer_flow_and_go_receipt($id);
+    $this->_end_customer_flow_and_go_receipt($id);
+}
+
+/* Opsional: kasir tandai lunas */
+public function mark_transfer_paid($id = null, $secret = null){
+    $this->_nocache_headers();
+    if ($secret !== 'YOUR_SECRET_TOKEN') show_404();
+
+    $id = (int)$id;
+    if (!$id) show_404();
+
+    $row = $this->db->get_where('pesanan',['id'=>$id])->row();
+    if (!$row) show_404();
+
+    if (!in_array($row->status, ['paid'], true)) {
+        $this->db->where('id',$id)->update('pesanan', [
+            'status'      => 'paid',
+            'paid_method' => 'transfer',
+            'paid_at'     => date('Y-m-d H:i:s')
+        ]);
     }
+    $this->session->set_flashdata('msg_ok','Pesanan ditandai lunas (transfer).');
+    return redirect('produk/order_success/'.$id);
+}
 
-    /* Opsional: kasir tandai lunas */
-    public function mark_transfer_paid($id = null, $secret = null){
-        $this->_nocache_headers();
-        if ($secret !== 'YOUR_SECRET_TOKEN') show_404();
+/* ----------------- JSON & Modal struk ------------------ */
+private function _json_ok($extra=[]){
+    $extra['success'] = true;
+    return $this->output->set_content_type('application/json')->set_output(json_encode($extra));
+}
+private function _json_err($msg='Error', $extra=[]){
+    $extra['success'] = false; $extra['title'] = 'Gagal'; $extra['pesan'] = $msg;
+    return $this->output->set_content_type('application/json')->set_output(json_encode($extra));
+}
 
-        $id = (int)$id;
-        if (!$id) show_404();
+public function order_receipt_modal($id = null){
+    $this->_nocache_headers();
+    if (!$id) show_404();
 
-        $row = $this->db->get_where('pesanan',['id'=>$id])->row();
-        if (!$row) show_404();
+    [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
+    if (!$order) show_404();
 
-        if (!in_array($row->status, ['paid'], true)) {
-            $this->db->where('id',$id)->update('pesanan', [
-                'status'      => 'paid',
-                'paid_method' => 'transfer',
-                'paid_at'     => date('Y-m-d H:i:s')
-            ]);
-        }
-        $this->session->set_flashdata('msg_ok','Pesanan ditandai lunas (transfer).');
-        return redirect('produk/order_success/'.$id);
-    }
+    $rec  = $this->fm->web_me();
+    $html = $this->load->view(
+        'partials/order_receipt_partial',
+        compact('order','items','total','meja_info','rec'),
+        true
+    );
 
-    /* ----------------- JSON & Modal struk ------------------ */
-    private function _json_ok($extra=[]){
-        $extra['success'] = true;
-        return $this->output->set_content_type('application/json')->set_output(json_encode($extra));
-    }
-    private function _json_err($msg='Error', $extra=[]){
-        $extra['success'] = false; $extra['title'] = 'Gagal'; $extra['pesan'] = $msg;
-        return $this->output->set_content_type('application/json')->set_output(json_encode($extra));
-    }
-
-    public function order_receipt_modal($id = null){
-        $this->_nocache_headers();
-        if (!$id) show_404();
-
-        [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
-        if (!$order) show_404();
-
-        $rec  = $this->fm->web_me();
-        $html = $this->load->view(
-            'partials/order_receipt_partial',
-            compact('order','items','total','meja_info','rec'),
-            true
-        );
-
-        $title = 'Struk #'.($order->nomor ?? $order->kode ?? $order->id);
-        return $this->output->set_content_type('application/json')
-            ->set_output(json_encode(['success'=>true,'html'=>$html,'title'=>$title]));
-    }
+    $title = 'Struk #'.($order->nomor ?? $order->kode ?? $order->id);
+    return $this->output->set_content_type('application/json')
+    ->set_output(json_encode(['success'=>true,'html'=>$html,'title'=>$title]));
+}
 
     // === Cetak PDF Thermal via TCPDF ===
     // URL: produk/receipt_pdf/{id}?w=58|80  (default 58)
-    public function receipt_pdf($id = null){
-         $this->_nocache_headers();
-        if (!$id) show_404();
+public function receipt_pdf($id = null){
+   $this->_nocache_headers();
+   if (!$id) show_404();
 
         // Ambil order & items
-        [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
-        if (!$order) show_404();
+   [$order, $items, $total, $meja_info] = $this->_order_bundle($id);
+   if (!$order) show_404();
 
         // Lebar kertas: 58mm atau 80mm
-        $w = $this->input->get('w', true);
+   $w = $this->input->get('w', true);
         $paper = ($w == '80') ? 80 : 58; // mm
 
         // Estimasi tinggi halaman (mm) biar 1 halaman:
@@ -2443,30 +2516,30 @@ private function _maybe_expire_meja_session($minutes = 120){
     }
 
     // Cek status order (JSON)
-public function order_status($ref = null){
-    $this->_nocache_headers();
-    if (!$ref) {
-        return $this->output->set_content_type('application/json')
+    public function order_status($ref = null){
+        $this->_nocache_headers();
+        if (!$ref) {
+            return $this->output->set_content_type('application/json')
             ->set_output(json_encode(['success'=>false,'error'=>'ref kosong']));
-    }
+        }
 
-    $row = $this->_get_order_by_ref($ref);
-    if (!$row) {
-        return $this->output->set_content_type('application/json')
+        $row = $this->_get_order_by_ref($ref);
+        if (!$row) {
+            return $this->output->set_content_type('application/json')
             ->set_output(json_encode(['success'=>false,'error'=>'order tidak ditemukan']));
-    }
+        }
 
     // Normalisasi status & pembayaran
-    $status      = strtolower((string)$row->status);
-    $paid_method = $row->paid_method ?? null;
-    $paid_at     = $row->paid_at ?? null;
+        $status      = strtolower((string)$row->status);
+        $paid_method = $row->paid_method ?? null;
+        $paid_at     = $row->paid_at ?? null;
 
     // >>> Tambahan untuk deteksi ongkir via polling <<<
-    $mode         = strtolower((string)($row->mode ?? ''));
-    $is_delivery  = ($mode === 'delivery');
-    $delivery_fee = (int)($row->delivery_fee ?? 0);
+        $mode         = strtolower((string)($row->mode ?? ''));
+        $is_delivery  = ($mode === 'delivery');
+        $delivery_fee = (int)($row->delivery_fee ?? 0);
 
-    return $this->output->set_content_type('application/json')
+        return $this->output->set_content_type('application/json')
         ->set_output(json_encode([
             'success'       => true,
             'status'        => $status,                          // pending | verifikasi | paid | canceled | ...
@@ -2481,23 +2554,23 @@ public function order_status($ref = null){
             'is_delivery'   => $is_delivery,                     // bool
             'delivery_fee'  => $delivery_fee,                    // int
         ]));
-}
+    }
 // application/modules/produk/controllers/Produk.php
-public function load_map()
-{
-    $this->_private_cache_headers(60);
+    public function load_map()
+    {
+        $this->_private_cache_headers(60);
     // Ambil param dari query (fallback ke default bila kosong)
     // $store_lat = (float)$this->input->get_post('store_lat', true);
     // $store_lng = (float)$this->input->get_post('store_lng', true);
     // $base_km   = (float)$this->input->get_post('base_km', true);
     // $base_fee  = (int)$this->input->get_post('base_fee', true);
     // $per_km    = (int)$this->input->get_post('per_km', true);
-    $rec = $this->fm->web_me();
-    $store_lat = $rec->store_lat;
-    $store_lng = $rec->store_lng;
-    $base_km=$rec->base_km;
-    $base_fee=$rec->base_fee;
-    $per_km=$rec->per_km;
+        $rec = $this->fm->web_me();
+        $store_lat = $rec->store_lat;
+        $store_lng = $rec->store_lng;
+        $base_km=$rec->base_km;
+        $base_fee=$rec->base_fee;
+        $per_km=$rec->per_km;
 
     // if (!$store_lat) $store_lat = -3.7156933057722576;
     // if (!$store_lng) $store_lng = 120.40755839999998;
@@ -2506,76 +2579,76 @@ public function load_map()
     // if ($per_km    <= 0) $per_km   = $rec->per_km;
 
     // Kembalikan FRAGMEN HTML (bukan modal baru)
-    $html = '
-<div id="ongkirMapWrap"
-     data-store-lat="'.html_escape($store_lat).'"
-     data-store-lng="'.html_escape($store_lng).'"
-     data-base-km="'.html_escape($base_km).'"
-     data-base-fee="'.html_escape($base_fee).'"
-     data-per-km="'.html_escape($per_km).'">
+        $html = '
+        <div id="ongkirMapWrap"
+        data-store-lat="'.html_escape($store_lat).'"
+        data-store-lng="'.html_escape($store_lng).'"
+        data-base-km="'.html_escape($base_km).'"
+        data-base-fee="'.html_escape($base_fee).'"
+        data-per-km="'.html_escape($per_km).'">
 
-  <div id="mapInModal" style="height:380px;"></div>
+        <div id="mapInModal" style="height:380px;"></div>
 
-  <div id="mapInfo" class="border-top small"></div>
+        <div id="mapInfo" class="border-top small"></div>
 
- <style>.map-footer-bar{display:flex;justify-content:space-between;align-items:center;padding:.75rem .75rem;border-top:1px solid rgb(0 0 0 / .08);background:rgb(255 255 255 / .6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);gap:.5rem}.map-footer-btn{flex:1 1 calc(50% - .5rem);min-width:calc(50% - .5rem);display:flex;align-items:center;justify-content:center;border:0;border-radius:.7rem;font-size:.9rem;font-weight:600;padding:.6rem .75rem;line-height:1.2;white-space:nowrap;box-shadow:0 .5rem 1rem rgb(0 0 0 / .15);text-shadow:0 1px 2px rgb(0 0 0 / .35)}.btn-loc{background-image:linear-gradient(135deg,#6b7280 0%,#4b5563 50%,#1f2937 100%);color:#fff}.btn-loc .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply{background-image:linear-gradient(135deg,#2563eb 0%,#4f46e5 40%,#312e81 100%);color:#fff}.btn-apply .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply[disabled]{opacity:.45;cursor:not-allowed;box-shadow:0 .5rem 1rem rgb(0 0 0 / .08);text-shadow:none}@media(max-width:360px){.map-footer-btn{flex:1 1 100%;min-width:100%}.map-footer-bar{flex-wrap:wrap}}.map-footer-btn.btn-loc[aria-busy="true"] {
-  opacity: .7;
-  pointer-events: none;
-  cursor: wait;
-}
+        <style>.map-footer-bar{display:flex;justify-content:space-between;align-items:center;padding:.75rem .75rem;border-top:1px solid rgb(0 0 0 / .08);background:rgb(255 255 255 / .6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);gap:.5rem}.map-footer-btn{flex:1 1 calc(50% - .5rem);min-width:calc(50% - .5rem);display:flex;align-items:center;justify-content:center;border:0;border-radius:.7rem;font-size:.9rem;font-weight:600;padding:.6rem .75rem;line-height:1.2;white-space:nowrap;box-shadow:0 .5rem 1rem rgb(0 0 0 / .15);text-shadow:0 1px 2px rgb(0 0 0 / .35)}.btn-loc{background-image:linear-gradient(135deg,#6b7280 0%,#4b5563 50%,#1f2937 100%);color:#fff}.btn-loc .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply{background-image:linear-gradient(135deg,#2563eb 0%,#4f46e5 40%,#312e81 100%);color:#fff}.btn-apply .icon{margin-right:.5rem;font-size:1rem;line-height:0}.btn-apply[disabled]{opacity:.45;cursor:not-allowed;box-shadow:0 .5rem 1rem rgb(0 0 0 / .08);text-shadow:none}@media(max-width:360px){.map-footer-btn{flex:1 1 100%;min-width:100%}.map-footer-bar{flex-wrap:wrap}}.map-footer-btn.btn-loc[aria-busy="true"] {
+          opacity: .7;
+          pointer-events: none;
+          cursor: wait;
+      }
 
-.map-footer-btn.btn-loc .spin {
-  margin-right: .4rem;
-  vertical-align: -0.125em;
-}
+      .map-footer-btn.btn-loc .spin {
+          margin-right: .4rem;
+          vertical-align: -0.125em;
+      }
 
-.map-footer-btn.btn-loc .icon {
-  margin-right: .4rem;
-  font-size: 1rem;
-  line-height: 1;
-}
-</style>
+      .map-footer-btn.btn-loc .icon {
+          margin-right: .4rem;
+          font-size: 1rem;
+          line-height: 1;
+      }
+      </style>
 
-<div class="map-footer-bar">
+      <div class="map-footer-bar">
 
- <button
-  type="button"
-  class="map-footer-btn btn-loc"
-  id="btnUseMyLoc"
-  aria-busy="false"
->
-  <span class="spinner-border spinner-border-sm spin d-none" role="status" aria-hidden="true"></span>
-  <span class="icon" aria-hidden="true">📍</span>
-  <span class="txt">Posisi Saya</span>
-</button>
-<button
-    type="button"
-    class="map-footer-btn btn-apply"
-    id="btnUseOngkir"
-    disabled
-  >
-    <span class="icon" aria-hidden="true">✅</span>
-    <span>Set Posisi</span>
-  </button>
-
-  
-</div>
+      <button
+      type="button"
+      class="map-footer-btn btn-loc"
+      id="btnUseMyLoc"
+      aria-busy="false"
+      >
+      <span class="spinner-border spinner-border-sm spin d-none" role="status" aria-hidden="true"></span>
+      <span class="icon" aria-hidden="true">📍</span>
+      <span class="txt">Posisi Saya</span>
+      </button>
+      <button
+      type="button"
+      class="map-footer-btn btn-apply"
+      id="btnUseOngkir"
+      disabled
+      >
+      <span class="icon" aria-hidden="true">✅</span>
+      <span>Set Posisi</span>
+      </button>
 
 
-  <div class="px-2 pb-2 text-dark small">
-  <i class="mdi mdi-information-outline" aria-hidden="true"></i>
-  Pengantaran ulang karena alamat tidak jelas atau penerima tidak tersedia dapat dikenakan biaya tambahan sesuai 
-  <a href=' .site_url('hal#delivery').' class="text-decoration-underline">Syarat &amp; Ketentuan</a> yang berlaku.
-</div>
+      </div>
 
-</div>';
 
-    $this->output
-        ->set_content_type('text/html; charset=UTF-8')
-        ->set_output($html);
-}
+      <div class="px-2 pb-2 text-dark small">
+      <i class="mdi mdi-information-outline" aria-hidden="true"></i>
+      Pengantaran ulang karena alamat tidak jelas atau penerima tidak tersedia dapat dikenakan biaya tambahan sesuai 
+      <a href=' .site_url('hal#delivery').' class="text-decoration-underline">Syarat &amp; Ketentuan</a> yang berlaku.
+      </div>
 
- public function load_mapx(){
+      </div>';
+
+      $this->output
+      ->set_content_type('text/html; charset=UTF-8')
+      ->set_output($html);
+  }
+
+  public function load_mapx(){
     // Ambil koordinat toko dari DB / konfigurasi
     // Contoh hardcode; ganti ke identitas_model Anda:
     // $iden = $this->identitas_model->get();
@@ -2592,23 +2665,23 @@ public function load_map()
       'base_km'   => 2,
       'base_fee'  => 5000,
       'per_km'    => 1000,
-    ];
+  ];
 
     // Return hanya fragmen HTML (tanpa layout)
-    $this->load->view('ongkir', $data);
-  }
+  $this->load->view('ongkir', $data);
+}
 
-  public function reverse_geocode()
+public function reverse_geocode()
 {
     $this->_nocache_headers();
     // ===== CORS preflight (OPTIONS) =====
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
         $this->output
-            ->set_header('Access-Control-Allow-Origin: *')
-            ->set_header('Access-Control-Allow-Methods: GET, OPTIONS')
-            ->set_header('Access-Control-Allow-Headers: Content-Type')
-            ->set_status_header(204)
-            ->_display();
+        ->set_header('Access-Control-Allow-Origin: *')
+        ->set_header('Access-Control-Allow-Methods: GET, OPTIONS')
+        ->set_header('Access-Control-Allow-Headers: Content-Type')
+        ->set_status_header(204)
+        ->_display();
         exit;
     }
 
@@ -2618,19 +2691,19 @@ public function load_map()
 
     if (!$lat && !$lon) {
         return $this->output
-            ->set_header('Access-Control-Allow-Origin: *')
-            ->set_content_type('application/json')
-            ->set_status_header(400)
-            ->set_output(json_encode(['ok'=>false,'error'=>'lat/lon required']));
+        ->set_header('Access-Control-Allow-Origin: *')
+        ->set_content_type('application/json')
+        ->set_status_header(400)
+        ->set_output(json_encode(['ok'=>false,'error'=>'lat/lon required']));
     }
 
     // ===== Call Nominatim dari server =====
     $url = 'https://nominatim.openstreetmap.org/reverse'
-         . '?format=jsonv2'
-         . '&lat=' . rawurlencode($lat)
-         . '&lon=' . rawurlencode($lon)
-         . '&addressdetails=1'
-         . '&accept-language=id';
+    . '?format=jsonv2'
+    . '&lat=' . rawurlencode($lat)
+    . '&lon=' . rawurlencode($lon)
+    . '&addressdetails=1'
+    . '&accept-language=id';
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -2650,26 +2723,26 @@ public function load_map()
 
     if ($errno || $status < 200 || $status >= 300 || !$resp) {
         return $this->output
-            ->set_header('Access-Control-Allow-Origin: *')
-            ->set_content_type('application/json')
-            ->set_status_header(502)
-            ->set_output(json_encode([
-                'ok'    => false,
-                'error' => 'Nominatim error',
-                'detail'=> $errstr,
-                'code'  => $status
-            ]));
+        ->set_header('Access-Control-Allow-Origin: *')
+        ->set_content_type('application/json')
+        ->set_status_header(502)
+        ->set_output(json_encode([
+            'ok'    => false,
+            'error' => 'Nominatim error',
+            'detail'=> $errstr,
+            'code'  => $status
+        ]));
     }
 
     // (Opsional) bisa tambahkan caching di sini bila perlu
 
     // Pass-through JSON + set CORS
     $this->output
-        ->set_header('Access-Control-Allow-Origin: *')
-        ->set_header('Access-Control-Allow-Methods: GET, OPTIONS')
+    ->set_header('Access-Control-Allow-Origin: *')
+    ->set_header('Access-Control-Allow-Methods: GET, OPTIONS')
         // ->set_header('Cache-Control: public, max-age=3600') // cache 1 jam di client
-        ->set_content_type('application/json; charset=UTF-8')
-        ->set_output($resp);
+    ->set_content_type('application/json; charset=UTF-8')
+    ->set_output($resp);
 }
 public function lock_ongkir()
 {
@@ -2700,56 +2773,56 @@ public function lock_ongkir()
       $base_km,$base_fee,$per_km,$max_radius_m,
       true,   // prefer_road
       true    // road_only
-    );
+  );
 
     // Gagal mendapatkan rute jalan (jangan fallback ke haversine)
     if (empty($calc['ok'])) {
       return $this->_json([
         'ok'  => false,
         'msg' => 'Rute jalan tidak ditemukan. Geser pin sedikit atau pilih titik di tepi jalan lalu coba lagi.',
-      ], 502);
-    }
+    ], 502);
+  }
 
-    if (!$calc['allowed']) {
+  if (!$calc['allowed']) {
       return $this->_json([
         'ok'=>false,
         'msg'=>'Di luar radius '.number_format($max_radius_m/1000,1,'.','').' km',
         'distance_m' => (int)$calc['distance_m'],
-      ], 400);
-    }
+    ], 400);
+  }
 
     // Token + simpan session
-    $bytes = function_exists('random_bytes') ? random_bytes(16) : openssl_random_pseudo_bytes(16);
-    $token = bin2hex($bytes);
+  $bytes = function_exists('random_bytes') ? random_bytes(16) : openssl_random_pseudo_bytes(16);
+  $token = bin2hex($bytes);
 
-    $this->session->set_userdata('ongkir_lock_'.$token, [
+  $this->session->set_userdata('ongkir_lock_'.$token, [
       'lat'        => $lat,
       'lng'        => $lng,
       'distance_m' => (int)$calc['distance_m'],
       'fee'        => (int)$calc['fee_rounded'],
       'ts'         => time(),
-    ]);
+  ]);
 
-    $csrf = null;
-    if ($this->config->item('csrf_protection')) {
+  $csrf = null;
+  if ($this->config->item('csrf_protection')) {
       $csrf = [
         'name' => $this->security->get_csrf_token_name(),
         'hash' => $this->security->get_csrf_hash(),
-      ];
-    }
+    ];
+}
 
-    return $this->_json([
-      'ok'         => true,
-      'lat'        => $lat,
-      'lng'        => $lng,
-      'token'      => $token,
-      'fee'        => (int)$calc['fee_rounded'],
-      'distance_m' => (int)$calc['distance_m'],
-      'csrf'       => $csrf,
+return $this->_json([
+  'ok'         => true,
+  'lat'        => $lat,
+  'lng'        => $lng,
+  'token'      => $token,
+  'fee'        => (int)$calc['fee_rounded'],
+  'distance_m' => (int)$calc['distance_m'],
+  'csrf'       => $csrf,
       // opsional: info untuk debug/telemetri
-      'provider'   => $calc['provider'] ?? null,
-      'kind'       => $calc['distance_kind'] ?? null,
-    ]);
+  'provider'   => $calc['provider'] ?? null,
+  'kind'       => $calc['distance_kind'] ?? null,
+]);
 }
 
 
@@ -2757,37 +2830,37 @@ public function lock_ongkir()
 protected function _json($data, $code = 200)
 {
     return $this->output
-        ->set_status_header($code)
-        ->set_output(json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+    ->set_status_header($code)
+    ->set_output(json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 }
 public function route_multi()
 {
     $this->_nocache_headers();
-  $this->output->set_content_type('application/json; charset=UTF-8');
+    $this->output->set_content_type('application/json; charset=UTF-8');
 
-  $lat1 = (float)$this->input->get('lat1', true);
-  $lng1 = (float)$this->input->get('lng1', true);
-  $lat2 = (float)$this->input->get('lat2', true);
-  $lng2 = (float)$this->input->get('lng2', true);
+    $lat1 = (float)$this->input->get('lat1', true);
+    $lng1 = (float)$this->input->get('lng1', true);
+    $lat2 = (float)$this->input->get('lat2', true);
+    $lng2 = (float)$this->input->get('lng2', true);
 
-  if (!$lat1 && !$lng1 && !$lat2 && !$lng2){
-    $this->output->set_status_header(400);
-    echo json_encode(['ok'=>false,'msg'=>'Bad request']);
-    return;
-  }
-
-  $urls = [
-    'osrm'  => "https://router.project-osrm.org/route/v1/driving/$lng1,$lat1;$lng2,$lat2?overview=false&alternatives=false&steps=false",
-    'osmde' => "https://routing.openstreetmap.de/routed-car/route/v1/driving/$lng1,$lat1;$lng2,$lat2?overview=false&alternatives=false&steps=false",
-  ];
-
-  foreach ($urls as $name => $url) {
-    $res = $this->_curl_json($url);
-    if ($res && isset($res['code']) && $res['code']==='Ok' && !empty($res['routes'][0]['distance'])) {
-      $distance = (int)$res['routes'][0]['distance'];
-      echo json_encode(['ok'=>true, 'provider'=>$name, 'distance'=>$distance]);
-      return;
+    if (!$lat1 && !$lng1 && !$lat2 && !$lng2){
+        $this->output->set_status_header(400);
+        echo json_encode(['ok'=>false,'msg'=>'Bad request']);
+        return;
     }
+
+    $urls = [
+        'osrm'  => "https://router.project-osrm.org/route/v1/driving/$lng1,$lat1;$lng2,$lat2?overview=false&alternatives=false&steps=false",
+        'osmde' => "https://routing.openstreetmap.de/routed-car/route/v1/driving/$lng1,$lat1;$lng2,$lat2?overview=false&alternatives=false&steps=false",
+    ];
+
+    foreach ($urls as $name => $url) {
+        $res = $this->_curl_json($url);
+        if ($res && isset($res['code']) && $res['code']==='Ok' && !empty($res['routes'][0]['distance'])) {
+          $distance = (int)$res['routes'][0]['distance'];
+          echo json_encode(['ok'=>true, 'provider'=>$name, 'distance'=>$distance]);
+          return;
+      }
   }
 
   $this->output->set_status_header(502);
@@ -2805,8 +2878,8 @@ private function _curl_json($url)
       'Accept: application/json',
       // Disarankan oleh OSM: identitas aplikasi + kontak
       'User-Agent: MVIN-DeliveryCalc/1.0 (+yourdomain.tld; contact: youremail@domain.tld)',
-    ],
-  ]);
+  ],
+]);
   $raw  = curl_exec($ch);
   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
   curl_close($ch);
