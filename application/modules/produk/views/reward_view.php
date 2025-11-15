@@ -157,7 +157,7 @@ if (!function_exists('mask_phone')) {
                 </div>
               </div>
               <p class="mb-0 mt-2 text-dark small">
-                Waktu mengikuti zona <strong>WITA (Asia/Makassar)</strong>.
+                Waktu mengikuti zona <strong>SIWA</strong>.
               </p>
             </div>
 
