@@ -323,6 +323,38 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
     });
   }
 
+(function(){
+  const FAB_TOOLTIP_KEY = 'fabCartTooltipDismissed';
+
+  // Dipanggil SETELAH sukses insert ke cart
+  window.showFabCartTooltip = function(){
+    try {
+      if (localStorage.getItem(FAB_TOOLTIP_KEY) === '1') {
+        return; // sudah pernah "OK, saya paham"
+      }
+    } catch (e) {
+      // kalau localStorage error, lanjut aja
+    }
+
+    var tip = document.getElementById('fab-cart-tooltip');
+    if (!tip) return;
+    tip.classList.add('show');
+  };
+
+  // Klik tombol OK
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest && e.target.closest('#fab-cart-tooltip-ok');
+    if (!btn) return;
+
+    var tip = document.getElementById('fab-cart-tooltip');
+    if (tip) tip.classList.remove('show');
+
+    try {
+      localStorage.setItem(FAB_TOOLTIP_KEY, '1');
+    } catch (err) {}
+  });
+})();
+
   function bindAddToCart(){
     $("#grid-products").off("click",".btn-add-cart").on("click",".btn-add-cart",function(e){
       e.preventDefault();
@@ -345,6 +377,7 @@ function scrollToGridProducts({offset=0, smooth=true} = {}){
           notifyError(r?.produk||"Oops!",r?.pesan||"Gagal menambahkan");
           return;
         }
+        showFabCartTooltip();
         updateAllCartBadges(r.count);
         notifySuccess(r.produk||"Mantap!",r.pesan||"Item masuk keranjang");
       })

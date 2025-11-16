@@ -165,6 +165,31 @@ if (!empty($kategoris)) {
   <span class="fab-badge" id="fab-count">0</span>
 </a>
 
+<!-- TOUR TOOLTIP KERANJANG -->
+<div id="fab-cart-tooltip" class="cart-tour-tooltip" role="dialog" aria-live="polite">
+  <div class="cart-tour-card">
+    <!-- Badge bulat di pojok -->
+    <div class="cart-tour-step">
+      <i class="mdi mdi-cart-outline" aria-hidden="true"></i>
+    </div>
+
+    <div class="cart-tour-content">
+      <div class="cart-tour-title">Ini keranjang Anda</div>
+      <div class="cart-tour-text">
+        Di sini tersimpan pesanan Anda. Klik untuk melihat &amp; menyelesaikan orderan.
+      </div>
+
+      <div class="cart-tour-actions">
+        <button type="button"
+                id="fab-cart-tooltip-ok"
+                class="cart-tour-btn-primary">
+          OK, saya paham
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Vendor JS (harus duluan, biar jQuery/SweetAlert dsb sudah ada) -->
 <script src="<?= base_url('assets/admin/js/vendor.min.js'); ?>"></script>
 <script src="<?= base_url('assets/admin/js/app.min.js'); ?>"></script>
@@ -181,7 +206,7 @@ window.AUSI_CFG = {
 <!-- Custom logic kita -->
 <script src="<?= base_url('assets/front/produk.min.js') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.js'); ?>"></script>
 
-<?php $this->load->view("promo") ?>
+<?php $this->load->view("promo_mingguan") ?>
 <?php $this->load->view("front_end/footer.php") ?>
 
-<?php $this->load->view("modal_produk.php") ?>
+<?php $this->load->view("modal_produk") ?>

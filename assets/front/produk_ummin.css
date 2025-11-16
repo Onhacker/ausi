@@ -691,3 +691,101 @@
   content: "\00a0order";
 }
 
+ .cart-tour-tooltip{
+  position:fixed;
+  right:1.1rem;
+  bottom:9rem;
+  z-index:1080;
+  font-size:.85rem;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateY(8px);
+  transition:opacity .25s ease,transform .25s ease,visibility .25s;
+}
+.cart-tour-tooltip.show{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  transform:translateY(0);
+}
+
+.cart-tour-card{
+  position:relative;
+  background:#fff;
+  border:2px solid #7c3aed;
+  border-radius:18px;
+  padding:1rem 1.1rem .9rem;
+  width:50vw;          /* ≈ setengah layar */
+  max-width:420px;     /* biar di desktop tidak terlalu lebar */
+  box-shadow:0 14px 30px rgba(15,23,42,.25);
+}
+
+
+/* panah */
+.cart-tour-card::before,
+.cart-tour-card::after{
+  content:"";
+  position:absolute;
+  right:3.2rem;
+  border-style:solid;
+}
+.cart-tour-card::before{
+  bottom:-18px;
+  border-width:18px 16px 0 16px;
+  border-color:#7c3aed transparent transparent transparent;
+}
+.cart-tour-card::after{
+  bottom:-16px;
+  border-width:16px 14px 0 14px;
+  border-color:#fff transparent transparent transparent;
+}
+
+.cart-tour-step{
+  position:absolute;
+  top:-16px;
+  left:16px;
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  background:#f97373;
+  color:#fff;
+  border:3px solid #fff;
+  box-shadow:0 6px 14px rgba(249,115,115,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1rem;
+}
+
+.cart-tour-content{margin-top:.2rem;}
+.cart-tour-title{font-weight:700;font-size:.95rem;margin-bottom:.2rem;}
+.cart-tour-text{font-size:.8rem;color:#4b5563;margin-bottom:.7rem;}
+
+.cart-tour-actions{
+  display:flex;
+  justify-content:flex-end;
+}
+.cart-tour-btn-primary{
+  border:0;
+  outline:0;
+  border-radius:999px;
+  padding:.35rem .9rem;
+  font-size:.78rem;
+  font-weight:600;
+  background:#7c3aed;
+  color:#fff;
+  cursor:pointer;
+  box-shadow:0 6px 14px rgba(124,58,237,.45);
+}
+.cart-tour-btn-primary:active{
+  transform:translateY(1px);
+}
+
+@media (max-width:575.98px){
+  .cart-tour-tooltip{
+    right:.6rem;
+    bottom:8.5rem;
+    max-width:calc(100% - 1.2rem);
+  }
+}

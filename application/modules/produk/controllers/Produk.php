@@ -1032,7 +1032,7 @@ public function reward()
         'next_announcement_iso' => $nextAnnouncement->format('c'),
     ];
 
-    $data["title"]     = "Reward " . $rec->nama_website;
+    $data["title"]     = "Reward Mingguan";
     $data["deskripsi"] = "Reward voucher order " . $rec->nama_website . " ";
     $data["prev"]      = base_url("assets/images/home.webp");
 

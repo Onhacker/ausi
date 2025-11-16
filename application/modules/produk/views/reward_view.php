@@ -37,7 +37,7 @@ if (!function_exists('mask_phone')) {
 
   <!-- HERO TITLE -->
   <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul halaman">
-    <h1 class="text mb-0"><?php echo $title ?></h1>
+    <h1 class="text mb-0">🎁 <?php echo $title ?></h1>
     <span class="accent ausi-accent" aria-hidden="true"></span>
   </div>
 
@@ -48,10 +48,10 @@ if (!function_exists('mask_phone')) {
       <div class="card mb-3 shadow-sm border-0">
         <div class="card-body text-center">
 
-          <span class="badge rounded-pill bg-warning text-dark mb-2">
-            🎁 Program Reward AUSI Café
+        <!--   <span class="badge rounded-pill bg-warning text-dark mb-2">
+             Program Reward AUSI Café
           </span>
-
+ -->
           <?php if (!empty($is_announcement_time) && $is_announcement_time && !empty($winner_top)): ?>
 
             <!-- ========== MODE SUDAH PENGUMUMAN ========== -->
@@ -202,12 +202,12 @@ if (!function_exists('mask_phone')) {
             <div class="mb-2">
               <span class="d-inline-flex align-items-center px-3 py-1 rounded-pill"
                     style="background:rgba(37,99,235,.08);color:#1d4ed8;font-size:.78rem;font-weight:600;">
-                <span class="me-2">⏳</span>
-                <span>Pengumuman belum dimulai</span>
+                <span class="me-2"></span>
+                <span>⏳ Nantikan Pengumuman Reward</span>
               </span>
             </div>
 
-            <h4 class="mb-2">Nantikan Pengumuman Reward</h4>
+            <!-- <h4 class="mb-2">Nantikan Pengumuman Reward</h4> -->
             <!-- Countdown tepat di bawah "Nantikan Pengumuman Reward" -->
             <div class="mb-1">
               <p class="mb-1 text-dark small">
@@ -234,7 +234,7 @@ if (!function_exists('mask_phone')) {
                 </div>
               </div>
               <p class="mb-0 mt-2 text-dark small">
-                Waktu mengikuti zona <strong>WITA (Asia/Makassar)</strong>.
+                Waktu mengikuti zona <strong>SIWA</strong>.
               </p>
             </div>
             <p class="mb-2 text-dark">
