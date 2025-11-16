@@ -142,6 +142,7 @@
     @media (min-width: 992px){
       .pay-head { display:flex; align-items:center; justify-content:space-between; }
     }
+
   </style>
 
   <div class="row">
@@ -169,27 +170,50 @@
             </div>
           </div>
 
-          <div class="pay-actions d-flex flex-wrap">
+         <div class="pay-actions">
             <?php if ($is_kasir): ?>
-              <a class="btn btn-success btn-sm btn-pay js-pay"
-                 href="<?= site_url('billiard/pay_cash/'.rawurlencode($booking->access_token)) ?>"
-                 data-method="cash" aria-label="Bayar Tunai (kasir)">
-                <i class="mdi mdi-cash mr-1"></i> TUNAI
-              </a>
+              <!-- Baris 1: Kasir - TUNAI full width di atas -->
+              <div class="d-flex mb-2">
+                <a class="btn btn-success btn-sm btn-pay js-pay btn-block"
+                   href="<?= site_url('billiard/pay_cash/'.rawurlencode($booking->access_token)) ?>"
+                   data-method="cash" aria-label="Bayar Tunai (kasir)">
+                  <i class="mdi mdi-cash mr-1"></i> TUNAI
+                </a>
+              </div>
+
+              <!-- Baris 2: QRIS dan TRANSFER kiri-kanan -->
+              <div class="d-flex">
+                <a class="btn btn-primary btn-sm btn-pay js-pay flex-fill mr-1"
+                   href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
+                   data-method="qris" aria-label="Bayar via QRIS">
+                  <i class="mdi mdi-qrcode-scan mr-1"></i> QRIS
+                </a>
+
+                <a class="btn btn-info btn-sm btn-pay js-pay flex-fill ml-1"
+                   href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
+                   data-method="transfer" aria-label="Bayar via Transfer Bank">
+                  <i class="mdi mdi-bank-transfer mr-1"></i> TRANSFER BNI
+                </a>
+              </div>
+
+            <?php else: ?>
+              <!-- Bukan kasir: hanya QRIS & TRANSFER kiri-kanan -->
+              <div class="d-flex">
+                <a class="btn btn-blue btn-sm btn-pay js-pay flex-fill mr-1"
+                   href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
+                   data-method="qris" aria-label="Bayar via QRIS">
+                  <i class="mdi mdi-qrcode-scan mr-1"></i> QRIS
+                </a>
+
+                <a class="btn btn-info btn-sm btn-pay js-pay flex-fill ml-1"
+                   href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
+                   data-method="transfer" aria-label="Bayar via Transfer Bank">
+                  <i class="mdi mdi-bank-transfer mr-1"></i> TRANSFER BNI
+                </a>
+              </div>
             <?php endif; ?>
-
-            <a class="btn btn-primary btn-sm btn-pay js-pay"
-               href="<?= site_url('billiard/pay_qris/'.rawurlencode($booking->access_token)) ?>"
-               data-method="qris" aria-label="Bayar via QRIS">
-              <i class="mdi mdi-qrcode-scan mr-1"></i> QRIS
-            </a>
-
-            <a class="btn btn-info btn-sm btn-pay js-pay"
-               href="<?= site_url('billiard/pay_transfer/'.rawurlencode($booking->access_token)) ?>"
-               data-method="transfer" aria-label="Bayar via Transfer Bank">
-              <i class="mdi mdi-bank-transfer mr-1"></i> TRANSFER
-            </a>
           </div>
+
 
           <div class="text-muted small mt-2">
             Nominal sudah termasuk <em>kode unik</em> bila ada.

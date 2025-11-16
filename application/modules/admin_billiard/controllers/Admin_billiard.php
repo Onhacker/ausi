@@ -63,9 +63,21 @@ class Admin_billiard extends Admin_Controller {
             // Tampilkan di kolom "Kode Booking":
             // - Jika selesai → "Selesai Main"
             // - Jika belum → kode booking seperti biasa
-                $kode_html = $isFinished
-                ? '<span class="badge badge-dark">'.$kode.'</span><br><span class="badge badge-success">Selesai Main 🎱</span>'
-                : '<span class="badge badge-dark">'.$kode.'</span>';
+                // Tampilkan di kolom "Kode Booking":
+                // Tampilkan di kolom "Kode Booking":
+                // - Jika selesai & status != batal → "Selesai Main" (hijau)
+                // - Jika selesai & status = batal  → "Batal Main" (merah)
+                // - Jika belum selesai → hanya kode booking
+                $kode_html = '<span class="badge badge-dark">'.$kode.'</span>';
+
+                if ($isFinished) {
+                    $isBatal    = (strtolower((string)$r->status) === 'batal');
+                    $statusMain = $isBatal ? 'Batal Main ❌' : 'Selesai Main 🎱';
+                    $badgeClass = $isBatal ? 'badge-danger' : 'badge-success';
+
+                    $kode_html .= '<br><span class="badge '.$badgeClass.'">'.$statusMain.'</span>';
+                }
+
 
             // ===== Meja / Nama
                 $meja = $r->nama_meja ?: ('Meja #'.$r->meja_id);
