@@ -45,7 +45,7 @@ class Admin_voucher_cafe extends Admin_Controller {
         $kodeSafe = htmlspecialchars($r->kode_voucher, ENT_QUOTES, 'UTF-8');
 
         // label jenis voucher (default: Mingguan)
-        $jenis      = isset($r->jenis_voucher) ? (string)$r->jenis_voucher : '';
+        $jenis = isset($r->jenis_voucher) ? (string)$r->jenis_voucher : '';
         if ($jenis === 'mingguan') {
             $jenisLabel = 'Voucher Mingguan';
             $jenisClass = 'badge badge-primary';
@@ -69,7 +69,7 @@ class Admin_voucher_cafe extends Admin_Controller {
         $row['nama']  = htmlspecialchars($r->nama, ENT_QUOTES, 'UTF-8');
         $row['no_hp'] = htmlspecialchars($r->no_hp, ENT_QUOTES, 'UTF-8');
 
-        $labelTipe = $r->tipe === 'persen' ? 'Persen (%)' : 'Nominal (Rp)';
+        $labelTipe   = $r->tipe === 'persen' ? 'Persen (%)' : 'Nominal (Rp)';
         $row['tipe'] = '<span class="badge badge-info">'.$labelTipe.'</span>';
 
         if ($r->tipe === 'persen') {
@@ -79,10 +79,13 @@ class Admin_voucher_cafe extends Admin_Controller {
         }
         $row['nilai'] = $nilaiLabel;
 
+        // periode untuk tampilan (HTML) & untuk teks WA (plain text)
         if (function_exists('tgl_view')) {
-            $periode = tgl_view($r->tgl_mulai).' s/d '.tgl_view($r->tgl_selesai);
+            $periodeText = tgl_view($r->tgl_mulai).' s/d '.tgl_view($r->tgl_selesai);
+            $periode     = $periodeText;
         } else {
-            $periode = htmlspecialchars($r->tgl_mulai.' s/d '.$r->tgl_selesai, ENT_QUOTES, 'UTF-8');
+            $periodeText = trim($r->tgl_mulai.' s/d '.$r->tgl_selesai);
+            $periode     = htmlspecialchars($periodeText, ENT_QUOTES, 'UTF-8');
         }
         $row['periode'] = $periode;
 
@@ -99,25 +102,46 @@ class Admin_voucher_cafe extends Admin_Controller {
             }
         }
 
-        // Tombol edit
-        $btnEdit = '<button type="button" class="btn btn-sm btn-warning" onclick="edit('.(int)$r->id.')">
-                      <i class="fe-edit"></i> Edit
-                    </button>';
+        // ====== TOMBOL EDIT ======
+        $btnEdit = '<button type="button" class="btn btn-sm btn-warning" '
+                 . 'onclick="edit('.(int)$r->id.')">'
+                 . '<i class="fe-edit"></i>'
+                 . 'Edit</button>';
+
+        // ====== TOMBOL PRINT VOUCHER (THERMAL / RAWBT) ======
+        // Preview desktop
+        $previewUrl = site_url(
+            'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
+            . '?paper=58'
+        );
+        $btnPreview = '<a href="'.$previewUrl.'" target="_blank" rel="noopener" '
+                    . 'class="btn btn-sm btn-dark" title="Preview voucher (desktop)">'
+                    . '<i class="fa fa-print"></i>'
+                    . 'Lihat </a>';
+
+        // RawBT (HP) - auto print & auto close
+        $rawbtUrl = site_url(
+            'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
+            . '?paper=58&rawbt=1&autoprint=1&autoclose=1&embed=1'
+        );
+        $btnRawbt = '<a href="'.$rawbtUrl.'" target="_blank" rel="noopener" '
+                  . 'class="btn btn-sm btn-success" title="Kirim ke RawBT (HP)">'
+                  . '<i class="fa fa-mobile"></i>'
+                  . 'Print</a>';
 
         // ====== TOMBOL KIRIM WHATSAPP KE CUSTOMER LANGSUNG ======
         // Susun teks yang akan dikirim ke WA
-       $shareText = "Halo kak {$r->nama},\n"
+        $shareText = "Halo kak {$r->nama},\n"
            . "Selamat, kakak mendapatkan *Voucher Order AUSI Cafe*!\n\n"
            . "Detail Voucher:\n"
            . "- Kode Voucher : *{$r->kode_voucher}*\n"
            . "- Nama : {$r->nama}\n"
            . "- Tipe : {$labelTipe}\n"
            . "- Nilai : {$nilaiLabel}\n"
-           . "- Periode : {$periode}\n\n"
+           . "- Periode : {$periodeText}\n\n"
            . "Cara Pakai:\n"
            . "Masukkan kode voucher ini saat melakukan order, sebelum periode berakhir.\n\n"
            . "Terima kasih sudah menjadi pelanggan setia AUSI Cafe.";
-
 
         // Normalisasi nomor HP ke format 62xxxxxxxxxxx
         $phoneRaw = preg_replace('/\D+/', '', (string)$r->no_hp); // buang selain digit
@@ -140,18 +164,24 @@ class Admin_voucher_cafe extends Admin_Controller {
             $waUrl = htmlspecialchars($waUrl, ENT_QUOTES, 'UTF-8');
 
             $btnWa = '<a href="'.$waUrl.'" target="_blank" rel="noopener" '
-                   . 'class="btn btn-sm btn-success mt-1" title="Kirim ke WhatsApp customer">'
+                   . 'class="btn btn-sm btn-success" title="Kirim ke WhatsApp customer">'
                    . '<i class="fe-send"></i> WA</a>';
         } else {
             // Jika tidak ada nomor HP, tombol dinonaktifkan
-            $btnWa = '<button type="button" class="btn btn-sm btn-secondary mt-1" '
+            $btnWa = '<button type="button" class="btn btn-sm btn-secondary" '
                    . 'title="Nomor HP tidak tersedia" disabled>'
                    . '<i class="fe-alert-circle"></i> WA</button>';
         }
         // ========================================================
 
-        // Gabungkan tombol
-        $row['aksi'] = $btnEdit.' '.$btnWa;
+        // Gabungkan tombol (sejajar dalam satu btn-group)
+        $row['aksi'] =
+            '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi voucher">'
+          .   $btnEdit
+          .   $btnWa
+          .   $btnPreview
+          .   $btnRawbt
+          . '</div>';
 
         $data[] = $row;
     }
@@ -166,6 +196,54 @@ class Admin_voucher_cafe extends Admin_Controller {
     $this->output
          ->set_content_type('application/json')
          ->set_output(json_encode($out));
+}
+
+
+public function print_voucher_termal($id = null)
+{
+    $id = (int)$id;
+    if ($id <= 0) {
+        show_error('ID voucher tidak valid', 400);
+    }
+
+    // 1) Ambil data voucher (SESUAIKAN nama tabel/model kamu)
+    $voucher = $this->db->from('voucher_cafe_manual')
+                        ->where('id', $id)
+                        ->get()
+                        ->row();
+
+    if (!$voucher) {
+        show_error('Data voucher tidak ditemukan', 404);
+    }
+
+    // 2) Kertas 58 / 80
+    $paper = $this->input->get('paper', true);
+    $paper = ($paper === '80') ? '80' : '58';
+
+    // 3) Info toko (IKUTI CONTOH STRUK KAMU: pakai om->web_me())
+    $web = $this->om->web_me(); // <- kalau di project kamu pakai fm->web_me(), sesuaikan di sini
+
+    $store = [
+        'nama'   => $web->nama_website ?? 'AUSI Cafe',
+        'alamat' => $web->alamat ?? '',
+        'kota'   => $web->kabupaten ?? '',
+        'telp'   => $web->no_telp ?? '',
+        'footer' => 'Terima kasih 🙏',
+    ];
+
+    $data = [
+        'paper'      => $paper,
+        'voucher'    => $voucher,
+        'store'      => (object)$store,
+        'printed_at' => date('Y-m-d H:i:s'),
+    ];
+
+    // 4) LOAD VIEW (pastikan file-nya ada: application/views/voucher_struk_termal.php)
+    $html = $this->load->view('voucher_struk_termal', $data, true);
+
+    $this->output
+         ->set_content_type('text/html; charset=UTF-8')
+         ->set_output($html);
 }
 
 
