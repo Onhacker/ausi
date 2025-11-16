@@ -1124,6 +1124,32 @@ private function _first_of_next_month_date($refTs = null){
  * - Di sini kita matikan $db_debug sementara supaya error voucher TIDAK mematikan proses mark_paid.
  * - Kalau ada error, cuma di-log.
  */
+
+
+
+ private function _calc_loyalty_points_order($o): int
+    {
+        if (!$o) return 0;
+
+        // total belanja menu (bukan grand_total)
+        $total_menu = (int)($o->total ?? 0);
+        if ($total_menu < 0) $total_menu = 0;
+
+        // bonus poin dari kode unik
+        $kode_unik = (int)($o->kode_unik ?? 0);
+        if ($kode_unik < 0) $kode_unik = 0;
+
+        // 1 poin per Rp 1.000 belanja
+        $base = intdiv($total_menu, 1000);
+
+        $poin = $kode_unik + $base;
+        if ($poin < 0) $poin = 0;
+
+        return $poin;
+    }
+
+
+
 private function _voucher_cafe_upsert_from_order($order_row, $paid_at)
 {
     // ===== 0) Kalau tabel nggak ada, langsung keluar =====

@@ -420,7 +420,7 @@ list($status_label, $status_class) = status_badge($status);
             <a class="btn btn-info btn-sm js-pay"
                href="<?= site_url('produk/pay_transfer/'.rawurlencode($order->nomor)) ?>"
                data-method="transfer">
-              <i class="mdi mdi-bank-transfer"></i><span>TRANSFER</span>
+              <i class="mdi mdi-bank-transfer"></i><span>TRANSFER BNI</span>
             </a>
           </div>
           <?php endif; ?>

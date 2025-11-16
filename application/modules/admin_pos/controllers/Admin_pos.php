@@ -859,9 +859,9 @@ public function mark_paid(){
     }
 
     // >>> KIRIM WA KE CUSTOMER (pembayaran diterima)
-    if (!empty($ok_ids)) {
-        $this->_wa_paid_notice($ok_ids);
-    }
+    // if (!empty($ok_ids)) {
+    //     $this->_wa_paid_notice($ok_ids);
+    // }
 
     // Rangkai pesan yang jelas untuk alert di UI
     $msgs = [];
