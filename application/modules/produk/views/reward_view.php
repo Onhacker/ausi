@@ -448,7 +448,7 @@ if (!function_exists('mask_phone')) {
     color:#e5e7eb;
   }
 
-  @media (prefers-color-scheme: dark){
+  /*@media (prefers-color-scheme: dark){*/
     .reward-card-top{
       background:linear-gradient(135deg,#3f3f26,#4f4925);
     }
@@ -462,7 +462,7 @@ if (!function_exists('mask_phone')) {
       background:#020617;
       border-color:#020617;
     }
-  }
+  /*}*/
 </style>
 
 <script>

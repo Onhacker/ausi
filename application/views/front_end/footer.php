@@ -836,39 +836,59 @@ ease; */
 
   <!-- ========== CAFÉ & PESAN ========== -->
   <div class="quicksection" aria-labelledby="sec-cafe">
-    <div class="quicksection-title" id="sec-cafe">
-      <span class="section-icon">☕</span><span class="section-text">Café & Pesan</span>
-    </div>
-    <div class="quicksection-items">
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('scan') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Makan di Sini (Scan QR)" data-menuloading="1">
-          <div class="menu-circle" style="background:#2ecc71;"><span class="emoji-icon" aria-hidden="true">🍽️</span></div>
-          <small class="menu-label">Makan di Sini</small>
-        </a>
-      </div>
-
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('produk/delivery') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Antar / Delivery" data-menuloading="1">
-          <div class="menu-circle" style="background:#3498db;"><span class="emoji-icon" aria-hidden="true">🚚</span></div>
-          <small class="menu-label">Antar / Delivery</small>
-        </a>
-      </div>
-
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('produk/walkin') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Bungkus (Walk-in)" data-menuloading="1">
-          <div class="menu-circle" style="background:#9b59b6;"><span class="emoji-icon" aria-hidden="true">🛍️</span></div>
-          <small class="menu-label">Bungkus</small>
-        </a>
-      </div>
-
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('cafe') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Info Café / Jadwal" data-menuloading="1">
-          <div class="menu-circle" style="background:#dc7633;"><span class="emoji-icon" aria-hidden="true">🏪</span></div>
-          <small class="menu-label">Café</small>
-        </a>
-      </div>
-    </div>
+  <div class="quicksection-title" id="sec-cafe">
+    <span class="section-icon">☕</span><span class="section-text">Café & Pesan</span>
   </div>
+  <div class="quicksection-items">
+    <!-- Riwayat Order Saya -->
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('produk/riwayat_pesanan') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Riwayat Order Saya" data-menuloading="1">
+        <div class="menu-circle" style="background:#16a085;"><span class="emoji-icon" aria-hidden="true">🧾</span></div>
+        <small class="menu-label">Riwayat Order Saya</small>
+      </a>
+    </div>
+
+    <!-- Reward Mingguan -->
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('produk/reward') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Reward Mingguan" data-menuloading="1">
+        <div class="menu-circle" style="background:#f39c12;"><span class="emoji-icon" aria-hidden="true">🎁</span></div>
+        <small class="menu-label">Reward Mingguan</small>
+      </a>
+    </div>
+    
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('scan') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Makan di Sini (Scan QR)" data-menuloading="1">
+        <div class="menu-circle" style="background:#2ecc71;"><span class="emoji-icon" aria-hidden="true">🍽️</span></div>
+        <small class="menu-label">Makan di Sini</small>
+      </a>
+    </div>
+
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('produk/delivery') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Antar / Delivery" data-menuloading="1">
+        <div class="menu-circle" style="background:#3498db;"><span class="emoji-icon" aria-hidden="true">🚚</span></div>
+        <small class="menu-label">Antar / Delivery</small>
+      </a>
+    </div>
+
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('produk/walkin') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Bungkus (Walk-in)" data-menuloading="1">
+        <div class="menu-circle" style="background:#9b59b6;"><span class="emoji-icon" aria-hidden="true">🛍️</span></div>
+        <small class="menu-label">Bungkus</small>
+      </a>
+    </div>
+
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('cafe') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Info Café / Jadwal" data-menuloading="1">
+        <div class="menu-circle" style="background:#dc7633;"><span class="emoji-icon" aria-hidden="true">🏪</span></div>
+        <small class="menu-label">Café</small>
+      </a>
+    </div>
+
+    
+
+  </div>
+</div>
+
 
   <!-- ========== BILLIARD ========== -->
   <div class="quicksection" aria-labelledby="sec-billiard">
