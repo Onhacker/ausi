@@ -106,7 +106,9 @@ class Sitemap extends Onhacker_Controller
             ['loc'=>$this->_abs('hal/privacy_policy'),     'last'=>'2025-11-01', 'chg'=>'yearly', 'prio'=>'0.30'],
             // Monitor (ditambahkan)
             ['loc'=>$this->_abs('monitor'),                'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
-            ['loc'=>$this->_abs('produk/reward'),                'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
+           
+            ['loc'=>$this->_abs('produk/reward'), 'last'=>$today, 'chg'=>'always', 'prio'=>'0.90'],
+
         ];
 
         $xml  = '<?xml version="1.0" encoding="UTF-8"?>'."\n";

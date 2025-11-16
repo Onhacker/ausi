@@ -57,7 +57,8 @@ if (!function_exists('mask_phone')) {
             <!-- ========== MODE SUDAH PENGUMUMAN ========== -->
             <h4 class="mb-2">Selamat, Pemenang Reward Minggu Ini! 🎉</h4>
             <p class="mb-3 text-dark small">
-              Berikut adalah penerima <strong>reward voucher order</strong> untuk periode minggu ini.
+              Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode pekan ini
+              (rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>).
               Terima kasih sudah setia berbelanja di AUSI Café.
             </p>
 
@@ -92,6 +93,15 @@ if (!function_exists('mask_phone')) {
                   <div class="reward-note">
                     Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
                   </div>
+                  <div class="reward-note">
+                    Jika terjadi poin yang sama, <strong>Robot Ausi</strong> menentukan pemenang berdasarkan:
+                    <br>
+                    <span class="small">
+                      1) <strong>Total belanja</strong> lebih besar,
+                      2) <strong>waktu transaksi terakhir</strong> yang lebih awal,
+                      3) <strong>jumlah transaksi</strong> yang lebih banyak.
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -118,12 +128,15 @@ if (!function_exists('mask_phone')) {
                     <div class="reward-row">
                       <span class="reward-row-label">Status</span>
                       <span class="reward-pill pill-blue">
-                        Dipilih secara acak Oleh Sistem
+                        Dipilih secara acak oleh Sistem
                       </span>
                     </div>
 
                     <div class="reward-note">
-                      Semua pelanggan yang bertransaksi di periode ini memiliki peluang yang sama dan Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
+                      Pemenang acak dipilih oleh <strong>Robot Ausi</strong> dari seluruh pelanggan
+                      yang memiliki <strong>poin &gt; 0</strong> pada pekan tersebut
+                      (kecuali peraih poin tertinggi), dan berhak atas voucher order
+                      senilai <strong>Rp&nbsp;50.000*</strong>.
                     </div>
                   </div>
                 </div>
@@ -166,9 +179,22 @@ if (!function_exists('mask_phone')) {
               Voucher dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
             </p>
             <p class="mt-2 mb-0 small text-dark">
-              Peraih voucher ditentukan sepenuhnya oleh Robot Ausi, dengan metode poin tertinggi dan undian acak oleh Robot Ausi dari semua pelanggan yang memiliki poin pada periode tersebut, tanpa campur tangan manusia.
+              Peraih voucher ditentukan sepenuhnya oleh <strong>Robot Ausi</strong> sesuai
+              <em>Syarat &amp; Ketentuan Program Reward</em>: poin dihitung dari transaksi
+              berstatus <strong>paid</strong> dalam satu siklus pekan, dengan kombinasi
+              <strong>poin tertinggi</strong> dan <strong>undian acak</strong> tanpa campur tangan manusia.
             </p>
-
+            <p class="mt-2 mb-0 small text-dark">
+              <strong>*</strong>Voucher bersifat <strong>non-tunai</strong>, tidak dapat diuangkan,
+              tidak dapat dipindahtangankan, dan tidak dapat digabung dengan promo lain
+              kecuali dinyatakan sebaliknya. Masa berlaku voucher adalah
+              <strong>7 (tujuh) hari kalender</strong> sejak tanggal penerbitan.
+              Detail lengkap dapat dilihat pada
+              <a href="<?php echo site_url('hal/'); ?>#voucher-order"
+                 class="text-decoration-underline">
+                Syarat &amp; Ketentuan
+              </a>.
+            </p>
 
           <?php else: ?>
 
@@ -213,15 +239,15 @@ if (!function_exists('mask_phone')) {
             </div>
             <p class="mb-2 text-dark">
               Pengumuman <strong>poin tertinggi</strong> dan <strong>1 pemenang acak</strong>
-              akan tampil di halaman ini setiap <strong>Minggu, pukul 08.00 WITA</strong>.
+              akan tampil di halaman ini setiap <strong>Minggu, pukul 08:00 WITA</strong>,
+              untuk periode <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong> pekan sebelumnya.
             </p>
 
             <p class="mb-3 text-dark small">
-              Pastikan Anda selalu menggunakan nomor WhatsApp yang sama saat order,
-              agar sistem dapat mencatat dan mengakumulasi poin secara otomatis.
+              Pastikan Anda selalu menggunakan nomor WhatsApp yang sama saat order
+              dan transaksi berstatus <strong>paid</strong>, agar sistem dapat mencatat
+              dan mengakumulasi poin secara otomatis.
             </p>
-
-            
 
             <!-- Mini timeline periode mingguan -->
             <div class="row g-2 justify-content-center text-start text-md-center">
@@ -230,7 +256,8 @@ if (!function_exists('mask_phone')) {
                      style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
                   <div class="small fw-bold text-dark mb-1">Kumpulkan Poin</div>
                   <div class="small text-dark">
-                    Poin dihitung dari setiap transaksi yang <strong>berhasil dibayar</strong>.
+                    Poin dihitung dari setiap transaksi yang <strong>berhasil dibayar (status paid)</strong>.
+                    Transaksi void/refund/batal tidak menambah poin.
                   </div>
                 </div>
               </div>
@@ -240,7 +267,9 @@ if (!function_exists('mask_phone')) {
                   <div class="small fw-bold text-dark mb-1">Periode Mingguan</div>
                   <div class="small text-dark">
                     Rekap poin: <br>
-                    <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
+                    <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>. <br>
+                    Setiap <strong>Minggu 00:00</strong> dimulai pekan baru dan
+                    perhitungan poin kembali dari nol.
                   </div>
                 </div>
               </div>
@@ -249,7 +278,8 @@ if (!function_exists('mask_phone')) {
                      style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
                   <div class="small fw-bold text-dark mb-1">Pengumuman</div>
                   <div class="small text-dark">
-                    Hasil diumumkan <strong>Minggu 08:00 WITA</strong> langsung di halaman ini.
+                    Hasil diumumkan <strong>Minggu 08:00 WITA</strong>
+                    di halaman ini untuk periode pekan sebelumnya.
                   </div>
                 </div>
               </div>
@@ -259,7 +289,13 @@ if (!function_exists('mask_phone')) {
                      style="background:rgba(15,23,42,.03);border:1px dashed rgba(148,163,184,.7);">
                   <div class="small fw-bold text-dark mb-1">Metode</div>
                   <div class="small text-dark">
-                   Peraih voucher ditentukan sepenuhnya oleh <strong>Robot Ausi</strong>, dengan metode poin tertinggi dan undian acak oleh <strong>Robot Ausi</strong> dari semua pelanggan yang memiliki poin pada periode tersebut, tanpa campur tangan manusia.
+                    Peraih voucher ditentukan sepenuhnya oleh <strong>Robot Ausi</strong>:
+                    <br>
+                    – <strong>Pemenang 1:</strong> poin tertinggi (dengan tie-breaker total belanja, waktu transaksi
+                    terakhir yang lebih awal, lalu jumlah transaksi).<br>
+                    – <strong>Pemenang 2:</strong> undian acak oleh <strong>Robot Ausi</strong>
+                    dari semua pelanggan yang memiliki <strong>poin &gt; 0</strong> pada periode tersebut,
+                    tanpa campur tangan manusia.
                   </div>
                 </div>
               </div>
@@ -276,7 +312,7 @@ if (!function_exists('mask_phone')) {
         <div class="card-body">
           <h4 class="mb-2">Tingkatkan Poin &amp; Raih Voucher Order Senilai Rp 50.000</h4>
           <p class="mb-2">
-            Setiap transaksi <strong>berhasil</strong> langsung menambah poin Anda.
+            Setiap transaksi <strong>berhasil (status paid)</strong> langsung menambah poin Anda.
             <strong>Makin sering order, makin cepat poin terkumpul</strong> — ayo lanjutkan belanja di AUSI!
           </p>
           <p class="mb-2">
@@ -285,11 +321,13 @@ if (!function_exists('mask_phone')) {
             Pastikan nomor WhatsApp aktif agar tidak ketinggalan info.
           </p>
           <p class="mb-0 text-dark small">
-            Poin dihitung otomatis dari total belanja &amp; komponen kode unik transaksi; periode mengikuti
-            <strong>siklus mingguan</strong> (Minggu 00:00 – Sabtu 23:59 WITA, reset otomatis Minggu 00:00).
+            Poin dihitung otomatis dari total belanja &amp; komponen kode unik transaksi;
+            periode mengikuti <strong>siklus mingguan</strong> (Minggu 00:00 – Sabtu 23:59 WITA,
+            reset otomatis setiap Minggu 00:00).
             <br>
-            <a href="<?php echo site_url('hal/#voucher-order'); ?>" class="text-decoration-underline">
-              Syarat &amp; Ketentuan berlaku
+            <a href="<?php echo site_url('hal/'); ?>#voucher-order"
+               class="text-decoration-underline">
+              Syarat &amp; Ketentuan program reward berlaku
             </a>
           </p>
         </div>
