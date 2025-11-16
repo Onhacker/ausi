@@ -111,6 +111,10 @@ $alamat_kirim    = trim((string)($order->alamat_kirim ?? ''));
 $voucher_disc = (int)($order->voucher_disc ?? 0);
 $voucher_code = trim((string)($order->voucher_code ?? ''));
 $has_voucher  = ($voucher_disc > 0);
+$linkPoin  = isset($linkPoin) ? $linkPoin : null;
+$vcTotal   = isset($vcTotal)  ? $vcTotal  : null;
+$vcExp     = isset($vcExp)    ? $vcExp    : null;
+
 
 if (!isset($total)) {
   $total = 0;
@@ -449,15 +453,32 @@ list($status_label, $status_class) = status_badge($status);
           </div>
         <?php endif; ?>
 
-        <?php if ($is_paid && !empty($order->id)): ?>
-          <div class="mt-2 d-flex flex-wrap align-items-center" style="gap:.5rem">
-            <a class="btn btn-danger btn-sm"
-               href="<?= site_url('produk/receipt/'.rawurlencode($order->nomor)) ?>"
-               rel="noopener">
-              <i class="mdi mdi-printer"></i> Struk
-            </a>
-          </div>
+       <?php if ($is_paid && !empty($order->id)): ?>
+  <div class="mt-2 d-flex flex-wrap align-items-center" style="gap:.5rem">
+    <!-- Tombol Struk -->
+    <a class="btn btn-danger btn-sm"
+       href="<?= site_url('produk/receipt/'.rawurlencode($order->nomor)) ?>"
+       rel="noopener">
+      <i class="mdi mdi-printer"></i> Struk
+    </a>
+
+    <!-- Tombol Lihat Total Poin -->
+    <?php if (!empty($linkPoin)): ?>
+      <a class="btn btn-blue btn-sm"
+         href="<?= $linkPoin ?>"
+         rel="noopener">
+        <i class="mdi mdi-star-circle"></i>
+        <?php if ($vcTotal !== null): ?>
+          <span>&nbsp;Lihat Total Poin (<?= number_format($vcTotal, 0, ',', '.') ?>)</span>
+        <?php else: ?>
+          <span>&nbsp;Lihat Total Poin</span>
         <?php endif; ?>
+      </a>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
+
 
 
       </div><!-- /col kanan -->

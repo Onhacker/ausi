@@ -51,23 +51,51 @@ $now  = new DateTime('now', $tz);
 
 /**
  * Pekan: Minggu 00:00 – Sabtu 23:59:59
- * Reset: Minggu 00:00 pekan berikutnya
+ * Reset poin: Minggu 00:00
+ * Pengumuman reward: Minggu 08:00
  */
 $w0        = (int)$now->format('w'); // 0=Sun..6=Sat
-$weekStart = (clone $now)->modify('-'.$w0.' days')->setTime(0,0,0); // Minggu 00:00 pekan ini
-$nextSun   = (clone $weekStart)->modify('+7 days');                 // Minggu depan 00:00
+$weekStart = (clone $now)->modify('-'.$w0.' days')->setTime(0,0,0);      // Minggu 00:00 pekan ini
+$nextSun00 = (clone $weekStart)->modify('+7 days')->setTime(0,0,0);      // Minggu depan 00:00
 
-// expiredAt: pakai dari DB jika ada (DATE), fallback ke Minggu depan 00:00
+// resetAt: dari DB (expired_at = tanggal reset Minggu), fallback ke Minggu depan 00:00
 if ($hasData && !empty($vc->expired_at)) {
-  // expired_at di DB bertipe DATE → set 00:00 WITA hari itu
-  $expiredAt = (new DateTime($vc->expired_at, $tz))->setTime(0,0,0);
+  $resetAt = (new DateTime($vc->expired_at, $tz))->setTime(0,0,0);       // Minggu 00:00
 } else {
-  $expiredAt = $nextSun; // DateTime
+  $resetAt = $nextSun00;
 }
 
-$isExpired      = ($now >= $expiredAt);
-$daysLeftStr    = $isExpired ? 'Sudah kedaluwarsa' : $now->diff($expiredAt)->days.' hari lagi';
-$next1Label     = $expiredAt->format('d/m/Y');
+// announcementAt: hari yang sama, jam 08:00 WITA
+$announceAt    = (clone $resetAt)->setTime(8, 0, 0);                      // Minggu 08:00
+$announceAtIso = $announceAt->format('c');
+
+$isExpired = ($now >= $announceAt);
+
+// Hitung sisa waktu sampai pengumuman Minggu 08:00 (teks awal / fallback)
+if ($isExpired) {
+  $daysLeftStr = 'Sudah kedaluwarsa';
+} else {
+  $diff  = $now->diff($announceAt);
+  $parts = [];
+
+  if ($diff->d > 0) {
+    $parts[] = $diff->d.' hari';
+  }
+  if ($diff->h > 0 || $diff->d > 0) {
+    $parts[] = $diff->h.' jam';
+  }
+  if ($diff->i > 0 || (!$diff->d && !$diff->h)) {
+    $parts[] = $diff->i.' menit';
+  }
+  if (empty($parts)) {
+    $parts[] = $diff->s.' detik';
+  }
+
+  $daysLeftStr = implode(' ', $parts).' lagi';
+}
+
+// Label-label tampilan
+$next1Label     = $resetAt->format('d/m/Y'); // ini tetap tanggal reset pekan
 $weekRangeLabel = $weekStart->format('d/m/Y').' – '.(clone $weekStart)->modify('+6 days')->format('d/m/Y');
 
 // Aman untuk judul
@@ -118,11 +146,67 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
   .no-gutters>.col, .no-gutters>[class*="col-"] {
     padding-right: 0;
     padding-left: 16px !important;
-}
+  }
+
+  /* Countdown di badge */
+  .points-countdown-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .points-countdown-label{
+    opacity:.9;
+  }
+
+  /* Baris identitas + pengundian */
+  .points-hero-bottom{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:12px;
+    flex-wrap:wrap;
+  }
+  .points-identitas{
+    min-width:180px;
+    text-align:left;
+  }
+  .points-reward-row{
+    flex:1 1 200px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:.5rem;
+    flex-wrap:wrap;
+    text-align:left;
+  }
+  .points-reward-text{
+    flex:1 1 160px;
+    font-size:.8rem;
+    color:#e5e7eb;
+  }
+  .points-reward-btn{
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
+  @media (max-width:575.98px){
+    .points-reward-row{
+      flex-direction:row;
+      align-items:flex-start;
+    }
+    .points-reward-text{
+      flex:1 1 100%;
+    }
+    .points-reward-btn{
+      margin-left:auto;
+      margin-top:4px;
+    }
+  }
 </style>
 
 <div class="container-fluid">
   <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul halaman">
+    <?php $this->load->view("front_end/back") ?>
     <h1 class="text mb-0">POIN <?php echo e($custName); ?></h1>
     <span class="accent ausi-accent" aria-hidden="true"></span>
   </div>
@@ -132,6 +216,7 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
 
       <!-- HERO -->
       <div class="points-hero mt-2">
+        <!-- Baris atas: poin + countdown -->
         <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:12px">
           <div>
             <div class="points-label">Poin Loyalty</div>
@@ -141,10 +226,22 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
             <?php if ($hasData): ?>
               <div class="mt-2">
                 <?php if ($isExpired): ?>
-                  <span class="badge-soft badge-danger-soft">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
+                  <span class="badge-soft badge-danger-soft d-block mb-1">
+                    Periode pekan ini telah berakhir. Menunggu pengundian berikutnya.
+                  </span>
                 <?php else: ?>
-                  <span class="badge-soft badge-ok-soft mr-2">Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)</span>
-                  <span class="badge-soft mt-2"><?php echo e($daysLeftStr); ?></span>
+                  <span class="badge-soft badge-ok-soft mr-2 d-block mb-1">
+                    Reset pekan: <?php echo e($next1Label); ?> (00:00 WITA)
+                  </span>
+                  <span class="badge-soft mt-1 d-inline-block">
+                    <span class="points-countdown-pill">
+                      <span class="points-countdown-label">Pengundian poin dalam</span>
+                      <span id="points-countdown"
+                            data-target="<?php echo e($announceAtIso); ?>">
+                        <?php echo e($daysLeftStr); ?>
+                      </span>
+                    </span>
+                  </span>
                 <?php endif; ?>
                 <div class="mt-1 small text-light">
                   Periode pekan ini: <?php echo e($weekRangeLabel); ?> (WITA)
@@ -154,22 +251,39 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
               <div class="mt-2"><span class="badge-soft">Belum ada data poin</span></div>
             <?php endif; ?>
           </div>
+        </div>
 
-          <div class="text-right">
-            <?php if ($hasData): ?>
-              <div class="small mb-1">Atas nama :</div>
-              <div class="h5 mb-2 text-white" style="font-weight:800">
-                <?php echo e($custName); ?>
-              </div>
-              <div class="small text-light">HP: <?php echo e(mask_msisdn($vc->customer_phone ?? '')); ?></div>
-            <?php endif; ?>
+        <?php if ($hasData): ?>
+        <!-- Baris bawah: Atas nama + HP di kiri, teks & tombol di kanan -->
+        <div class="points-hero-bottom">
+          <div class="points-identitas">
+            <div class="small mb-1">Atas nama :</div>
+            <div class="h5 mb-1 text-white" style="font-weight:800">
+              <?php echo e($custName); ?>
+            </div>
+            <div class="small text-light">
+              HP: <?php echo e(mask_msisdn($vc->customer_phone ?? '')); ?>
+            </div>
+          </div>
+
+          <div class="points-reward-row">
+            <div class="points-reward-text">
+              Pengundian poin akan dilaksanakan setiap
+              <strong>Minggu, pukul 08:00 WITA</strong>
+              berdasarkan rekap poin pekan ini.
+            </div>
+            <a href="<?php echo site_url('produk/reward'); ?>"
+               class="btn btn-sm btn-outline-light points-reward-btn">
+              Cek selengkapnya di sini
+            </a>
           </div>
         </div>
+        <?php endif; ?>
       </div>
 
       <!-- STATS -->
       <?php if ($hasData): ?>
-        <div class="stats-card mt-3">
+        <div class="stats-card mt-3 mb-3">
           <div class="row no-gutters">
             <div class="col-6 col-md-3 stat-item">
               <p class="stat-k">Transaksi</p>
@@ -180,46 +294,71 @@ $custName = $hasData ? ($vc->customer_name ?: '—') : '—';
               <p class="stat-v"><?php echo idr($vc->total_rupiah); ?></p>
             </div>
             <div class="col-6 col-md-3 stat-item">
-              <p class="stat-k">Pertama Kali</p>
+              <p class="stat-k">TRX Awal Pekan ini</p>
               <p class="stat-v"><?php echo $vc->first_paid_at ? e(date('d/m/Y', strtotime($vc->first_paid_at))) : '—'; ?></p>
             </div>
             <div class="col-6 col-md-3 stat-item">
-              <p class="stat-k">Terakhir</p>
+              <p class="stat-k">TRX Terakhir Pekan ini</p>
               <p class="stat-v"><?php echo $vc->last_paid_at ? e(date('d/m/Y', strtotime($vc->last_paid_at))) : '—'; ?></p>
             </div>
           </div>
         </div>
       <?php endif; ?>
 
-      <!-- INFO CARD -->
-    <div class="card mt-3">
-  <div class="card-body">
-    <h4 class="mb-2">Tingkatkan Poin &amp; Raih Voucher Order Senilai Rp 50.000</h4>
-    <p class="mb-2">
-      Setiap transaksi <strong>berhasil</strong> langsung menambah poin Anda.
-      <strong>Makin sering order, makin cepat poin terkumpul</strong>—ayo lanjutkan belanja di AUSI!
-    </p>
-    <p class="mb-2">
-      Rekap poin dan pengumuman <strong>voucher order</strong> dilakukan
-      <strong>setiap hari Minggu pukul 08:00 WITA</strong> untuk periode <strong>pekan sebelumnya</strong>.
-      Pastikan nomor WhatsApp aktif agar tidak ketinggalan info.
-    </p>
-    <p class="mb-0 text-muted small">
-      Poin dihitung otomatis dari total belanja &amp; komponen kode unik transaksi; periode mengikuti
-      <strong>siklus mingguan</strong> (Minggu 00:00 – Sabtu 23:59 WITA, reset otomatis Minggu 00:00).
-      <br>
-      <a href="<?php echo site_url('hal/#voucher-order'); ?>" class="text-decoration-underline">
-        Syarat &amp; Ketentuan berlaku
-      </a>
-    </p>
-  </div>
-</div>
-
     </div>
   </div>
 </div>
 
 <script>
+/* ===== Live countdown ke pengundian poin (Minggu 08:00 WITA) ===== */
+(function(){
+  const el = document.getElementById('points-countdown');
+  if (!el) return;
+
+  const targetStr = el.getAttribute('data-target') || '';
+  if (!targetStr) return;
+
+  const target = new Date(targetStr);
+  if (isNaN(target.getTime())) return;
+
+  function tick(){
+    const now  = new Date();
+    let diff   = target - now;
+
+    if (diff <= 0){
+      el.textContent = 'sebentar lagi…';
+      return;
+    }
+
+    let totalSec = Math.floor(diff / 1000);
+    const days   = Math.floor(totalSec / 86400);
+    totalSec    -= days * 86400;
+    const hours  = Math.floor(totalSec / 3600);
+    totalSec    -= hours * 3600;
+    const mins   = Math.floor(totalSec / 60);
+    const secs   = totalSec - mins * 60;
+
+    const parts = [];
+    if (days > 0) {
+      parts.push(days + ' hari');
+    }
+    if (hours > 0 || days > 0) {
+      parts.push(hours + ' jam');
+    }
+    if (mins > 0 || days > 0 || hours > 0) {
+      parts.push(mins + ' menit');
+    }
+    // selalu tampilkan detik supaya kelihatan live
+    parts.push(secs + ' detik');
+
+    el.textContent = parts.join(' ');
+  }
+
+  tick();
+  setInterval(tick, 1000);
+})();
+
+/* ===== Copy helper (token / link poin) ===== */
 (function(){
   function copyText(t){
     if (!t) return false;

@@ -2112,6 +2112,44 @@ public function order_success($ref = null){
     $paid_method = isset($order->paid_method) ? $order->paid_method : null;
     $method = $this->input->get('method', true) ?: $paid_method;
 
+    // ================== LOYALTY / TOTAL POIN ==================
+    $msisdn   = trim((string)($order->customer_phone ?? ''));
+    $vcToken  = null;
+    $vcTotal  = null;
+    $vcExp    = null;
+    $linkPoin = null;
+
+    if ($msisdn !== '') {
+        // WAJIB: samakan dengan yang dipakai saat INSERT ke voucher_cafe
+        $hpNorm = $this->_norm_phone($msisdn);
+
+        $vc = $this->db
+            ->get_where('voucher_cafe', ['customer_phone' => $hpNorm])
+            ->row();
+
+        if ($vc) {
+            $vcToken = trim((string)($vc->token ?? ''));
+            $vcTotal = isset($vc->points) ? (int)$vc->points : null;
+            $vcExp   = $vc->expired_at   ?? null;
+
+            if ($vcToken !== '') {
+                $linkPoin = site_url('produk/points/'.$vcToken);
+            }
+        }
+
+        // debug kecil
+        log_message('debug', sprintf(
+            '[LOYALTY] order_success nomor=%s hp_raw=%s hp_norm=%s token=%s linkPoin=%s',
+            $order->nomor ?? '',
+            $msisdn,
+            $hpNorm,
+            $vcToken ?? '',
+            $linkPoin ?? ''
+        ));
+    }
+    // ==========================================================
+
+
     $rec = $this->fm->web_me();
     $data = [
         'rec'       => $rec,
@@ -2123,8 +2161,19 @@ public function order_success($ref = null){
         'total'     => $total,
         'meja_info' => $meja_info,
         'method'    => $method,
+        // kirim ke view
+        'linkPoin'  => $linkPoin,
+        'vcTotal'   => $vcTotal,
+        'vcExp'     => $vcExp,
     ];
     $this->load->view('order_success_view', $data);
+}
+private function _norm_phone($s){
+    $s = preg_replace('/\D+/', '', (string)$s); // keep digits only
+    if ($s === '') return '';
+    if (strpos($s, '62') === 0) return $s;
+    if (strpos($s, '0') === 0)  return '62'.substr($s, 1);
+    return $s;
 }
 
 // Tambah helper ini (mis. taruh di bawah _nocache_headers)
