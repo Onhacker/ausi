@@ -2,16 +2,131 @@
 
 <div class="container-fluid">
   <div class="hero-title" role="banner" aria-label="Judul situs">
-    <h1 class="text">Bookingan Billiard</h1>
+    <h1 class="text">Jadwal Main Billiard</h1>
     <span class="accent" aria-hidden="true"></span>
   </div>
 
   <div class="row">
     <?php if (empty($cards)): ?>
+
+      <style type="text/css">
+              .booking-empty{
+        padding: 1.5rem 1.25rem;
+        border-radius: 14px;
+        border: 1px dashed #e2e8f0;
+        background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      }
+
+      .booking-empty-icon{
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto .75rem;
+        font-size: 1.7rem;
+      }
+
+      /* optional: sesuaikan warna ikon sesuai tema utama */
+      .booking-empty-icon i{
+        color: #2563eb;
+      }
+
+      /* optional: sedikit penyesuaian untuk dark mode */
+  /*    @media (prefers-color-scheme: dark){
+        .booking-empty{
+          background: #020617;
+          border-color: #1f2937;
+        }
+      }*/
+
+      .btn-booking{
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .35rem;
+        }
+
+        /* spinner lingkaran kecil */
+        .btn-booking-spinner{
+          width: 16px;
+          height: 16px;
+          border-radius: 999px;
+          border: 2px solid rgba(255,255,255,.4);
+          border-top-color: #ffffff;
+          animation: btn-spin .6s linear infinite;
+          display: none; /* default: hidden */
+        }
+
+        .btn-booking.is-loading .btn-booking-spinner{
+          display: inline-block;
+        }
+
+        .btn-booking.is-loading .btn-booking-label{
+          opacity: .8;
+        }
+
+        /* animasi putar */
+        @keyframes btn-spin{
+          to { transform: rotate(360deg); }
+        }
+
+
+      </style>
       <div class="col-12">
-        <div class="card-box"><p class="mb-0">Belum ada bookingan mendatang.</p></div>
+        <div class="card-box text-center booking-empty">
+          <div class="booking-empty-icon mb-2">
+            <i class="mdi mdi-billiards"></i>
+          </div>
+
+          <h5 class="mb-1">Belum ada bookingan mendatang</h5>
+          <p class="text-dark mb-3 small">
+            Yuk amankan meja favoritmu lebih awal agar tidak kehabisan slot. 😊
+          </p>
+
+         <a href="<?= site_url('billiard') ?>" 
+           id="btnBookingNow" 
+           class="btn btn-blue btn-rounded btn-booking">
+          <span class="btn-booking-spinner" aria-hidden="true"></span>
+          <span class="btn-booking-label">
+            <i class="mdi mdi-calendar-plus mr-1" aria-hidden="true"></i>
+            Booking Sekarang
+          </span>
+        </a>
+
+        </div>
       </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function(){
+          const btn = document.getElementById('btnBookingNow');
+          if (!btn) return;
+
+          btn.addEventListener('click', function(e){
+            // kalau sudah loading, cegah klik ganda
+            if (btn.classList.contains('is-loading')) {
+              e.preventDefault();
+              return;
+            }
+
+            e.preventDefault(); // tahan dulu, biar loading kelihatan
+            btn.classList.add('is-loading');
+            btn.setAttribute('aria-disabled', 'true');
+
+            const target = btn.getAttribute('href');
+            if (target) {
+              // kasih sedikit jeda supaya efek loading sempat tampil
+              setTimeout(function(){
+                window.location.href = target;
+              }, 80);
+            }
+          });
+        });
+        </script>
+
     <?php else: ?>
+
       <?php foreach ($cards as $c): ?>
         <div class="col-xl-6 col-lg-12">
           <!-- padding-bottom ditambah supaya tombol ribbon bawah tidak menutupi konten -->

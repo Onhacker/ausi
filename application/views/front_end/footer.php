@@ -434,7 +434,7 @@ ease; */
           <button type="button" id="swalCafeHistory"
             class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
             <span class="me-2 mr-2" aria-hidden="true">🧾</span>
-            <span>Riwayat Order Anda</span>
+            <span>Riwayat Orderku</span>
           </button>
         </div>
 
@@ -844,7 +844,7 @@ ease; */
     <div class="quickmobilem-item">
       <a href="<?= site_url('produk/riwayat_pesanan') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Riwayat Order Saya" data-menuloading="1">
         <div class="menu-circle" style="background:#16a085;"><span class="emoji-icon" aria-hidden="true">🧾</span></div>
-        <small class="menu-label">Riwayat Order Saya</small>
+        <small class="menu-label">Riwayat Orderku</small>
       </a>
     </div>
 

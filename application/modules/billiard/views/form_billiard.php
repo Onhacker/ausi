@@ -51,7 +51,7 @@
   <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul halaman">
     <?php $this->load->view("front_end/back") ?>
     <h1 class="text mb-0"><?= html_escape($title) ?></h1>
-    <div class="text-white">Pilih Meja Billiard</div>
+    <!-- <div class="text-white">Pilih Meja Billiard</div> -->
     <span class="accent ausi-accent" aria-hidden="true"></span>
   </div>
 
