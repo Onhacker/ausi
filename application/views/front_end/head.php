@@ -12,6 +12,7 @@
 
   <title><?= ucfirst(strtolower($rec->nama_website)).' - '.$title; ?></title>
   <meta name="google-site-verification" content="yoI3KrMVtbFyU9SfHWnE2d57nrTE3pS-Uu_Edrt6v7E" />
+
   <!-- ========== THEME COLOR (LIGHT/DARK) ========== -->
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0F172A">
   <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#000000">
@@ -59,26 +60,17 @@
   <link href="<?= base_url('assets/min/head.min.css'); ?>" rel="stylesheet" />
 
   <style>
-  /* ============ Variabel tema ============ */
+  /* ============ Variabel tema & header ============ */
   :root{
-    --hdr-bg1:#0d2d58;     /* biru tua */
-    --hdr-bg2:#184c8a;     /* biru muda */
-    --hdr-accent:#f59e0b;  /* oranye aksen */
+    --hdr-bg1:#0d2d58;
+    --hdr-bg2:#184c8a;
+    --hdr-accent:#f59e0b;
     --hdr-text:#fff;
     --hdr-muted:#dbe7ff;
     --hdr-shadow:0 12px 30px rgba(0,0,0,.22);
     --safe-top: env(safe-area-inset-top);
   }
 
-  /* ============ Wrapper header ============ */
-  /*#topnav{
-    z-index:1032;
-    color:var(--hdr-text);
-    background:linear-gradient(155deg,var(--hdr-bg1),var(--hdr-bg2));
-    box-shadow:var(--hdr-shadow);
-    padding-top: max(6px, var(--safe-top));
-  }
-*/
   /* Bar atas: glassy */
   #topnav .navbar-custom{
     background:rgba(8,25,55,.45) !important;
@@ -86,21 +78,20 @@
     border-bottom:1px solid rgba(255,255,255,.08);
   }
 
-  /* Logo & judul */
+  /* Logo & judul desktop */
   .logo-desktop img{
     height:50px; width:auto;
     border-radius:12px; padding:4px;
     background:rgba(255,255,255,.08);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
   }
-  .logo-desktop .kepala{ line-height:1.1 }
+  .logo-desktop .kepala{ line-height:1.1; }
   .header-title2{
     display:inline-block; margin:0; color:#fff;
     font-weight:800; letter-spacing:.3px;
     text-transform:uppercase;
     text-shadow:0 2px 8px rgba(0,0,0,.25);
   }
-  /* garis aksen di bawah judul */
   .header-title2::after{
     content:""; display:block; height:3px; width:132px;
     margin-top:.1rem; background:var(--hdr-accent);
@@ -116,23 +107,12 @@
     font-size:.82rem; font-weight:600;
   }
 
-  /* Versi mobile (logo-boxx)
-     .logo-boxx .logo-smx img{ height:42px; width:42px; border-radius:10px }
-     .logo-boxx .header-title-top{ font-weight:800; letter-spacing:.3px }
-     .logo-boxx .header-title-bottom{ opacity:.9 }
-  */
-
-  /* ============ Menu utama ============ */
-  /*.topbar-menu{ background:transparent }
-    #navigation{ margin-top:.35rem }
-  */
+  /* Navigation pill */
   .navigation-menu{
     display:flex; gap:.4rem; flex-wrap:wrap; align-items:center;
     padding:.35rem 0; margin:0;
     list-style:none;
   }
-
-  /* pill item menu */
   .navigation-menu > li > a{
     display:flex; align-items:center; gap:.45rem;
     padding:.52rem .8rem; border-radius:12px;
@@ -144,21 +124,19 @@
   .navigation-menu > li > a i{
     font-size:1rem; opacity:.95;
   }
-  /* hover/focus */
   .navigation-menu > li > a:hover,
   .navigation-menu > li > a:focus{
     transform:translateY(-1px);
     background:rgba(255,255,255,.16);
     border-color:rgba(255,255,255,.28);
   }
-  /* aktif */
   .navigation-menu > li.active-menu > a{
     background:linear-gradient(135deg, var(--hdr-accent), #ffcc66);
     color:#1b2540; border-color:transparent;
     text-shadow:none;
   }
 
-  /* Dropdown (Panduan) */
+  /* Dropdown (submenu) */
   .navigation-menu .submenu{
     background:rgba(2,14,32,.6);
     border:1px solid rgba(255,255,255,.14);
@@ -168,66 +146,56 @@
   .navigation-menu .submenu li a{
     border-radius:10px; padding:.5rem .6rem;
   }
+
+  /* Wrapper & area scroll aplikasi */
+  .wrapper{
+    box-shadow:none !important; /* matikan shadow card putih */
+  }
+  #app-scroll{
+    height:100%;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    position:relative;
+  }
+
+ 
+
+  #preloader #status{
+    text-align:center;
+  }
+  #preloader .image-container img{
+    max-width:120px;
+    height:auto;
+    display:block;
+  }
+
+  /* Pastikan SweetAlert selalu di atas */
+  .swal2-container{
+    z-index:2147483647 !important;
+  }
   </style>
-
-  <script>
-  (function(){
-    // Jangan tampilkan di mobile (≤768px)
-    if (window.matchMedia('(max-width: 767.98px)').matches) return;
-
-    var url = "<?= site_url('api/status') ?>";
-    fetch(url, {
-      method: 'GET',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { 'Accept': 'application/json' }
-    })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(j){
-      if (!j || !j.success || !j.data || !j.data.logged_in) return;
-
-      var ul = document.getElementById('topnav-right'); // pastikan <ul id="topnav-right">
-      if (!ul) return;
-
-      var li = document.createElement('li');
-      li.className = 'dropdown notification-list';
-
-      var a = document.createElement('a');
-      a.className = 'nav-link dropdown-toggle waves-effect';
-      a.href = j.data.dashboard || "<?= site_url('admin_laporan/chart') ?>";
-      a.innerHTML = '<i class="fe-user user text-white"></i><span class = "text-white"> Ke Admin<span>';
-
-      li.appendChild(a);
-      ul.appendChild(li);
-    })
-    .catch(function(){ /* offline: diamkan saja */ });
-  })();
-  </script>
 
 </head>
 
 <?php $this->load->view("global"); ?> 
 
 <?php
-// siapkan dulu variabelnya
+// siapkan dulu variabel logo + cache-buster
 $gambar    = isset($rec->gambar) ? (string)$rec->gambar : '';
 $img_url   = base_url('assets/images/' . $gambar);
 $img_path  = FCPATH . 'assets/images/' . $gambar;
 
-// versi cache-buster = last modified time file
 if (is_file($img_path)) {
     $ver = filemtime($img_path);
 } else {
-    // fallback supaya nggak notice/warning kalau file hilang
     $ver = time();
 }
 ?>
 
 <body class="menubar-gradient gradient-topbar topbar-dark">
 
-
 <header id="topnav">
-
   <div class="navbar-custom">
     <div class="container-fluid">
 
@@ -238,7 +206,7 @@ if (is_file($img_path)) {
           <img
             src="<?= $img_url . '?v=' . $ver; ?>"
             alt="Logo <?= htmlspecialchars($rec->nama_website, ENT_QUOTES, 'UTF-8'); ?>"
-            height="50px"
+            height="50"
           >
         </div>
         <div class="kepala">
@@ -253,6 +221,7 @@ if (is_file($img_path)) {
         </div>
       </div>
 
+      <!-- Logo mobile -->
       <div class="logo-boxx d-block d-md-none">
         <div class="logox d-flex align-items-center">
           <div class="logo-smx mr-2">
@@ -263,7 +232,6 @@ if (is_file($img_path)) {
           </div>
           <div class="logo-text">
             <span class="header-title-top white-shadow-text"><?= $rec->nama_website ?></span>
-            <!-- <span class="header-title-bottom white-shadow-text"><?= $rec->type ?></span> -->
           </div>
         </div>
       </div>
@@ -274,160 +242,133 @@ if (is_file($img_path)) {
   <div class="topbar-menu">
     <div class="container-fluid">
 
-      <?php $uri = $this->uri->uri_string(); ?>
+      <?php $uri = trim($this->uri->uri_string(), '/'); ?>
       <div id="navigation">
-          <ul class="navigation-menu">
+        <ul class="navigation-menu">
 
-            <!-- HOME -->
-            <li class="<?= ($uri === '' || $uri === 'home') ? 'active-menu' : '' ?>">
-              <a href="<?= site_url('home'); ?>">
-                &nbsp;&nbsp;&nbsp;<i class="fe-home"></i> Home
-              </a>
-            </li>
+          <!-- HOME -->
+          <li class="<?= ($uri === '' || $uri === 'home') ? 'active-menu' : '' ?>">
+            <a href="<?= site_url('home'); ?>">
+              &nbsp;&nbsp;&nbsp;<i class="fe-home"></i> Home
+            </a>
+          </li>
 
-            <!-- MAKAN & ORDER -->
-            <li class="has-submenu <?= in_array($uri, ['scan','produk','produk/delivery','produk/walkin']) ? 'active-menu' : '' ?>">
-              <a href="javascript:void(0);">
-                <i class="fas fa-utensils"></i> Makan &amp; Order
-                <span class="menu-arrow"></span>
-              </a>
-              <ul class="submenu">
-                <li class="<?= ($uri === 'scan') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('scan') ?>">
-                    🍽️ Makan di Sini (Scan QR)
-                  </a>
-                </li>
-                <li class="<?= ($uri === 'produk/delivery' || $uri === 'delivery') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('produk/delivery') ?>">
-                    🚚 Antar / Delivery
-                  </a>
-                </li>
-                <li class="<?= ($uri === 'produk/walkin' || $uri === 'walkin') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('produk/walkin') ?>">
-                    🛍️ Bungkus (Walk-in)
-                  </a>
-                </li>
-              </ul>
-            </li>
+          <!-- MAKAN & ORDER -->
+          <li class="has-submenu <?= in_array($uri, ['scan','produk','produk/delivery','produk/walkin']) ? 'active-menu' : '' ?>">
+            <a href="javascript:void(0);">
+              <i class="fas fa-utensils"></i> Makan &amp; Order
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="submenu">
+              <li class="<?= ($uri === 'scan') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('scan') ?>">
+                  🍽️ Makan di Sini (Scan QR)
+                </a>
+              </li>
+              <li class="<?= ($uri === 'produk/delivery' || $uri === 'delivery') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('produk/delivery') ?>">
+                  🚚 Antar / Delivery
+                </a>
+              </li>
+              <li class="<?= ($uri === 'produk/walkin' || $uri === 'walkin') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('produk/walkin') ?>">
+                  🛍️ Bungkus (Walk-in)
+                </a>
+              </li>
+            </ul>
+          </li>
 
-            <!-- BILLIARD -->
-            <li class="has-submenu <?= in_array($uri, ['billiard','meja_billiard','billiard/daftar_booking','billiard/daftar_voucher']) ? 'active-menu' : '' ?>">
-              <a href="javascript:void(0);">
-                <i class="fe-calendar"></i> Billiard
-                <span class="menu-arrow"></span>
-              </a>
-              <ul class="submenu">
-                <li class="<?= ($uri === 'billiard') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('billiard'); ?>">
-                    🎱 Booking Billiard
-                  </a>
-                </li>
-                <li class="<?= ($uri === 'meja_billiard') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('meja_billiard'); ?>">
-                    👀 Tarif Meja Billiard
-                  </a>
-                </li>
-                <li class="<?= ($uri === 'billiard/daftar_booking') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('billiard/daftar_booking'); ?>">
-                    📋 List Bookingan
-                  </a>
-                </li>
-                <li class="<?= ($uri === 'billiard/daftar_voucher') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('billiard/daftar_voucher'); ?>">
-                    🎁 Gratis Main
-                  </a>
-                </li>
-              </ul>
-            </li>
+          <!-- BILLIARD -->
+          <li class="has-submenu <?= in_array($uri, ['billiard','meja_billiard','billiard/daftar_booking','billiard/daftar_voucher']) ? 'active-menu' : '' ?>">
+            <a href="javascript:void(0);">
+              <i class="fe-calendar"></i> Billiard
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="submenu">
+              <li class="<?= ($uri === 'billiard') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('billiard'); ?>">
+                  🎱 Booking Billiard
+                </a>
+              </li>
+              <li class="<?= ($uri === 'meja_billiard') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('meja_billiard'); ?>">
+                  👀 Tarif Meja Billiard
+                </a>
+              </li>
+              <li class="<?= ($uri === 'billiard/daftar_booking') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('billiard/daftar_booking'); ?>">
+                  📋 List Bookingan
+                </a>
+              </li>
+              <li class="<?= ($uri === 'billiard/daftar_voucher') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('billiard/daftar_voucher'); ?>">
+                  🎁 Gratis Main
+                </a>
+              </li>
+            </ul>
+          </li>
 
-            <!-- JADWAL -->
-            <li class="<?= in_array($uri, ['cafe','hal/jadwal']) ? 'active-menu' : '' ?>">
-              <a href="<?= site_url('cafe'); ?>">
-                <i class="fe-clock"></i> Cafe
-              </a>
-            </li>
+          <!-- CAFE -->
+          <li class="<?= in_array($uri, ['cafe','hal/jadwal']) ? 'active-menu' : '' ?>">
+            <a href="<?= site_url('cafe'); ?>">
+              <i class="fe-clock"></i> Cafe
+            </a>
+          </li>
 
-            <!-- KURSI PIJAT -->
-            <li class="<?= ($uri === 'pijat') ? 'active-menu' : '' ?>">
-              <a href="<?= site_url('pijat'); ?>">
-                <i class="fas fa-spa"></i> Kursi Pijat
-              </a>
-            </li>
+          <!-- KURSI PIJAT -->
+          <li class="<?= ($uri === 'pijat') ? 'active-menu' : '' ?>">
+            <a href="<?= site_url('pijat'); ?>">
+              <i class="fas fa-spa"></i> Kursi Pijat
+            </a>
+          </li>
 
-            <!-- KONTAK -->
-            <li class="<?= ($uri === 'hal/kontak') ? 'active-menu' : '' ?>">
-              <a href="<?= site_url('hal/kontak'); ?>">
-                <i class="fe-phone-call"></i> Kontak
-              </a>
-            </li>
+          <!-- KONTAK -->
+          <li class="<?= ($uri === 'hal/kontak') ? 'active-menu' : '' ?>">
+            <a href="<?= site_url('hal/kontak'); ?>">
+              <i class="fe-phone-call"></i> Kontak
+            </a>
+          </li>
 
-            <!-- INFO -->
-            <li class="has-submenu <?= in_array($uri, ['hal/pengumuman','hal/review','hal/privacy_policy','hal']) ? 'active-menu' : '' ?>">
-              <a href="javascript:void(0);">
-                <i class="fe-info"></i> Info
-                <span class="menu-arrow"></span>
-              </a>
-              <ul class="submenu">
+          <!-- INFO -->
+          <li class="has-submenu <?= in_array($uri, ['hal/pengumuman','hal/review','hal/privacy_policy','hal']) ? 'active-menu' : '' ?>">
+            <a href="javascript:void(0);">
+              <i class="fe-info"></i> Info
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="submenu">
+              <li class="<?= ($uri === 'hal/pengumuman') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('hal/pengumuman'); ?>">
+                  📣 Pengumuman
+                </a>
+              </li>
+              <li class="<?= ($uri === 'hal/review') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('hal/review'); ?>">
+                  ⭐ Google Review
+                </a>
+              </li>
+              <li class="<?= ($uri === 'hal/privacy_policy') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('hal/privacy_policy'); ?>">
+                  🔒 Kebijakan Privasi
+                </a>
+              </li>
+              <li class="<?= ($uri === 'hal') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('hal'); ?>">
+                  📜 S&amp;K
+                </a>
+              </li>
+            </ul>
+          </li>
 
-                <li class="<?= ($uri === 'hal/pengumuman') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('hal/pengumuman'); ?>">
-                    📣 Pengumuman
-                  </a>
-                </li>
-
-                <li class="<?= ($uri === 'hal/review') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('hal/review'); ?>">
-                    ⭐ Google Review
-                  </a>
-                </li>
-
-                <li class="<?= ($uri === 'hal/privacy_policy') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('hal/privacy_policy'); ?>">
-                    🔒 Kebijakan Privasi
-                  </a>
-                </li>
-
-                <li class="<?= ($uri === 'hal') ? 'active-menu' : '' ?>">
-                  <a href="<?= site_url('hal'); ?>">
-                    📜 S&amp;K
-                  </a>
-                </li>
-
-              </ul>
-            </li>
-
-          </ul>
-          <div class="clearfix"></div>
-        </div>
-
+        </ul>
+        <div class="clearfix"></div>
+      </div>
 
     </div><!-- /.container-fluid -->
   </div><!-- /.topbar-menu -->
-
 </header>
 
-<style type="text/css">
-/* Kunci root agar Chrome tidak mengaktifkan P2R di root scroller */
-/*html, body {
-  height: 100%;
-  overflow: hidden !important;
-}*/
-
-/* Scroll di container saja */
-#app-scroll {
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;   /* tetap halus */
-  overscroll-behavior: contain;        /* blokir overscroll chain & P2R */
-}
-/* Matikan shadow card putih */
-.wrapper{
-  box-shadow:none !important;
-}
-
-</style>
-
 <script>
+// Blokir overscroll hanya jika dibuka dari Android app
 (function () {
   if (document.referrer && document.referrer.indexOf('android-app://') === 0) {
     const st = document.createElement('style');
@@ -435,83 +376,64 @@ if (is_file($img_path)) {
     document.head.appendChild(st);
   }
 })();
-</script>
 
-<style type="text/css">
-/* Pastikan kontainer relatif, supaya overlay mengikuti area ini saja */
-#app-scroll{ position: relative; }
-
-/* Overlay preloader khusus halaman */
-.page-preloader{
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255, .85);           /* hanya konten yang ketutup */
-  backdrop-filter: blur(2px);
-  z-index: 20;                                   /* di atas konten halaman, tapi di bawah header/fixed global */
-  transition: opacity .2s ease;
-  pointer-events: auto;                          /* block interaksi saat loading */
-}
-.page-preloader.is-hidden{
-  opacity: 0; pointer-events: none;
-}
-
-/* Kotak konten loader */
-.page-preloader__box{
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  padding:14px 18px; border-radius:14px;
-  background: #ffffff;
-  box-shadow: 0 10px 28px rgba(0,0,0,.12);
-  border: 1px solid #eef1f5;
-}
-.page-preloader__img{ height:40px; width:auto; display:block; }
-.page-preloader__text{ font-weight:600; color:#334155; }
-
-/* Dark mode (opsional) */
-@media (prefers-color-scheme: dark){
-  .page-preloader{ background: rgba(0,0,0,.55); }
-  .page-preloader__box{ background:#0b1220; border-color:#162036; }
-  .page-preloader__text{ color:#e5e7eb; }
-}
-</style>
-
-<style>
-/* pastikan selalu di paling depan */
-.swal2-container {
-  z-index: 2147483647 !important; /* nilai maksimum praktis */
-}
-</style>
-
-<script>
-// Sembunyikan preloader setelah semua resource halaman ini siap
+// Tambahkan menu "Ke Admin" hanya di desktop setelah halaman siap
 window.addEventListener('load', function(){
-  const el = document.getElementById('page-preloader');
-  if (el) el.classList.add('is-hidden');
+  if (window.matchMedia('(max-width: 767.98px)').matches) return;
+
+  var url = "<?= site_url('api/status') ?>";
+  fetch(url, {
+    method: 'GET',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(j){
+    if (!j || !j.success || !j.data || !j.data.logged_in) return;
+
+    var ul = document.getElementById('topnav-right');
+    if (!ul) return;
+
+    var li = document.createElement('li');
+    li.className = 'dropdown notification-list';
+
+    var a = document.createElement('a');
+    a.className = 'nav-link dropdown-toggle waves-effect';
+    a.href = j.data.dashboard || "<?= site_url('admin_laporan/chart') ?>";
+    a.innerHTML = '<i class="fe-user user text-white"></i><span class="text-white"> Ke Admin</span>';
+
+    li.appendChild(a);
+    ul.appendChild(li);
+  })
+  .catch(function(){ /* offline: diamkan saja */ });
 });
 
-// (Opsional) fungsi untuk show/hide saat AJAX
-function showPagePreloader(){
-  document.getElementById('page-preloader')?.classList.remove('is-hidden');
-}
-function hidePagePreloader(){
-  document.getElementById('page-preloader')?.classList.add('is-hidden');
-}
+// Sembunyikan preloader lama setelah semua resource siap
+window.addEventListener('load', function(){
+  var pre = document.getElementById('preloader');
+  if (pre){
+    pre.style.opacity = '0';
+    pre.style.transition = 'opacity .25s ease';
+    setTimeout(function(){ pre.style.display = 'none'; }, 260);
+  }
+});
 </script>
 
 <!-- WRAPPER HALAMAN / AREA SCROLL -->
 <div class="wrapper curved" style="--curve-h: 330px;" id="app-scroll">
 
-  <!-- preloader lama -->
+  <!-- PRELOADER LAMA: menggunakan animate.css -->
   <div id="preloader">
     <div id="status">
       <div class="image-container animated flip infinite">
         <img
           src="<?= base_url('assets/images/loader.png') ?>"
-          alt="Foto"
-          style="display: none;"
-          onload="this.style.display='block';"
+          alt="Loading..."
         />
       </div>
     </div>
   </div>
 
-
+  <!-- DI BAWAH INI ISI KONTEN HALAMAN MU (container, row, dll) -->
+  <!-- ... -->
