@@ -1007,10 +1007,10 @@ if ($is_cash && !$use_voucher) {
 
 $this->db->trans_commit();
 
-$newRec = $this->mbi->get_by_token($token);
-if ($newRec) {
-  $this->_wa_ringkasan($newRec, $label_wa, $status_pesanan);
-}
+// $newRec = $this->mbi->get_by_token($token);
+// if ($newRec) {
+//   $this->_wa_ringkasan($newRec, $label_wa, $status_pesanan);
+// }
 
 $msg  = $use_voucher
         ? "Voucher diterima. Mainnya gratis yaa 🎉"
@@ -1026,10 +1026,25 @@ return $this->_json([
   "success"      => true,
   "title"        => $use_voucher ? "Booking Gratis" : ($is_cash ? "Berhasil (Cash)" : "Berhasil"),
   "pesan"        => $msg,
-  "redirect_url" => $redirect
+  "redirect_url" => $redirect,
+  "kode_booking" => $kode,
 ]);
 
   }
+
+
+public function riwayat_booking(){
+    $this->_nocache_headers();
+    $rec = $this->fm->web_me();
+
+    $data["rec"]       = $rec;
+    $data["title"]     = "Riwayat Booking Billiard";
+    $data["deskripsi"] = "Riwayat Booking Billiard " . $rec->nama_website . ".";
+
+    $data["prev"]      = base_url("assets/images/billiard.webp");
+    $this->load->view('riwayat_booking', $data);
+}
+
 
 
 public function free(){
@@ -1728,6 +1743,8 @@ if (!$rateInfo['ok']) {
 }
 $effRate  = (int)$rateInfo['rate'];
 $subtotal = $effRate * $durasi;
+$kode_unik   = (int)($recBook->kode_unik ?? 0);
+$grand_total = $subtotal + $kode_unik;
 
     // ---- Toleransi overlap (drift) ----
     // ambil toleransi menit dari konfigurasi web_me(), default 15 menit
@@ -1797,6 +1814,7 @@ $subtotal = $effRate * $durasi;
   'durasi_jam'    => $durasi,
   'harga_per_jam' => $effRate,    // simpan tarif efektif untuk tampilan & WA
   'subtotal'      => $subtotal,
+   'grand_total'   => $grand_total, 
   'edit_count'    => ((int)$recBook->edit_count) + 1,
 ]);
 

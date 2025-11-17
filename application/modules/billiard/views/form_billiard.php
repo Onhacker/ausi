@@ -185,7 +185,7 @@
 
               <div class="col-md-6 mb-2">
                 <label class="form-label" for="nama">Nama</label>
-                <input type="text" id="nama" name="nama" class="form-control" placeholder="Nama lengkap" required>
+                <input type="text" id="nama" name="nama" class="form-control" placeholder="Nama lengkap" autocomplete="on" required>
               </div>
 
               <div class="col-md-6 mb-2">
@@ -199,7 +199,7 @@
                   inputmode="numeric"
                   minlength="10"
                   maxlength="13"
-                 
+                  autocomplete="on"
                   title="Mulai 0, total 10–13 digit"
                   required
                 >
@@ -919,6 +919,82 @@ function stopBookingLoader(){
   Swal.close();
 }
 
+/* ====== SIMPAN RIWAYAT BOOKING KE LOCALSTORAGE ======
+ * key: 'ausi_billiard_booking_history_v1'
+ * nanti bisa dibaca di halaman "riwayat booking"
+ * dan redirect ke detail pakai field redirect_url
+ * =================================================== */
+function saveBookingToLocal(j){
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+
+    const key = 'ausi_billiard_booking_history_v1';
+
+    const sel        = getSelectedMeja && getSelectedMeja();
+    const mejaName   = getMejaName ? getMejaName(sel) : (sel?.dataset?.nama || '—');
+    const namaVal    = (frm.querySelector('#nama')  || {}).value || '';
+    const noHpVal    = (frm.querySelector('#no_hp') || {}).value || '';
+    const tglIso     = (typeof tanggalIso  !== 'undefined' && tanggalIso)  ? (tanggalIso.value  || '') : '';
+    const tglView    = (typeof tanggalView !== 'undefined' && tanggalView) ? (tanggalView.value || tglIso) : tglIso;
+    const jamMulaiEl = document.getElementById('jam_mulai');
+    const durasiEl   = document.getElementById('durasi');
+    const voucherEl  = document.getElementById('voucher');
+
+    const jamVal      = (jamMulaiEl && jamMulaiEl.value) || '';
+    const durVal      = (durasiEl && durasiEl.value) || '1';
+    const durInt      = parseInt(durVal, 10) || 0;
+    const voucherCode = (voucherEl && voucherEl.value.trim())
+      ? voucherEl.value.trim().toUpperCase()
+      : '';
+
+    const item = {
+      // meta waktu
+      ts: Date.now(),
+      created_at: new Date().toISOString(),
+
+      // ===== dari server (prioritas) =====
+      id:            j.id_pesanan || j.id || null,
+      nomor:         j.nomor || null,
+      kode_booking:  j.kode_booking || null,
+      status:        j.status || 'draft',      // sekarang backend kirim status asli
+      redirect_url:  j.redirect_url || null,
+
+      // ringkasan dari form
+      meja_name:     mejaName,
+      nama:          namaVal,
+      no_hp:         noHpVal,
+      tanggal_iso:   tglIso,
+      tanggal_view:  tglView,
+      jam_mulai:     jamVal,
+      durasi_jam:    durInt,
+      voucher:       voucherCode || null
+    };
+
+    let arr = [];
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try { arr = JSON.parse(raw) || []; } catch(e){ arr = []; }
+    }
+
+    // buang duplikat berdasarkan kode_booking / id_pesanan / redirect_url
+    arr = arr.filter(old => {
+      if (item.id && old.id && old.id === item.id) return false;
+      if (item.kode_booking && old.kode_booking && old.kode_booking === item.kode_booking) return false;
+      if (item.redirect_url && old.redirect_url && old.redirect_url === item.redirect_url) return false;
+      return true;
+    });
+
+    arr.unshift(item);
+    if (arr.length > 30) arr = arr.slice(0, 30);
+
+    localStorage.setItem(key, JSON.stringify(arr));
+  } catch (e) {
+    console.warn('Gagal menyimpan riwayat booking di localStorage', e);
+  }
+}
+
+
+/* ========== POST BOOKING KE SERVER ========== */
 async function doPost(){
   // kunci tombol & tandai sedang submit
   __isSubmitting = true;
@@ -966,6 +1042,9 @@ async function doPost(){
 
     // ======== SUCCESS CASE DARI SERVER ========
     if (j.success){
+      // SIMPAN RIWAYAT DI LOCALSTORAGE DI SINI
+      saveBookingToLocal(j);
+
       const isFree = j.redirect_url && j.redirect_url.indexOf('/billiard/free') !== -1;
 
       if (window.Swal){

@@ -486,7 +486,7 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
             $nama   = trim((string)($r->nama ?? ''));
             $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
             if ($nama !== ''){
-                $meja_html .= '<div class="text-muted small">'.htmlspecialchars($nama,ENT_QUOTES,'UTF-8').'</div>';
+                $meja_html .= '<div class="text-dark small">'.htmlspecialchars($nama,ENT_QUOTES,'UTF-8').'</div>';
             }
 
             // Waktu (timestamp detik)
@@ -538,34 +538,50 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
                 }
 
 
-            // === Hitung "lama" (elapsed) & closed flag ===
-            // === Hitung "lama" (elapsed) & closed flag ===
-                $isClosed = false;
-                if ($isKitchen) {
-                    $isClosed = $isCanceled || ((int)$r->status_pesanan_kitchen === 2);
-                } elseif ($isBar) {
-                    $isClosed = $isCanceled || ((int)$r->status_pesanan_bar === 2);
-                } else {
-                    $status_raw2 = strtolower((string)($r->status ?? ''));
-                    $isClosed = $isCanceled
-                             || ((int)($r->tutup_transaksi ?? 0) === 1)
-                             || in_array($status_raw2, ['paid','canceled'], true);
-                }
+                       // === Hitung "lama" (elapsed) & closed flag ===
+            $isClosed = false;
+            if ($isKitchen) {
+                $isClosed = $isCanceled || ((int)$r->status_pesanan_kitchen === 2);
+            } elseif ($isBar) {
+                $isClosed = $isCanceled || ((int)$r->status_pesanan_bar === 2);
+            } else {
+                $status_raw2 = strtolower((string)($r->status ?? ''));
+                $isClosed = $isCanceled
+                         || ((int)($r->tutup_transaksi ?? 0) === 1)
+                         || in_array($status_raw2, ['paid','canceled'], true);
+            }
 
-                if ($isClosed) {
-                    // Titik selesai terbaik
-                    if     ($isCanceled && !empty($r->canceled_at))          $endTs = strtotime($r->canceled_at);
-                    elseif ($isKitchen  && !empty($r->kitchen_done_at))       $endTs = strtotime($r->kitchen_done_at);
-                    elseif ($isBar      && !empty($r->bar_done_at))           $endTs = strtotime($r->bar_done_at);
-                    elseif (!empty($r->paid_at))                              $endTs = strtotime($r->paid_at);
-                    elseif (!empty($r->updated_at))                           $endTs = strtotime($r->updated_at);
-                    else                                                      $endTs = $createdTs;
+            // === Render kolom durasi (lama) dengan tampilan lebih cantik ===
+            if ($isClosed) {
+                // Titik selesai terbaik
+                if     ($isCanceled && !empty($r->canceled_at))    $endTs = strtotime($r->canceled_at);
+                elseif ($isKitchen  && !empty($r->kitchen_done_at)) $endTs = strtotime($r->kitchen_done_at);
+                elseif ($isBar      && !empty($r->bar_done_at))     $endTs = strtotime($r->bar_done_at);
+                elseif (!empty($r->paid_at))                        $endTs = strtotime($r->paid_at);
+                elseif (!empty($r->updated_at))                     $endTs = strtotime($r->updated_at);
+                else                                                $endTs = $createdTs;
 
-                    $dur = max(0, (int)$endTs - (int)$createdTs);
-                    $lamaHtml = '<span class="elapsed stopped text-muted" data-dur="'.$dur.'">—</span>';
-                } else {
-                    $lamaHtml = '<span class="elapsed live text-primary" data-start="'.$createdTs.'">—</span>';
-                }
+                $dur = max(0, (int)$endTs - (int)$createdTs);
+
+                // Selesai → timer “mati”
+                $lamaHtml =
+                    '<div class="d-inline-flex align-items-center text-muted">'
+                  .   '<span class="badge badge-light border">'
+                  .     '<i class="mdi mdi-av-timer mr-1"></i>'
+                  .     '<span class="elapsed stopped" data-dur="'.$dur.'">—</span>'
+                  .   '</span>'
+                  . '</div>';
+            } else {
+                // Masih berjalan → timer “live”
+                $lamaHtml =
+                    '<div class="d-inline-flex align-items-center">'
+                  .   '<span class="badge badge-light border text-primary">'
+                  .     '<i class="mdi mdi-av-timer mr-1"></i>'
+                  .     '<span class="elapsed live" data-start="'.$createdTs.'">—</span>'
+                  .   '</span>'
+                  . '</div>';
+            }
+
 
 
             // ===== Kolom "Pesanan" (khusus kitchen/bar) =====

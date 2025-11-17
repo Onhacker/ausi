@@ -121,7 +121,6 @@ $valid_days = (int)($batas_hari ?? 30);        // masa berlaku voucher dari crea
     filter:brightness(.9);
   }
 
-
   .text-dim{
     color:rgba(0,0,0,.6);
   }
@@ -177,9 +176,14 @@ $valid_days = (int)($batas_hari ?? 30);        // masa berlaku voucher dari crea
             <div class="mt-2 small text-dim">
               Silakan klaim dengan cara memasukkan kode voucher Anda pada bagian Booking sebelum voucher kedaluwarsa.
             </div>
+
+            <!-- LINK SYARAT & KETENTUAN (EMPTY STATE) -->
+            <div class="mt-2 small text-dim">
+              Baca <a href="<?= site_url('hal') ?>#voucher">syarat &amp; ketentuan voucher</a>.
+            </div>
           </div>
 
-         <!--  <div class="mb-2">
+          <!-- <div class="mb-2">
             <a href="<?= site_url('billiard') ?>" class="btn btn-blue mr-2">Klaim Voucher</a>
             <a href="<?= site_url('billiard/daftar_booking') ?>" class="btn btn-outline-secondary" style="border-radius:10px;font-weight:600;">
               Riwayat Booking
@@ -320,7 +324,12 @@ $valid_days = (int)($batas_hari ?? 30);        // masa berlaku voucher dari crea
                 Silakan klaim dengan cara memasukkan kode voucher Anda pada bagian Booking sebelum voucher kedaluwarsa.
               </div>
 
-             <!--  <div class="text-center mt-3">
+              <!-- LINK SYARAT & KETENTUAN (STATE ADA VOUCHER) -->
+              <div class="small text-dim mt-2">
+                Baca <a href="<?= site_url('hal') ?>#voucher">syarat &amp; ketentuan voucher</a>.
+              </div>
+
+              <!-- <div class="text-center mt-3">
                 <a href="<?= site_url('billiard') ?>" class="btn btn-blue" style="min-width:160px;">
                   Klaim Voucher
                 </a>
@@ -344,6 +353,10 @@ $valid_days = (int)($batas_hari ?? 30);        // masa berlaku voucher dari crea
               </div>
               <div class="small">
                 Setelah dipakai, voucher akan hilang dari daftar.
+              </div>
+              <!-- Tambahan link syarat & ketentuan -->
+              <div class="small mt-2">
+                Baca <a href="<?= site_url('hal') ?>#voucher">syarat &amp; ketentuan voucher</a>.
               </div>
             </div>
           </div>

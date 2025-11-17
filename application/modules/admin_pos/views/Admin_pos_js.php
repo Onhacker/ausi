@@ -75,19 +75,31 @@
 
     // susun kolom dinamis (tanpa checkbox)
     var columns = [
-      {data:"no",  orderable:false},
-      {data:"mode"},
-      {data:"meja"}
+      { data: "no", orderable: false, className: "text-center" },   // rata tengah
+      { data: "mode",              className: "text-center" },      // rata tengah
+      { data: "meja"}       // rata tengah
     ];
-    if (window.IS_KB) { columns.push({data:"pesanan", orderable:false}); }
+
+    if (window.IS_KB) {
+      columns.push({ data: "pesanan", orderable: false });
+    }
+
     columns.push(
-      {data:"waktu"},
-      {data:"lama", orderable:false},
-      {data:"jumlah"},
-      {data:"status", orderable:true},
-      {data:"metode"}
+      { data: "waktu",             className: "text-center" },      // rata tengah
+      { data: "lama", orderable:false, className: "text-center" },  // rata tengah
+      { data: "jumlah",            className: "text-right" },       // rata kanan (Bootstrap 4)
+      { data: "status", orderable:true, className: "text-center" },                           // biar tetap pakai styling badge dari server
+      { data: "metode",            className: "text-center" }       // rata tengah
     );
-    if (!window.IS_KB){ columns.push({data:"aksi", orderable:false}); }
+
+    if (!window.IS_KB){
+      columns.push({
+        data: "aksi",
+        orderable: false,
+        className: "text-center"                                   // rata tengah
+      });
+    }
+
     // bikin <span class="elapsed"> di kolom "Lama" kalau belum ada
     // Buat <span class="elapsed"> di kolom "Lama" + cari start time yang masuk akal
 function ensureElapsedSpans(api){

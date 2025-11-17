@@ -571,7 +571,7 @@ ease; */
       title: 'Mau Ngapain ??',
       icon: 'info',
       iconHtml: '🎱',
-      html: `
+     html: `
   <div class="container-fluid px-0">
     <div class="row no-gutters">
       <div class="col-12 mb-2">
@@ -581,13 +581,26 @@ ease; */
           <span>Booking Main Billiard</span>
         </button>
       </div>
+
+       <!-- Riwayat Bookingku -->
+      <div class="col-12 mb-2">
+        <a href="<?= site_url('billiard/riwayat_booking') ?>"
+          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+          <span class="me-2 mr-2" aria-hidden="true">🕒</span>
+          <span>Riwayat Bookingku</span>
+        </a>
+      </div>
+
       <div class="col-12 mb-2">
         <button type="button" id="swalBtnList"
           class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
           <span class="me-2 mr-2" aria-hidden="true">📋</span>
-          <span>Jadwal Main Billiard</span>
+          <span>Cek Jadwal Main Billiard</span>
         </button>
       </div>
+
+     
+
       <div class="col-12 mb-2">
         <button type="button" id="swalBtnHistory"
           class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
@@ -606,6 +619,7 @@ ease; */
     </div>
   </div>
 `,
+
       showConfirmButton: false,
       showDenyButton: false,
       showCancelButton: false,

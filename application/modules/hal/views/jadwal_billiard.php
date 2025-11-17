@@ -649,7 +649,7 @@ $bandDescGenericWithRate = function($startHHMM,$endHHMM,$rate,$abbrTZ) use ($ban
 
             <!-- ================== VOUCHER INFO ================== -->
             <?php if ($isRegMeja): ?>
-              <div class="voucher-box">
+              <div class="voucher-box" id="vou">
                 <div class="voucher-box-title">
                   <span class="emoji">🎟️</span>
                   <span>Voucher Main Gratis</span>

@@ -166,56 +166,77 @@
           </div>
         </section>
 
-        <!-- Voucher -->
-        <section id="voucher" class="card mb-3">
-          <div class="card-body">
-            <h2 class="h4">9) Voucher &amp; Promo Main Gratis</h2>
-            <ol class="mb-0">
-              <li>
-                Voucher atau promo “main gratis” billiard hanya berlaku pada
-                <strong>meja kategori reguler</strong>. Tidak berlaku untuk meja bertipe VIP
-                kecuali dinyatakan tertulis oleh Pengelola.
-              </li>
-              <li>
-                Setiap voucher memiliki <strong>durasi main tertentu</strong>
-                (misal 1 jam). Saat melakukan booking dengan voucher,
-                durasi booking akan mengikuti durasi voucher tersebut
-                dan tidak dapat diperpanjang secara gratis.
-              </li>
-              <li>
-                Voucher hanya berlaku dalam <strong>jam operasional promo</strong>
-                yang ditetapkan Pengelola. Jika jadwal bermain melewati batas jam promo,
-                booking dapat ditolak atau diminta digeser.
-              </li>
-              <li>
-                Voucher terikat pada <strong>nomor HP yang terdaftar</strong>
-                saat klaim, tidak dapat dipindahtangankan, dijual, atau dipakai
-                oleh nomor lain tanpa persetujuan Pengelola.
-              </li>
-              <li>
-                Satu voucher hanya berlaku untuk <strong>satu booking</strong>.
-                Setelah sistem menerbitkan kode booking dengan status “free/gratis”,
-                voucher dianggap digunakan dan tidak dapat dipakai ulang.
-              </li>
-              <li>
-                Keterlambatan hadir melewati toleransi yang berlaku atau tidak hadir (“no show”)
-                dapat menyebabkan voucher dianggap hangus.
-              </li>
-              <li>
-                Voucher tidak memiliki nilai tunai, <strong>tidak dapat diuangkan</strong>,
-                dan tidak dapat digabungkan dengan promo lain kecuali diizinkan Pengelola.
-              </li>
-              <li>
-                Pengelola berhak menolak, membatalkan, atau menarik voucher
-                jika terindikasi penyalahgunaan, manipulasi data, atau pelanggaran S&amp;K.
-              </li>
-              <li>
-                Ketersediaan voucher bersifat terbatas. Program voucher dapat dihentikan,
-                diubah jam berlakunya, atau dibatasi kuotanya kapan saja tanpa pemberitahuan sebelumnya.
-              </li>
-            </ol>
-          </div>
-        </section>
+              <!-- Voucher -->
+       <section id="voucher" class="card mb-3">
+  <div class="card-body">
+    <h2 class="h4">9) Voucher &amp; Promo Main Gratis</h2>
+    <ol class="mb-0">
+      <li>
+        Voucher atau promo “main gratis” billiard hanya berlaku pada
+        <strong>meja kategori reguler</strong>. Tidak berlaku untuk meja bertipe VIP,
+        kecuali dinyatakan tertulis oleh Pengelola.
+      </li>
+      <li>
+        Setiap voucher memiliki <strong>durasi main tertentu</strong>
+        (misal 1 jam). Saat melakukan booking dengan voucher,
+        durasi booking akan <strong>mengikuti durasi voucher</strong> tersebut
+        dan tidak dapat diperpanjang secara gratis.
+        Waktu tambahan di luar durasi voucher akan dikenakan
+        <strong>tarif reguler</strong> sesuai harga yang berlaku.
+      </li>
+      <li>
+        Voucher dapat digunakan pada <strong>tanggal booking</strong> yang masih
+        tersedia di sistem (tidak berlaku mundur). Sistem secara otomatis
+        membatasi tanggal booking hanya sampai beberapa hari ke depan
+        sesuai pengaturan Pengelola; booking dengan voucher di luar rentang
+        tersebut akan ditolak.
+      </li>
+      <li>
+        Jam mulai dan jam selesai (sesuai durasi voucher) harus berada di dalam
+        <strong>jam operasional meja billiard</strong> dan tidak boleh melewati batas
+        <strong>jam voucher/promo</strong> yang ditetapkan Pengelola.
+        Jika dengan durasi voucher jam selesai bermain melewati batas tersebut,
+        sistem dapat menolak booking atau meminta Anda memajukan jam mulai
+        / memilih slot lain.
+      </li>
+      <li>
+        Voucher terikat pada <strong>nomor HP/WhatsApp yang terdaftar</strong>
+        saat klaim/penerbitan voucher dan hanya dapat digunakan oleh nomor tersebut.
+        Voucher tidak dapat dipindahtangankan, dijual, atau dipakai oleh nomor lain
+        tanpa persetujuan Pengelola.
+      </li>
+      <li>
+        Satu voucher hanya berlaku untuk <strong>satu booking</strong>.
+        Setelah sistem menerbitkan kode booking dengan status “free/gratis”,
+        voucher dianggap digunakan (<em>claimed</em>) dan tidak dapat dipakai ulang.
+      </li>
+      <li>
+        Keterlambatan hadir melewati toleransi yang berlaku atau tidak hadir
+        (“no show”) dapat menyebabkan voucher dianggap <strong>hangus</strong>
+        sesuai kebijakan Pengelola.
+      </li>
+      <li>
+        Voucher tidak memiliki nilai tunai, <strong>tidak dapat diuangkan</strong>,
+        dan tidak dapat digabungkan dengan promo lain kecuali diizinkan Pengelola.
+      </li>
+      <li>
+        Pengelola berhak menolak, membatalkan, atau menarik voucher
+        jika terindikasi penyalahgunaan, manipulasi data, atau pelanggaran S&amp;K.
+      </li>
+      <li>
+        Ketersediaan voucher bersifat terbatas. Program voucher dapat dihentikan,
+        diubah jam berlakunya, atau dibatasi kuotanya kapan saja tanpa
+        pemberitahuan sebelumnya.
+      </li>
+      <li>
+        Anda juga dapat melihat ringkasan aturan voucher di
+        halaman <a href="<?= site_url('meja_billiard#vou') ?>">Meja Billiard</a>.
+      </li>
+    </ol>
+  </div>
+</section>
+
+
 
     <section id="voucher-order" class="card mb-3">
   <div class="card-body">

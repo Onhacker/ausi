@@ -79,7 +79,7 @@ class Admin_voucher_cafe extends Admin_Controller {
         }
         $row['nilai'] = $nilaiLabel;
 
-        // periode untuk tampilan (HTML) & untuk teks WA (plain text)
+        // periode untuk tampilan (HTML)
         if (function_exists('tgl_view')) {
             $periodeText = tgl_view($r->tgl_mulai).' s/d '.tgl_view($r->tgl_selesai);
             $periode     = $periodeText;
@@ -91,12 +91,13 @@ class Admin_voucher_cafe extends Admin_Controller {
 
         $row['klaim'] = (int)$r->klaim_terpakai.' / '.(int)$r->kuota_klaim;
 
-        // Status: Aktif, Nonaktif, Kadaluarsa
+        // ====== STATUS: Aktif, Nonaktif, Expired ======
         if ((int)$r->status === 0) {
             $row['status'] = '<span class="badge badge-secondary">Nonaktif</span>';
         } else {
             if ($r->tgl_selesai < $today) {
-                $row['status'] = '<span class="badge badge-warning">Kadaluarsa</span>';
+                // lewat periode → Expired
+                $row['status'] = '<span class="badge badge-warning">Expired</span>';
             } else {
                 $row['status'] = '<span class="badge badge-success">Aktif</span>';
             }
@@ -105,7 +106,7 @@ class Admin_voucher_cafe extends Admin_Controller {
         // ====== TOMBOL EDIT ======
         $btnEdit = '<button type="button" class="btn btn-sm btn-warning" '
                  . 'onclick="edit('.(int)$r->id.')">'
-                 . '<i class="fe-edit"></i>'
+                 . '<i class="fe-edit"></i> '
                  . 'Edit</button>';
 
         // ====== TOMBOL PRINT VOUCHER (THERMAL / RAWBT) ======
@@ -116,8 +117,8 @@ class Admin_voucher_cafe extends Admin_Controller {
         );
         $btnPreview = '<a href="'.$previewUrl.'" target="_blank" rel="noopener" '
                     . 'class="btn btn-sm btn-dark" title="Preview voucher (desktop)">'
-                    . '<i class="fa fa-print"></i>'
-                    . 'Lihat </a>';
+                    . '<i class="fa fa-print"></i> '
+                    . 'Lihat</a>';
 
         // RawBT (HP) - auto print & auto close
         $rawbtUrl = site_url(
@@ -126,59 +127,48 @@ class Admin_voucher_cafe extends Admin_Controller {
         );
         $btnRawbt = '<a href="'.$rawbtUrl.'" target="_blank" rel="noopener" '
                   . 'class="btn btn-sm btn-success" title="Kirim ke RawBT (HP)">'
-                  . '<i class="fa fa-mobile"></i>'
+                  . '<i class="fa fa-mobile"></i> '
                   . 'Print</a>';
 
-        // ====== TOMBOL KIRIM WHATSAPP KE CUSTOMER LANGSUNG ======
-        // Susun teks yang akan dikirim ke WA
-        $shareText = "Halo kak {$r->nama},\n"
-           . "Selamat, kakak mendapatkan *Voucher Order AUSI Cafe*!\n\n"
-           . "Detail Voucher:\n"
-           . "- Kode Voucher : *{$r->kode_voucher}*\n"
-           . "- Nama : {$r->nama}\n"
-           . "- Tipe : {$labelTipe}\n"
-           . "- Nilai : {$nilaiLabel}\n"
-           . "- Periode : {$periodeText}\n\n"
-           . "Cara Pakai:\n"
-           . "Masukkan kode voucher ini saat melakukan order, sebelum periode berakhir.\n\n"
-           . "Terima kasih sudah menjadi pelanggan setia AUSI Cafe.";
-
-        // Normalisasi nomor HP ke format 62xxxxxxxxxxx
+        // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
+        // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
         $phoneRaw = preg_replace('/\D+/', '', (string)$r->no_hp); // buang selain digit
-        $waUrl    = '';
-        $btnWa    = '';
+        $telUrl   = '';
+        $btnTelp  = '';
 
         if (!empty($phoneRaw)) {
+            // Normalisasi ke format +62xxxxxxxxxxx untuk dial
             if (strpos($phoneRaw, '0') === 0) {
-                // 08xxxx -> 628xxxx
-                $phone = '62'.substr($phoneRaw, 1);
+                // 08xxxx -> +628xxxx
+                $phoneDial = '+62'.substr($phoneRaw, 1);
             } elseif (strpos($phoneRaw, '62') === 0) {
-                // sudah 62xxxx
-                $phone = $phoneRaw;
+                // 62xxxx -> +62xxxx
+                $phoneDial = '+'.$phoneRaw;
             } else {
-                // asumsi nomor lokal tanpa 0 / 62, tambahkan 62 di depan
-                $phone = '62'.$phoneRaw;
+                // asumsi nomor lokal tanpa 0 / 62, tambahkan +62 di depan
+                $phoneDial = '+62'.$phoneRaw;
             }
 
-            $waUrl = 'https://wa.me/'.$phone.'?text='.rawurlencode($shareText);
-            $waUrl = htmlspecialchars($waUrl, ENT_QUOTES, 'UTF-8');
+            $telUrl = 'tel:'.$phoneDial;
+            $telUrl = htmlspecialchars($telUrl, ENT_QUOTES, 'UTF-8');
 
-            $btnWa = '<a href="'.$waUrl.'" target="_blank" rel="noopener" '
-                   . 'class="btn btn-sm btn-success" title="Kirim ke WhatsApp customer">'
-                   . '<i class="fe-send"></i> WA</a>';
+            $btnTelp = '<a href="'.$telUrl.'" '
+                     . 'class="btn btn-sm btn-success" '
+                     . 'title="Hubungi via WhatsApp / Telepon">'
+                     . '<i class="mdi mdi-whatsapp"></i> WA</a>';
         } else {
-            // Jika tidak ada nomor HP, tombol dinonaktifkan
-            $btnWa = '<button type="button" class="btn btn-sm btn-secondary" '
-                   . 'title="Nomor HP tidak tersedia" disabled>'
-                   . '<i class="fe-alert-circle"></i> WA</button>';
+            $btnTelp = '<button type="button" class="btn btn-sm btn-secondary" '
+                     . 'title="Nomor HP tidak tersedia" disabled>'
+                     . '<i class="fe-alert-circle"></i> Telp</button>';
         }
+
         // ========================================================
 
         // Gabungkan tombol (sejajar dalam satu btn-group)
         $row['aksi'] =
             '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi voucher">'
           .   $btnEdit
-          .   $btnWa
+          .   $btnTelp
           .   $btnPreview
           .   $btnRawbt
           . '</div>';

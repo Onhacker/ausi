@@ -3,8 +3,10 @@
 <?php
   // ===== PHP helpers yg sdh ada di file kamu =====
   $subtotal_now = (int)($booking->subtotal ?? 0);
-  $kode_unik    = (int)($booking->kode_unik ?? 0);
-  $grand_total  = (int)($booking->grand_total ?? ($subtotal_now + $kode_unik));
+$kode_unik    = (int)($booking->kode_unik ?? 0);
+
+// selalu hitung dari subtotal + kode unik
+$grand_total  = $subtotal_now + $kode_unik;
 
   $st_raw   = strtolower((string)($booking->status ?? ''));
   $is_draft = ($st_raw === 'draft');
@@ -85,7 +87,7 @@
 <div class="container-fluid">
 
   <!-- HERO -->
-  <div class="hero-title" role="banner" aria-label="Judul situs">
+  <div class="hero-title ausi-hero-center" role="banner" aria-label="Judul situs">
     <?php $this->load->view("front_end/back") ?>
     <h1 class="text">Konfirmasi Booking</h1>
     <span class="accent" aria-hidden="true"></span>
@@ -168,6 +170,13 @@
                 <strong><span id="countdown" aria-live="polite">--:--</span></strong>.
               </span>
             </div>
+          </div>
+            <!-- AJAKAN PEMBAYARAN -->
+           <!-- AJAKAN PEMBAYARAN -->
+          <div class="alert alert-warning small mb-3">
+            Silakan segera selesaikan pembayaran, jangan sampai slot main kamu
+            diambil orang lain. Setelah pembayaran terkonfirmasi, sistem akan
+            mengunci slot mainmu secara otomatis.
           </div>
 
          <div class="pay-actions">

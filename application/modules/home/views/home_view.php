@@ -227,18 +227,19 @@ document.addEventListener('DOMContentLoaded', function () {
   </div>
 
   <div class="voucher-pill">
-    <div class="voucher-pill-icon voucher-pill-icon-student">
-      <i class="mdi mdi-school"></i>
-    </div>
-    <div class="voucher-pill-text">
-      <div class="voucher-pill-title">Voucher Pelajar</div>
-      <div class="voucher-pill-desc">
-        Datang dengan <b>pakaian pelajar/seragam sekolah</b>?  
-        Silakan lapor ke kasir dan <b>minta Voucher Pelajar</b> khusus buat kamu.
-        Biar nongkrong & jajan makin ramah di kantong. 🎓
-      </div>
+  <div class="voucher-pill-icon voucher-pill-icon-student">
+    <i class="mdi mdi-school"></i>
+  </div>
+  <div class="voucher-pill-text">
+    <div class="voucher-pill-title">Voucher Pelajar & Guru</div>
+    <div class="voucher-pill-desc">
+      Datang dengan <b>pakaian pelajar/seragam sekolah</b> atau <b>seragam guru</b>?  
+      Silakan lapor ke kasir dan <b>minta Voucher Pelajar & Guru</b> khusus buat kamu.
+      Biar nongkrong & jajan makin ramah di kantong. 🎓
     </div>
   </div>
+</div>
+
 </div>
 <!-- ====== END SECTION BONUS VOUCHER ====== -->
 
