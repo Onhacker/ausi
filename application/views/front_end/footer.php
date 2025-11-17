@@ -910,34 +910,43 @@ ease; */
       <span class="section-icon">🎱</span><span class="section-text">Billiard</span>
     </div>
     <div class="quicksection-items">
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('billiard') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Booking Billiard" data-menuloading="1">
-          <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon" aria-hidden="true">📝</span></div>
-          <small class="menu-label">Booking Billiard</small>
-        </a>
-      </div>
+  <div class="quickmobilem-item">
+    <a href="<?= site_url('billiard') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Booking Billiard" data-menuloading="1">
+      <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon" aria-hidden="true">📝</span></div>
+      <small class="menu-label">Booking Billiard</small>
+    </a>
+  </div>
 
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('meja_billiard') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Tarif Meja Billiard" data-menuloading="1">
-          <div class="menu-circle" style="background:#1abc9c;"><span class="emoji-icon" aria-hidden="true">💵</span></div>
-          <small class="menu-label">Tarif Meja Billiard</small>
-        </a>
-      </div>
+  <div class="quickmobilem-item">
+    <a href="<?= site_url('meja_billiard') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Tarif Meja Billiard" data-menuloading="1">
+      <div class="menu-circle" style="background:#1abc9c;"><span class="emoji-icon" aria-hidden="true">💵</span></div>
+      <small class="menu-label">Tarif Meja Billiard</small>
+    </a>
+  </div>
 
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('billiard/daftar_booking') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Jadwal Main Billiard" data-menuloading="1">
-          <div class="menu-circle" style="background:#e67e22;"><span class="emoji-icon" aria-hidden="true">🗓️</span></div>
-          <small class="menu-label">Jadwal Main Billiard</small>
-        </a>
-      </div>
+  <div class="quickmobilem-item">
+    <a href="<?= site_url('billiard/daftar_booking') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Jadwal Main Billiard" data-menuloading="1">
+      <div class="menu-circle" style="background:#e67e22;"><span class="emoji-icon" aria-hidden="true">🗓️</span></div>
+      <small class="menu-label">Jadwal Main Billiard</small>
+    </a>
+  </div>
 
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('billiard/daftar_voucher') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Gratis Main Billiard" data-menuloading="1">
-          <div class="menu-circle" style="background:#d81b60;"><span class="emoji-icon" aria-hidden="true">🎁</span></div>
-          <small class="menu-label">Gratis Main Billiard</small>
-        </a>
-      </div>
-    </div>
+  <!-- Riwayat Bookingku -->
+  <div class="quickmobilem-item">
+    <a href="<?= site_url('billiard/riwayat_booking') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Riwayat Booking Billiard" data-menuloading="1">
+      <div class="menu-circle" style="background:#6f42c1;"><span class="emoji-icon" aria-hidden="true">🕒</span></div>
+      <small class="menu-label">Riwayat Bookingku</small>
+    </a>
+  </div>
+
+  <div class="quickmobilem-item">
+    <a href="<?= site_url('billiard/daftar_voucher') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Gratis Main Billiard" data-menuloading="1">
+      <div class="menu-circle" style="background:#d81b60;"><span class="emoji-icon" aria-hidden="true">🎁</span></div>
+      <small class="menu-label">Gratis Main Billiard</small>
+    </a>
+  </div>
+</div>
+
   </div>
 
   <!-- ========== FASILITAS ========== -->
