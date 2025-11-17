@@ -410,24 +410,77 @@ list($status_label, $status_class) = status_badge($status);
           </div>
 
           <?php if ($show_pay_buttons): ?>
-          <div class="pay-actions">
-            <a class="btn btn-success btn-sm js-pay"
-               href="<?= site_url('produk/pay_cash/'.rawurlencode($order->nomor)) ?>"
-               data-method="cash">
+            <div class="pay-actions mb-2">
+              <a class="btn btn-success btn-sm js-pay"
+              href="<?= site_url('produk/pay_cash/'.rawurlencode($order->nomor)) ?>"
+              data-method="cash">
               <i class="mdi mdi-cash"></i><span>TUNAI</span>
             </a>
             <a class="btn btn-primary btn-sm js-pay"
-               href="<?= site_url('produk/pay_qris/'.rawurlencode($order->nomor)) ?>"
-               data-method="qris">
-              <i class="mdi mdi-qrcode-scan"></i><span>QRIS</span>
-            </a>
-            <a class="btn btn-info btn-sm js-pay"
-               href="<?= site_url('produk/pay_transfer/'.rawurlencode($order->nomor)) ?>"
-               data-method="transfer">
-              <i class="mdi mdi-bank-transfer"></i><span>TRANSFER BNI</span>
-            </a>
+            href="<?= site_url('produk/pay_qris/'.rawurlencode($order->nomor)) ?>"
+            data-method="qris">
+            <i class="mdi mdi-qrcode-scan"></i><span>QRIS</span>
+          </a>
+          <a class="btn btn-warning btn-sm js-pay"
+          href="<?= site_url('produk/pay_transfer/'.rawurlencode($order->nomor)) ?>"
+          data-method="transfer">
+          <i class="mdi mdi-bank-transfer"></i><span>TRANSFER BNI</span>
+        </a>
+      </div>
+
+      <style>
+        .pay-note-box{
+          border: 1px dashed rgba(0,0,0,.25);
+          border-radius: 10px;
+          padding: .6rem .75rem;
+          background: #fffdf7;
+          font-size: .8rem;
+          color: #6c757d;
+        }
+        .pay-note-title{
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          font-weight: 600;
+          font-size: .72rem;
+          margin-bottom: .25rem;
+          color: #ff9800;
+        }
+        .pay-note-icon{
+          font-size: 1rem;
+          margin-right: .4rem;
+          color: #ff9800;
+        }
+        .pay-note-box ul{
+          padding-left: 1.1rem;
+          margin-bottom: 0;
+        }
+        .pay-note-box li{
+          margin-bottom: .1rem;
+        }
+      </style>
+
+      <div class="pay-note-box mb-2">
+        <div class="d-flex align-items-start mb-1">
+          <i class="mdi mdi-alert-circle-outline pay-note-icon"></i>
+          <div>
+            <div class="pay-note-title">Info kode unik & poin</div>
+            <div>
+              Khusus pembayaran <strong>QRIS</strong> dan <strong>Transfer</strong>, berlaku ketentuan berikut:
+            </div>
           </div>
-          <?php endif; ?>
+        </div>
+        <ul>
+         <li>Lakukan pembayaran sesuai <strong>total yang tertera (termasuk kode unik)</strong>.</li>
+         <li>Kode unik membantu kasir mengenali dan memverifikasi pembayaran Anda dengan cepat.</li>
+         <li>Nilai kode unik akan kami kembalikan dalam bentuk <strong>poin</strong> untuk program <strong>voucher mingguan</strong>.</li>
+         <li>Poin akan diundi setiap hari <strong>Minggu, pukul 08.00 WITA</strong> untuk menentukan pemenang
+          <strong>voucher order Rp 50.000</strong>.</li>
+          <li>Anda dapat melihat akumulasi poin di menu <strong>Riwayat Order</strong>.</li>
+          <li>Silahkan lanjutkan orderan anda setelah membaca ini. Pilih salah satu metode pembayaran di atas, lalu selesaikan pembayaran agar pesanan Anda dapat segera kami proses.</li>
+
+        </ul>
+      </div>
+    <?php endif; ?>
         </div>
 
         <?php

@@ -486,7 +486,7 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
             $nama   = trim((string)($r->nama ?? ''));
             $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
             if ($nama !== ''){
-                $meja_html .= '<div class="text-dark small">'.htmlspecialchars($nama,ENT_QUOTES,'UTF-8').'</div>';
+                $meja_html .= '<div class="text-dark small"><strong>'.htmlspecialchars($nama,ENT_QUOTES,'UTF-8').'</strong></div>';
             }
 
             // Waktu (timestamp detik)
