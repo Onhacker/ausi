@@ -866,7 +866,7 @@ private function _apply_today_window(): void
     $end   = null;
 
     $nowTs        = $now->getTimestamp();
-    $graceSeconds = 10 * 60; // 10 menit: data masih tampil setelah jam tutup
+    $graceSeconds = 20 * 60; // 10 menit: data masih tampil setelah jam tutup
 
     $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) use ($graceSeconds) {
         if (!$startStr || !$endStr) return false;
