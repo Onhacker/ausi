@@ -26,7 +26,7 @@ class M_admin_pos extends CI_Model {
 
     private $kasir_scope_enabled = false;
     private $kasir_days = 1;
-    private $max_rows   = 100;
+    private $max_rows   = 10000;
     
     /* ===== NEW: status filter ===== */
     // null = default (exclude paid); 'all' = tanpa filter; array = where_in
