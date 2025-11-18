@@ -42,7 +42,7 @@ class M_admin_pos extends CI_Model {
     /* =========================
      * Setters / Filters
      * ========================= */
-    public function set_max_rows($n = 1000){
+    public function set_max_rows($n = 10000){
         $this->max_rows = max(0,(int)$n);
     }
 

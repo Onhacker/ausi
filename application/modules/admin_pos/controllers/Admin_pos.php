@@ -333,7 +333,7 @@ public function get_dataa(){
         $status = $this->input->post('status', true);
         if ($status === '' || $status === null) { $status = 'all'; }
 
-        $this->dm->set_max_rows(100);
+        $this->dm->set_max_rows(10000);
         $this->dm->set_kasir_scope(false);
         $this->dm->set_status_filter($status);
 
