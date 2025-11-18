@@ -851,7 +851,7 @@ private function _apply_today_window(): void
     $end   = null;
 
     $nowTs = $now->getTimestamp();
-    $graceSeconds = 10 * 60;
+    $graceSeconds = 20 * 60;
     $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) {
         if (!$startStr || !$endStr) return false;
         $s = new DateTime($startStr, $tz);
