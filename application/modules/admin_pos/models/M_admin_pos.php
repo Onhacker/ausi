@@ -42,7 +42,7 @@ class M_admin_pos extends CI_Model {
     /* =========================
      * Setters / Filters
      * ========================= */
-    public function set_max_rows($n = 10000){
+    public function set_max_rows($n = 100){
         $this->max_rows = max(0,(int)$n);
     }
 
@@ -100,7 +100,7 @@ class M_admin_pos extends CI_Model {
     }
 
     /* >>>> TAMBAHAN: batasi ke jendela operasional hari-ini dari tabel identitas <<<< */
-    // $this->_apply_today_window();
+    $this->_apply_today_window();
 }
 
 
