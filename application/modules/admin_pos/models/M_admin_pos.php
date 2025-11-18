@@ -851,14 +851,15 @@ private function _apply_today_window(): void
     $end   = null;
 
     $nowTs = $now->getTimestamp();
-
+    $graceSeconds = 10 * 60;
     $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) {
         if (!$startStr || !$endStr) return false;
         $s = new DateTime($startStr, $tz);
         $e = new DateTime($endStr, $tz);
         $sTs = $s->getTimestamp();
         $eTs = $e->getTimestamp();
-        return ($nowTs >= $sTs && $nowTs < $eTs);
+        // return ($nowTs >= $sTs && $nowTs < $eTs);
+         return ($nowTs >= $sTs && $nowTs < ($eTs + $graceSeconds));
     };
 
     // Prioritas: window hari ini dulu
