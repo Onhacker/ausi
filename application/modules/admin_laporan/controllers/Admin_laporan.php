@@ -419,23 +419,35 @@ public function print_laba(){
 
     private function _idr($n){ return 'Rp '.number_format((int)$n,0,',','.'); }
 
-    private function _period_label(array $f){
-    $f  = $this->_enforce_period_acl($f); // ⬅️ penting
+   private function _period_label(array $f){
     $tz = new DateTimeZone('Asia/Makassar');
 
-    // parsing aman (fallback jika format bukan 'Y-m-d H:i:s')
-    $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz) ?: new DateTime($f['date_from'], $tz);
-    $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'],   $tz) ?: new DateTime($f['date_to'],   $tz);
+    $rawFrom = $f['date_from'] ?? '';
+    $rawTo   = $f['date_to']   ?? '';
+
+    $df = DateTime::createFromFormat('Y-m-d H:i:s', $rawFrom, $tz)
+        ?: new DateTime($rawFrom ?: 'now', $tz);
+    $dt = DateTime::createFromFormat('Y-m-d H:i:s', $rawTo,   $tz)
+        ?: new DateTime($rawTo   ?: 'now', $tz);
 
     $pmap = [
         'today'      => 'Hari ini',
         'yesterday'  => 'Kemarin',
         'this_week'  => 'Minggu ini',
         'this_month' => 'Bulan ini',
-        'range'      => 'Periode khusus'
+        'range'      => 'Periode khusus',
+        'custom'     => 'Periode khusus',
+        'last_week'  => 'Minggu lalu',
+        'last_month' => 'Bulan lalu',
+        'this_year'  => 'Tahun ini',
+        'last_year'  => 'Tahun lalu',
     ];
-    return ($pmap[$f['preset']] ?? 'Periode') . ' (' . $df->format('d/m/Y H:i') . ' — ' . $dt->format('d/m/Y H:i') . ')';
+
+    $label = $pmap[$f['preset'] ?? 'today'] ?? 'Periode';
+
+    return $label.' ('.$df->format('d/m/Y H:i').' — '.$dt->format('d/m/Y H:i').')';
 }
+
 /** 🔒 Paksa batas periode sesuai role.
  *  Admin: bebas.
  *  Non-admin: hanya 'today' & 'yesterday'. Selain itu akan dipaksa 'today'.
