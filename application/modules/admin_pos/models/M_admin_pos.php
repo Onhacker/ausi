@@ -26,7 +26,7 @@ class M_admin_pos extends CI_Model {
 
     private $kasir_scope_enabled = false;
     private $kasir_days = 1;
-    private $max_rows   = 10000;
+    private $max_rows   = 100;
     
     /* ===== NEW: status filter ===== */
     // null = default (exclude paid); 'all' = tanpa filter; array = where_in
@@ -42,7 +42,7 @@ class M_admin_pos extends CI_Model {
     /* =========================
      * Setters / Filters
      * ========================= */
-    public function set_max_rows($n = 100){
+    public function set_max_rows($n = 1000){
         $this->max_rows = max(0,(int)$n);
     }
 
