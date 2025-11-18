@@ -847,19 +847,39 @@ private function _apply_today_window(): void
     [$startYest, $endYest, $wrapYest]    = $buildWindow($yestDate, $cfgYest);
 
     // ===== 6) Tentukan window aktif berdasarkan "now" =====
+    // $start = null;
+    // $end   = null;
+
+    // $nowTs = $now->getTimestamp();
+    // $graceSeconds = 10 * 60;
+    // $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) {
+    //     if (!$startStr || !$endStr) return false;
+    //     $s = new DateTime($startStr, $tz);
+    //     $e = new DateTime($endStr, $tz);
+    //     $sTs = $s->getTimestamp();
+    //     $eTs = $e->getTimestamp();
+    //     return ($nowTs >= $sTs && $nowTs < $eTs);
+    // };
+
+        // ===== 6) Tentukan window aktif berdasarkan "now" =====
     $start = null;
     $end   = null;
 
-    $nowTs = $now->getTimestamp();
-    $graceSeconds = 20 * 60;
-    $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) {
+    $nowTs        = $now->getTimestamp();
+    $graceSeconds = 10 * 60; // 10 menit: data masih tampil setelah jam tutup
+
+    $inWindow = function($startStr, $endStr, $nowTs, DateTimeZone $tz) use ($graceSeconds) {
         if (!$startStr || !$endStr) return false;
-        $s = new DateTime($startStr, $tz);
-        $e = new DateTime($endStr, $tz);
+
+        $s   = new DateTime($startStr, $tz);
+        $e   = new DateTime($endStr,   $tz);
         $sTs = $s->getTimestamp();
         $eTs = $e->getTimestamp();
-        // return ($nowTs >= $sTs && $nowTs < $eTs);
-         return ($nowTs >= $sTs && $nowTs < ($eTs + $graceSeconds));
+
+        // Window aktif: mulai jam buka s/d 10 menit setelah jam tutup
+        // - tidak bikin "aktif" sebelum jam buka (karena tetap cek now >= start)
+        // - hanya memperpanjang sisi kanan (jam tutup + 10 menit)
+        return ($nowTs >= $sTs && $nowTs < ($eTs + $graceSeconds));
     };
 
     // Prioritas: window hari ini dulu
