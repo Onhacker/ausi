@@ -27,166 +27,27 @@ class Admin_voucher_cafe extends Admin_Controller {
     }
 
     /** DataTables server-side */
-  public function get_dataa()
-{
-    $list  = $this->dm->get_data();
-    $data  = [];
-    $today = date('Y-m-d');
+         $row['klaim'] = (int)$r->klaim_terpakai.' / '.(int)$r->kuota_klaim;
 
-    foreach ($list as $r) {
-        $row = [];
+        // ====== STATUS: Aktif, Nonaktif, Expired, Kuota Habis ======
+        $used  = (int)$r->klaim_terpakai;
+        $quota = (int)$r->kuota_klaim;
 
-        $row['cek'] = '<div class="checkbox checkbox-primary checkbox-single">
-                         <input type="checkbox" class="data-check" value="'.(int)$r->id.'"><label></label>
-                       </div>';
-        $row['no']  = '';
-
-        // ====== KODE VOUCHER + BADGE JENIS ======
-        $kodeSafe = htmlspecialchars($r->kode_voucher, ENT_QUOTES, 'UTF-8');
-
-        // label jenis voucher (default: Mingguan)
-        $jenis = isset($r->jenis_voucher) ? (string)$r->jenis_voucher : '';
-        if ($jenis === 'mingguan') {
-            $jenisLabel = 'Voucher Mingguan';
-            $jenisClass = 'badge badge-primary';
+        if ($quota > 0 && $used >= $quota) {
+            // sudah penuh dipakai
+            $row['status'] = '<span class="badge badge-danger">Habis Terpakai</span>';
         } else {
-            // fallback kalau nanti ada jenis lain
-            $jenisLabel = $jenis ? ucwords(str_replace('_',' ', $jenis)) : '';
-            $jenisClass = 'badge badge-secondary';
-        }
-
-        $badgeJenis = $jenisLabel
-            ? '<span class="'.$jenisClass.'">'.$jenisLabel.'</span>'
-            : '';
-
-        $row['kode_voucher'] =
-            '<div class="text-nowrap">'
-          .   '<div>'.$kodeSafe.'</div>'
-          .   ($badgeJenis ? '<div class="mt-1">'.$badgeJenis.'</div>' : '')
-          . '</div>';
-        // ========================================
-
-        $row['nama']  = htmlspecialchars($r->nama, ENT_QUOTES, 'UTF-8');
-        $row['no_hp'] = htmlspecialchars($r->no_hp, ENT_QUOTES, 'UTF-8');
-
-        $labelTipe   = $r->tipe === 'persen' ? 'Persen (%)' : 'Nominal (Rp)';
-        $row['tipe'] = '<span class="badge badge-info">'.$labelTipe.'</span>';
-
-        if ($r->tipe === 'persen') {
-            $nilaiLabel = (int)$r->nilai.' %';
-        } else {
-            $nilaiLabel = 'Rp '.number_format((int)$r->nilai,0,',','.');
-        }
-        $row['nilai'] = $nilaiLabel;
-
-        // periode untuk tampilan (HTML)
-        if (function_exists('tgl_view')) {
-            $periodeText = tgl_view($r->tgl_mulai).' s/d '.tgl_view($r->tgl_selesai);
-            $periode     = $periodeText;
-        } else {
-            $periodeText = trim($r->tgl_mulai.' s/d '.$r->tgl_selesai);
-            $periode     = htmlspecialchars($periodeText, ENT_QUOTES, 'UTF-8');
-        }
-        $row['periode'] = $periode;
-
-        $row['klaim'] = (int)$r->klaim_terpakai.' / '.(int)$r->kuota_klaim;
-
-        // ====== STATUS: Aktif, Nonaktif, Expired ======
-        if ((int)$r->status === 0) {
-            $row['status'] = '<span class="badge badge-secondary">Nonaktif</span>';
-        } else {
-            if ($r->tgl_selesai < $today) {
-                // lewat periode → Expired
-                $row['status'] = '<span class="badge badge-warning">Expired</span>';
+            if ((int)$r->status === 0) {
+                $row['status'] = '<span class="badge badge-secondary">Nonaktif</span>';
             } else {
-                $row['status'] = '<span class="badge badge-success">Aktif</span>';
+                if ($r->tgl_selesai < $today) {
+                    // lewat periode → Expired
+                    $row['status'] = '<span class="badge badge-warning">Expired</span>';
+                } else {
+                    $row['status'] = '<span class="badge badge-success">Aktif</span>';
+                }
             }
         }
-
-        // ====== TOMBOL EDIT ======
-        $btnEdit = '<button type="button" class="btn btn-sm btn-warning" '
-                 . 'onclick="edit('.(int)$r->id.')">'
-                 . '<i class="fe-edit"></i> '
-                 . 'Edit</button>';
-
-        // ====== TOMBOL PRINT VOUCHER (THERMAL / RAWBT) ======
-        // Preview desktop
-        $previewUrl = site_url(
-            'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
-            . '?paper=58'
-        );
-        $btnPreview = '<a href="'.$previewUrl.'" target="_blank" rel="noopener" '
-                    . 'class="btn btn-sm btn-dark" title="Preview voucher (desktop)">'
-                    . '<i class="fa fa-print"></i> '
-                    . 'Lihat</a>';
-
-        // RawBT (HP) - auto print & auto close
-        $rawbtUrl = site_url(
-            'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
-            . '?paper=58&rawbt=1&autoprint=1&autoclose=1&embed=1'
-        );
-        $btnRawbt = '<a href="'.$rawbtUrl.'" target="_blank" rel="noopener" '
-                  . 'class="btn btn-sm btn-success" title="Kirim ke RawBT (HP)">'
-                  . '<i class="fa fa-mobile"></i> '
-                  . 'Print</a>';
-
-        // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
-        // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
-        $phoneRaw = preg_replace('/\D+/', '', (string)$r->no_hp); // buang selain digit
-        $telUrl   = '';
-        $btnTelp  = '';
-
-        if (!empty($phoneRaw)) {
-            // Normalisasi ke format +62xxxxxxxxxxx untuk dial
-            if (strpos($phoneRaw, '0') === 0) {
-                // 08xxxx -> +628xxxx
-                $phoneDial = '+62'.substr($phoneRaw, 1);
-            } elseif (strpos($phoneRaw, '62') === 0) {
-                // 62xxxx -> +62xxxx
-                $phoneDial = '+'.$phoneRaw;
-            } else {
-                // asumsi nomor lokal tanpa 0 / 62, tambahkan +62 di depan
-                $phoneDial = '+62'.$phoneRaw;
-            }
-
-            $telUrl = 'tel:'.$phoneDial;
-            $telUrl = htmlspecialchars($telUrl, ENT_QUOTES, 'UTF-8');
-
-            $btnTelp = '<a href="'.$telUrl.'" '
-                     . 'class="btn btn-sm btn-success" '
-                     . 'title="Hubungi via WhatsApp / Telepon">'
-                     . '<i class="mdi mdi-whatsapp"></i> WA</a>';
-        } else {
-            $btnTelp = '<button type="button" class="btn btn-sm btn-secondary" '
-                     . 'title="Nomor HP tidak tersedia" disabled>'
-                     . '<i class="fe-alert-circle"></i> Telp</button>';
-        }
-
-        // ========================================================
-
-        // Gabungkan tombol (sejajar dalam satu btn-group)
-        $row['aksi'] =
-            '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi voucher">'
-          .   $btnEdit
-          .   $btnTelp
-          .   $btnPreview
-          .   $btnRawbt
-          . '</div>';
-
-        $data[] = $row;
-    }
-
-    $out = [
-        "draw"            => (int)$this->input->post('draw'),
-        "recordsTotal"    => $this->dm->count_all(),
-        "recordsFiltered" => $this->dm->count_filtered(),
-        "data"            => $data,
-    ];
-
-    $this->output
-         ->set_content_type('application/json')
-         ->set_output(json_encode($out));
-}
 
 
 public function print_voucher_termal($id = null)
