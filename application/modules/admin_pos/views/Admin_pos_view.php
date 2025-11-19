@@ -1,21 +1,6 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <!--
-  <div class="row">
-    <div class="col-12">
-      <div class="page-title-box">
-        <div class="page-title-right">
-          <ol class="breadcrumb m-0">
-            <li class="breadcrumb-item active"><?= $subtitle; ?></li>
-          </ol>
-        </div>
-        <h4 class="page-title"><?= $subtitle; ?></h4>
-      </div>
-    </div>
-  </div>
-  -->
-
   <?php
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     $isKB  = in_array($uname, ['kitchen','bar'], true); // kitchen / bar
@@ -29,24 +14,68 @@
       color:#111827 !important;
       font-weight:600;
     }
-    /* Kartu meja */
-    .meja-card{ border:1px solid rgba(0,0,0,.08); border-radius:.75rem; padding:.75rem; margin:.25rem; width:100%; }
-    .meja-kode{ font-weight:700; font-size:1rem; }
-    .meja-meta{ color:#6b7280; font-size:.85rem; }
-    .meja-actions .btn{ margin-right:.3rem; margin-top:.35rem; }
-    .idle-countdown{
-  border:1px solid #e2e8f0;
-  background:#f8fafc;
-  color:#0f172a;
-  padding:.25rem .5rem;
-  border-radius:.5rem;
-  font-weight:700;
-  letter-spacing:.3px;
-}
-@media (max-width: 575.98px){
-  .idle-countdown .d-none.d-sm-inline{ display:none !important; } /* sembunyikan label di layar kecil */
-}
 
+    /* Kartu meja */
+    .meja-card{
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:.75rem;
+      padding:.75rem;
+      margin:.25rem;
+      width:100%;
+    }
+    .meja-kode{
+      font-weight:700;
+      font-size:1rem;
+    }
+    .meja-meta{
+      color:#6b7280;
+      font-size:.85rem;
+    }
+    .meja-actions .btn{
+      margin-right:.3rem;
+      margin-top:.35rem;
+    }
+
+    /* ===== Idle countdown ===== */
+    .idle-countdown{
+      border:1px solid #e2e8f0;
+      background:#f8fafc;
+      color:#0f172a;
+      padding:.4rem .75rem;
+      border-radius:.5rem;
+      font-weight:700;
+      letter-spacing:.3px;
+    }
+    @media (max-width: 575.98px){
+      .idle-countdown .d-none.d-sm-inline{
+        display:none !important;
+      }
+    }
+
+    /* ===== Running Ticker ===== */
+    .ticker-wrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:.5rem;
+      border:1px solid #ffeeba;
+      background:#fff3cd;   /* alert-warning vibes */
+      color:#856404;
+    }
+    .ticker-track{
+      display:inline-block;
+      white-space:nowrap;
+      padding:.5rem 0;
+      animation: ticker-move 25s linear infinite; /* kecilkan untuk lebih cepat */
+    }
+    .ticker-item{
+      display:inline-block;
+      margin:0 2rem;
+      font-weight:600;
+    }
+    @keyframes ticker-move{
+      0%   { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
   </style>
 
   <div class="row">
@@ -54,173 +83,134 @@
       <div class="card">
         <div class="card-body">
           <h4 class="header-title">POS Cafe</h4>
+
           <!-- Toolbar -->
           <div class="row mb-2">
             <div class="col-12">
               <form class="form-inline align-items-center flex-wrap w-100">
-  <!-- Refresh -->
-  <button type="button" onclick="reload_table('user')" class="btn btn-blue btn-sm waves-effect waves-light mb-2 mr-2">
-    <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-  </button>
+                <!-- Refresh -->
+                <button type="button"
+                        onclick="reload_table('user')"
+                        class="btn btn-blue btn-sm waves-effect waves-light mb-2 mr-2">
+                  <span class="btn-label"><i class="fe-refresh-ccw"></i></span>
+                  Refresh
+                </button>
 
-  <?php if (!$isKB): ?>
-    <!-- Filter status -->
-    <div class="form-group mb-2 mr-2">
-      <label for="filter-status" class="sr-only">Status</label>
-      <select id="filter-status" class="custom-select custom-select-sm">
-        <option value="all" selected>Semua status</option>
-        <option value="paid">Lunas</option>
-        <option value="pending">Menunggu Pembayaran</option>
-        <option value="verifikasi">Verifikasi</option>
-        <option value="canceled">Canceled</option>
-      </select>
-    </div>
-  <?php endif; ?>
+                <?php if (!$isKB): ?>
+                  <!-- Filter status -->
+                  <div class="form-group mb-2 mr-2">
+                    <label for="filter-status" class="sr-only">Status</label>
+                    <select id="filter-status" class="custom-select custom-select-sm">
+                      <option value="all" selected>Semua status</option>
+                      <option value="paid">Lunas</option>
+                      <option value="pending">Menunggu Pembayaran</option>
+                      <option value="verifikasi">Verifikasi</option>
+                      <option value="canceled">Canceled</option>
+                    </select>
+                  </div>
+                <?php endif; ?>
 
-  <!-- === Idle countdown: sekarang sejajar & di sisi kanan === -->
-  <div id="idle-countdown"
-       class="idle-countdown d-inline-flex align-items-center ml-auto mb-2"
-       aria-live="polite"
-       style="display:none">
-    <i class="mdi mdi-timer-outline mr-1" aria-hidden="true"></i>
-    <span class="d-none d-sm-inline mr-1">Segarkan dalam:</span>
-    <span id="idle-countdown-text" class="font-weight-bold">20:00</span>
-  </div>
-</form>
-
+                <!-- Idle countdown (auto-reload 20 menit) di sisi kanan -->
+                <div id="idle-countdown"
+                     class="idle-countdown d-inline-flex align-items-center ml-auto mb-2"
+                     aria-live="polite"
+                     style="display:none">
+                  <i class="mdi mdi-timer-outline mr-1" aria-hidden="true"></i>
+                  <span class="d-none d-sm-inline mr-1">Segarkan dalam:</span>
+                  <span id="idle-countdown-text" class="font-weight-bold">20:00</span>
+                </div>
+              </form>
             </div>
           </div>
           <!-- /Toolbar -->
-<!-- COUNTDOWN IDLE (hitungan mundur auto-reload) -->
-<div id="idle-countdown" class="idle-countdown mb-2" aria-live="polite" style="display:none">
-  Segarkan dalam: <span id="idle-countdown-text">20:00</span>
-</div>
 
-<?php
-  // (OPSIONAL) kalau kamu sudah punya perhitungan jam tutup aktif,
-  // set epoch detik di $closing_deadline_ts. Kalau belum ada, biarkan 0.
-  $closing_deadline_ts = isset($closing_deadline_ts) ? (int)$closing_deadline_ts : 0;
-?>
-<?php if (!empty($closing_ticker)): ?>
-  <div class="ticker-wrap mb-2" data-close-ts="<?= (int)$closing_deadline_ts ?>">
-    <div class="ticker-track">
-      <span class="ticker-item">
-        <i class="mdi mdi-clock-outline mr-1"></i>
-        <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
-      </span>
-      <span class="ticker-item d-none d-md-inline">
-        <i class="mdi mdi-clock-outline mr-1"></i>
-        <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
-      </span>
-    </div>
-  </div>
-<?php endif; ?>
+          <?php
+            // (OPSIONAL) kalau kamu sudah punya perhitungan jam tutup aktif,
+            // set epoch detik di $closing_deadline_ts. Kalau belum ada, biarkan 0.
+            $closing_deadline_ts = isset($closing_deadline_ts) ? (int)$closing_deadline_ts : 0;
+          ?>
+          <?php if (!empty($closing_ticker)): ?>
+            <div class="ticker-wrap mb-2" data-close-ts="<?= (int)$closing_deadline_ts ?>">
+              <div class="ticker-track">
+                <span class="ticker-item">
+                  <i class="mdi mdi-clock-outline mr-1"></i>
+                  <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
+                </span>
+                <span class="ticker-item d-none d-md-inline">
+                  <i class="mdi mdi-clock-outline mr-1"></i>
+                  <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
+                </span>
+              </div>
+            </div>
+          <?php endif; ?>
 
-<style>
-  /* ===== Idle countdown ===== */
-.idle-countdown{
-  border:1px solid #e2e8f0;
-  background:#f8fafc;
-  color:#0f172a;
-  padding:.4rem .75rem;
-  border-radius:.5rem;
-  font-weight:700;
-  letter-spacing:.3px;
-}
+          <!-- Script: auto-reload 20 menit + kontrol ticker -->
+          <script>
+          (function(){
+            // cegah inisialisasi ganda
+            if (window.__AUTO_RELOAD_20M__) return;
+            window.__AUTO_RELOAD_20M__ = true;
 
-/* (opsional) atur kecepatan ticker di sini */
-.ticker-track{
-  display:inline-block;
-  white-space:nowrap;
-  padding:.5rem 0;
-  animation: ticker-move 25s linear infinite; /* kecilkan untuk lebih cepat */
-}
-@keyframes ticker-move{
-  0%   { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
+            const RELOAD_MS = 20 * 60 * 1000; // 20 menit
+            const elBox  = document.getElementById('idle-countdown');
+            const elText = document.getElementById('idle-countdown-text');
 
-/* ===== Running Ticker ===== */
-.ticker-wrap{
-  position:relative;
-  overflow:hidden;
-  border-radius: .5rem;
-  border:1px solid #ffeeba;
-  background:#fff3cd;   /* alert-warning vibes */
-  color:#856404;
-}
-.ticker-track{
-  display:inline-block;
-  white-space:nowrap;
-  padding:.5rem 0;
-  animation: ticker-move 25s linear infinite;
-}
-.ticker-item{
-  display:inline-block;
-  margin:0 2rem;
-  font-weight:600;
-}
-@keyframes ticker-move{
-  0%   { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
-</style>
-<script>
-(function(){
-  // ======  A. AUTO-RELOAD TIAP 20 MENIT (TANPA LIHAT AKTIVITAS)  ======
-  const RELOAD_MS = 20 * 60 * 1000; // 20 menit (ubah di sini kalau perlu)
-  const elBox  = document.getElementById('idle-countdown');
-  const elText = document.getElementById('idle-countdown-text');
+            function pad(n){ return (n<10 ? '0' : '') + n; }
 
-  const startAt = Date.now();
-  function pad(n){ return (n<10?'0':'')+n; }
+            function updateCountdown(remainMs){
+              if (!elBox || !elText) return;
+              const s = Math.max(0, Math.ceil(remainMs/1000));
+              elText.textContent = pad(Math.floor(s/60)) + ':' + pad(s % 60);
+              if (elBox.style.display === 'none') elBox.style.display = '';
+            }
 
-  function tickReload(){
-    const now = Date.now();
-    const remain = RELOAD_MS - (now - startAt);
+            function startTimer(){
+              const startAt = Date.now();
 
-    if (remain <= 0) {
-      location.reload(); // selalu reload tepat waktu
-      return;
-    }
+              function tick(){
+                const now    = Date.now();
+                const remain = RELOAD_MS - (now - startAt);
 
-    // tampilkan hitung mundur
-    if (elBox && elText){
-      const s = Math.ceil(remain/1000);
-      elText.textContent = `${pad(Math.floor(s/60))}:${pad(s%60)}`;
-      if (elBox.style.display === 'none') elBox.style.display = '';
-    }
-  }
+                if (remain <= 0){
+                  // reload penuh halaman
+                  location.reload();
+                  return;
+                }
+                updateCountdown(remain);
+                setTimeout(tick, 1000); // cukup 1x/detik
+              }
 
-  // update countdown ~4x per detik agar halus
-  setInterval(tickReload, 250);
-  tickReload();
+              tick();
+            }
 
-  // ======  B. TAMPILKAN TICKER HANYA ≤ 60 MENIT SEBELUM TUTUP  ======
-  const tickerWrap = document.querySelector('.ticker-wrap');
-  function evalTicker(){
-    if (!tickerWrap) return;
+            // ====== Ticker jam tutup (opsional) ======
+            const tickerWrap = document.querySelector('.ticker-wrap');
+            function evalTicker(){
+              if (!tickerWrap) return;
 
-    let closeTs = parseInt(tickerWrap.getAttribute('data-close-ts') || '', 10);
-    if (!closeTs && window.WINDOW_CLOSE_TS) closeTs = parseInt(window.WINDOW_CLOSE_TS, 10) || 0;
+              let closeTs = parseInt(tickerWrap.getAttribute('data-close-ts') || '', 10);
+              if (!closeTs && window.WINDOW_CLOSE_TS) {
+                closeTs = parseInt(window.WINDOW_CLOSE_TS, 10) || 0;
+              }
 
-    if (!closeTs){
-      tickerWrap.style.display = 'none';
-      return;
-    }
+              if (!closeTs){
+                tickerWrap.style.display = 'none';
+                return;
+              }
 
-    const nowSec = Math.floor(Date.now()/1000);
-    const diff   = closeTs - nowSec; // detik ke tutup
+              const nowSec = Math.floor(Date.now()/1000);
+              const diff   = closeTs - nowSec; // detik ke tutup
 
-    // tampilkan hanya bila 0 < diff ≤ 3600 (≤ 1 jam)
-    tickerWrap.style.display = (diff > 0 && diff <= 3600) ? '' : 'none';
-  }
+              // tampilkan hanya bila 0 < diff ≤ 3600 (≤ 1 jam)
+              tickerWrap.style.display = (diff > 0 && diff <= 3600) ? '' : 'none';
+            }
 
-  evalTicker();
-  setInterval(evalTicker, 30000); // cek tiap 30 detik
-})();
-</script>
-
+            // start semuanya
+            startTimer();
+            evalTicker();
+            setInterval(evalTicker, 30000);
+          })();
+          </script>
 
           <!-- Tabel -->
           <table id="datable_pos" class="table table-sm table-striped table-bordered w-100">
