@@ -87,7 +87,7 @@ class Admin_kursi_pijat extends Admin_Controller {
             'sesi'     => (int)$r->sesi.'x',
             'total'    => $this->_rupiah($r->total_harga),
             'status'   => '<span class="badge badge-'.$badge.'">'.$label.'</span>',
-            'aksi'     => $btnEdit.$btnBayar.$btnBatal.$btnHapus,
+            'aksi'     => $btnEdit.$btnBayar.$btnBatal,
         ];
         $data[] = $row;
     }
