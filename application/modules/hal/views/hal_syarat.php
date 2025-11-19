@@ -15,7 +15,6 @@
           <div class="d-flex justify-content-center gap-2">
             <span class="badge bg-light text-dark border">Versi 2.0</span>
             <span class="badge bg-light text-dark border">Terakhir diperbarui: 13 November 2025</span>
-
           </div>
         </header>
 
@@ -35,7 +34,7 @@
               <li><a href="#pembayaran">Pembayaran, Biaya &amp; Promo</a></li>
               <li><a href="#voucher">Voucher &amp; Promo Main Gratis</a></li>
               <li><a href="#voucher-order">Poin Loyalty &amp; Voucher Order Rp 50.000</a></li>
-
+              <li><a href="#return-policy">Kebijakan Retur &amp; Pengembalian Dana</a></li>
               <li><a href="#kebijakan-produk">Kebijakan Produk &amp; Kualitas</a></li>
               <li><a href="#larangan">Ketertiban, Keamanan &amp; Larangan</a></li>
               <li><a href="#privasi">Privasi &amp; Perlindungan Data</a></li>
@@ -166,140 +165,189 @@
           </div>
         </section>
 
-              <!-- Voucher -->
-       <section id="voucher" class="card mb-3">
-  <div class="card-body">
-    <h2 class="h4">9) Voucher &amp; Promo Main Gratis</h2>
-    <ol class="mb-0">
-      <li>
-        Voucher atau promo “main gratis” billiard hanya berlaku pada
-        <strong>meja kategori reguler</strong>. Tidak berlaku untuk meja bertipe VIP,
-        kecuali dinyatakan tertulis oleh Pengelola.
-      </li>
-      <li>
-        Setiap voucher memiliki <strong>durasi main tertentu</strong>
-        (misal 1 jam). Saat melakukan booking dengan voucher,
-        durasi booking akan <strong>mengikuti durasi voucher</strong> tersebut
-        dan tidak dapat diperpanjang secara gratis.
-        Waktu tambahan di luar durasi voucher akan dikenakan
-        <strong>tarif reguler</strong> sesuai harga yang berlaku.
-      </li>
-      <li>
-        Voucher dapat digunakan pada <strong>tanggal booking</strong> yang masih
-        tersedia di sistem (tidak berlaku mundur). Sistem secara otomatis
-        membatasi tanggal booking hanya sampai beberapa hari ke depan
-        sesuai pengaturan Pengelola; booking dengan voucher di luar rentang
-        tersebut akan ditolak.
-      </li>
-      <li>
-        Jam mulai dan jam selesai (sesuai durasi voucher) harus berada di dalam
-        <strong>jam operasional meja billiard</strong> dan tidak boleh melewati batas
-        <strong>jam voucher/promo</strong> yang ditetapkan Pengelola.
-        Jika dengan durasi voucher jam selesai bermain melewati batas tersebut,
-        sistem dapat menolak booking atau meminta Anda memajukan jam mulai
-        / memilih slot lain.
-      </li>
-      <li>
-        Voucher terikat pada <strong>nomor HP/WhatsApp yang terdaftar</strong>
-        saat klaim/penerbitan voucher dan hanya dapat digunakan oleh nomor tersebut.
-        Voucher tidak dapat dipindahtangankan, dijual, atau dipakai oleh nomor lain
-        tanpa persetujuan Pengelola.
-      </li>
-      <li>
-        Satu voucher hanya berlaku untuk <strong>satu booking</strong>.
-        Setelah sistem menerbitkan kode booking dengan status “free/gratis”,
-        voucher dianggap digunakan (<em>claimed</em>) dan tidak dapat dipakai ulang.
-      </li>
-      <li>
-        Keterlambatan hadir melewati toleransi yang berlaku atau tidak hadir
-        (“no show”) dapat menyebabkan voucher dianggap <strong>hangus</strong>
-        sesuai kebijakan Pengelola.
-      </li>
-      <li>
-        Voucher tidak memiliki nilai tunai, <strong>tidak dapat diuangkan</strong>,
-        dan tidak dapat digabungkan dengan promo lain kecuali diizinkan Pengelola.
-      </li>
-      <li>
-        Pengelola berhak menolak, membatalkan, atau menarik voucher
-        jika terindikasi penyalahgunaan, manipulasi data, atau pelanggaran S&amp;K.
-      </li>
-      <li>
-        Ketersediaan voucher bersifat terbatas. Program voucher dapat dihentikan,
-        diubah jam berlakunya, atau dibatasi kuotanya kapan saja tanpa
-        pemberitahuan sebelumnya.
-      </li>
-      <li>
-        Anda juga dapat melihat ringkasan aturan voucher di
-        halaman <a href="<?= site_url('meja_billiard#vou') ?>">Meja Billiard</a>.
-      </li>
-    </ol>
-  </div>
-</section>
+        <!-- Voucher -->
+        <section id="voucher" class="card mb-3">
+          <div class="card-body">
+            <h2 class="h4">9) Voucher &amp; Promo Main Gratis</h2>
+            <ol class="mb-0">
+              <li>
+                Voucher atau promo “main gratis” billiard hanya berlaku pada
+                <strong>meja kategori reguler</strong>. Tidak berlaku untuk meja bertipe VIP,
+                kecuali dinyatakan tertulis oleh Pengelola.
+              </li>
+              <li>
+                Setiap voucher memiliki <strong>durasi main tertentu</strong>
+                (misal 1 jam). Saat melakukan booking dengan voucher,
+                durasi booking akan <strong>mengikuti durasi voucher</strong> tersebut
+                dan tidak dapat diperpanjang secara gratis.
+                Waktu tambahan di luar durasi voucher akan dikenakan
+                <strong>tarif reguler</strong> sesuai harga yang berlaku.
+              </li>
+              <li>
+                Voucher dapat digunakan pada <strong>tanggal booking</strong> yang masih
+                tersedia di sistem (tidak berlaku mundur). Sistem secara otomatis
+                membatasi tanggal booking hanya sampai beberapa hari ke depan
+                sesuai pengaturan Pengelola; booking dengan voucher di luar rentang
+                tersebut akan ditolak.
+              </li>
+              <li>
+                Jam mulai dan jam selesai (sesuai durasi voucher) harus berada di dalam
+                <strong>jam operasional meja billiard</strong> dan tidak boleh melewati batas
+                <strong>jam voucher/promo</strong> yang ditetapkan Pengelola.
+                Jika dengan durasi voucher jam selesai bermain melewati batas tersebut,
+                sistem dapat menolak booking atau meminta Anda memajukan jam mulai
+                / memilih slot lain.
+              </li>
+              <li>
+                Voucher terikat pada <strong>nomor HP/WhatsApp yang terdaftar</strong>
+                saat klaim/penerbitan voucher dan hanya dapat digunakan oleh nomor tersebut.
+                Voucher tidak dapat dipindahtangankan, dijual, atau dipakai oleh nomor lain
+                tanpa persetujuan Pengelola.
+              </li>
+              <li>
+                Satu voucher hanya berlaku untuk <strong>satu booking</strong>.
+                Setelah sistem menerbitkan kode booking dengan status “free/gratis”,
+                voucher dianggap digunakan (<em>claimed</em>) dan tidak dapat dipakai ulang.
+              </li>
+              <li>
+                Keterlambatan hadir melewati toleransi yang berlaku atau tidak hadir
+                (“no show”) dapat menyebabkan voucher dianggap <strong>hangus</strong>
+                sesuai kebijakan Pengelola.
+              </li>
+              <li>
+                Voucher tidak memiliki nilai tunai, <strong>tidak dapat diuangkan</strong>,
+                dan tidak dapat digabungkan dengan promo lain kecuali diizinkan Pengelola.
+              </li>
+              <li>
+                Pengelola berhak menolak, membatalkan, atau menarik voucher
+                jika terindikasi penyalahgunaan, manipulasi data, atau pelanggaran S&amp;K.
+              </li>
+              <li>
+                Ketersediaan voucher bersifat terbatas. Program voucher dapat dihentikan,
+                diubah jam berlakunya, atau dibatasi kuotanya kapan saja tanpa
+                pemberitahuan sebelumnya.
+              </li>
+              <li>
+                Anda juga dapat melihat ringkasan aturan voucher di
+                halaman <a href="<?= site_url('meja_billiard#vou') ?>">Meja Billiard</a>.
+              </li>
+            </ol>
+          </div>
+        </section>
 
+        <!-- Poin Loyalty & Voucher Order -->
+        <section id="voucher-order" class="card mb-3">
+          <div class="card-body">
+            <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 50.000 (Siklus Mingguan)</h2>
 
+            <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Mingguan)</h3>
+            <ul class="mb-3">
+              <li><strong>Status transaksi</strong> yang dihitung poin hanyalah <em>paid</em> (berhasil). Transaksi void/refund/batal tidak menambah poin.</li>
+              <li><strong>Rumus poin:</strong> <span class="mono">poin = kode_unik + (total // 1000)</span> &mdash; contoh: 5.000 → 5; 50.000 → 50; 100.000 → 100.</li>
+              <li><strong>Periode pekan:</strong> Minggu 00:00 &ndash; Sabtu 23:59 WITA.</li>
+              <li><strong>Reset otomatis:</strong> setiap <u>Minggu 00:00 WITA</u> (awal pekan baru). Pada saat ini, akumulasi pekan sebelumnya ditutup, dan perhitungan dimulai dari nol.</li>
+              <li><strong>Cek poin:</strong> total poin pekan berjalan bisa dilihat melalui tautan/token di halaman <em>Points</em>.</li>
+            </ul>
 
-    <section id="voucher-order" class="card mb-3">
-  <div class="card-body">
-    <h2 class="h4">9.1) Poin Loyalty &amp; Voucher Order Rp 50.000 (Siklus Mingguan)</h2>
+            <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
+            <ul class="mb-3">
+              <li><strong>Pengumuman pemenang:</strong> setiap <u>Minggu pukul 08:00 WITA</u>, untuk periode <strong>pekan sebelumnya</strong>.</li>
+              <li><strong>Jumlah pemenang per pekan:</strong> 2 (dua) orang.</li>
+              <li>
+                <strong>Pemenang 1 (poin tertinggi):</strong> pelanggan dengan poin tertinggi pada pekan tersebut.
+                <br><em>Urutan tie-breaker (jika poin sama):</em>
+                <ol class="mb-2 mt-1">
+                  <li><strong>Total belanja (total_rupiah)</strong> lebih besar menang.</li>
+                  <li><strong>Waktu transaksi terakhir (last_paid_at)</strong> lebih awal menang.</li>
+                  <li><strong>Jumlah transaksi (transaksi_count)</strong> lebih banyak menang.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Pemenang 2 (acak):</strong> 1 (satu) pelanggan dipilih secara acak dari seluruh peserta yang memiliki poin &gt; 0 pada pekan tersebut
+                (tidak termasuk Pemenang 1).
+              </li>
+              <li><strong>Nilai voucher:</strong> Rp 50.000, bersifat non-tunai dan tidak dapat diuangkan.</li>
+              <li><strong>Penggunaan promo:</strong> tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
+              <li><strong>Kepemilikan:</strong> voucher terikat ke nomor WhatsApp/akun terdaftar dan <u>tidak dapat dipindahtangankan</u>.</li>
+              <li><strong>Masa berlaku voucher:</strong> 7 (tujuh) hari kalender sejak tanggal penerbitan.</li>
+              <li><strong>Cara klaim:</strong> ikuti tautan yang dikirim via WhatsApp atau buka halaman <em>Points</em> menggunakan token Anda.</li>
+            </ul>
 
-    <h3 class="h4 mt-3 mb-2">A. Mekanisme Poin (Siklus Mingguan)</h3>
-    <ul class="mb-3">
-      <li><strong>Status transaksi</strong> yang dihitung poin hanyalah <em>paid</em> (berhasil). Transaksi void/refund/batal tidak menambah poin.</li>
-      <li><strong>Rumus poin:</strong> <span class="mono">poin = kode_unik + (total // 1000)</span> &mdash; contoh: 5.000 → 5; 50.000 → 50; 100.000 → 100.</li>
-      <li><strong>Periode pekan:</strong> Minggu 00:00 &ndash; Sabtu 23:59 WITA.</li>
-      <li><strong>Reset otomatis:</strong> setiap <u>Minggu 00:00 WITA</u> (awal pekan baru). Pada saat ini, akumulasi pekan sebelumnya ditutup, dan perhitungan dimulai dari nol.</li>
-      <li><strong>Cek poin:</strong> total poin pekan berjalan bisa dilihat melalui tautan/token di halaman <em>Points</em>.</li>
-    </ul>
+            <h3 class="h4 mt-3 mb-2">C. Contoh Linimasa</h3>
+            <ul class="mb-3">
+              <li><strong>Periode dihitung:</strong> Minggu, 09 Nov 2025 00:00 &ndash; Sabtu, 15 Nov 2025 23:59 WITA.</li>
+              <li><strong>Reset otomatis:</strong> Minggu, 16 Nov 2025 00:00 WITA (mulai pekan baru).</li>
+              <li><strong>Pengumuman pemenang:</strong> Minggu, 16 Nov 2025 pukul 08:00 WITA.</li>
+            </ul>
 
-    <h3 class="h4 mt-3 mb-2">B. Voucher Order Rp 50.000</h3>
-    <ul class="mb-3">
-      <li><strong>Pengumuman pemenang:</strong> setiap <u>Minggu pukul 08:00 WITA</u>, untuk periode <strong>pekan sebelumnya</strong>.</li>
+            <h3 class="h4 mt-3 mb-2">D. Ketentuan Tambahan</h3>
+            <ul class="mb-0">
+              <li>Indikasi penyalahgunaan atau manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
+              <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja demi peningkatan layanan.</li>
+              <li>Zona waktu yang digunakan: <strong>WITA (Asia/Makassar)</strong>.</li>
+            </ul>
+          </div>
+        </section>
 
-      <li><strong>Jumlah pemenang per pekan:</strong> 2 (dua) orang.</li>
-
-      <li>
-        <strong>Pemenang 1 (poin tertinggi):</strong> pelanggan dengan poin tertinggi pada pekan tersebut.
-        <br><em>Urutan tie-breaker (jika poin sama):</em>
-        <ol class="mb-2 mt-1">
-          <li><strong>Total belanja (total_rupiah)</strong> lebih besar menang.</li>
-          <li><strong>Waktu transaksi terakhir (last_paid_at)</strong> lebih awal menang.</li>
-          <li><strong>Jumlah transaksi (transaksi_count)</strong> lebih banyak menang.</li>
-        </ol>
-      </li>
-
-      <li>
-        <strong>Pemenang 2 (acak):</strong> 1 (satu) pelanggan dipilih secara acak dari seluruh peserta yang memiliki poin &gt; 0 pada pekan tersebut
-        (tidak termasuk Pemenang 1).
-      </li>
-
-      <li><strong>Nilai voucher:</strong> Rp 50.000, bersifat non-tunai dan tidak dapat diuangkan.</li>
-      <li><strong>Penggunaan promo:</strong> tidak dapat digabung dengan promo lain kecuali dinyatakan sebaliknya.</li>
-      <li><strong>Kepemilikan:</strong> voucher terikat ke nomor WhatsApp/akun terdaftar dan <u>tidak dapat dipindahtangankan</u>.</li>
-      <li><strong>Masa berlaku voucher:</strong> 7 (tujuh) hari kalender sejak tanggal penerbitan.</li>
-      <li><strong>Cara klaim:</strong> ikuti tautan yang dikirim via WhatsApp atau buka halaman <em>Points</em> menggunakan token Anda.</li>
-    </ul>
-
-    <h3 class="h4 mt-3 mb-2">C. Contoh Linimasa</h3>
-    <ul class="mb-3">
-      <li><strong>Periode dihitung:</strong> Minggu, 09 Nov 2025 00:00 &ndash; Sabtu, 15 Nov 2025 23:59 WITA.</li>
-      <li><strong>Reset otomatis:</strong> Minggu, 16 Nov 2025 00:00 WITA (mulai pekan baru).</li>
-      <li><strong>Pengumuman pemenang:</strong> Minggu, 16 Nov 2025 pukul 08:00 WITA.</li>
-    </ul>
-
-    <h3 class="h4 mt-3 mb-2">D. Ketentuan Tambahan</h3>
-    <ul class="mb-0">
-      <li>Indikasi penyalahgunaan atau manipulasi data dapat menyebabkan pembatalan poin maupun voucher.</li>
-      <li>Pengelola berhak mengubah kuota, nilai, atau ketentuan program kapan saja demi peningkatan layanan.</li>
-      <li>Zona waktu yang digunakan: <strong>WITA (Asia/Makassar)</strong>.</li>
-    </ul>
-  </div>
-</section>
-
+        <!-- Return Policy -->
+        <section id="return-policy" class="card mb-3">
+          <div class="card-body">
+            <h2 class="h4">10) Kebijakan Retur &amp; Pengembalian Dana</h2>
+            <ul class="mb-0">
+              <li>
+                Retur makanan/minuman untuk dine-in, take away, maupun delivery
+                hanya diterima bila terdapat <strong>kesalahan pesanan</strong>
+                (menu tidak sesuai, salah item) atau <strong>kualitas produk tidak layak konsumsi</strong>
+                (misalnya basi, sangat asin/tidak matang) yang dapat dibuktikan.
+              </li>
+              <li>
+                Untuk dine-in/take away, keluhan wajib disampaikan ke staf/kasir
+                maksimal <strong>30 menit</strong> sejak pesanan diterima.
+                Untuk delivery, keluhan wajib disertai foto/video produk dan kemasan,
+                dikirim ke kontak Pengelola maksimal <strong>30 menit</strong> sejak status
+                pesanan “diterima”.
+              </li>
+              <li>
+                Pengelola berhak melakukan <strong>verifikasi</strong> (mengecek ulang ke dapur/kurir,
+                meminta bukti tambahan, dsb.) sebelum menyetujui retur, penggantian, atau kompensasi.
+              </li>
+              <li>
+                Bentuk penyelesaian dapat berupa:
+                <strong>penggantian produk baru</strong>, <strong>voucher/potongan</strong> pada transaksi berikutnya,
+                atau <strong>pengembalian dana (parsial/penuh)</strong> sesuai hasil pemeriksaan
+                dan kebijakan Pengelola.
+              </li>
+              <li>
+                Pengembalian dana untuk pembayaran non-tunai (QRIS, e-wallet, kartu, dsb.)
+                akan diproses melalui metode yang sama (bila memungkinkan) atau
+                melalui mekanisme lain yang disepakati; waktu proses mengikuti
+                kebijakan penyedia layanan pembayaran.
+              </li>
+              <li>
+                Kesalahan pemesanan oleh pelanggan (misalnya salah pilih menu,
+                salah memasukkan alamat, atau ketidakcocokan selera)
+                pada prinsipnya <strong>tidak menjadi dasar retur/pengembalian dana</strong>,
+                kecuali Pengelola memutuskan lain sebagai bentuk layanan.
+              </li>
+              <li>
+                Untuk layanan billiard, retur/pengembalian dana hanya dipertimbangkan
+                bila terjadi <strong>gangguan signifikan</strong> yang bersumber dari Pengelola
+                (misalnya meja rusak, listrik padam berkepanjangan), dan
+                Pengelola tidak dapat menyediakan <strong>slot pengganti</strong> yang wajar.
+              </li>
+              <li>
+                Apabila transaksi menggunakan voucher/promo, Pengelola dapat memilih
+                untuk mengembalikan dalam bentuk <strong>voucher pengganti</strong> atau
+                <strong>reschedule</strong>, bukan dalam bentuk uang tunai.
+              </li>
+            </ul>
+          </div>
+        </section>
 
         <!-- Kebijakan Produk -->
         <section id="kebijakan-produk" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">10) Kebijakan Produk &amp; Kualitas</h2>
+            <h2 class="h4">11) Kebijakan Produk &amp; Kualitas</h2>
             <ul class="mb-0">
               <li>Kami menjaga standar kebersihan dan kualitas; perbedaan tampilan/penyajian dapat terjadi karena ketersediaan bahan musiman.</li>
               <li>Informasi <strong>alergen</strong> dapat diminta kepada staf; pelanggan bertanggung jawab memberi tahu pantangan/kondisi alergi.</li>
@@ -311,7 +359,7 @@
         <!-- Ketertiban & Larangan -->
         <section id="larangan" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">11) Ketertiban, Keamanan &amp; Larangan</h2>
+            <h2 class="h4">12) Ketertiban, Keamanan &amp; Larangan</h2>
             <ol class="mb-0">
               <li>Dilarang merokok di area non-smoking dan dilarang membawa minuman keras/obat terlarang ke area terlarang.</li>
               <li>Dilarang membawa makanan/minuman dari luar tanpa izin Pengelola.</li>
@@ -324,7 +372,7 @@
         <!-- Privasi -->
         <section id="privasi" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">12) Privasi &amp; Perlindungan Data</h2>
+            <h2 class="h4">13) Privasi &amp; Perlindungan Data</h2>
             <p class="mb-2">
               Pemrosesan data pribadi mengikuti <a href="<?php echo site_url('hal/privacy_policy') ?>">Kebijakan Privasi</a>.
               Pengelola mematuhi ketentuan perundang-undangan, termasuk <strong>UU PDP No. 27/2022</strong>.
@@ -340,7 +388,7 @@
         <!-- Ketersediaan -->
         <section id="ketersediaan" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">13) Ketersediaan &amp; Perubahan Layanan</h2>
+            <h2 class="h4">14) Ketersediaan &amp; Perubahan Layanan</h2>
             <ol class="mb-0">
               <li>Layanan disediakan “sebagaimana adanya”; potensi gangguan dapat terjadi karena pemeliharaan/jaringan/pihak ketiga.</li>
               <li>Menu, harga, jam operasional, dan kebijakan dapat disesuaikan untuk peningkatan layanan.</li>
@@ -351,7 +399,7 @@
         <!-- Tanggung Jawab -->
         <section id="tanggung-jawab" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">14) Tanggung Jawab &amp; Batasan</h2>
+            <h2 class="h4">15) Tanggung Jawab &amp; Batasan</h2>
             <ol class="mb-0">
               <li>Pengelola tidak bertanggung jawab atas keterlambatan kurir, gangguan pihak ketiga, atau kesalahan alamat dari pelanggan.</li>
               <li>Kerugian akibat pelanggaran S&amp;K oleh pelanggan menjadi tanggung jawab pelanggan.</li>
@@ -363,7 +411,7 @@
         <!-- KI -->
         <section id="ki" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">15) Kekayaan Intelektual</h2>
+            <h2 class="h4">16) Kekayaan Intelektual</h2>
             <p class="mb-0">
               Seluruh logo, nama, konten, foto, tampilan antarmuka, dan kode pada sistem dilindungi hukum.
               Dilarang menyalin, memodifikasi, atau mendistribusikan tanpa izin tertulis Pengelola.
@@ -374,7 +422,7 @@
         <!-- Force Majeure -->
         <section id="force-majeure" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">16) Force Majeure</h2>
+            <h2 class="h4">17) Force Majeure</h2>
             <p class="mb-0">
               Pengelola dibebaskan dari tuntutan atas kejadian di luar kendali (bencana, listrik/jaringan, kebijakan pemerintah, dsb.)
               yang mengakibatkan layanan terganggu.
@@ -385,7 +433,7 @@
         <!-- Perubahan S&K -->
         <section id="perubahan" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">17) Perubahan Syarat &amp; Ketentuan</h2>
+            <h2 class="h4">18) Perubahan Syarat &amp; Ketentuan</h2>
             <p class="mb-0">
               Pengelola dapat memperbarui dokumen ini sewaktu-waktu. Versi terbaru akan ditampilkan pada situs/aplikasi.
               Penggunaan berkelanjutan setelah perubahan dianggap sebagai persetujuan pelanggan.
@@ -396,7 +444,7 @@
         <!-- Hukum -->
         <section id="hukum" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">18) Hukum &amp; Penyelesaian Sengketa</h2>
+            <h2 class="h4">19) Hukum &amp; Penyelesaian Sengketa</h2>
             <p class="mb-0">
               S&amp;K ini tunduk pada hukum Republik Indonesia. Sengketa diselesaikan terlebih dahulu melalui musyawarah;
               jika tidak tercapai, mengikuti mekanisme yang berlaku di wilayah <?php echo isset($rec->kabupaten) ? '<strong>'.$rec->kabupaten.'</strong>' : '<strong>Kota Makassar</strong>'; ?>.
@@ -407,7 +455,7 @@
         <!-- Kontak -->
         <section id="kontak" class="card mb-3">
           <div class="card-body">
-            <h2 class="h4">19) Kontak</h2>
+            <h2 class="h4">20) Kontak</h2>
             <p class="mb-2">Pertanyaan terkait S&amp;K dapat dikirim ke:</p>
             <address class="mb-0">
               <strong>Pengelola <?php echo $rec->nama_website ?? 'Ausi Cafe & Billiard'; ?></strong><br>
