@@ -407,10 +407,14 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
             $labelV .= ' ('.htmlspecialchars($codeTrim, ENT_QUOTES, 'UTF-8').')';
         }
 
+        $labelSafe = htmlspecialchars($labelV, ENT_QUOTES, 'UTF-8');
+
         $chips[] =
-            '<span class="badge badge-pill badge-warning mr-1 mb-1">'
-          .   '<i class="mdi mdi-ticket-percent mr-1"></i>'.$labelV
+            '<span class="badge badge-pill voucher-chip mr-1 mb-1">'
+          .   '<span class="voucher-chip-icon"><i class="mdi mdi-ticket-percent"></i></span>'
+          .   '<span class="voucher-chip-text">'.$labelSafe.'</span>'
           . '</span>';
+
     }
 
     // kalau sama sekali tidak ada chip

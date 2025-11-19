@@ -76,6 +76,40 @@
       0%   { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
+    /* ==== CHIP KHUSUS VOUCHER ==== */
+.voucher-chip{
+  background: #fff7ed;                       /* krem lembut */
+  color: #9a3412;                            /* coklat orange */
+  border-radius: 999px;
+  border: 1px dashed #fb923c;                /* garis putus-putus ala kupon */
+  display: inline-flex;
+  align-items: center;
+  padding: .15rem .6rem .15rem .4rem;
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+.voucher-chip-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fed7aa;                       /* lingkaran oranye muda */
+  margin-right: .25rem;
+}
+
+.voucher-chip-icon i{
+  font-size: .9rem;
+  line-height: 1;
+}
+
+.voucher-chip-text{
+  white-space: nowrap;
+}
+
   </style>
 
   <div class="row">
