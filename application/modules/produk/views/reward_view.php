@@ -74,14 +74,48 @@ if (!function_exists('mask_name')) {
   <div class="row">
     <div class="col-12 col-lg-10 col-xl-8 mx-auto">
 
-            <!-- PENGUMUMAN REWARD -->
+      <!-- PENGUMUMAN REWARD -->
       <div class="card mb-3 shadow-sm border-0">
         <div class="card-body text-center">
 
           <?php
           // 7 = Minggu (PHP: date('N')), untuk ganti teks "minggu ini" / "minggu lalu"
           $isTodayAnnouncement = !empty($is_announcement_time);
+
+          // TRUE kalau periode punya range tanggal
+          $hasRange = !empty($periode_mulai_str) && !empty($periode_selesai_str);
           ?>
+
+          <!-- ========== HITUNG MUNDUR SELALU DI ATAS ========== -->
+          <div class="mb-3">
+            <p class="mb-1 text-dark small">
+              Hitung mundur menuju pengumuman berikutnya:
+            </p>
+            <div id="reward-countdown"
+                 class="reward-countdown-wrap"
+                 aria-live="polite">
+              <div class="reward-countdown-item">
+                <div class="reward-countdown-value" data-unit="days">0</div>
+                <div class="reward-countdown-label">Hari</div>
+              </div>
+              <div class="reward-countdown-item">
+                <div class="reward-countdown-value" data-unit="hours">00</div>
+                <div class="reward-countdown-label">Jam</div>
+              </div>
+              <div class="reward-countdown-item">
+                <div class="reward-countdown-value" data-unit="minutes">00</div>
+                <div class="reward-countdown-label">Menit</div>
+              </div>
+              <div class="reward-countdown-item">
+                <div class="reward-countdown-value" data-unit="seconds">00</div>
+                <div class="reward-countdown-label">Detik</div>
+              </div>
+            </div>
+            <p class="mb-0 mt-2 text-dark small">
+              Waktu mengikuti zona <strong>SIWA</strong>.
+            </p>
+          </div>
+          <!-- ========== END HITUNG MUNDUR ========== -->
 
           <?php if (!empty($winner_top)): ?>
 
@@ -91,19 +125,15 @@ if (!function_exists('mask_name')) {
             </h4>
 
             <p class="mb-3 text-dark small">
-             <?php
-// TRUE kalau sekarang sudah Minggu ≥ 08:00 WITA (kalau mau pakai flag dari controller, boleh juga)
-             $hasRange = !empty($periode_mulai_str) && !empty($periode_selesai_str);
-             ?>
 
-             <?php if ($hasRange): ?>
-              <?php if ($isSunday): ?>
-                Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
-                untuk rekap poin periode
-                <strong>
-                  <?= html_escape($periode_mulai_str); ?> – <?= html_escape($periode_selesai_str); ?>
-                  (Minggu 00:00 – Sabtu 23:59 WITA)
-                </strong>.
+              <?php if ($hasRange): ?>
+                <?php if ($isSunday): ?>
+                  Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
+                  untuk rekap poin periode
+                  <strong>
+                    <?= html_escape($periode_mulai_str); ?> – <?= html_escape($periode_selesai_str); ?>
+                    (Minggu 00:00 – Sabtu 23:59 WITA)
+                  </strong>.
                 <?php else: ?>
                   Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
                   <strong>
@@ -111,15 +141,15 @@ if (!function_exists('mask_name')) {
                     (Minggu 00:00 – Sabtu 23:59 WITA)
                   </strong>.
                 <?php endif; ?>
+              <?php else: ?>
+                <?php if ($isSunday): ?>
+                  Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
+                  untuk rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
                 <?php else: ?>
-                  <?php if ($isSunday): ?>
-                    Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
-                    untuk rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
-                    <?php else: ?>
-                      Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
-                      <strong>minggu lalu</strong>.
-                    <?php endif; ?>
-                  <?php endif; ?>
+                  Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
+                  <strong>minggu lalu</strong>.
+                <?php endif; ?>
+              <?php endif; ?>
 
             </p>
 
@@ -134,23 +164,22 @@ if (!function_exists('mask_name')) {
                   </div>
 
                   <div class="reward-name">
-                      <?= html_escape(mask_name($winner_top->nama)); ?>
-                    </div>
+                    <?= html_escape(mask_name($winner_top->nama)); ?>
+                  </div>
 
-                    <div class="reward-row">
-                      <span class="reward-row-label">No. WA</span>
-                      <span class="reward-row-value">
-                        <?= html_escape(mask_phone($winner_top->no_hp)); ?>
-                      </span>
-                    </div>
+                  <div class="reward-row">
+                    <span class="reward-row-label">No. WA</span>
+                    <span class="reward-row-value">
+                      <?= html_escape(mask_phone($winner_top->no_hp)); ?>
+                    </span>
+                  </div>
 
-                    <div class="reward-row">
-                      <span class="reward-row-label">Voucher</span>
-                      <span class="reward-pill pill-green">
-                        Voucher order Rp <?= number_format((int)$winner_top->nilai, 0, ',', '.'); ?>
-                      </span>
-                    </div>
-
+                  <div class="reward-row">
+                    <span class="reward-row-label">Voucher</span>
+                    <span class="reward-pill pill-green">
+                      Voucher order Rp <?= number_format((int)$winner_top->nilai, 0, ',', '.'); ?>
+                    </span>
+                  </div>
 
                   <div class="reward-note">
                     Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
@@ -201,7 +230,6 @@ if (!function_exists('mask_name')) {
                       </span>
                     </div>
 
-
                     <div class="reward-note">
                       Pemenang acak dipilih oleh <strong>Robot Ausi</strong> dari seluruh pelanggan
                       yang memiliki <strong>poin &gt; 0</strong> pada pekan tersebut
@@ -212,36 +240,6 @@ if (!function_exists('mask_name')) {
                 </div>
               <?php endif; ?>
 
-            </div>
-
-            <!-- Countdown menuju pengumuman berikutnya -->
-            <div class="mt-3">
-              <p class="mb-1 text-dark small">
-                Hitung mundur menuju pengumuman berikutnya:
-              </p>
-              <div id="reward-countdown"
-                   class="reward-countdown-wrap"
-                   aria-live="polite">
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="days">0</div>
-                  <div class="reward-countdown-label">Hari</div>
-                </div>
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="hours">00</div>
-                  <div class="reward-countdown-label">Jam</div>
-                </div>
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="minutes">00</div>
-                  <div class="reward-countdown-label">Menit</div>
-                </div>
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="seconds">00</div>
-                  <div class="reward-countdown-label">Detik</div>
-                </div>
-              </div>
-              <p class="mb-0 mt-2 text-dark small">
-                Waktu mengikuti zona <strong>SIWA</strong>.
-              </p>
             </div>
 
             <p class="mt-3 mb-0 small text-dark">
@@ -277,34 +275,6 @@ if (!function_exists('mask_name')) {
               </span>
             </div>
 
-            <div class="mb-1">
-              <p class="mb-1 text-dark small">
-                Hitung mundur menuju pengumuman berikutnya:
-              </p>
-              <div id="reward-countdown"
-                   class="reward-countdown-wrap"
-                   aria-live="polite">
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="days">0</div>
-                  <div class="reward-countdown-label">Hari</div>
-                </div>
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="hours">00</div>
-                  <div class="reward-countdown-label">Jam</div>
-                </div>
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="minutes">00</div>
-                  <div class="reward-countdown-label">Menit</div>
-                </div>
-                <div class="reward-countdown-item">
-                  <div class="reward-countdown-value" data-unit="seconds">00</div>
-                  <div class="reward-countdown-label">Detik</div>
-                </div>
-              </div>
-              <p class="mb-0 mt-2 text-dark small">
-                Waktu mengikuti zona <strong>SIWA</strong>.
-              </p>
-            </div>
             <p class="mb-2 text-dark">
               Pengumuman <strong>poin tertinggi</strong> dan <strong>1 pemenang acak</strong>
               akan tampil di halaman ini setiap <strong>Minggu, pukul 08:00 WITA</strong>,
