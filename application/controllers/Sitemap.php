@@ -75,40 +75,27 @@ class Sitemap extends Onhacker_Controller
 
     /* ========== /sitemap-static.xml (STATIS) ========== */
    public function static_pages(){
-        $rows = [
-            // Home
-            ['loc'=>$this->_abs('/'),                       'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'1.00'],
-            // Billiard main page
-            ['loc'=>$this->_abs('billiard'),               'last'=>'2025-11-01', 'chg'=>'hourly', 'prio'=>'0.90'],
-            // Daftar Meja Billiard
-            ['loc'=>$this->_abs('meja_billiard'),          'last'=>'2025-11-01', 'chg'=>'hourly', 'prio'=>'0.85'],
-            // Booking list
-            ['loc'=>$this->_abs('billiard/daftar_booking'),'last'=>'2025-11-01', 'chg'=>'hourly', 'prio'=>'0.85'],
-            // Voucher list
-            ['loc'=>$this->_abs('billiard/daftar_voucher'),'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.80'],
-            // Produk / menu
-            ['loc'=>$this->_abs('produk'),                 'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.80'],
-            // Cafe
-            ['loc'=>$this->_abs('cafe'),                   'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.75'],
-            // Scan QR
-            ['loc'=>$this->_abs('scan'),                   'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
-            // Pijat
-            ['loc'=>$this->_abs('pijat'),                  'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
-            // Review
-            ['loc'=>$this->_abs('hal/review'),             'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
-            // Hal
-            ['loc'=>$this->_abs('hal'),                    'last'=>'2025-11-01', 'chg'=>'weekly', 'prio'=>'0.60'],
-            // Kontak
-            ['loc'=>$this->_abs('hal/kontak'),             'last'=>'2025-11-01', 'chg'=>'monthly','prio'=>'0.50'],
-            // Pengumuman
-            ['loc'=>$this->_abs('hal/pengumuman'),         'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.70'],
-            // Privacy Policy
-            ['loc'=>$this->_abs('hal/privacy_policy'),     'last'=>'2025-11-01', 'chg'=>'yearly', 'prio'=>'0.30'],
-            // Monitor (ditambahkan)
-            ['loc'=>$this->_abs('monitor'),                'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
-           
-            ['loc'=>$this->_abs('produk/reward'), 'last'=>$today, 'chg'=>'always', 'prio'=>'0.90'],
+         $today = date('Y-m-d'); // format yg kamu pakai di atas
 
+         $rows = [
+            ['loc'=>$this->_abs('/'),                       'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'1.00'],
+            ['loc'=>$this->_abs('billiard'),               'last'=>'2025-11-01', 'chg'=>'hourly', 'prio'=>'0.90'],
+            ['loc'=>$this->_abs('meja_billiard'),          'last'=>'2025-11-01', 'chg'=>'hourly', 'prio'=>'0.85'],
+            ['loc'=>$this->_abs('billiard/daftar_booking'),'last'=>'2025-11-01', 'chg'=>'hourly', 'prio'=>'0.85'],
+            ['loc'=>$this->_abs('billiard/daftar_voucher'),'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.80'],
+            ['loc'=>$this->_abs('produk'),                 'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.80'],
+            ['loc'=>$this->_abs('cafe'),                   'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.75'],
+            ['loc'=>$this->_abs('scan'),                   'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
+            ['loc'=>$this->_abs('pijat'),                  'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
+            ['loc'=>$this->_abs('hal/review'),             'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
+            ['loc'=>$this->_abs('hal'),                    'last'=>'2025-11-01', 'chg'=>'weekly', 'prio'=>'0.60'],
+            ['loc'=>$this->_abs('hal/kontak'),             'last'=>'2025-11-01', 'chg'=>'monthly','prio'=>'0.50'],
+            ['loc'=>$this->_abs('hal/pengumuman'),         'last'=>'2025-11-01', 'chg'=>'daily',  'prio'=>'0.70'],
+            ['loc'=>$this->_abs('hal/privacy_policy'),     'last'=>'2025-11-01', 'chg'=>'yearly', 'prio'=>'0.30'],
+            ['loc'=>$this->_abs('monitor'),                'last'=>'2025-11-01', 'chg'=>'always', 'prio'=>'0.90'],
+
+        // ini yg tadinya error
+            ['loc'=>$this->_abs('produk/reward'),          'last'=>$today,       'chg'=>'always', 'prio'=>'0.90'],
         ];
 
         $xml  = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
