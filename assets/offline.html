@@ -7,23 +7,115 @@
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/assets/images/logo.png" type="image/png">
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f5f5f5;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
       text-align: center;
+      color: #444;
     }
-    h1 { color: #444; }
-    .emoji { font-size: 5rem; }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 2rem 1.75rem 1.75rem;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+    .emoji {
+      font-size: 3.5rem;
+      margin-bottom: 0.75rem;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 0.5rem;
+      color: #333;
+    }
+    p {
+      margin: 0 0 1.25rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #666;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: #999;
+      margin-top: 0.75rem;
+    }
+    .btn-reload {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #ff9800, #ff5722);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s ease;
+    }
+    .btn-reload:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+    }
+    .btn-reload[disabled] {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+    .btn-icon {
+      font-size: 1.1rem;
+    }
   </style>
 </head>
 <body>
-  <div class="emoji">📴</div>
-  <h1>Kamu sedang offline</h1>
-  <p>Silakan periksa koneksi internet kamu.</p>
+  <div class="card">
+    <div class="emoji">📴</div>
+    <h1>Kamu sedang offline</h1>
+    <p>
+      Silakan periksa koneksi internet kamu.<br>
+      Jika koneksi sudah normal, coba muat ulang halaman.
+    </p>
+    <button id="reload-btn" class="btn-reload" type="button">
+      <span class="btn-icon">🔄</span>
+      <span>Muat ulang</span>
+    </button>
+    <div class="hint">
+      Halaman ini muncul dari mode offline aplikasi Ausi.
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var btn = document.getElementById('reload-btn');
+      if (!btn) return;
+
+      btn.addEventListener('click', function () {
+        // kasih feedback sedikit ke user
+        btn.disabled = true;
+        btn.querySelector('span:last-child').textContent = 'Memuat...';
+        try {
+          location.reload();
+        } catch (e) {
+          // fallback kalau reload gagal
+          btn.disabled = false;
+          btn.querySelector('span:last-child').textContent = 'Muat ulang';
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

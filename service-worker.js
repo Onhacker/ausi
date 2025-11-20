@@ -1,6 +1,6 @@
 /* ===== Service Worker (AUSI) — no-504-from-SW ===== */
 
-const CACHE_NAME  = 'ausi-46';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-47';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 
@@ -182,16 +182,27 @@ self.addEventListener('fetch', (event) => {
         const fresh = await fetch(req, { cache: 'no-store', credentials: 'include' });
 
         // MASK 5xx dari server agar tidak terlihat 504 di klien
+       // MASK 5xx dari server agar tidak terlihat 504 di klien
         if (SUPPRESS_5XX && fresh.status >= 500) {
           const key = pathKey(req);
-          const cached = await caches.match(key) || await caches.match('/') || await caches.match(OFFLINE_URL);
+
+          // 1) kalau ada cache untuk path sekarang, pakai itu
+          const cached = await caches.match(key) || await caches.match(OFFLINE_URL);
           if (cached) return cached;
-          // Selalu beri offline.html dengan 200 agar user tidak lihat error HTTP
-          return new Response(await (await fetch(OFFLINE_URL)).text?.() ?? 'Offline', {
+
+          // 2) last resort: coba fetch offline.html langsung
+          try {
+            const off = await fetch(OFFLINE_URL, { cache: 'reload' });
+            if (off.ok) return off;
+          } catch {}
+
+          // 3) kalau semua gagal, minimal kirim teks Offline
+          return new Response('Offline', {
             status: 200,
             headers: { 'Content-Type': 'text/html' }
           });
         }
+
 
         const cc = fresh.headers.get('cache-control') || '';
         const isNoStore = /no-store|private/i.test(cc) || fresh.headers.get('x-auth-logged-in') === '1';
@@ -203,13 +214,15 @@ self.addEventListener('fetch', (event) => {
         }
         return fresh;
       } catch {
-        const key = pathKey(req);
-        return (await caches.match(key)) ||
-         (await caches.match('/')) ||
-         (await caches.match(OFFLINE_URL)) ||
-         new Response('Offline', { status: 200, headers: { 'Content-Type': 'text/html' } });
+          const key = pathKey(req);
+          return (await caches.match(key)) ||
+                 (await caches.match(OFFLINE_URL)) ||
+                 new Response('Offline', {
+                   status: 200,
+                   headers: { 'Content-Type': 'text/html' }
+                 });
+        }
 
-      }
     })());
     return;
   }
