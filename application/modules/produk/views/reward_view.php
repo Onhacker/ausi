@@ -61,7 +61,6 @@ if (!function_exists('mask_name')) {
 }
 ?>
 
-
 <div class="container-fluid">
 
   <!-- HERO TITLE -->
@@ -81,41 +80,49 @@ if (!function_exists('mask_name')) {
           <?php
           // 7 = Minggu (PHP: date('N')), untuk ganti teks "minggu ini" / "minggu lalu"
           $isTodayAnnouncement = !empty($is_announcement_time);
-
-          // TRUE kalau periode punya range tanggal
           $hasRange = !empty($periode_mulai_str) && !empty($periode_selesai_str);
           ?>
 
-          <!-- ========== HITUNG MUNDUR SELALU DI ATAS ========== -->
+          <!-- ===== COUNTDOWN SELALU DI ATAS ===== -->
           <div class="mb-3">
             <p class="mb-1 text-dark small">
               Hitung mundur menuju pengumuman berikutnya:
             </p>
-            <div id="reward-countdown"
-                 class="reward-countdown-wrap"
-                 aria-live="polite">
-              <div class="reward-countdown-item">
-                <div class="reward-countdown-value" data-unit="days">0</div>
-                <div class="reward-countdown-label">Hari</div>
+
+            <div class="reward-clock-container"
+                 role="group"
+                 aria-label="Timer hitung mundur pengumuman reward">
+              <div class="reward-clock-col">
+                <div id="reward_days"
+                     class="reward-clock-timer"
+                     aria-label="Sisa hari">&nbsp;</div>
+                <div class="reward-clock-label reward-label-days">Hari</div>
               </div>
-              <div class="reward-countdown-item">
-                <div class="reward-countdown-value" data-unit="hours">00</div>
-                <div class="reward-countdown-label">Jam</div>
+              <div class="reward-clock-col">
+                <div id="reward_hours"
+                     class="reward-clock-timer"
+                     aria-label="Sisa jam">&nbsp;</div>
+                <div class="reward-clock-label">Jam</div>
               </div>
-              <div class="reward-countdown-item">
-                <div class="reward-countdown-value" data-unit="minutes">00</div>
-                <div class="reward-countdown-label">Menit</div>
+              <div class="reward-clock-col">
+                <div id="reward_minutes"
+                     class="reward-clock-timer"
+                     aria-label="Sisa menit">&nbsp;</div>
+                <div class="reward-clock-label">Menit</div>
               </div>
-              <div class="reward-countdown-item">
-                <div class="reward-countdown-value" data-unit="seconds">00</div>
-                <div class="reward-countdown-label">Detik</div>
+              <div class="reward-clock-col">
+                <div id="reward_seconds"
+                     class="reward-clock-timer"
+                     aria-label="Sisa detik">&nbsp;</div>
+                <div class="reward-clock-label">Detik</div>
               </div>
             </div>
+
             <p class="mb-0 mt-2 text-dark small">
               Waktu mengikuti zona <strong>SIWA</strong>.
             </p>
           </div>
-          <!-- ========== END HITUNG MUNDUR ========== -->
+          <!-- ===== END COUNTDOWN ===== -->
 
           <?php if (!empty($winner_top)): ?>
 
@@ -125,7 +132,6 @@ if (!function_exists('mask_name')) {
             </h4>
 
             <p class="mb-3 text-dark small">
-
               <?php if ($hasRange): ?>
                 <?php if ($isSunday): ?>
                   Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
@@ -150,7 +156,6 @@ if (!function_exists('mask_name')) {
                   <strong>minggu lalu</strong>.
                 <?php endif; ?>
               <?php endif; ?>
-
             </p>
 
             <div class="row g-3 justify-content-center">
@@ -344,7 +349,6 @@ if (!function_exists('mask_name')) {
         </div>
       </div>
 
-
       <!-- INFO CARD -->
       <div class="card shadow-sm border-0">
         <div class="card-body">
@@ -455,35 +459,85 @@ if (!function_exists('mask_name')) {
     font-style:italic;
   }
 
-  /* Countdown pill (angka putih, label ada spasi) */
-  .reward-countdown-wrap{
+  /* Countdown baru – model "clock" 4 kolom, selalu di atas */
+  .reward-clock-container{
+    border-radius:8px;
+    box-shadow:0 10px 25px rgba(15,23,42,.08);
+    width:100%;
+    max-width:640px;
+    margin:0 auto;
     display:flex;
-    justify-content:center;
     flex-wrap:wrap;
-    gap:8px;
+    overflow:hidden;
   }
-  .reward-countdown-item{
-    min-width:72px;
-    padding:6px 12px;
-    border-radius:999px;
-    background:#111827;
-    border:1px solid #111827;
-    display:inline-flex;
-    align-items:baseline;
-    justify-content:center;
-    gap:4px;
+  .reward-clock-col{
+    flex:1 1 25%;
+    min-width:25%;
+    text-align:center;
+    border-right:1px solid rgba(15,23,42,.4);
+    background:linear-gradient(
+      180deg,
+      rgba(0,110,162,1) 0%,
+      rgba(1,78,115,1) 100%
+    );
   }
-  .reward-countdown-value{
-    font-size:1.1rem;
-    font-weight:700;
-    line-height:1;
+  .reward-clock-col:first-child{
+    background:#23395b;
+  }
+  .reward-clock-col:last-child{
+    border-right:none;
+  }
+  @media (max-width:576px){
+    .reward-clock-col{
+      flex:1 1 50%;
+      min-width:50%;
+    }
+    .reward-clock-col:nth-child(2){
+      border-right:none;
+    }
+  }
+  .reward-clock-timer{
     color:#ffffff;
+    font-size:1.8rem;
+    padding:14px 0;
+    box-shadow:0 -4px 6px -4px rgba(15,23,42,.7);
+    font-weight:700;
+    line-height:1.1;
   }
-  .reward-countdown-label{
-    font-size:.78rem;
+  .reward-clock-label{
+    color:#ffffff;
     text-transform:uppercase;
+    font-size:.8rem;
+    padding:8px 0;
+    margin:0;
+    background:linear-gradient(
+      180deg,
+      rgba(2,73,107,1) 0%,
+      rgba(0,110,162,1) 100%
+    );
+    border-top:1px solid #013e5b;
     letter-spacing:.08em;
-    color:#e5e7eb;
+  }
+  .reward-label-days{
+    background:#23395b;
+    border-top:1px solid #161925;
+  }
+  .reward-expired-message{
+    font-size:.95rem;
+    font-weight:600;
+    color:#f9fafb;
+    padding:10px 0;
+  }
+
+  @media (min-width:768px){
+    .reward-clock-timer{
+      font-size:2.2rem;
+      padding:18px 0;
+    }
+    .reward-clock-label{
+      font-size:.85rem;
+      padding:10px 0;
+    }
   }
 
   /*@media (prefers-color-scheme: dark){*/
@@ -496,44 +550,41 @@ if (!function_exists('mask_name')) {
     .reward-note{
       color:#e5e7eb;
     }
-    .reward-countdown-item{
-      background:#020617;
-      border-color:#020617;
-    }
   /*}*/
 </style>
 
 <script>
 (function () {
-  const wrap = document.getElementById('reward-countdown');
-  if (!wrap) return;
+  const container = document.querySelector('.reward-clock-container');
+  if (!container) return;
 
   const targetStr = '<?= isset($next_announcement_iso) ? $next_announcement_iso : ''; ?>';
   if (!targetStr) {
-    wrap.innerHTML = '<span class="small text-dark">-</span>';
+    container.innerHTML = '<div class="reward-expired-message">-</div>';
     return;
   }
 
-  const target = new Date(targetStr);
+  const countDownDate = new Date(targetStr).getTime();
+  const elDays    = document.getElementById('reward_days');
+  const elHours   = document.getElementById('reward_hours');
+  const elMinutes = document.getElementById('reward_minutes');
+  const elSeconds = document.getElementById('reward_seconds');
 
-  const elDays    = wrap.querySelector('[data-unit="days"]');
-  const elHours   = wrap.querySelector('[data-unit="hours"]');
-  const elMinutes = wrap.querySelector('[data-unit="minutes"]');
-  const elSeconds = wrap.querySelector('[data-unit="seconds"]');
-
-  const boxDays    = elDays    ? elDays.closest('.reward-countdown-item') : null;
-  const boxHours   = elHours   ? elHours.closest('.reward-countdown-item') : null;
-  const boxMinutes = elMinutes ? elMinutes.closest('.reward-countdown-item') : null;
-  const boxSeconds = elSeconds ? elSeconds.closest('.reward-countdown-item') : null;
+  if (!elDays || !elHours || !elMinutes || !elSeconds) {
+    return;
+  }
 
   function pad2(n){ return n.toString().padStart(2,'0'); }
 
-  function tick() {
-    const now  = new Date();
-    const diff = target - now;
+  let timerId;
 
-    if (diff <= 0) {
-      wrap.innerHTML = '<span class="small fw-semibold text-dark">Sedang proses pengumuman...</span>';
+  function update() {
+    const now = Date.now();
+    const distance = countDownDate - now;
+
+    if (distance <= 0) {
+      clearInterval(timerId);
+      container.innerHTML = '<div class="reward-expired-message">🎉 Sedang proses pengumuman...</div>';
       // reload supaya otomatis menampilkan pemenang
       setTimeout(function () {
         location.reload();
@@ -541,51 +592,20 @@ if (!function_exists('mask_name')) {
       return;
     }
 
-    const totalSec = Math.floor(diff / 1000);
+    const totalSec = Math.floor(distance / 1000);
     const days     = Math.floor(totalSec / 86400);
     const hours    = Math.floor((totalSec % 86400) / 3600);
     const minutes  = Math.floor((totalSec % 3600) / 60);
     const seconds  = totalSec % 60;
 
-    // Hari: sembunyikan jika 0
-    if (elDays && boxDays) {
-      if (days <= 0) {
-        boxDays.style.display = 'none';
-      } else {
-        boxDays.style.display = 'inline-flex';
-        elDays.textContent = days;
-      }
-    }
-
-    // Jam: sembunyikan jika 0
-    if (elHours && boxHours) {
-      if (hours <= 0) {
-        boxHours.style.display = 'none';
-      } else {
-        boxHours.style.display = 'inline-flex';
-        elHours.textContent = pad2(hours);
-      }
-    }
-
-    // Menit: sembunyikan jika 0
-    if (elMinutes && boxMinutes) {
-      if (minutes <= 0) {
-        boxMinutes.style.display = 'none';
-      } else {
-        boxMinutes.style.display = 'inline-flex';
-        elMinutes.textContent = pad2(minutes);
-      }
-    }
-
-    // Detik: tetap tampil
-    if (elSeconds && boxSeconds) {
-      boxSeconds.style.display = 'inline-flex';
-      elSeconds.textContent = pad2(seconds);
-    }
+    elDays.textContent    = days;
+    elHours.textContent   = pad2(hours);
+    elMinutes.textContent = pad2(minutes);
+    elSeconds.textContent = pad2(seconds);
   }
 
-  tick();
-  setInterval(tick, 1000);
+  update();
+  timerId = setInterval(update, 1000);
 })();
 </script>
 
