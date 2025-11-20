@@ -1142,7 +1142,7 @@ public function reward_cron()
 
 
 
-public function reward()
+public function rewardx()
 {
     $this->_nocache_headers();
     date_default_timezone_set('Asia/Makassar');
