@@ -583,13 +583,15 @@ ease; */
       </div>
 
        <!-- Riwayat Bookingku -->
-      <div class="col-12 mb-2">
-        <a href="<?= site_url('billiard/riwayat_booking') ?>"
-          class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
-          <span class="me-2 mr-2" aria-hidden="true">🕒</span>
-          <span>Riwayat Bookingku</span>
-        </a>
-      </div>
+       <!-- Riwayat Bookingku -->
+       <div class="col-12 mb-2">
+       <button type="button" id="swalBtnRiwayat"
+       class="btn btn-blue btn-rounded btn-block d-flex align-items-center justify-content-center">
+       <span class="me-2 mr-2" aria-hidden="true">🕒</span>
+       <span>Riwayat Bookingku</span>
+       </button>
+       </div>
+
 
       <div class="col-12 mb-2">
         <button type="button" id="swalBtnList"
@@ -648,6 +650,8 @@ ease; */
         const btnList    = document.getElementById('swalBtnList');
         const btnGratis  = document.getElementById('swalBtnGratis');
         const btnHistory = document.getElementById('swalBtnHistory');
+        const btnRiwayat = document.getElementById('swalBtnRiwayat');
+        const RIWAYAT_BOOKING_URL = "<?= site_url('billiard/riwayat_booking') ?>";
 
         btnBooking?.addEventListener('click', () => {
           makeBtnLoading(btnBooking);
@@ -668,7 +672,11 @@ ease; */
           makeBtnLoading(btnHistory);
           go(l?.dataset.history || l?.dataset.list || l?.getAttribute('href'));
         });
-
+          // 🔔 RIWAYAT BOOKINGKU – sekarang ikut loading
+        btnRiwayat?.addEventListener('click', () => {
+          makeBtnLoading(btnRiwayat);
+          go(RIWAYAT_BOOKING_URL);
+        });
        
       }
     });

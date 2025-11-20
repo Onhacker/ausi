@@ -293,6 +293,28 @@ function compress_to_target($srcPath, $destPath, $targetKB = 500, $maxW = 1600, 
     return ['ok'=>true, 'path'=>$destPath, 'bytes'=>$bestSize, 'kb'=>round($bestSize/1024,1), 'format'=>$outFormat];
 }
 
+    
+    /** 
+ * Bersihkan cache katalog produk (list_ajax).
+ * Dipanggil setiap ada perubahan data produk (stok, harga, nama, dll).
+ */
+private function _clear_product_list_cache()
+{
+    $this->load->driver('cache', ['adapter' => 'file']);
+
+    $registryKey = 'prod_list_registry';
+    $reg = $this->cache->get($registryKey);
+
+    if (is_array($reg)) {
+        foreach ($reg as $key) {
+            $this->cache->delete($key); // hapus setiap cache list produk
+        }
+    }
+
+    // hapus juga registry-nya supaya bersih
+    $this->cache->delete($registryKey);
+}
+
 
     public function update(){
         $this->load->library('form_validation');
@@ -396,6 +418,7 @@ function compress_to_target($srcPath, $destPath, $targetKB = 500, $maxW = 1600, 
         $ok = $this->db->where('id',$id)->update('produk', $upd);
 
         if ($ok){ $this->purge_public_caches(); }
+         $this->_clear_product_list_cache();
 
         echo json_encode(["success"=>$ok,"title"=>$ok?"Berhasil":"Gagal","pesan"=>$ok?"Data diupdate":"Gagal update"]);
     }

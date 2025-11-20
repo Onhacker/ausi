@@ -378,6 +378,132 @@ private function _db_fail_response_if_any()
 }
 
 
+// public function list_ajax(){
+//     $this->_nocache_headers();
+//     $this->_ensure_db();
+
+//     // ===== input dasar =====
+//     $q        = trim($this->input->get('q', true) ?: '');
+//     $sub      = $this->input->get('sub', true) ?: $this->input->get('sub_kategori', true) ?: '';
+//     $kategori = $this->input->get('kategori', true) ?: '';
+//     $sort_in  = strtolower((string)($this->input->get('sort', true) ?: 'random'));
+//     $page     = max(1, (int)($this->input->get('page') ?: 1));
+//     $per_page = max(1, min(50, (int)($this->input->get('per_page') ?: 12)));
+
+//     // recommended (?rec=1 atau ?recommended=1)
+//     $rec_get = $this->input->get('recommended', true);
+//     $rec_alt = $this->input->get('rec', true);
+//     $recommended = ((string)$rec_get === '1' || (string)$rec_alt === '1') ? 1 : 0;
+
+//     // alias sort ID -> EN
+//     $aliasMap = [
+//         'terlaris' => 'bestseller',
+//         'populer'  => 'bestseller',
+//         'hot'      => 'trending',
+//         'naik'     => 'trending',
+//     ];
+//     $sort_in = $aliasMap[$sort_in] ?? $sort_in;
+
+//     // normalisasi sort
+//     $allowedSort = ['random','new','price_low','price_high','sold_out','bestseller','trending'];
+//     $sort = in_array($sort_in, $allowedSort, true) ? $sort_in : 'random';
+
+//     // ====== TRENDING FILTER ======
+//     $trend_param    = strtolower((string)($this->input->get('trend', true) ?: ''));
+//     $trend_days_in  = (int)($this->input->get('trend_days', true) ?: 0);
+//     $trend_min_in   = (float)($this->input->get('trend_min',  true) ?: 0);
+
+//     $trend_flag = 0;      // nonaktif default
+//     $trend_days = 14;     // window default
+//     $trend_min  = 1.0;    // skor minimal default
+
+//     if (
+//         $trend_param === '1' || $trend_param === 'true' || $trend_param === 'yes' ||
+//         in_array($trend_param, ['today','week','month'], true) ||
+//         $trend_days_in > 0 || $trend_min_in > 0
+//     ){
+//         $trend_flag = 1;
+//     }
+//     switch ($trend_param) {
+//         case 'today': $trend_days = 1;  break;
+//         case 'week':  $trend_days = 7;  break;
+//         case 'month': $trend_days = 30; break;
+//     }
+//     if ($trend_days_in > 0) $trend_days = min(90, max(1, $trend_days_in));
+//     if ($trend_min_in  > 0) $trend_min  = max(0.01, $trend_min_in);
+
+//     // Kalau RECOMMENDED aktif → abaikan kategori & trending
+//     if ($recommended) {
+//         $kategori   = '';
+//         $sub        = '';
+//         $trend_flag = 0;
+//     }
+
+//     // seed untuk random
+//     $seed = '';
+//     if ($sort === 'random') {
+//         // $seed = (string)($this->input->get('seed', true) ?? '');
+//         $tmp_seed = $this->input->get('seed', true);
+//         $seed = (string)($tmp_seed !== null ? $tmp_seed : '');
+//         if ($seed === '') $seed = date('Ymd'); // deterministik harian
+//     }
+//     $this->output->set_header('X-Prod-Seed: '.$seed);
+
+
+//     // ===== filters utk model =====
+//     $filters = [
+//         'q'            => $q,
+//         'kategori'     => $kategori,
+//         'sub_kategori' => $sub,
+//         'sold_out'     => ($sort==='sold_out') ? 1 : 0,
+//         'rand_seed'    => $seed,
+//         'recomended'   => $recommended, // sengaja 1 'm', sesuai kolom lama
+//         'trending'     => $trend_flag ? 1 : 0,
+//         'trend_days'   => $trend_days,
+//         'trend_min'    => $trend_min,
+//     ];
+
+//     // ===== hitung total dulu =====
+//     $total = $this->pm->count_products($filters);
+//     $this->_db_fail_response_if_any();
+
+//     // baru hitung paging
+//     $total_pages = max(1, (int)ceil($total / $per_page));
+//     $page        = min($page, $total_pages);
+//     $offset      = ($page - 1) * $per_page;
+
+//     // ===== ambil data =====
+//     $products = $this->pm->get_products($filters, $per_page, $offset, $sort);
+//     $this->_db_fail_response_if_any();
+
+//     // ===== render partials =====
+//     $items_html = $this->load->view('partials/produk_items_partial', [
+//         'products' => $products
+//     ], true);
+//     $pagi_html  = $this->load->view('partials/produk_pagination_partial', [
+//         'page'        => $page,
+//         'total_pages' => $total_pages
+//     ], true);
+
+//     // ===== output =====
+//     $this->output->set_content_type('application/json')->set_output(json_encode([
+//         'success'         => true,
+//         'items_html'      => $items_html,
+//         'pagination_html' => $pagi_html,
+//         'page'            => $page,
+//         'per_page'        => $per_page,
+//         'total'           => $total,
+//         'total_pages'     => $total_pages,
+//         'sort'            => $sort,
+//         'seed'            => $seed,
+//         'recommended'     => $recommended,
+//         'trend'           => $trend_flag,
+//         'trend_days'      => $trend_days,
+//         'trend_min'       => $trend_min,
+//     ]));
+// }
+
+
 public function list_ajax(){
     $this->_nocache_headers();
     $this->_ensure_db();
@@ -442,13 +568,11 @@ public function list_ajax(){
     // seed untuk random
     $seed = '';
     if ($sort === 'random') {
-        // $seed = (string)($this->input->get('seed', true) ?? '');
         $tmp_seed = $this->input->get('seed', true);
         $seed = (string)($tmp_seed !== null ? $tmp_seed : '');
         if ($seed === '') $seed = date('Ymd'); // deterministik harian
     }
     $this->output->set_header('X-Prod-Seed: '.$seed);
-
 
     // ===== filters utk model =====
     $filters = [
@@ -462,6 +586,38 @@ public function list_ajax(){
         'trend_days'   => $trend_days,
         'trend_min'    => $trend_min,
     ];
+
+    /* ==========================================================
+     *  🔹 CACHING HASIL (PER KOMBINASI FILTER + SORT + PAGE) 🔹
+     * ========================================================== */
+    $this->load->driver('cache', ['adapter' => 'file']); // atau redis/memcached kalau ada
+
+    $cacheKeyData = [
+        'q'        => $q,
+        'kategori' => $kategori,
+        'sub'      => $sub,
+        'sort'     => $sort,
+        'page'     => $page,
+        'per_page' => $per_page,
+        'rec'      => $recommended,
+        'trend'    => $trend_flag,
+        'days'     => $trend_days,
+        'min'      => $trend_min,
+        'seed'     => $seed,
+    ];
+    $cacheKey = 'prod_list_' . md5(json_encode($cacheKeyData));
+
+    // TTL pendek saja biar stok/harga tetap cukup fresh
+    $cacheTTL = 20; // detik (boleh dinaikkan misal 30–60 kalau aman)
+
+    $cachedJson = $this->cache->get($cacheKey);
+    if ($cachedJson !== false && $cachedJson !== null) {
+        // langsung kirim cache
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output($cachedJson);
+        return;
+    }
 
     // ===== hitung total dulu =====
     $total = $this->pm->count_products($filters);
@@ -485,8 +641,8 @@ public function list_ajax(){
         'total_pages' => $total_pages
     ], true);
 
-    // ===== output =====
-    $this->output->set_content_type('application/json')->set_output(json_encode([
+    // ===== output (build sekali, simpan ke cache) =====
+    $response = [
         'success'         => true,
         'items_html'      => $items_html,
         'pagination_html' => $pagi_html,
@@ -500,10 +656,32 @@ public function list_ajax(){
         'trend'           => $trend_flag,
         'trend_days'      => $trend_days,
         'trend_min'       => $trend_min,
-    ]));
+    ];
+
+        $json = json_encode($response);
+
+        // ============== REGISTRY CACHE LIST PRODUK =================
+        // biar nanti di Admin bisa hapus khusus cache produk saja
+        $registryKey = 'prod_list_registry';
+        $reg = $this->cache->get($registryKey);
+        if (!is_array($reg)) $reg = [];
+
+        if (!in_array($cacheKey, $reg, true)) {
+            $reg[] = $cacheKey;
+            // registry boleh hidup agak lama, misal 1 hari
+            $this->cache->save($registryKey, $reg, 86400);
+        }
+        // ============== /REGISTRY ==============================
+
+        // simpan ke cache utama (20 detik)
+        $this->cache->save($cacheKey, $json, $cacheTTL);
+
+        $this->output
+        ->set_content_type('application/json')
+        ->set_output($json);
+    
+
 }
-
-
 
 
 public function subkategori($kategori_id = null){
