@@ -235,12 +235,14 @@ if (!function_exists('mask_name')) {
                       </span>
                     </div>
 
-                    <div class="reward-note">
-                      Pemenang acak dipilih oleh <strong>Robot Ausi</strong> dari seluruh pelanggan
-                      yang memiliki <strong>poin &gt; 0</strong> pada pekan tersebut
-                      (kecuali peraih poin tertinggi), dan berhak atas voucher order
-                      senilai <strong>Rp&nbsp;50.000*</strong>.
-                    </div>
+                  <div class="reward-note">
+                    Pemenang acak ditentukan oleh <strong>Robot Ausi</strong> menggunakan
+                    generator angka acak terkomputerisasi dari seluruh pelanggan yang memiliki
+                    <strong>poin &gt; 0</strong> pada pekan tersebut (kecuali peraih poin tertinggi),
+                    sepenuhnya <strong>tanpa campur tangan manusia</strong>.
+                    Pemenang berhak atas <strong>voucher order senilai Rp&nbsp;50.000*</strong>.
+                  </div>
+
                   </div>
                 </div>
               <?php endif; ?>
@@ -248,15 +250,14 @@ if (!function_exists('mask_name')) {
             </div>
 
             <p class="mt-3 mb-0 small text-dark">
-              No. WhatsApp disensor demi menjaga privasi pelanggan.
               Voucher dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
             </p>
-            <p class="mt-2 mb-0 small text-dark">
+           <!--  <p class="mt-2 mb-0 small text-dark">
               Peraih voucher ditentukan sepenuhnya oleh <strong>Robot Ausi</strong> sesuai
               <em>Syarat &amp; Ketentuan Program Reward</em>: poin dihitung dari transaksi
               berstatus <strong>paid</strong> dalam satu siklus pekan, dengan kombinasi
               <strong>poin tertinggi</strong> dan <strong>undian acak</strong> tanpa campur tangan manusia.
-            </p>
+            </p> -->
             <p class="mt-2 mb-0 small text-dark">
               <strong>*</strong>Voucher bersifat <strong>non-tunai</strong>, tidak dapat diuangkan,
               tidak dapat dipindahtangankan, dan tidak dapat digabung dengan promo lain
