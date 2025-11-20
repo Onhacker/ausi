@@ -1291,6 +1291,8 @@ public function reward()
         'winner_random'         => $winner_random,
         'is_announcement_time'  => $isAnnouncementTime,
         'next_announcement_iso' => $nextAnnouncement->format('c'),
+        'periode_mulai_str'     => $periode_mulai_str,
+    'periode_selesai_str'   => $periode_selesai_str,
     ];
 
     $data["title"]     = "Reward Mingguan";
