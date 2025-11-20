@@ -1231,6 +1231,49 @@ public function reward()
     if ($nextAnnouncement <= $now) {
         $nextAnnouncement->modify('+7 day');
     }
+    // ========== HITUNG RANGE REKAP POIN BERDASARKAN VOUCHER MINGGUAN TERBARU ==========
+    $periode_mulai_str   = null;
+    $periode_selesai_str = null;
+
+    // Ambil tgl_mulai TERBARU dari voucher mingguan
+    $periodRow = $this->db
+        ->select('MAX(tgl_mulai) AS last_start')
+        ->from('voucher_cafe_manual')
+        ->where('jenis_voucher', 'mingguan')
+        ->get()
+        ->row();
+
+    if ($periodRow && $periodRow->last_start) {
+        // tgl_mulai di table = MULAI MASA BERLAKU VOUCHER (Minggu setelah rekap poin)
+        // rekap poin = 1 minggu SEBELUMNYA (Minggu s/d Sabtu)
+        $validStart = DateTime::createFromFormat(
+            'Y-m-d',
+            $periodRow->last_start,
+            new DateTimeZone('Asia/Makassar')
+        );
+
+        if ($validStart) {
+            // contoh: voucher berlaku mulai 16 Nov (Minggu),
+            // maka rekap poinnya 9–15 Nov
+            $pStart = (clone $validStart)->modify('-7 day'); // Minggu sebelumnya
+            $pEnd   = (clone $validStart)->modify('-1 day'); // Sabtu
+
+            $bulanIndo = [
+                1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+            ];
+
+            $m1 = (int)$pStart->format('n');
+            $m2 = (int)$pEnd->format('n');
+
+            $periode_mulai_str   = $pStart->format('j') . ' ' . $bulanIndo[$m1] . ' ' . $pStart->format('Y');
+            $periode_selesai_str = $pEnd->format('j')   . ' ' . $bulanIndo[$m2] . ' ' . $pEnd->format('Y');
+        }
+    }
+
+    // kirim ke view
+    $data['periode_mulai_str']   = $periode_mulai_str;
+    $data['periode_selesai_str'] = $periode_selesai_str;
 
     // ===============================
     // AMBIL PEMENANG DARI VOUCHER MINGGUAN (LOG)

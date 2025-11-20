@@ -91,14 +91,36 @@ if (!function_exists('mask_name')) {
             </h4>
 
             <p class="mb-3 text-dark small">
+             <?php
+// TRUE kalau sekarang sudah Minggu ≥ 08:00 WITA (kalau mau pakai flag dari controller, boleh juga)
+             $hasRange = !empty($periode_mulai_str) && !empty($periode_selesai_str);
+             ?>
+
+             <?php if ($hasRange): ?>
               <?php if ($isSunday): ?>
                 Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
-                untuk rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
-              <?php else: ?>
-                Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
-                <strong>minggu lalu</strong> (rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>),
-                dan akan tetap ditampilkan sampai pengumuman berikutnya.
-              <?php endif; ?>
+                untuk rekap poin periode
+                <strong>
+                  <?= html_escape($periode_mulai_str); ?> – <?= html_escape($periode_selesai_str); ?>
+                  (Minggu 00:00 – Sabtu 23:59 WITA)
+                </strong>.
+                <?php else: ?>
+                  Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
+                  <strong>
+                    <?= html_escape($periode_mulai_str); ?> – <?= html_escape($periode_selesai_str); ?>
+                    (Minggu 00:00 – Sabtu 23:59 WITA)
+                  </strong>.
+                <?php endif; ?>
+                <?php else: ?>
+                  <?php if ($isSunday): ?>
+                    Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
+                    untuk rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
+                    <?php else: ?>
+                      Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
+                      <strong>minggu lalu</strong>.
+                    <?php endif; ?>
+                  <?php endif; ?>
+
             </p>
 
             <div class="row g-3 justify-content-center">
