@@ -612,12 +612,14 @@ public function list_ajax(){
 
     $cachedJson = $this->cache->get($cacheKey);
     if ($cachedJson !== false && $cachedJson !== null) {
-        // langsung kirim cache
+    // 🔹 TANDA: ini dari CACHE
         $this->output
-            ->set_content_type('application/json')
-            ->set_output($cachedJson);
+        ->set_header('X-Prod-Cache: HIT')
+        ->set_content_type('application/json')
+        ->set_output($cachedJson);
         return;
     }
+
 
     // ===== hitung total dulu =====
     $total = $this->pm->count_products($filters);
@@ -677,8 +679,11 @@ public function list_ajax(){
         $this->cache->save($cacheKey, $json, $cacheTTL);
 
         $this->output
+        // 🔹 TANDA: ini hasil baru (MISS -> ambil DB)
+        ->set_header('X-Prod-Cache: MISS')
         ->set_content_type('application/json')
         ->set_output($json);
+
     
 
 }
