@@ -80,16 +80,16 @@ if (!function_exists('mask_name')) {
 
           <?php
           // 7 = Minggu (PHP: date('N')), untuk ganti teks "minggu ini" / "minggu lalu"
-          $todayNum = (int) date('N');
-          $isSunday = ($todayNum === 7);
+          $isTodayAnnouncement = !empty($is_announcement_time);
           ?>
 
           <?php if (!empty($winner_top)): ?>
 
             <!-- ========== SELALU TAMPILKAN PEMENANG TERAKHIR ========== -->
             <h4 class="mb-2">
-              <?= $isSunday ? 'Selamat, Pemenang Reward Minggu Ini! 🎉' : 'Pemenang Reward Minggu Lalu 🎉'; ?>
+              <?= $isTodayAnnouncement ? 'Selamat, Pemenang Reward Minggu Ini! 🎉' : 'Pemenang Reward Minggu Lalu 🎉'; ?>
             </h4>
+
             <p class="mb-3 text-dark small">
               <?php if ($isSunday): ?>
                 Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
@@ -112,22 +112,23 @@ if (!function_exists('mask_name')) {
                   </div>
 
                   <div class="reward-name">
-                    <?= html_escape(mask_name($winner_top->customer_name)); ?>
-                  </div>
+                      <?= html_escape(mask_name($winner_top->nama)); ?>
+                    </div>
 
-                  <div class="reward-row">
-                    <span class="reward-row-label">No. WA</span>
-                    <span class="reward-row-value">
-                      <?= html_escape(mask_phone($winner_top->customer_phone)); ?>
-                    </span>
-                  </div>
+                    <div class="reward-row">
+                      <span class="reward-row-label">No. WA</span>
+                      <span class="reward-row-value">
+                        <?= html_escape(mask_phone($winner_top->no_hp)); ?>
+                      </span>
+                    </div>
 
-                  <div class="reward-row">
-                    <span class="reward-row-label">Total poin</span>
-                    <span class="reward-pill pill-green">
-                      <?= (int)$winner_top->points; ?> poin
-                    </span>
-                  </div>
+                    <div class="reward-row">
+                      <span class="reward-row-label">Voucher</span>
+                      <span class="reward-pill pill-green">
+                        Voucher order Rp <?= number_format((int)$winner_top->nilai, 0, ',', '.'); ?>
+                      </span>
+                    </div>
+
 
                   <div class="reward-note">
                     Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
@@ -154,22 +155,30 @@ if (!function_exists('mask_name')) {
                     </div>
 
                     <div class="reward-name">
-                     <?= html_escape(mask_name($winner_random->customer_name)); ?>
+                      <?= html_escape(mask_name($winner_random->nama)); ?>
                     </div>
 
                     <div class="reward-row">
                       <span class="reward-row-label">No. WA</span>
                       <span class="reward-row-value">
-                        <?= html_escape(mask_phone($winner_random->customer_phone)); ?>
+                        <?= html_escape(mask_phone($winner_random->no_hp)); ?>
+                      </span>
+                    </div>
+
+                    <div class="reward-row">
+                      <span class="reward-row-label">Voucher</span>
+                      <span class="reward-pill pill-blue">
+                        Voucher order Rp <?= number_format((int)$winner_random->nilai, 0, ',', '.'); ?>
                       </span>
                     </div>
 
                     <div class="reward-row">
                       <span class="reward-row-label">Status</span>
-                      <span class="reward-pill pill-blue">
-                        Dipilih secara acak oleh Sistem
+                      <span class="reward-row-value">
+                        Dipilih secara acak oleh Robot Ausi
                       </span>
                     </div>
+
 
                     <div class="reward-note">
                       Pemenang acak dipilih oleh <strong>Robot Ausi</strong> dari seluruh pelanggan

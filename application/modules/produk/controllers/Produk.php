@@ -1065,6 +1065,73 @@ private function _generate_voucher_code(): string
     return $code;
 }
 
+/**
+ * Ambil pemenang mingguan terakhir dari voucher_cafe_manual
+ * (jenis_voucher = 'mingguan').
+ *
+ * return array [$winner_top, $winner_random]
+ */
+private function _get_latest_weekly_winners()
+{
+    $winnerTop    = null;
+    $winnerRandom = null;
+
+    // Cari tgl_mulai TERBARU untuk voucher mingguan
+    $row = $this->db
+        ->select('MAX(tgl_mulai) AS last_start')
+        ->from('voucher_cafe_manual')
+        ->where('jenis_voucher', 'mingguan')
+        ->get()
+        ->row();
+
+    if (! $row || ! $row->last_start) {
+        return [null, null];
+    }
+
+    $lastDate = $row->last_start;
+
+    // Ambil semua voucher mingguan di tanggal tersebut
+    $rows = $this->db
+        ->select('id, kode_voucher, nama, no_hp, tipe, jenis_voucher, nilai, tgl_mulai, tgl_selesai, keterangan, created_at')
+        ->from('voucher_cafe_manual')
+        ->where('jenis_voucher', 'mingguan')
+        ->where('tgl_mulai', $lastDate)
+        ->order_by('created_at', 'ASC')
+        ->get()
+        ->result();
+
+    if (empty($rows)) {
+        return [null, null];
+    }
+
+    // Deteksi mana "Poin Tertinggi" & mana "Pemenang Acak" dari keterangan
+    foreach ($rows as $r) {
+        $ket = strtolower((string)$r->keterangan);
+
+        if (! $winnerTop && strpos($ket, 'poin tertinggi') !== false) {
+            $winnerTop = $r;
+        } elseif (! $winnerRandom && strpos($ket, 'pemenang acak') !== false) {
+            $winnerRandom = $r;
+        }
+    }
+
+    // Fallback: kalau format keterangan beda / cuma 1 pemenang
+    if (! $winnerTop) {
+        $winnerTop = $rows[0];
+    }
+    if (! $winnerRandom && count($rows) > 1) {
+        foreach ($rows as $r) {
+            if ($r !== $winnerTop) {
+                $winnerRandom = $r;
+                break;
+            }
+        }
+    }
+
+    return [$winnerTop, $winnerRandom];
+}
+
+
 public function reward_cron()
 {
     // Hanya boleh dipanggil via CLI (cron), bukan lewat browser
@@ -1142,7 +1209,7 @@ public function reward_cron()
 
 
 
-public function rewardx()
+public function reward()
 {
     $this->_nocache_headers();
     date_default_timezone_set('Asia/Makassar');
@@ -1166,47 +1233,14 @@ public function rewardx()
     }
 
     // ===============================
-    // 1) AMBIL PESERTA (points > 0)
+    // AMBIL PEMENANG DARI VOUCHER MINGGUAN (LOG)
     // ===============================
-    $participants = $this->db
-        ->select('id, customer_name, customer_phone, points')
-        ->from('voucher_cafe')
-        ->where('points >', 0)
-        ->order_by('points', 'DESC')
-        ->order_by('last_paid_at', 'DESC')
-        ->get()
-        ->result(); // array of object
+    list($winner_top, $winner_random) = $this->_get_latest_weekly_winners();
 
-    $winner_top    = null;
-    $winner_random = null;
-
-    if (!empty($participants)) {
-        // peraih poin tertinggi = peserta index pertama
-        $winner_top = $participants[0];
-
-        // kalau peserta lebih dari 1, baru pilih pemenang acak
-        if (count($participants) > 1) {
-            // seed minggu, ex: 202546
-            $weekSeed = (int)$now->format('oW');
-
-            // pool kandidat random = semua peserta kecuali index 0
-            $pool = array_slice($participants, 1);
-
-            // indeks deterministik berdasarkan seed
-            $idx = $weekSeed % count($pool);
-
-            $winner_random = $pool[$idx];
-        }
-    }
-
-    // ===============================
-    // 2) BUAT VOUCHER HANYA DI JAM PENGUMUMAN
-    // ===============================
-    if ($isAnnouncementTime && $winner_top) {
-        // helper ini SUDAH cek ke tabel, jadi tidak akan dobel insert
-        $this->_create_weekly_voucher_if_needed($winner_top, 'top', $now);
-        $this->_create_weekly_voucher_if_needed($winner_random, 'random', $now);
-    }
+    // ⚠️ PENTING:
+    // Tidak perlu lagi hitung pemenang dari voucher_cafe di sini,
+    // dan tidak perlu lagi create voucher di reward().
+    // Itu sudah dikerjakan oleh reward_cron() via CLI.
 
     $data = [
         'rec'                   => $rec,
@@ -1222,6 +1256,7 @@ public function rewardx()
 
     $this->load->view('reward_view', $data);
 }
+
 
 
 
