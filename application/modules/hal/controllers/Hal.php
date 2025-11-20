@@ -373,7 +373,7 @@ private function _nocache_headers(){
         $data["rec"]       = $rec;
         $data["title"]     = $item->judul;
         $data["deskripsi"] = $this->_excerpt(strip_tags($item->isi), 160);
-        $data["prev"]      = base_url("assets/images/flow_icon.png");
+        $data["prev"]      = base_url("assets/images/pengumuman.webp");
         $data["item"]      = $item;
 
         $this->load->view('pengumuman_detail', $data);

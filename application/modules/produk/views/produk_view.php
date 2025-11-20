@@ -206,7 +206,7 @@ window.AUSI_CFG = {
 <!-- Custom logic kita -->
 <script src="<?= base_url('assets/front/produk.min.js') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.js'); ?>"></script>
 
-<?php $this->load->view("promo_mingguan") ?>
+<?php $this->load->view("promo_jumat_berkah") ?>
 <?php $this->load->view("front_end/footer.php") ?>
 
 <?php $this->load->view("modal_produk") ?>

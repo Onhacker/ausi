@@ -34,6 +34,8 @@
               <li><a href="#pembayaran">Pembayaran, Biaya &amp; Promo</a></li>
               <li><a href="#voucher">Voucher &amp; Promo Main Gratis</a></li>
               <li><a href="#voucher-order">Poin Loyalty &amp; Voucher Order Rp 50.000</a></li>
+              <li><a href="#jumat-berkah">Promo Jumat Berkah – Diskon 10%</a></li>
+
               <li><a href="#return-policy">Kebijakan Retur &amp; Pengembalian Dana</a></li>
               <li><a href="#kebijakan-produk">Kebijakan Produk &amp; Kualitas</a></li>
               <li><a href="#larangan">Ketertiban, Keamanan &amp; Larangan</a></li>
@@ -288,6 +290,71 @@
             </ul>
           </div>
         </section>
+        <!-- Promo Jumat Berkah -->
+<section id="jumat-berkah" class="card mb-3">
+  <div class="card-body">
+    <h2 class="h4">9.2) Promo Jumat Berkah &ndash; Diskon 10%</h2>
+    <ul class="mb-0">
+      <li>
+        Promo Jumat Berkah memberikan potongan
+        <strong>10% (sepuluh persen)</strong> kepada
+        <strong>10 (sepuluh) transaksi pertama</strong>
+        pada hari Jumat.
+      </li>
+      <li>
+        Untuk mengikuti promo, pelanggan datang ke
+        <strong>kasir</strong> dan meminta
+        <strong>Voucher Promo Jumat Berkah</strong>
+        sebelum transaksi dibayar.
+      </li>
+      <li>
+        Kasir akan menerbitkan/memasukkan
+        <strong>kode voucher</strong> pada sistem.
+        Saat melakukan order di aplikasi, pelanggan
+        wajib mengisi <strong>nomor HP</strong> dan
+        <strong>kode voucher</strong> yang sama dengan
+        yang diberikan kasir.
+      </li>
+      <li>
+        Diskon hanya diberikan apabila:
+        <ul>
+          <li>
+            kuota <strong>10 transaksi pertama</strong> pada
+            hari tersebut masih tersedia; dan
+          </li>
+          <li>
+            nomor HP serta kode voucher dinyatakan
+            <strong>valid</strong> oleh sistem.
+          </li>
+        </ul>
+      </li>
+      <li>
+        Promo ini berlaku untuk transaksi
+        <strong>makanan dan minuman</strong>.
+        Kecuali dinyatakan lain oleh Pengelola, promo
+        tidak berlaku untuk pembayaran meja billiard,
+        pembelian voucher lain, atau top up saldo.
+      </li>
+      <li>
+        Promo hanya berlaku di hari
+        <strong>Jumat</strong> sesuai jam operasional,
+        tidak dapat diuangkan, dan tidak dapat digabung
+        dengan promo lain kecuali tertulis sebaliknya.
+      </li>
+      <li>
+        Satu pelanggan hanya berhak menggunakan
+        Promo Jumat Berkah <strong>satu kali per hari</strong>.
+      </li>
+      <li>
+        Pengelola berhak mengubah kuota, menunda,
+        atau mengakhiri Promo Jumat Berkah kapan saja
+        demi penyesuaian kebijakan operasional,
+        tanpa mengurangi hak pelanggan yang sudah
+        berhasil menggunakan promo pada hari tersebut.
+      </li>
+    </ul>
+  </div>
+</section>
 
         <!-- Return Policy -->
         <section id="return-policy" class="card mb-3">
