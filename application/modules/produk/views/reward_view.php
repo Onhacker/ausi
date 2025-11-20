@@ -31,7 +31,36 @@ if (!function_exists('mask_phone')) {
         return $masked;
     }
 }
+
+// Helper untuk sensor nama (mis: "Nurhikmah Nurhikmah" -> "Nur•••••• Nur••••••")
+if (!function_exists('mask_name')) {
+    function mask_name($name)
+    {
+        $name = trim((string)$name);
+        if ($name === '') {
+            return 'Tanpa Nama';
+        }
+
+        // pecah per kata
+        $parts = preg_split('/\s+/', $name);
+        $maskedParts = [];
+
+        foreach ($parts as $part) {
+            $len = strlen($part);
+            if ($len <= 3) {
+                // nama sangat pendek, biarkan saja
+                $maskedParts[] = $part;
+            } else {
+                // ambil 3 huruf pertama, sisanya diganti bullet
+                $maskedParts[] = substr($part, 0, 3) . str_repeat('•', $len - 3);
+            }
+        }
+
+        return implode(' ', $maskedParts);
+    }
+}
 ?>
+
 
 <div class="container-fluid">
 
@@ -45,22 +74,31 @@ if (!function_exists('mask_phone')) {
   <div class="row">
     <div class="col-12 col-lg-10 col-xl-8 mx-auto">
 
-      <!-- PENGUMUMAN REWARD -->
+            <!-- PENGUMUMAN REWARD -->
       <div class="card mb-3 shadow-sm border-0">
         <div class="card-body text-center">
 
-        <!--   <span class="badge rounded-pill bg-warning text-dark mb-2">
-             Program Reward AUSI Café
-          </span>
- -->
-          <?php if (!empty($is_announcement_time) && $is_announcement_time && !empty($winner_top)): ?>
+          <?php
+          // 7 = Minggu (PHP: date('N')), untuk ganti teks "minggu ini" / "minggu lalu"
+          $todayNum = (int) date('N');
+          $isSunday = ($todayNum === 7);
+          ?>
 
-            <!-- ========== MODE SUDAH PENGUMUMAN ========== -->
-            <h4 class="mb-2">Selamat, Pemenang Reward Minggu Ini! 🎉</h4>
+          <?php if (!empty($winner_top)): ?>
+
+            <!-- ========== SELALU TAMPILKAN PEMENANG TERAKHIR ========== -->
+            <h4 class="mb-2">
+              <?= $isSunday ? 'Selamat, Pemenang Reward Minggu Ini! 🎉' : 'Pemenang Reward Minggu Lalu 🎉'; ?>
+            </h4>
             <p class="mb-3 text-dark small">
-              Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode pekan ini
-              (rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>).
-              Terima kasih sudah setia berbelanja di AUSI Café.
+              <?php if ($isSunday): ?>
+                Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> yang diumumkan hari ini,
+                untuk rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>.
+              <?php else: ?>
+                Berikut adalah penerima <strong>reward voucher order Rp 50.000</strong> untuk periode
+                <strong>minggu lalu</strong> (rekap poin <strong>Minggu 00:00 – Sabtu 23:59 WITA</strong>),
+                dan akan tetap ditampilkan sampai pengumuman berikutnya.
+              <?php endif; ?>
             </p>
 
             <div class="row g-3 justify-content-center">
@@ -74,7 +112,7 @@ if (!function_exists('mask_phone')) {
                   </div>
 
                   <div class="reward-name">
-                    <?= html_escape($winner_top->customer_name ?: 'Tanpa Nama'); ?>
+                    <?= html_escape(mask_name($winner_top->customer_name)); ?>
                   </div>
 
                   <div class="reward-row">
@@ -116,7 +154,7 @@ if (!function_exists('mask_phone')) {
                     </div>
 
                     <div class="reward-name">
-                      <?= html_escape($winner_random->customer_name ?: 'Tanpa Nama'); ?>
+                     <?= html_escape(mask_name($winner_random->customer_name)); ?>
                     </div>
 
                     <div class="reward-row">
@@ -145,7 +183,7 @@ if (!function_exists('mask_phone')) {
 
             </div>
 
-            <!-- Countdown menuju pengumuman minggu berikutnya -->
+            <!-- Countdown menuju pengumuman berikutnya -->
             <div class="mt-3">
               <p class="mb-1 text-dark small">
                 Hitung mundur menuju pengumuman berikutnya:
@@ -171,7 +209,7 @@ if (!function_exists('mask_phone')) {
                 </div>
               </div>
               <p class="mb-0 mt-2 text-dark small">
-                Waktu mengikuti zona <strong>WITA (Asia/Makassar)</strong>.
+                Waktu mengikuti zona <strong>SIWA</strong>.
               </p>
             </div>
 
@@ -199,7 +237,7 @@ if (!function_exists('mask_phone')) {
 
           <?php else: ?>
 
-            <!-- ========== MODE BELUM PENGUMUMAN ========== -->
+            <!-- ========== BELUM ADA PEMENANG (MENUNGGU PENGUMUMAN PERTAMA) ========== -->
             <div class="mb-2">
               <span class="d-inline-flex align-items-center px-3 py-1 rounded-pill"
                     style="background:rgba(37,99,235,.08);color:#1d4ed8;font-size:.78rem;font-weight:600;">
@@ -208,8 +246,6 @@ if (!function_exists('mask_phone')) {
               </span>
             </div>
 
-            <!-- <h4 class="mb-2">Nantikan Pengumuman Reward</h4> -->
-            <!-- Countdown tepat di bawah "Nantikan Pengumuman Reward" -->
             <div class="mb-1">
               <p class="mb-1 text-dark small">
                 Hitung mundur menuju pengumuman berikutnya:
@@ -250,7 +286,6 @@ if (!function_exists('mask_phone')) {
               dan mengakumulasi poin secara otomatis.
             </p>
 
-            <!-- Mini timeline periode mingguan -->
             <div class="row g-2 justify-content-center text-start text-md-center">
               <div class="col-12 col-md-4">
                 <div class="p-2 rounded"
@@ -307,6 +342,7 @@ if (!function_exists('mask_phone')) {
 
         </div>
       </div>
+
 
       <!-- INFO CARD -->
       <div class="card shadow-sm border-0">

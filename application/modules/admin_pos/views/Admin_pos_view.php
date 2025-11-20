@@ -109,9 +109,27 @@
 .voucher-chip-text{
   white-space: nowrap;
 }
+ /* Ratakan isi sel di tengah secara vertikal */
+  table.dataTable tbody td.col-status,
+  table.dataTable tbody td.col-metode {
+    vertical-align: middle !important;
+  }
 
+  /* Biar isi di kolom metode (div.d-flex) benar-benar center */
+  table.dataTable tbody td.col-metode > div.d-flex {
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Biar semua badge kelihatan rapi & sejajar */
+  table.dataTable tbody td.col-status .badge.badge-pill,
+  table.dataTable tbody td.col-metode .badge.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   </style>
-
+ 
   <div class="row">
     <div class="col-12">
       <div class="card">

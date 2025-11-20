@@ -1158,53 +1158,54 @@ public function reward()
     $isSunday           = ($dow === 0);
     $isAnnouncementTime = $isSunday && ($now >= $todayAnnouncement);
 
-    // --- MODE TES (kalau mau paksa di browser, hapus //) ---
-    // $isAnnouncementTime = true;
-    // -------------------------------------------------------
-
-    // jadwal pengumuman berikutnya (Minggu 08:00)
+    // --- jadwal pengumuman berikutnya (Minggu 08:00) ---
     $daysUntilSunday  = (7 - $dow) % 7;
     $nextAnnouncement = (clone $now)->modify("+{$daysUntilSunday} day")->setTime(8, 0, 0);
     if ($nextAnnouncement <= $now) {
         $nextAnnouncement->modify('+7 day');
     }
 
+    // ===============================
+    // 1) AMBIL PESERTA (points > 0)
+    // ===============================
+    $participants = $this->db
+        ->select('id, customer_name, customer_phone, points')
+        ->from('voucher_cafe')
+        ->where('points >', 0)
+        ->order_by('points', 'DESC')
+        ->order_by('last_paid_at', 'DESC')
+        ->get()
+        ->result(); // array of object
+
     $winner_top    = null;
     $winner_random = null;
 
-    if ($isAnnouncementTime) {
-        // peraih poin tertinggi
-        $winner_top = $this->db
-            ->select('id, customer_name, customer_phone, points')
-            ->from('voucher_cafe')
-            ->where('points >', 0)
-            ->order_by('points', 'DESC')
-            ->order_by('last_paid_at', 'DESC')
-            ->limit(1)
-            ->get()
-            ->row();
+    if (!empty($participants)) {
+        // peraih poin tertinggi = peserta index pertama
+        $winner_top = $participants[0];
 
-        if ($winner_top) {
-            // seed berdasarkan tahun+miggu (mis: 202546)
+        // kalau peserta lebih dari 1, baru pilih pemenang acak
+        if (count($participants) > 1) {
+            // seed minggu, ex: 202546
             $weekSeed = (int)$now->format('oW');
 
-            // pemenang acak yang KONSISTEN 1 minggu
-            $winner_random = $this->db
-                ->select('id, customer_name, customer_phone, points')
-                ->from('voucher_cafe')
-                ->where('points >', 0)
-                ->where('id !=', $winner_top->id)
-                ->order_by("RAND({$weekSeed})", '', false)
-                ->limit(1)
-                ->get()
-                ->row();
-        }
+            // pool kandidat random = semua peserta kecuali index 0
+            $pool = array_slice($participants, 1);
 
-        // === DI SINI HALAMAN reward JUGA BOLEH INSERT VOUCHER ===
+            // indeks deterministik berdasarkan seed
+            $idx = $weekSeed % count($pool);
+
+            $winner_random = $pool[$idx];
+        }
+    }
+
+    // ===============================
+    // 2) BUAT VOUCHER HANYA DI JAM PENGUMUMAN
+    // ===============================
+    if ($isAnnouncementTime && $winner_top) {
         // helper ini SUDAH cek ke tabel, jadi tidak akan dobel insert
         $this->_create_weekly_voucher_if_needed($winner_top, 'top', $now);
         $this->_create_weekly_voucher_if_needed($winner_random, 'random', $now);
-        // ========================================================
     }
 
     $data = [
@@ -1221,8 +1222,6 @@ public function reward()
 
     $this->load->view('reward_view', $data);
 }
-
-
 
 
 
