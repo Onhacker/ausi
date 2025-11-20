@@ -10,9 +10,19 @@
     * {
       box-sizing: border-box;
     }
+    :root {
+      --ausi-orange: #ff9800;
+      --ausi-orange-2: #ff5722;
+      --text-main: #333;
+      --text-muted: #666;
+      --bg-soft: #f5f5f5;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f5f5;
+      background:
+        radial-gradient(circle at top, rgba(255,152,0,0.2), transparent 60%),
+        radial-gradient(circle at bottom, rgba(255,87,34,0.16), transparent 55%),
+        var(--bg-soft);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -25,76 +35,182 @@
     }
     .card {
       background: #ffffff;
-      border-radius: 16px;
+      border-radius: 20px;
       padding: 2rem 1.75rem 1.75rem;
-      max-width: 360px;
+      max-width: 380px;
       width: 100%;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      box-shadow: 0 14px 35px rgba(0,0,0,0.12);
+      position: relative;
+      overflow: hidden;
+      animation: cardFloat 4s ease-in-out infinite;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.3), transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .emoji-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+    .emoji-wrap::before {
+      content: "";
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,152,0,0.15), transparent 60%);
+      animation: pulse 2.2s ease-out infinite;
     }
     .emoji {
       font-size: 3.5rem;
+      position: relative;
+      z-index: 1;
+      animation: emojiBounce 2.4s ease-in-out infinite;
+    }
+
+    .offline-anim {
+      display: inline-flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 4px;
       margin-bottom: 0.75rem;
     }
+    .offline-anim .bar {
+      width: 5px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--ausi-orange), var(--ausi-orange-2));
+      opacity: 0.5;
+      animation: signal 1.1s infinite ease-in-out;
+    }
+    .offline-anim .bar1 { height: 8px;  animation-delay: 0s; }
+    .offline-anim .bar2 { height: 14px; animation-delay: 0.12s; }
+    .offline-anim .bar3 { height: 20px; animation-delay: 0.24s; }
+
     h1 {
       font-size: 1.4rem;
-      margin: 0 0 0.5rem;
-      color: #333;
+      margin: 0 0 0.4rem;
+      color: var(--text-main);
     }
     p {
       margin: 0 0 1.25rem;
       font-size: 0.95rem;
       line-height: 1.5;
-      color: #666;
+      color: var(--text-muted);
     }
     .hint {
       font-size: 0.8rem;
       color: #999;
       margin-top: 0.75rem;
     }
+
     .btn-reload {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
-      padding: 0.6rem 1.4rem;
+      gap: 0.5rem;
+      padding: 0.65rem 1.5rem;
       border-radius: 999px;
       border: none;
       cursor: pointer;
       font-size: 0.95rem;
       font-weight: 600;
-      background: linear-gradient(135deg, #ff9800, #ff5722);
+      background: linear-gradient(135deg, var(--ausi-orange), var(--ausi-orange-2));
       color: #fff;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.2);
       transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s ease;
     }
-    .btn-reload:active {
-      transform: translateY(1px) scale(0.99);
-      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+    .btn-reload:hover:not([disabled]) {
+      transform: translateY(-1px);
+      box-shadow: 0 11px 24px rgba(0,0,0,0.25);
+    }
+    .btn-reload:active:not([disabled]) {
+      transform: translateY(0) scale(0.99);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
     .btn-reload[disabled] {
-      opacity: 0.6;
+      opacity: 0.7;
       cursor: default;
       box-shadow: none;
     }
     .btn-icon {
       font-size: 1.1rem;
+      transition: opacity 0.2s ease;
+    }
+    .btn-label {
+      transition: opacity 0.2s ease;
+    }
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-top-color: #ffffff;
+      display: none;
+      animation: spin 0.7s linear infinite;
+    }
+    .btn-reload.is-loading .btn-spinner {
+      display: inline-block;
+    }
+    .btn-reload.is-loading .btn-icon {
+      opacity: 0.3;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%   { transform: scale(0.8); opacity: 0.3; }
+      50%  { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(0.8); opacity: 0.3; }
+    }
+    @keyframes emojiBounce {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-4px); }
+    }
+    @keyframes cardFloat {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-3px); }
+    }
+    @keyframes signal {
+      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      50%      { transform: translateY(-2px); opacity: 1; }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="emoji">📴</div>
-    <h1>Kamu sedang offline</h1>
+    <div class="emoji-wrap">
+      <div class="emoji">📴</div>
+    </div>
+
+    <div class="offline-anim" aria-hidden="true">
+      <span class="bar bar1"></span>
+      <span class="bar bar2"></span>
+      <span class="bar bar3"></span>
+    </div>
+
+    <h1>Oops, koneksi keputus 😅</h1>
     <p>
-      Silakan periksa koneksi internet kamu.<br>
-      Jika koneksi sudah normal, coba muat ulang halaman.
+      Kayaknya internet kamu lagi ngambek nih.<br>
+      Cek dulu Wi-Fi atau kuota kamu, terus coba sambung lagi.
     </p>
+
     <button id="reload-btn" class="btn-reload" type="button">
       <span class="btn-icon">🔄</span>
-      <span>Muat ulang</span>
+      <span class="btn-label">Coba muat ulang</span>
+      <span class="btn-spinner" aria-hidden="true"></span>
     </button>
+
     <div class="hint">
-      Halaman ini muncul dari mode offline aplikasi Ausi.
+      Halaman ini muncul dari mode offline aplikasi <strong>Ausi</strong>.<br>
+      Kalau masih belum bisa, coba tutup & buka lagi aplikasinya.
     </div>
   </div>
 
@@ -103,16 +219,31 @@
       var btn = document.getElementById('reload-btn');
       if (!btn) return;
 
+      var labelSpan   = btn.querySelector('.btn-label');
+      var defaultText = labelSpan ? labelSpan.textContent : 'Coba muat ulang';
+
       btn.addEventListener('click', function () {
-        // kasih feedback sedikit ke user
+        if (btn.disabled) return;
+
         btn.disabled = true;
-        btn.querySelector('span:last-child').textContent = 'Memuat...';
+        btn.classList.add('is-loading');
+        if (labelSpan) labelSpan.textContent = 'Mengecek koneksi...';
+
         try {
+          // Reload halaman — kalau berhasil, script ini tidak akan lanjut
           location.reload();
+
+          // Safety net: kalau entah kenapa tidak reload,
+          // balikin tombol setelah beberapa detik.
+          setTimeout(function () {
+            btn.disabled = false;
+            btn.classList.remove('is-loading');
+            if (labelSpan) labelSpan.textContent = defaultText;
+          }, 7000);
         } catch (e) {
-          // fallback kalau reload gagal
           btn.disabled = false;
-          btn.querySelector('span:last-child').textContent = 'Muat ulang';
+          btn.classList.remove('is-loading');
+          if (labelSpan) labelSpan.textContent = defaultText;
         }
       });
     })();
