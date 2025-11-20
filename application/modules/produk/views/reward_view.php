@@ -175,7 +175,7 @@ if (!function_exists('mask_name')) {
                     <div class="reward-row">
                       <span class="reward-row-label">Status</span>
                       <span class="reward-row-value">
-                        Dipilih secara acak oleh Robot Ausi
+                        Diacak oleh Robot Ausi
                       </span>
                     </div>
 
