@@ -859,7 +859,7 @@ ease; */
   <!-- ========== CAFÉ & PESAN ========== -->
   <div class="quicksection" aria-labelledby="sec-cafe">
   <div class="quicksection-title" id="sec-cafe">
-    <span class="section-icon">☕</span><span class="section-text">Café & Pesan</span>
+    <span class="section-icon">☕</span><span class="section-text">Café & Order</span>
   </div>
   <div class="quicksection-items">
     <!-- Riwayat Order Saya -->
@@ -918,6 +918,13 @@ ease; */
       <span class="section-icon">🎱</span><span class="section-text">Billiard</span>
     </div>
     <div class="quicksection-items">
+      <!-- Riwayat Bookingku -->
+  <div class="quickmobilem-item">
+    <a href="<?= site_url('billiard/riwayat_booking') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Riwayat Booking Billiard" data-menuloading="1">
+      <div class="menu-circle" style="background:#6f42c1;"><span class="emoji-icon" aria-hidden="true">🕒</span></div>
+      <small class="menu-label">Riwayat Bookingku</small>
+    </a>
+  </div>
   <div class="quickmobilem-item">
     <a href="<?= site_url('billiard') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Booking Billiard" data-menuloading="1">
       <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon" aria-hidden="true">📝</span></div>
@@ -939,13 +946,7 @@ ease; */
     </a>
   </div>
 
-  <!-- Riwayat Bookingku -->
-  <div class="quickmobilem-item">
-    <a href="<?= site_url('billiard/riwayat_booking') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Riwayat Booking Billiard" data-menuloading="1">
-      <div class="menu-circle" style="background:#6f42c1;"><span class="emoji-icon" aria-hidden="true">🕒</span></div>
-      <small class="menu-label">Riwayat Bookingku</small>
-    </a>
-  </div>
+  
 
   <div class="quickmobilem-item">
     <a href="<?= site_url('billiard/daftar_voucher') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Gratis Main Billiard" data-menuloading="1">

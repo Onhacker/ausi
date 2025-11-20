@@ -225,6 +225,19 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
     </div>
   </div>
+  <!-- Voucher Jumat Berkah -->
+<div class="voucher-pill">
+  <div class="voucher-pill-icon voucher-pill-icon-friday">
+    <i class="mdi mdi-calendar-star"></i>
+  </div>
+  <div class="voucher-pill-text">
+    <div class="voucher-pill-title">Voucher Jumat Berkah</div>
+    <div class="voucher-pill-desc">
+      Datang ke AUSI di hari <b>Jumat</b>?  
+      Saat program <b>Jumat Berkah 🌙</b> aktif, sampaikan ke kasir untuk dapat Kode Vouchernya.
+    </div>
+  </div>
+</div>
 
   <div class="voucher-pill">
   <div class="voucher-pill-icon voucher-pill-icon-student">
