@@ -175,10 +175,10 @@
   function renderErrorCard(message){
     const msg = message || "Koneksi bermasalah. Silakan coba lagi.";
     $grid.html(
-      '<div class="col-12">' +
+      '<div class="col-12 mb-2">' +
         '<div class="alert alert-danger text-center mb-0">' +
           '<div class="mb-2">'+ msg +'</div>' +
-          '<button type="button" class="btn btn-sm btn-outline-light js-reload-products">' +
+          '<button type="button" class="btn btn-sm btn-blue js-reload-products">' +
             '<i class="mdi mdi-refresh mr-1"></i> Muat ulang' +
           '</button>' +
         '</div>' +
