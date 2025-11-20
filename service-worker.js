@@ -1,6 +1,6 @@
 /* ===== Service Worker (AUSI) — no-504-from-SW ===== */
 
-const CACHE_NAME  = 'ausi-44';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-45';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 
@@ -111,13 +111,14 @@ self.addEventListener('install', (event) => {
         try {
           if (SKIP_BIG.test(url)) return;
           const res = await fetch(url, { cache: 'reload' });
-          if (res && res.ok) {
+          if (res && res.ok && res.status === 200) {
             await cache.put(url, res.clone());
             const u = new URL(url, self.location.origin);
             if (u.searchParams.has('v')) {
               await cache.put(u.origin + u.pathname, res.clone());
             }
           }
+
         } catch (err) {
           console.warn('[SW] Precache fail', url, err);
         }
@@ -182,25 +183,30 @@ self.addEventListener('fetch', (event) => {
         const fresh = await fetch(req, { cache: 'no-store', credentials: 'include' });
 
         // MASK 5xx dari server agar tidak terlihat 504 di klien
-        if (SUPPRESS_5XX && fresh.status >= 500) {
-          const key = pathKey(req);
-          const cached = await caches.match(key) || await caches.match('/') || await caches.match(OFFLINE_URL);
-          if (cached) return cached;
-          // Selalu beri offline.html dengan 200 agar user tidak lihat error HTTP
-          return new Response(await (await fetch(OFFLINE_URL)).text?.() ?? 'Offline', {
-            status: 200,
-            headers: { 'Content-Type': 'text/html' }
-          });
-        }
+       if (SUPPRESS_5XX && fresh.status >= 500) {
+    const key = pathKey(req);
+    const cached = await caches.match(key) || await caches.match('/') || await caches.match(OFFLINE_URL);
+    if (cached) return cached;
+
+    const offlineCached = await caches.match(OFFLINE_URL);
+    if (offlineCached) return offlineCached;
+
+    return new Response('Offline', {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' }
+    });
+  }
+
 
         const cc = fresh.headers.get('cache-control') || '';
         const isNoStore = /no-store|private/i.test(cc) || fresh.headers.get('x-auth-logged-in') === '1';
 
         const key = pathKey(req); // cache-by-path utk HTML
-        if (!isNoStore && HTML_CACHE_WHITELIST.has(key) && fresh.ok) {
-          const c = await caches.open(CACHE_NAME);
-          await c.put(key, fresh.clone());
-        }
+if (!isNoStore && HTML_CACHE_WHITELIST.has(key) && fresh.ok && fresh.status === 200) {
+  const c = await caches.open(CACHE_NAME);
+  await c.put(key, fresh.clone());
+}
+
         return fresh;
       } catch {
         const key = pathKey(req);
@@ -214,38 +220,56 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2) Aset same-origin → stale-while-revalidate + fallback (tanpa 504)
-  if (sameOrigin && isStaticAsset(req)) {
-    event.respondWith((async () => {
-      const c = await caches.open(CACHE_NAME);
-      const u = new URL(req.url);
-      const hasV  = u.searchParams.has('v');
-      const clean = hasV ? (u.origin + u.pathname) : null;
+  
+ // 2) Aset same-origin → stale-while-revalidate + fallback (tanpa 504)
+if (sameOrigin && isStaticAsset(req)) {
 
-      // Exact match (dengan query)
-      let cached = await c.match(req);
-      // Jika tidak ada dan ini aset versi (?v=...), coba tanpa query
-      if (!cached && hasV) cached = await c.match(clean);
-
-      // Revalidate di belakang layar; simpan hanya res.ok
-      const updating = fetch(req, { cache: 'no-store', credentials: 'include' })
-        .then(res => {
-          if (res && res.ok) {
-            c.put(req, res.clone());
-            if (hasV) c.put(clean, res.clone());
-          }
-          return res;
-        })
-        .catch(() => null);
-
-      // Prioritaskan cache; jika tidak ada, coba network; jika gagal → offline
-      return cached ||
-             (await updating) ||
-             (await caches.match(OFFLINE_URL)) ||
-             new Response('Sementara tidak tersedia', { status: 503, headers: { 'Content-Type': 'text/plain' } });
-    })());
+  // Range request (audio/video seek) → jangan pakai cache, langsung network
+  if (req.headers.has('range')) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store', credentials: 'include' })
+        .catch(() => new Response('Sementara tidak tersedia', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' }
+        }))
+    );
     return;
   }
+
+  event.respondWith((async () => {
+    const c = await caches.open(CACHE_NAME);
+    const u = new URL(req.url);
+    const hasV  = u.searchParams.has('v');
+    const clean = hasV ? (u.origin + u.pathname) : null;
+
+    // Exact match (dengan query)
+    let cached = await c.match(req);
+    // Jika tidak ada dan ini aset versi (?v=...), coba tanpa query
+    if (!cached && hasV) cached = await c.match(clean);
+
+    // Revalidate di belakang layar; simpan hanya res.status === 200
+    const updating = fetch(req, { cache: 'no-store', credentials: 'include' })
+      .then(async (res) => {
+        if (res && res.ok && res.status === 200) {
+          await c.put(req, res.clone());
+          if (hasV) await c.put(clean, res.clone());
+        }
+        return res;
+      })
+      .catch(() => null);
+
+    // Prioritaskan cache; jika tidak ada, coba network; jika gagal → offline
+    return cached ||
+           (await updating) ||
+           (await caches.match(OFFLINE_URL)) ||
+           new Response('Sementara tidak tersedia', {
+             status: 503,
+             headers: { 'Content-Type': 'text/plain' }
+           });
+  })());
+  return;
+}
+
 
   // 3) Lainnya (XHR same-origin non-denylist & seluruh cross-origin)
   event.respondWith((async () => {

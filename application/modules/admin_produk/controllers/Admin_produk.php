@@ -12,9 +12,16 @@ class Admin_produk extends Admin_Controller {
 
     private function purge_public_caches(){
         $this->load->driver('cache', ['adapter' => 'file']);
+
+        // versi produk (kalau masih dipakai di tempat lain)
         $this->cache->save('produk_ver', time(), 365*24*3600);
+
+        // sekalian bersihkan semua cache list_ajax produk
+        $this->_clear_product_list_cache();
+
         $this->output->set_header('X-Cache-Purged: produk');
     }
+
 
     public function index(){
         $data["controller"] = get_class($this);
@@ -300,7 +307,6 @@ function compress_to_target($srcPath, $destPath, $targetKB = 500, $maxW = 1600, 
  */
 private function _clear_product_list_cache()
 {
-    $this->load->driver('cache', ['adapter' => 'file']);
 
     $registryKey = 'prod_list_registry';
     $reg = $this->cache->get($registryKey);
@@ -418,7 +424,7 @@ private function _clear_product_list_cache()
         $ok = $this->db->where('id',$id)->update('produk', $upd);
 
         if ($ok){ $this->purge_public_caches(); }
-         $this->_clear_product_list_cache();
+         
 
         echo json_encode(["success"=>$ok,"title"=>$ok?"Berhasil":"Gagal","pesan"=>$ok?"Data diupdate":"Gagal update"]);
     }
