@@ -21,6 +21,25 @@ $canUpdateOngkir = ($is_delivery && $paid_method === '' && $delivery_fee <= 0);
 // NEW: ambil catatan (fallback ke note jika field catatan kosong)
 $catatan         = trim((string)($order->catatan ?? $order->note ?? ''));
 
+// ==== Lokasi delivery (lat/lng + jarak) ====
+$dest_lat  = isset($order->dest_lat) ? (float)$order->dest_lat : null;
+$dest_lng  = isset($order->dest_lng) ? (float)$order->dest_lng : null;
+$has_coord = ($dest_lat !== null && $dest_lat != 0 && $dest_lng !== null && $dest_lng != 0);
+
+$maps_url = $has_coord
+    ? 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($dest_lat . ',' . $dest_lng)
+    : '';
+
+$distance_m  = (isset($order->distance_m) && is_numeric($order->distance_m))
+    ? (float)$order->distance_m
+    : null;
+$distance_km = $distance_m !== null ? ($distance_m / 1000) : null;
+
+// QR untuk Maps (barcode yang bisa discan kurir)
+$maps_qr_url = $maps_url !== ''
+    ? 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . rawurlencode($maps_url)
+    : '';
+
 // ==== STATUS (sekali saja) ====
 $status = strtolower($order->status ?? '-');
 $statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
@@ -38,7 +57,7 @@ $modeBadgeClass = $is_delivery ? 'badge-warning' : ($is_dinein ? 'badge-info' : 
 // ==== KURIR (assigned) ====
 $kurir_id   = (int)($order->courier_id ?? 0);
 $kurir_nm   = trim((string)($order->courier_name ?? ''));
-$kurir_telp = trim((string)($order->courier_phone ?? '')); // jika ada di payload
+$kurir_telp = trim((string)($order->courier_phone ?? ''));
 $hasKurir   = ($kurir_id > 0 && $kurir_nm !== '');
 
 // ==== HP robust: ambil dari beberapa kemungkinan field ====
@@ -49,7 +68,6 @@ foreach (['customer_phone','phone','telp','hp','whatsapp','wa'] as $k) {
     break;
   }
 }
-// normalisasi telp utk link tel: / copy
 $phone_plain = preg_replace('/\D+/', '', $customer_phone);
 $placeholders = ['-','0','000000','n/a','na'];
 if ($phone_plain === '' || in_array(strtolower($customer_phone), $placeholders, true)) {
@@ -77,24 +95,19 @@ if (!$tokens) {
   $tokens = preg_split('/[\s,\/\+\|\-]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
 }
 
-// sinonim
 $cashSyn  = ['cash','tunai','cod','bayar_ditempat','bayarditempat'];
 $digSyn   = ['transfer','tf','bank','qris','qr','qr-code','gopay','ovo','dana','shopeepay','mbanking','va','virtualaccount'];
 
-// helper
 $hasCash    = (bool)array_intersect($tokens, $cashSyn);
 $hasDigital = (bool)array_intersect($tokens, $digSyn);
 
-// ==== 2 kondisi tombol (disederhanakan) ====
+// kondisi tombol assign kurir
 $canAssignKurir = ($is_delivery && !$hasKurir);
 
-// === Link order_success saat HP kosong ===
+// Link order_success
 $order_code  = trim((string)($order->nomor ?? $order->kode ?? $order->order_code ?? $order->order_key ?? $order->id ?? ''));
 $success_url = $order_code !== '' ? site_url('produk/order_success/'.$order_code) : site_url('produk/order_success');
-// $pm_label    = $pm_raw !== '' ? $pm_raw : 'Lihat Order';
-// if ($hasCash) { $pm_label = 'Lihat Order'; } // biar tidak muncul "cash" di tombol
-// Tombol link order: SELALU tampil sebagai "Lihat Order"
-$pm_label = 'Lihat Order';
+$pm_label    = 'Lihat Order';
 
 ?>
 <style>
@@ -123,7 +136,17 @@ $pm_label = 'Lihat Order';
   .table-items thead th{ background:#f8fafc; border-top:none; }
   .total-row th{ border-top:2px solid #e5e7eb !important; }
 
-  /* ===== Modal Assign Kurir: tema beda & overlay ===== */
+  /* QR Maps */
+  .qr-maps-img{
+    max-width: 140px;
+    height:auto;
+    background:#fff;
+    border-radius:6px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.06);
+    padding:4px;
+  }
+
+  /* ===== Modal Assign Kurir ===== */
   #modalAssignKurir { z-index: 1062; }
   .modal-backdrop.backdrop-assign-kurir { background: rgba(22,163,74,.25); }
   #modalAssignKurir .modal-content{
@@ -137,12 +160,10 @@ $pm_label = 'Lihat Order';
   #modalAssignKurir .modal-body{ background:#f0fff4; }
   #modalAssignKurir .modal-footer{ background:#f6fffb; border-top:none; }
 
-  /* tabel kurir */
   #tblKurir td, #tblKurir th { vertical-align: middle; }
   #tblKurir tbody tr:hover{ background:#ecfdf5; }
   .btn-assign-row{ min-width:92px; }
 
-  /* overlay loading */
   #modalAssignKurir .assign-loading{
     position:absolute; inset:0; background:rgba(255,255,255,.7);
     display:flex; align-items:center; justify-content:center; flex-direction:column;
@@ -179,7 +200,9 @@ $pm_label = 'Lihat Order';
 
         <span class="pill">
           <i class="fe-flag"></i>
-          <span class="badge badge-<?= $statusBadge ?> mb-0" style="font-size:.78rem;"><?= htmlspecialchars($order->status ?? '-', ENT_QUOTES,'UTF-8'); ?></span>
+          <span class="badge badge-<?= $statusBadge ?> mb-0" style="font-size:.78rem;">
+            <?= htmlspecialchars($order->status ?? '-', ENT_QUOTES,'UTF-8'); ?>
+          </span>
         </span>
 
         <?php if ($is_dinein && $meja_label !== '—'): ?>
@@ -188,7 +211,7 @@ $pm_label = 'Lihat Order';
           </span>
         <?php endif; ?>
 
-        <!-- KURIR (badge ketika sudah ditugaskan) -->
+        <!-- KURIR -->
         <span class="pill" id="kurirMeta" <?= $hasKurir ? '' : 'style="display:none"' ?>>
           <i class="fe-user-check"></i>
           Kurir:
@@ -245,7 +268,7 @@ $pm_label = 'Lihat Order';
     </div>
   </div>
 
-   <!-- DETAIL PELANGGAN -->
+  <!-- DETAIL PELANGGAN -->
   <?php 
     $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan !== '' || (!$has_phone && $pm_raw !== ''));
     if ($show_detail):
@@ -262,7 +285,6 @@ $pm_label = 'Lihat Order';
           <?php endif; ?>
 
           <?php if ($has_phone): ?>
-            <!-- HP: hanya link telp, TANPA tombol salin -->
             <div class="kv mb-1 align-items-center">
               <div class="k">HP</div>
               <div class="v d-flex align-items-center">
@@ -273,14 +295,13 @@ $pm_label = 'Lihat Order';
             </div>
           <?php endif; ?>
 
-          <!-- PEMBAYARAN: SELALU TAMPILKAN "Lihat Order", MESKIPUN SUDAH LUNAS -->
           <div class="kv mb-1 align-items-center">
             <div class="k">Pembayaran</div>
             <div class="v d-flex align-items-center flex-wrap" style="gap:6px;">
               <a class="btn btn-xs btn-outline-primary"
                  href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
                 <i class="fe-credit-card"></i>
-                <?= htmlspecialchars($pm_label ?: 'Lihat Order', ENT_QUOTES, 'UTF-8'); ?>
+                <?= htmlspecialchars($pm_label, ENT_QUOTES, 'UTF-8'); ?>
               </a>
 
               <?php if ($is_paid_like): ?>
@@ -298,6 +319,46 @@ $pm_label = 'Lihat Order';
                 <?= nl2br(htmlspecialchars($alamat_kirim !== '' ? $alamat_kirim : '-', ENT_QUOTES, 'UTF-8')); ?>
               </div>
             </div>
+
+            <?php if ($has_coord || $distance_km !== null): ?>
+              <div class="kv mb-1">
+                <div class="k">Lokasi</div>
+                <div class="v">
+                  <?php if ($distance_km !== null): ?>
+                    <div class="mb-1">
+                      Jarak estimasi:
+                      <strong><?= number_format($distance_km, 1, ',', '.'); ?> km</strong>
+                      <small class="text-muted">
+                        (± <?= number_format($distance_m, 0, ',', '.'); ?> m)
+                      </small>
+                    </div>
+                  <?php endif; ?>
+
+                  <?php if ($has_coord && $maps_url): ?>
+                    <div class="mb-1 small">
+                      Koordinat:
+                      <a href="<?= htmlspecialchars($maps_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                        <?= htmlspecialchars($dest_lat . ', ' . $dest_lng, ENT_QUOTES, 'UTF-8'); ?>
+                        <i class="fe-external-link"></i>
+                      </a>
+                    </div>
+
+                    <?php if ($maps_qr_url): ?>
+                      <div class="mt-1">
+                        <div class="small text-muted mb-1">
+                          Scan QR untuk buka Google Maps:
+                        </div>
+                        <img
+                          src="<?= htmlspecialchars($maps_qr_url, ENT_QUOTES, 'UTF-8'); ?>"
+                          alt="QR Google Maps"
+                          class="qr-maps-img"
+                        >
+                      </div>
+                    <?php endif; ?>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endif; ?>
           <?php endif; ?>
 
           <?php if ($catatan !== ''): ?>
@@ -310,7 +371,6 @@ $pm_label = 'Lihat Order';
       </div>
     </div>
   <?php endif; ?>
-
 
   <!-- ITEM + TOTAL -->
   <div class="table-responsive">
@@ -371,13 +431,10 @@ $pm_label = 'Lihat Order';
   </div>
 </div>
 
-<!-- =========================
-     MODAL: PILIH / TUGASKAN KURIR
-     ========================= -->
+<!-- MODAL: PILIH / TUGASKAN KURIR -->
 <div class="modal fade" id="modalAssignKurir" tabindex="-1" role="dialog" aria-labelledby="assignKurirLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content position-relative">
-      <!-- overlay loading -->
       <div class="assign-loading d-none">
         <div class="spin"></div>
         <div class="text-success font-weight-bold">Menugaskan kurir...</div>
@@ -391,7 +448,6 @@ $pm_label = 'Lihat Order';
       </div>
 
       <div class="modal-body">
-        <!-- Tabel Kurir -->
         <div class="table-responsive">
           <table class="table table-sm table-hover" id="tblKurir">
             <thead class="thead-light">
@@ -444,11 +500,9 @@ $pm_label = 'Lihat Order';
 
 <script>
 (function(){
-  // CSRF (sesuaikan bila perlu)
   var CSRF_NAME = "<?= isset($this->security) ? $this->security->get_csrf_token_name() : 'csrf_test_name' ?>";
   var CSRF_HASH = "<?= isset($this->security) ? $this->security->get_csrf_hash() : '' ?>";
 
-  // backdrop warna khusus + layering di atas modal parent
   $('#modalAssignKurir').on('show.bs.modal', function(){
     setTimeout(function(){
       $('.modal-backdrop').last().addClass('backdrop-assign-kurir');
@@ -461,28 +515,28 @@ $pm_label = 'Lihat Order';
     $('#modalAssignKurir').modal('show');
   };
 
-  // klik baris (non-aksi) – tidak melakukan apa pun selain highlight
   $(document).on('click', '#tblKurir .row-kurir', function(e){
     if ($(e.target).closest('button,a').length) return;
     $('#tblKurir .row-kurir').removeClass('table-success');
     $(this).addClass('table-success');
   });
 
-  // kept for compatibility (tidak dipakai)
   window.assignKurirSelected = function(orderId){
     alert('Pilih kurir dari tombol "Tugaskan" pada tabel.');
   };
 
-  // assign dengan loading overlay & disable tombol
   window.assignKurirNow = function(orderId, courierId, btn){
     var $modal   = $('#modalAssignKurir');
     var $overlay = $modal.find('.assign-loading');
     var $btn     = $(btn || null);
 
-    // UI lock
     $overlay.removeClass('d-none');
     var oldHtml=null;
-    if ($btn.length){ oldHtml = $btn.html(); $btn.prop('disabled', true).html('<span class="spin" style="width:16px;height:16px;border-width:2px;margin-right:6px;"></span>Memproses'); }
+    if ($btn.length){
+      oldHtml = $btn.html();
+      $btn.prop('disabled', true)
+          .html('<span class="spin" style="width:16px;height:16px;border-width:2px;margin-right:6px;"></span>Memproses');
+    }
 
     $.ajax({
       url: "<?= site_url('admin_pos/assign_courier'); ?>",
@@ -495,7 +549,6 @@ $pm_label = 'Lihat Order';
       })(),
       success: function(res){
         if (res && res.ok){
-          // update badge kurir di header
           var nama = res.data && res.data.nama ? res.data.nama : 'Kurir';
           var telp = res.data && res.data.phone ? String(res.data.phone) : '';
           var telpPlain = telp.replace(/\s+/g,'');
@@ -508,10 +561,7 @@ $pm_label = 'Lihat Order';
           html += '</strong>';
           $('#kurirMeta').html(html).show();
 
-          // hilangkan tombol header agar tidak bisa assign lagi
           $('#btnAssignKurirHeader').remove();
-
-          // tutup hanya modal kurir
           $('#modalAssignKurir').modal('hide');
         } else {
           alert(res && res.msg ? res.msg : 'Gagal menugaskan kurir.');
@@ -522,12 +572,13 @@ $pm_label = 'Lihat Order';
       },
       complete: function(){
         $overlay.addClass('d-none');
-        if ($btn.length){ $btn.prop('disabled', false).html(oldHtml || 'Tugaskan'); }
+        if ($btn.length){
+          $btn.prop('disabled', false).html(oldHtml || 'Tugaskan');
+        }
       }
     });
   };
 
-  // salin tombol mini (HP customer)
   $(document).on('click', '.js-copy', function(){
     var val = $(this).data('copy') || '';
     if (!val) return;
@@ -540,11 +591,9 @@ $pm_label = 'Lihat Order';
   });
 })();
 
-// GLOBAL CSRF utk AJAX
 window.CSRF_NAME = "<?= isset($this->security) ? $this->security->get_csrf_token_name() : 'csrf_test_name' ?>";
 window.CSRF_HASH = "<?= isset($this->security) ? $this->security->get_csrf_hash() : '' ?>";
 
-// Helper Swal loading
 function swalLoading(title, html){
   Swal.fire({
     title: title || 'Memproses...',
@@ -555,7 +604,6 @@ function swalLoading(title, html){
   });
 }
 
-// Kirim WA Pengingat (SweetAlert)
 window.waReminder = function(orderId, type){
   var labels = { payment:'Pengingat Pembayaran', delivery:'Pengingat Pengantaran', thanks:'Ucapan Terima Kasih' };
   var label = labels[type] || 'Kirim Pesan';
