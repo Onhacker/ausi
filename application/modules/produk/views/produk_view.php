@@ -78,47 +78,184 @@ if (!empty($kategoris)) {
   }
 }
 
+
 /**
- * Jam LAST ORDER = jam tutup hari ini dari profil identitas ($rec)
- * - pakai op_mon_close / op_tue_close / ... / op_sun_close
- * - kalau hari ini di-set closed / jam kosong -> ticker tidak muncul
+ * Ticker LAST ORDER & BUKA KEMBALI
+ * - Basis: jam operasional di tabel identitas (op_*_open / op_*_close / op_*_closed)
+ * - Support nyebrang hari (mis. 10:00–01:00)
+ * - State:
+ *   - last_hour    : 0–60 menit sebelum jam tutup (tampilkan "batas JAM TUTUP ORDER...")
+ *   - after_close  : setelah jam tutup s/d jam buka berikutnya (tampilkan "order sudah tutup, buka kembali jam ...")
+ *   - none         : selain itu (disembunyikan)
  */
 $last_order_label = '';
+$next_open_label  = '';
+$ticker_state     = 'none';
 
-if (isset($rec) && is_object($rec)) {
-    $dow = (int) date('N'); // 1 = Senin ... 7 = Minggu
+// Ambil row identitas lengkap
+$ident = (isset($rec) && is_object($rec)) ? $rec : null;
 
-    $closeFieldMap  = [
-        1 => 'op_mon_close',
-        2 => 'op_tue_close',
-        3 => 'op_wed_close',
-        4 => 'op_thu_close',
-        5 => 'op_fri_close',
-        6 => 'op_sat_close',
-        7 => 'op_sun_close',
-    ];
-    $closedFieldMap = [
-        1 => 'op_mon_closed',
-        2 => 'op_tue_closed',
-        3 => 'op_wed_closed',
-        4 => 'op_thu_closed',
-        5 => 'op_fri_closed',
-        6 => 'op_sat_closed',
-        7 => 'op_sun_closed',
-    ];
+if ($ident && property_exists($ident, 'op_mon_open')) {
 
-    $closeField  = $closeFieldMap[$dow]  ?? null;
-    $closedField = $closedFieldMap[$dow] ?? null;
+    // === Timezone toko ===
+    $tzId = isset($ident->waktu) && trim((string)$ident->waktu) !== ''
+        ? trim((string)$ident->waktu)
+        : 'Asia/Makassar';
 
-    $isClosedDay = false;
-    if ($closedField && property_exists($rec, $closedField)) {
-        $isClosedDay = ((int)$rec->{$closedField} === 1);
+    try {
+        $tz  = new DateTimeZone($tzId);
+    } catch (Exception $e) {
+        $tz  = new DateTimeZone('Asia/Makassar');
     }
 
-    if (!$isClosedDay && $closeField && property_exists($rec, $closeField)) {
-        $jam = trim((string)$rec->{$closeField});
-        if (preg_match('/^\d{2}:\d{2}$/', $jam)) {
-            $last_order_label = $jam; // contoh: "23:59" atau "01:00"
+    $now = new DateTime('now', $tz);
+
+    // Helper parse "08.00" / "8:00" -> [h,i] atau null
+    $parseTime = function($s) {
+        $s = trim((string)$s);
+        if ($s === '') return null;
+        $s = str_replace('.', ':', $s);
+        if (!preg_match('/^(\d{1,2}):([0-5]\d)$/', $s, $m)) return null;
+        $h = max(0, min(23, (int)$m[1]));
+        $i = (int)$m[2];
+        return [$h, $i];
+    };
+
+    $dayKeys = [
+        1 => 'mon',
+        2 => 'tue',
+        3 => 'wed',
+        4 => 'thu',
+        5 => 'fri',
+        6 => 'sat',
+        7 => 'sun',
+    ];
+
+    $todayNum     = (int)$now->format('N'); // 1=Mon..7=Sun
+    $todayKey     = $dayKeys[$todayNum];
+    $yesterdayNum = ($todayNum === 1) ? 7 : $todayNum - 1;
+    $tomorrowNum  = ($todayNum === 7) ? 1 : $todayNum + 1;
+
+    $yesterdayKey = $dayKeys[$yesterdayNum];
+    $tomorrowKey  = $dayKeys[$tomorrowNum];
+
+    // Base date (00:00) untuk hari ini / kemarin / besok
+    $todayDate     = (clone $now)->setTime(0, 0, 0);
+    $yesterdayDate = (clone $todayDate)->modify('-1 day');
+    $tomorrowDate  = (clone $todayDate)->modify('+1 day');
+
+    // Bangun 1 "session" buka-tutup untuk 1 hari:
+    // - openDT: tanggal-buka
+    // - closeDT: tanggal-tutup (kalau wrap, bisa +1 hari)
+    $buildSession = function($baseDate, $dayKey) use ($ident, $parseTime) {
+        $openField   = "op_{$dayKey}_open";
+        $closeField  = "op_{$dayKey}_close";
+        $closedField = "op_{$dayKey}_closed";
+
+        $isClosed = property_exists($ident, $closedField)
+            ? ((int)$ident->{$closedField} === 1)
+            : false;
+
+        if ($isClosed) {
+            return null;
+        }
+
+        $openStr = property_exists($ident, $openField)
+            ? trim((string)$ident->{$openField})
+            : '';
+        $closeStr = property_exists($ident, $closeField)
+            ? trim((string)$ident->{$closeField})
+            : '';
+
+        $openArr  = $parseTime($openStr);
+        $closeArr = $parseTime($closeStr);
+
+        if ($openArr === null || $closeArr === null) {
+            return null;
+        }
+
+        list($oh, $om) = $openArr;
+        list($ch, $cm) = $closeArr;
+
+        $openDT = clone $baseDate;
+        $openDT->setTime($oh, $om, 0);
+
+        $closeDT = clone $baseDate;
+
+        $openMin  = $oh * 60 + $om;
+        $closeMin = $ch * 60 + $cm;
+
+        if ($closeMin >= $openMin) {
+            // Tutup di hari yang sama
+            $closeDT->setTime($ch, $cm, 0);
+        } else {
+            // Tutup lewat tengah malam (wrap) → geser ke hari berikutnya
+            $closeDT->modify('+1 day')->setTime($ch, $cm, 0);
+        }
+
+        return [
+            'openDT'  => $openDT,
+            'closeDT' => $closeDT,
+            'openStr' => sprintf('%02d:%02d', $oh, $om),
+            'closeStr'=> sprintf('%02d:%02d', $ch, $cm),
+        ];
+    };
+
+    $sYesterday = $buildSession($yesterdayDate, $yesterdayKey);
+    $sToday     = $buildSession($todayDate, $todayKey);
+    $sTomorrow  = $buildSession($tomorrowDate, $tomorrowKey);
+
+    // === Session aktif (kalau sekarang sedang jam buka) ===
+    $activeSession = null;
+    if ($sYesterday && $now >= $sYesterday['openDT'] && $now < $sYesterday['closeDT']) {
+        $activeSession = $sYesterday;
+    } elseif ($sToday && $now >= $sToday['openDT'] && $now < $sToday['closeDT']) {
+        $activeSession = $sToday;
+    }
+
+    // === Last close (< now) dari kemarin / hari ini ===
+    $lastCloseDT = null;
+    if ($sYesterday && $sYesterday['closeDT'] <= $now) {
+        $lastCloseDT = $sYesterday['closeDT'];
+    }
+    if ($sToday && $sToday['closeDT'] <= $now) {
+        if ($lastCloseDT === null || $sToday['closeDT'] > $lastCloseDT) {
+            $lastCloseDT = $sToday['closeDT'];
+        }
+    }
+
+    // === Next open (> now) dari hari ini / besok ===
+    $nextOpenDT = null;
+    if ($sToday && $now < $sToday['openDT']) {
+        $nextOpenDT = $sToday['openDT'];
+    }
+    if ($sTomorrow && $now < $sTomorrow['openDT']) {
+        if ($nextOpenDT === null || $sTomorrow['openDT'] < $nextOpenDT) {
+            $nextOpenDT = $sTomorrow['openDT'];
+        }
+    }
+
+    // === Tentukan state ticker ===
+    if ($activeSession) {
+        // Lagi jam buka → cek apakah sudah masuk 0–60 menit terakhir
+        $last_order_label = $activeSession['closeStr'];
+
+        $diffMinutes = (int) round(
+            ($activeSession['closeDT']->getTimestamp() - $now->getTimestamp()) / 60
+        );
+
+        if ($diffMinutes <= 60 && $diffMinutes >= 0) {
+            $ticker_state = 'last_hour';
+        } else {
+            $ticker_state = 'none';
+        }
+
+    } else {
+        // Lagi tutup → kalau di antara lastClose & nextOpen → after_close
+        if ($lastCloseDT && $nextOpenDT && $now > $lastCloseDT && $now < $nextOpenDT) {
+            $ticker_state     = 'after_close';
+            $last_order_label = $lastCloseDT->format('H:i');
+            $next_open_label  = $nextOpenDT->format('H:i');
         }
     }
 }
@@ -126,6 +263,41 @@ if (isset($rec) && is_object($rec)) {
 
 <div class="container-fluid">
   <div class="mt-2">
+     <?php if ($ticker_state !== 'none' && $last_order_label !== ''): ?>
+  <!-- Tulisan berjalan batas jam tutup / buka kembali -->
+  <div class="lastorder-ticker is-active"
+       role="status"
+       aria-label="Peringatan batas jam tutup"
+       data-state="<?= html_escape($ticker_state); ?>">
+    <div class="lastorder-track">
+      <span class="lastorder-label">
+        <i class="mdi mdi-alert" aria-hidden="true"></i> INFO
+      </span>
+
+      <!-- 0–60 menit sebelum jam tutup -->
+      <span class="lastorder-text lastorder-before"
+      style="<?= $ticker_state === 'last_hour' ? '' : 'display:none;'; ?>">
+      Batas <strong>jam tutup order</strong> makanan &amp; minuman itu sampai pukul
+      <strong><?= html_escape($last_order_label); ?> Waktu Siwa hari ini</strong>.
+      Yuk selesaikan pesanan dan tuntaskan pembayaran sebelum jam itu ya. Makasih banyak atas pengertiannya. 💛
+    </span>
+
+
+      <!-- Setelah lewat jam tutup -->
+      <?php if ($next_open_label !== ''): ?>
+        <span class="lastorder-text lastorder-after"
+        style="<?= $ticker_state === 'after_close' ? '' : 'display:none;'; ?>">
+        <!-- Untuk sementara <strong>order online lagi tutup dulu</strong>, ya.   -->
+        Kami bakal <strong>buka lagi</strong> pukul
+        <strong><?= html_escape($next_open_label); ?> Waktu Siwa</strong>.  
+        Ditunggu kehadirannya di jam operasional berikutnya. 💛
+      </span>
+    <?php endif; ?>
+
+    </div>
+  </div>
+<?php endif; ?>
+
     <?php $this->load->view("judul_mode") ?>
 
     <div id="mode-info"
@@ -133,22 +305,6 @@ if (isset($rec) && is_object($rec)) {
     data-meja="<?= html_escape($meja_info ?? '') ?>">
   </div>
 </div>
- <!-- Tulisan berjalan batas last order -->
-  <div class="lastorder-ticker"
-       role="status"
-       aria-label="Peringatan batas last order"
-       data-last-order="<?= html_escape($last_order_label); ?>">
-    <div class="lastorder-track">
-      <span class="lastorder-label">
-        <i class="mdi mdi-alert" aria-hidden="true"></i> INFO
-      </span>
-      <span class="lastorder-text">
-        Batas <strong>JAM TUTUP ORDER</strong> Makanan/minuman sampai pukul
-        <strong><?= html_escape($last_order_label); ?> Waktu Siwa Hari ini</strong>.
-        Siahkan lakukan order sebelum jam tutup order. Terima kasih. 💛
-      </span>
-    </div>
-  </div>
 
 <form id="filter-form" class="mb-0">
   <input type="hidden" id="kategori" name="kategori" value="<?= html_escape($kategori); ?>">
@@ -307,30 +463,7 @@ if (isset($rec) && is_object($rec)) {
   </div>
 </div>
 </div>
-<script>
-(function(){
-  var ticker = document.querySelector('.lastorder-ticker');
-  if (!ticker) return;
 
-  var now = new Date();
-
-  // Target last order: 23:59 (diasumsikan waktu lokal pengunjung = WITA)
-  var target = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    23, 59, 0, 0
-  );
-
-  var diffMs      = target - now;
-  var diffMinutes = diffMs / 60000;
-
-  // Aktif kalau sekarang berada di rentang 0–60 menit sebelum 23:59
-  if (diffMinutes <= 60 && diffMinutes >= 0) {
-    ticker.classList.add('is-active');
-  }
-})();
-</script>
 
 <!-- Vendor JS (harus duluan, biar jQuery/SweetAlert dsb sudah ada) -->
 <script src="<?= base_url('assets/admin/js/vendor.min.js'); ?>"></script>

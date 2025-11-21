@@ -1,4 +1,49 @@
-<link rel="stylesheet" href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>">
+<style>
+  .chart-header-card .mini-label {
+    font-size:11px;
+    line-height:1.4;
+    color:#6c757d;
+  }
+  .chart-header-card h6 {
+    font-size:13px;
+    font-weight:600;
+    color:#222;
+    margin-bottom:.25rem;
+  }
+
+  /* ==== Style tabel data Highcharts (untuk "View data table") ==== */
+  .highcharts-data-table table {
+    font-family: Verdana, sans-serif;
+    border-collapse: collapse;
+    border: 1px solid var(--highcharts-neutral-color-10, #e6e6e6);
+    margin: 10px auto;
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .highcharts-data-table caption {
+    padding: 1em 0;
+    font-size: 1.2em;
+    color: var(--highcharts-neutral-color-60, #666);
+  }
+
+  .highcharts-data-table th {
+    font-weight: 600;
+    padding: 0.5em;
+  }
+
+  .highcharts-data-table td,
+  .highcharts-data-table th,
+  .highcharts-data-table caption {
+    padding: 0.5em;
+  }
+
+  .highcharts-data-table thead tr,
+  .highcharts-data-table tbody tr:nth-child(even) {
+    background: var(--highcharts-neutral-color-3, #f7f7f7);
+  }
+</style>
 
 <div class="container-fluid">
   <div class="row"><div class="col-12">
@@ -173,6 +218,99 @@
 
 
 <!-- Highcharts assets -->
+<script>
+  // ==== Plugin animasi garis + sumbu ala demo Highcharts ====
+  (function (H) {
+    const animateSVGPath = (svgElem, animation, callback = void 0) => {
+      if (!svgElem || !svgElem.element || !svgElem.element.getTotalLength) {
+        return;
+      }
+      const length = svgElem.element.getTotalLength();
+      svgElem.attr({
+        'stroke-dasharray': length,
+        'stroke-dashoffset': length,
+        opacity: 1
+      });
+      svgElem.animate({
+        'stroke-dashoffset': 0
+      }, animation, callback);
+    };
+
+    // Override animasi untuk series line (dan turunan)
+    if (H.seriesTypes.line) {
+      const protoLine = H.seriesTypes.line.prototype;
+      const baseAnimate = protoLine.animate;
+
+      protoLine.animate = function (init) {
+        const series = this;
+        const animation = H.animObject(
+          series.options.animation || series.chart.renderer.globalAnimation
+        );
+
+        if (!init && series.graph) {
+          // animasi path garis
+          animateSVGPath(series.graph, animation);
+        } else if (baseAnimate) {
+          baseAnimate.apply(series, arguments);
+        }
+      };
+    }
+
+    // Pastikan spline juga pakai animasi yang sama
+    if (H.seriesTypes.spline && H.seriesTypes.line) {
+      H.seriesTypes.spline.prototype.animate = H.seriesTypes.line.prototype.animate;
+    }
+
+    // Animasi axis + label axis + plotLines
+    H.addEvent(H.Axis, 'afterRender', function () {
+      const axis = this;
+      const chart = axis.chart;
+      const animation = H.animObject(chart.renderer.globalAnimation);
+
+      if (axis.axisGroup) {
+        axis.axisGroup
+          .attr({ opacity: 0, rotation: -3, scaleY: 0.9 })
+          .animate({ opacity: 1, rotation: 0, scaleY: 1 }, animation);
+      }
+
+      if (axis.labelGroup) {
+        if (axis.horiz) {
+          axis.labelGroup
+            .attr({ opacity: 0, rotation: 3, scaleY: 0.5 })
+            .animate({ opacity: 1, rotation: 0, scaleY: 1 }, animation);
+        } else {
+          axis.labelGroup
+            .attr({ opacity: 0, rotation: 3, scaleX: -0.5 })
+            .animate({ opacity: 1, rotation: 0, scaleX: 1 }, animation);
+        }
+      }
+
+      if (axis.plotLinesAndBands) {
+        axis.plotLinesAndBands.forEach(function (plotLine) {
+          if (!plotLine.svgElem || !plotLine.label) {
+            return;
+          }
+
+          const plAnim = H.animObject(
+            (plotLine.options && plotLine.options.animation) || animation
+          );
+
+          // label muncul setelah garis selesai di-draw
+          plotLine.label.attr({ opacity: 0 });
+
+          animateSVGPath(
+            plotLine.svgElem,
+            plAnim,
+            function () {
+              plotLine.label.animate({ opacity: 1 }, plAnim);
+            }
+          );
+        });
+      }
+    });
+  }(Highcharts));
+</script>
+
 <script src="<?= base_url('/assets/admin/chart/highcharts.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/exporting.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/export-data.js'); ?>"></script>
@@ -180,25 +318,45 @@
 
 <script>
   // Nama bulan Indonesia
-const NAMA_BULAN_ID = [
-  'Januari','Februari','Maret','April','Mei','Juni',
-  'Juli','Agustus','September','Oktober','November','Desember'
-];
+/**
+ * Ubah string tanggal → "dd-mm-yyyy"
+ * Menerima:
+ *  - "YYYY-MM-DD"
+ *  - "YYYY-MM-DD HH:MM[:SS]"
+ *  - "YYYY-MM-DDTHH:MM[:SS]"
+ */
+function fmtTanggalIndo(input){
+  if (!input) return '-';
+  const str = String(input).trim();
 
-// Ubah 'YYYY-MM-DD' -> 'D <Nama Bulan> YYYY', mis. '2025-11-09' -> '9 November 2025'
-function fmtTanggalIndo(ymd){
-  if (!ymd) return '-';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
-  if (!m) return ymd; // fallback kalau format tak sesuai
-  const y = +m[1], mo = +m[2], d = +m[3];
-  return d + ' ' + NAMA_BULAN_ID[mo-1] + ' ' + y;
+  // ambil 3 komponen pertama "YYYY-MM-DD" di depan
+  const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!m) return str; // fallback apa adanya kalau tidak cocok
+
+  const y  = m[1];
+  const mo = ('0' + m[2]).slice(-2);
+  const d  = ('0' + m[3]).slice(-2);
+
+  return d + '-' + mo + '-' + y; // dd-mm-yyyy
 }
 
-// (Opsional, jika mau tampilkan jam juga)
-// gabung 'YYYY-MM-DD' + 'HH:MM' -> '9 November 2025 19:00'
-function fmtTanggalWaktuIndo(ymd, hhmm){
-  const tgl = fmtTanggalIndo(ymd);
-  return hhmm ? (tgl + ' ' + hhmm) : tgl;
+/**
+ * Gabung tanggal + jam → "dd-mm-yyyy HH:MM"
+ * - dateStr boleh "YYYY-MM-DD" / "YYYY-MM-DD HH:MM"
+ * - timeStr boleh "HH:MM" / "HH:MM:SS" (ambil HH:MM)
+ */
+function fmtTanggalWaktuIndo(dateStr, timeStr){
+  if (!dateStr) return '-';
+
+  const tgl = fmtTanggalIndo(dateStr); // sudah dd-mm-yyyy
+
+  if (!timeStr) return tgl;
+
+  const t = String(timeStr).trim();
+  const m = t.match(/^(\d{2}):(\d{2})/);
+  const jamMenit = m ? (m[1] + ':' + m[2]) : t;
+
+  return tgl + ' ' + jamMenit;
 }
 
 (function(){
@@ -322,17 +480,17 @@ function fmtTanggalWaktuIndo(ymd, hhmm){
 
   function renderCharts(res){
     // info filter aktif di header kartu atas
-    if (res.filter){
-       const dfID = fmtTanggalIndo(res.filter.date_from);
-  const dtID = fmtTanggalIndo(res.filter.date_to);
+   if (res.filter){
+  const dfID = fmtTanggalWaktuIndo(res.filter.date_from, res.filter.time_from);
+  const dtID = fmtTanggalWaktuIndo(res.filter.date_to,   res.filter.time_to);
 
   infoRangeEl.textContent =
     'Rentang: ' + dfID +
-    ' s/d '   + dtID +
+    ' s/d '     + dtID +
     ' | Mode: '   + (res.filter.mode   || '-') +
     ' | Metode: ' + (res.filter.metode || '-') +
     ' | Status: ' + (res.filter.status || '-');
-    }
+}
 
     if (res.total_rekap){
       infoTotalEl.textContent =
@@ -349,7 +507,9 @@ function fmtTanggalWaktuIndo(ymd, hhmm){
     const labaData        = res.laba          || [];
 
     const kpData = res.kursi_pijat || []; // NEW
-
+    const categoriesLabel = categories.map(function (v) {
+      return fmtTanggalIndo(v);
+    });
     const totalPendapatan = cafeData.map(function(v,i){
       const vb = (typeof billiardData[i] !== 'undefined') ? billiardData[i] : 0;
   const vk = (typeof kpData[i] !== 'undefined') ? kpData[i] : 0; // NEW
@@ -357,26 +517,78 @@ function fmtTanggalWaktuIndo(ymd, hhmm){
 });
 
 
-    Highcharts.chart('chartPendapatan', {
-  title:{ text:null },
-  xAxis:{ categories:categories, crosshair:true },
-  yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
-  tooltip:{ shared:true, valueDecimals:0, valuePrefix:'Rp ' },
-  credits:{ enabled:false },
-  exporting:{ enabled:true },
-  series:[
-    { name:'Cafe / POS', data:cafeData },
-    { name:'Billiard', data:billiardData },
-    { name:'Kursi Pijat', data:kpData }, // NEW
-    { name:'Total Pendapatan (Cafe+Billiard+KP)', data:totalPendapatan }
+  Highcharts.chart('chartPendapatan', {
+  chart: {
+    type: 'spline' // line halus
+  },
+  title: { text: null },
+  xAxis:{ categories: categoriesLabel, crosshair:true },
+  yAxis: {
+    min: 0,
+    title: { text: 'Rupiah (Rp)' }
+  },
+  tooltip: {
+    shared: true,
+    valueDecimals: 0,
+    valuePrefix: 'Rp '
+  },
+  credits: { enabled: false },
+  exporting: { enabled: true },
+
+  plotOptions: {
+    series: {
+      animation: {
+        duration: 1000 // default durasi, bisa dioverride di tiap series
+      },
+      marker: {
+        enabled: false
+      },
+      lineWidth: 2
+    }
+  },
+
+  series: [
+    {
+      name: 'Cafe / POS',
+      data: cafeData,
+      animation: {
+        duration: 1000,
+        defer: 0      // mulai duluan
+      }
+    },
+    {
+      name: 'Billiard',
+      data: billiardData,
+      animation: {
+        duration: 1000,
+        defer: 300    // muncul sedikit telat
+      }
+    },
+    {
+      name: 'Kursi Pijat',
+      data: kpData,
+      animation: {
+        duration: 1000,
+        defer: 600
+      }
+    },
+    {
+      name: 'Total Pendapatan (Cafe+Billiard+KP)',
+      data: totalPendapatan,
+      animation: {
+        duration: 1000,
+        defer: 900    // terakhir, biar dramatis
+      }
+    }
   ]
 });
+
 
 
     Highcharts.chart('chartPengeluaran', {
       chart:{ type:'column' },
       title:{ text:null },
-      xAxis:{ categories:categories, crosshair:true },
+      xAxis:{ categories:categoriesLabel, crosshair:true },
       yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
       tooltip:{
         shared:true,
@@ -393,7 +605,7 @@ function fmtTanggalWaktuIndo(ymd, hhmm){
     Highcharts.chart('chartLaba', {
       chart:{ type:'area' },
       title:{ text:null },
-      xAxis:{ categories:categories, crosshair:true },
+        xAxis:{ categories:categoriesLabel, crosshair:true },
       yAxis:{ title:{ text:'Rupiah (Rp)' } },
       tooltip:{
         shared:true,
