@@ -109,31 +109,25 @@
 .voucher-chip-text{
   white-space: nowrap;
 }
- /* Ratakan isi sel vertikal & horizontal untuk 3 kolom badge */
-table.dataTable tbody td.col-mode,
-table.dataTable tbody td.col-status,
-table.dataTable tbody td.col-metode {
-  vertical-align: middle !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+ /* Ratakan isi sel di tengah secara vertikal */
+  table.dataTable tbody td.col-status,
+  table.dataTable tbody td.col-metode {
+    vertical-align: middle !important;
+  }
 
-/* Metode: wrapper d-flex tetap center */
-table.dataTable tbody td.col-metode > div.d-flex {
-  align-items: center;
-  justify-content: center;
-}
+  /* Biar isi di kolom metode (div.d-flex) benar-benar center */
+  table.dataTable tbody td.col-metode > div.d-flex {
+    align-items: center;
+    justify-content: center;
+  }
 
-/* Badge dalam 3 kolom: pakai inline-flex biar tinggi konsisten */
-table.dataTable tbody td.col-mode   .badge.badge-pill,
-table.dataTable tbody td.col-status .badge.badge-pill,
-table.dataTable tbody td.col-metode .badge.badge-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
+  /* Biar semua badge kelihatan rapi & sejajar */
+  table.dataTable tbody td.col-status .badge.badge-pill,
+  table.dataTable tbody td.col-metode .badge.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   </style>
  
   <div class="row">
