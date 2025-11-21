@@ -1013,7 +1013,12 @@ private function _create_weekly_voucher_if_needed($winner, string $jenis_reward,
         $keterangan = "Reward Mingguan - Pemenang Acak {$yearIso}-W{$weekNo}";
     }
     // ===================================================
-
+     $jumlahPoin = 0;
+        if (isset($winner->total_poin)) {
+            $jumlahPoin = (int)$winner->total_poin;
+        } elseif (isset($winner->points)) {
+            $jumlahPoin = (int)$winner->points;
+        }
     // Generate kode voucher unik
     $kode = $this->_generate_voucher_code();
 
@@ -1024,6 +1029,7 @@ private function _create_weekly_voucher_if_needed($winner, string $jenis_reward,
         'tipe'            => $tipe,
         'jenis_voucher'   => 'mingguan',
         'nilai'           => $nilai,
+        'jumlah_poin'     => $jumlahPoin, 
         'minimal_belanja' => $minimalBelanja,
         'max_potongan'    => $maxPotongan,
         'tgl_mulai'       => $mulai->format('Y-m-d'),
@@ -1040,6 +1046,113 @@ private function _create_weekly_voucher_if_needed($winner, string $jenis_reward,
 
     $this->db->insert('voucher_cafe_manual', $insertData);
 }
+public function reward_rebuild_from_paid()
+{
+    // OPTIONAL PROTECTION:
+    // biar cuma bisa diakses dari localhost (127.0.0.1 / ::1).
+    // Kalau mau dites di server lain, bisa di-comment sementara.
+    $ip = $this->input->ip_address();
+    if ($ip !== '127.0.0.1' && $ip !== '::1') {
+        show_error('Hanya boleh dipanggil dari localhost untuk alasan keamanan.', 403);
+    }
+
+    $this->_nocache_headers();
+    date_default_timezone_set('Asia/Makassar');
+    $tz = new DateTimeZone('Asia/Makassar');
+
+    // supaya output rapi di browser
+    echo "<pre>";
+
+    // Cari range tanggal paid_at di pesanan_paid (status = paid)
+    $range = $this->db
+        ->select('MIN(paid_at) AS min_paid, MAX(paid_at) AS max_paid')
+        ->from('pesanan_paid')
+        ->where('status', 'paid')
+        ->get()
+        ->row();
+
+    if (!$range || !$range->min_paid || !$range->max_paid) {
+        echo "Tidak ada data pesanan_paid dengan status 'paid'.\n";
+        echo "</pre>";
+        return;
+    }
+
+    $first = new DateTime($range->min_paid, $tz);
+    $last  = new DateTime($range->max_paid, $tz);
+
+    // Mulai dari hari Minggu pertama >= tanggal pertama
+    $weekStart = clone $first;
+    $weekStart->setTime(0, 0, 0);
+    $wday = (int)$weekStart->format('w'); // 0 = Minggu
+
+    if ($wday !== 0) {
+        // Geser ke Minggu berikutnya
+        $weekStart->modify('next sunday');
+    }
+
+    echo "Backfill dari Minggu "
+       . $weekStart->format('Y-m-d')
+       . " s/d "
+       . $last->format('Y-m-d')
+       . "\n\n";
+
+    while ($weekStart <= $last) {
+
+        // Periode poin: Minggu 00:00 – Sabtu 23:59:59
+        $weekEnd = clone $weekStart;
+        $weekEnd->modify('+6 day')->setTime(23, 59, 59);
+
+        // Kalau minggu ini belum “penuh” (weekEnd > last), kita stop.
+        if ($weekEnd > $last) {
+            echo "Stop di minggu yang belum penuh ("
+               . $weekStart->format('Y-m-d')
+               . " s/d "
+               . $weekEnd->format('Y-m-d')
+               . ")\n";
+            break;
+        }
+
+        echo "Minggu poin : "
+           . $weekStart->format('Y-m-d')
+           . " s/d "
+           . $weekEnd->format('Y-m-d')
+           . "\n";
+
+        list($winnerTop, $winnerRandom) = $this->_get_weekly_winners_from_paid($weekStart, $weekEnd);
+
+        if (!$winnerTop) {
+            echo "  - Tidak ada peserta (poin > 0).\n\n";
+            $weekStart->modify('+7 day');
+            continue;
+        }
+
+        // Tanggal pengumuman = Minggu setelah periode poin,
+        // pukul 08.00 WITA (sama seperti reward_cron)
+        $announce = clone $weekStart;
+        $announce->modify('+7 day')->setTime(8, 0, 0);
+
+        // Buat voucher untuk pemenang poin tertinggi
+        $this->_create_weekly_voucher_if_needed($winnerTop, 'top', $announce);
+        echo "  • TOP   : {$winnerTop->customer_name} ({$winnerTop->customer_phone}), poin={$winnerTop->points}\n";
+
+        // Buat voucher untuk pemenang acak (jika ada kandidat selain TOP)
+        if ($winnerRandom) {
+            $this->_create_weekly_voucher_if_needed($winnerRandom, 'random', $announce);
+            echo "  • RANDOM: {$winnerRandom->customer_name} ({$winnerRandom->customer_phone}), poin={$winnerRandom->points}\n";
+        } else {
+            echo "  • RANDOM: tidak ada (hanya 1 peserta)\n";
+        }
+
+        echo "\n";
+
+        // Geser ke minggu berikutnya
+        $weekStart->modify('+7 day');
+    }
+
+    echo "Rebuild voucher mingguan SELESAI.\n";
+    echo "</pre>";
+}
+
 
 /**
  * Generate kode voucher acak (8 karakter) dan unik di tabel voucher_cafe_manual.
@@ -1092,7 +1205,7 @@ private function _get_latest_weekly_winners()
 
     // Ambil semua voucher mingguan di tanggal tersebut
     $rows = $this->db
-        ->select('id, kode_voucher, nama, no_hp, tipe, jenis_voucher, nilai, tgl_mulai, tgl_selesai, keterangan, created_at')
+        ->select('id, kode_voucher, nama,jumlah_poin, no_hp, tipe, jenis_voucher, nilai, tgl_mulai, tgl_selesai, keterangan, created_at')
         ->from('voucher_cafe_manual')
         ->where('jenis_voucher', 'mingguan')
         ->where('tgl_mulai', $lastDate)
@@ -1126,6 +1239,101 @@ private function _get_latest_weekly_winners()
                 break;
             }
         }
+    }
+
+    return [$winnerTop, $winnerRandom];
+}
+/**
+ * Hitung pemenang mingguan langsung dari pesanan_paid.
+ *
+ * @param DateTime $weekStart Minggu 00:00 WITA
+ * @param DateTime $weekEnd   Sabtu 23:59:59 WITA
+ * @return array [$winnerTop, $winnerRandom]
+ */
+private function _get_weekly_winners_from_paid(DateTime $weekStart, DateTime $weekEnd)
+{
+    $startStr = $weekStart->format('Y-m-d H:i:s');
+    $endStr   = $weekEnd->format('Y-m-d H:i:s');
+
+    // Aggregasi poin per nomor WA
+    $rows = $this->db
+        ->select("
+            customer_phone,
+            MAX(nama) AS customer_name,
+            SUM(kode_unik + FLOOR(total / 1000)) AS total_points,
+            SUM(total) AS total_belanja,
+            MAX(paid_at) AS last_paid_at,
+            COUNT(*) AS order_count
+        ", false)
+        ->from('pesanan_paid')
+        ->where('status', 'paid')
+        ->where('paid_at >=', $startStr)
+        ->where('paid_at <=', $endStr)
+        ->where('customer_phone IS NOT NULL', null, false) // raw, biar gak di-backtick
+        ->where('customer_phone !=', '')                  // versi CI, aman
+
+        ->group_by('customer_phone')
+        ->having('total_points >', 0)
+        ->get()
+        ->result();
+
+    if (empty($rows)) {
+        return [null, null];
+    }
+
+    // Urutkan:
+    // 1) total_points DESC
+    // 2) total_belanja DESC
+    // 3) last_paid_at ASC (lebih awal menang)
+    // 4) order_count DESC
+    usort($rows, function($a, $b){
+        if ($a->total_points != $b->total_points) {
+            return ($b->total_points <=> $a->total_points);
+        }
+        if ($a->total_belanja != $b->total_belanja) {
+            return ($b->total_belanja <=> $a->total_belanja);
+        }
+
+        $ta = $a->last_paid_at ? strtotime($a->last_paid_at) : 0;
+        $tb = $b->last_paid_at ? strtotime($b->last_paid_at) : 0;
+        if ($ta != $tb) {
+            // lebih awal (lebih kecil) MENANG
+            return ($ta <=> $tb);
+        }
+
+        if ($a->order_count != $b->order_count) {
+            return ($b->order_count <=> $a->order_count);
+        }
+
+        return 0;
+    });
+
+    // Pemenang poin tertinggi
+    $winnerTop = array_shift($rows);
+    if (!$winnerTop) {
+        return [null, null];
+    }
+
+    // Tambahkan properti supaya cocok dengan _create_weekly_voucher_if_needed()
+    $winnerTop->points     = (int)$winnerTop->total_points;
+    $winnerTop->total_poin = $winnerTop->points;
+
+    // Pemenang acak
+    $winnerRandom = null;
+    if (count($rows) > 0) {
+        // Random yang konsisten per minggu:
+        // seed = ISO year + week number (misal 202546)
+        $isoYear = (int)$weekStart->format('o');
+        $isoWeek = (int)$weekStart->format('W');
+        $seedStr = sprintf('%04d%02d', $isoYear, $isoWeek);
+        $seed    = (int)$seedStr;
+
+        mt_srand($seed);
+        $idx = mt_rand(0, count($rows) - 1);
+        $winnerRandom = $rows[$idx];
+
+        $winnerRandom->points     = (int)$winnerRandom->total_points;
+        $winnerRandom->total_poin = $winnerRandom->points;
     }
 
     return [$winnerTop, $winnerRandom];
@@ -1231,6 +1439,7 @@ public function reward()
     if ($nextAnnouncement <= $now) {
         $nextAnnouncement->modify('+7 day');
     }
+
     // ========== HITUNG RANGE REKAP POIN BERDASARKAN VOUCHER MINGGUAN TERBARU ==========
     $periode_mulai_str   = null;
     $periode_selesai_str = null;
@@ -1271,28 +1480,30 @@ public function reward()
         }
     }
 
-    // kirim ke view
-    $data['periode_mulai_str']   = $periode_mulai_str;
-    $data['periode_selesai_str'] = $periode_selesai_str;
-
     // ===============================
     // AMBIL PEMENANG DARI VOUCHER MINGGUAN (LOG)
     // ===============================
     list($winner_top, $winner_random) = $this->_get_latest_weekly_winners();
 
-    // ⚠️ PENTING:
-    // Tidak perlu lagi hitung pemenang dari voucher_cafe di sini,
-    // dan tidak perlu lagi create voucher di reward().
-    // Itu sudah dikerjakan oleh reward_cron() via CLI.
+    // Alias-kan jumlah_poin dari tabel -> total_poin,
+    // supaya di view bisa langsung pakai $winner_top->total_poin
+    if ($winner_top && isset($winner_top->jumlah_poin)) {
+        $winner_top->total_poin = (int)$winner_top->jumlah_poin;
+    }
+    if ($winner_random && isset($winner_random->jumlah_poin)) {
+        $winner_random->total_poin = (int)$winner_random->jumlah_poin;
+    }
 
+    // kirim ke view
     $data = [
         'rec'                   => $rec,
         'winner_top'            => $winner_top,
         'winner_random'         => $winner_random,
+        'isSunday'              => $isSunday,                 // ⬅️ DIPAKAI DI VIEW
         'is_announcement_time'  => $isAnnouncementTime,
         'next_announcement_iso' => $nextAnnouncement->format('c'),
         'periode_mulai_str'     => $periode_mulai_str,
-    'periode_selesai_str'   => $periode_selesai_str,
+        'periode_selesai_str'   => $periode_selesai_str,
     ];
 
     $data["title"]     = "Reward Mingguan";
