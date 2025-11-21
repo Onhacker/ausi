@@ -61,7 +61,7 @@ class Api extends MX_Controller {
             [
                 'label'   => 'Pengeluaran',
                 'url'     => site_url('admin_pengeluaran'),
-                'icon'    => 'mdi mdi-cash-minus',
+                'icon'    => 'mdi mdi-cash-100',
                 'require' => ['Pengeluaran','admin_pengeluaran','user'],
             ],
         ],
@@ -321,7 +321,7 @@ public function get_menu_mobile()
             'id'      => 'admin_pengeluaran',
             'label'   => 'Pengeluaran',
             'url'     => site_url('admin_pengeluaran'),
-            'icon'    => 'mdi mdi-cash-minus',
+            'icon'    => 'mdi mdi-cash-100',
             'require' => ['Pengeluaran','admin_pengeluaran','user'],
         ],
 
