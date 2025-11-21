@@ -1,5 +1,14 @@
 <?php $this->load->view("front_end/head.php") ?>
-<link href="<?php echo base_url('assets/min/home.min.css'); ?>" rel="stylesheet" type="text/css" />
+<?php
+  // path relatif dari FCPATH
+  $css_rel  = 'assets/min/home.min.css';
+  $css_path = FCPATH . $css_rel;
+
+  // versi diambil dari waktu terakhir file diubah
+  $css_ver  = is_file($css_path) ? filemtime($css_path) : time();
+?>
+<link href="<?= base_url($css_rel) . '?v=' . $css_ver; ?>" rel="stylesheet" type="text/css" />
+
 <?php
 $slides = [
   [
