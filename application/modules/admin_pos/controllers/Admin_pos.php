@@ -360,7 +360,7 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
 
     // builder chip metode
     $chip = function($icon,$label,$cls){
-        return '<span class="badge badge-pill '.$cls.' mr-1 mb-1">'
+        return '<span class="badge badge-pill '.$cls.' mr-1">'
              .   '<i class="mdi '.$icon.' mr-1"></i>'.$label
              . '</span>';
     };
