@@ -967,24 +967,44 @@ function finishAllProgressSteps(){
     if (!$tips.length) return;
 
     if (typeof $.fn.tooltip !== 'function') {
-      console.warn('Bootstrap tooltip belum tersedia. Cek apakah bootstrap.js / bootstrap.bundle.js sudah ter-load.');
+      console.warn('Bootstrap tooltip belum tersedia. Cek bootstrap.js / bootstrap.bundle.js.');
       return;
     }
 
+    // Inisialisasi tooltip
     $tips.tooltip({
       container: 'body',
-      trigger: 'click hover focus', // termasuk click biar enak di mobile
+      trigger: 'manual',   // kita kontrol sendiri show/hide
       boundary: 'window'
+      // placement tetap dibaca dari data-placement="top" di HTML
     });
 
-    // Tutup tooltip kalau user klik di luar
-    $(document).on('click touchstart', function (e) {
+    // Klik ikon ? -> toggle tooltip itu
+    $tips.on('click', function (e) {
+      e.stopPropagation();              // jangan tembus ke document
+      var $this = $(this);
+
+      // tutup tooltip lain dulu
+      $tips.not($this).tooltip('hide');
+
+      // toggle tooltip yang diklik
+      $this.tooltip('toggle');
+    });
+
+    // Klik di area mana saja di luar ikon -> semua tooltip tutup
+    $(document).on('click', function () {
+      $tips.tooltip('hide');
+    });
+
+    // (opsional) untuk sentuhan di mobile
+    $(document).on('touchstart', function (e) {
       if (!$(e.target).closest('[data-toggle="tooltip"]').length) {
         $tips.tooltip('hide');
       }
     });
   });
 </script>
+
 
 
 
