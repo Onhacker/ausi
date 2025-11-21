@@ -1,9 +1,9 @@
 <script type="text/javascript">
 let table;
 let saveUrl = "<?= site_url(strtolower($controller).'/add'); ?>";
-let SETTING = { harga_satuan: 0, durasi_unit: 1 };
+let SETTING = { harga_satuan: 0, durasi_unit: 1, free_main_threshold: 10 };
 
-/* ==== Util Rupiah (untuk modal pengaturan) ==== */
+/* ==== Util Rupiah ==== */
 function formatRupiahNumber(n){ n=parseInt(n||0,10); return n.toLocaleString('id-ID'); }
 function maskToRupiah(strDigits){
   const n = String(strDigits).replace(/[^\d]/g,'');
@@ -62,7 +62,10 @@ $(document).ready(function(){
   $.getJSON("<?= site_url(strtolower($controller).'/get_setting'); ?>", function(res){
     if(res && res.success){
       SETTING = res.data || SETTING;
-      $('#price_hint').text(`Tarif aktif: ${formatRupiah(SETTING.harga_satuan)} per ${SETTING.durasi_unit} menit`);
+      $('#price_hint').html(
+        `Tarif aktif: <b>${formatRupiah(SETTING.harga_satuan)}</b> per ${SETTING.durasi_unit} menit. `+
+        `<br>Program voucher: <b>${SETTING.free_main_threshold}x main</b> (berdasarkan nomor HP) dapat 1x FREE.`
+      );
       buildSesiOptions();
       updateEstimator();
     }
@@ -73,6 +76,7 @@ $(document).ready(function(){
     $('#harga_satuan_rp').val(maskToRupiah(SETTING.harga_satuan));
     $('#harga_satuan').val(SETTING.harga_satuan);
     $('#durasi_unit').val(SETTING.durasi_unit);
+    $('#free_main_threshold').val(SETTING.free_main_threshold);
     $('#setting-modal').modal('show');
     setTimeout(()=>$('#harga_satuan_rp').trigger('focus'),100);
   });
@@ -100,7 +104,10 @@ $(document).ready(function(){
           $.getJSON("<?= site_url(strtolower($controller).'/get_setting'); ?>", function(r){
             if(r && r.success){
               SETTING = r.data || SETTING;
-              $('#price_hint').text(`Tarif aktif: ${formatRupiah(SETTING.harga_satuan)} per ${SETTING.durasi_unit} menit`);
+              $('#price_hint').html(
+                `Tarif aktif: <b>${formatRupiah(SETTING.harga_satuan)}</b> per ${SETTING.durasi_unit} menit. `+
+                `<br>Program voucher: <b>${SETTING.free_main_threshold}x main</b> (berdasarkan nomor HP) dapat 1x FREE.`
+              );
               buildSesiOptions($('#durasi_menit').val());
               updateEstimator();
               refresh();
@@ -114,27 +121,27 @@ $(document).ready(function(){
 
   // datatable
   table = $('#datable_1').DataTable({
-  processing: true, serverSide: true, responsive: true,
-  ajax: { url: "<?= site_url(strtolower($controller).'/get_data'); ?>", type: "POST" },
-  columns: [
-    { data: 'cek', orderable: false, searchable: false, className:'text-center' },
-    { data: 'no',  orderable: false, searchable: false },
-    { data: 'nama' },
-    { data: 'tanggal', className:'text-nowrap' }, // ⬅️ baru (posisi index 3)
-    { data: 'durasi', className:'text-nowrap' },
-    { data: 'sesi', className:'text-nowrap' },
-    { data: 'total', className:'text-nowrap' },
-    { data: 'status', orderable:false, searchable:false },
-    { data: 'aksi', orderable:false, searchable:false, className:'text-center' },
-  ],
-  // urutkan default berdasarkan Tanggal desc
-  order: [[3,'desc']],
-  rowCallback: function(row, data, displayIndex) {
-    const info = this.api().page.info();
-    $('td:eq(1)', row).html(info.start + displayIndex + 1);
-  }
-});
-
+    processing: true, serverSide: true, responsive: true,
+    ajax: { url: "<?= site_url(strtolower($controller).'/get_data'); ?>", type: "POST" },
+    columns: [
+      { data: 'cek', orderable: false, searchable: false, className:'text-center' },
+      { data: 'no',  orderable: false, searchable: false },
+      { data: 'nama' },
+      { data: 'no_hp', className:'text-nowrap' },
+      { data: 'tanggal', className:'text-nowrap' },
+      { data: 'durasi', className:'text-nowrap' },
+      { data: 'sesi', className:'text-nowrap' },
+      { data: 'total', className:'text-nowrap' },
+      { data: 'status', orderable:false, searchable:false },
+      { data: 'aksi', orderable:false, searchable:false, className:'text-center' },
+    ],
+    // urutkan default berdasarkan Tanggal desc (index kolom 4)
+    order: [[4,'desc']],
+    rowCallback: function(row, data, displayIndex) {
+      const info = this.api().page.info();
+      $('td:eq(1)', row).html(info.start + displayIndex + 1);
+    }
+  });
 
   // check-all
   $('#check-all').on('click', function(){ $('.data-check').prop('checked', this.checked); });
@@ -161,10 +168,11 @@ function edit(id){
       const d = res.data;
       $('#id_transaksi').val(d.id_transaksi);
       $('#nama').val(d.nama);
+      $('#no_hp').val(d.no_hp || '');
       $('#catatan').val(d.catatan || '');
       buildSesiOptions(parseInt(d.durasi_menit,10));
       const st = (d.status || 'baru');
-      $(`input[name="status"][value="${st}"]`).prop('checked', true); // set radio
+      $(`input[name="status"][value="${st}"]`).prop('checked', true);
       updateEstimator();
       saveUrl = "<?= site_url(strtolower($controller).'/update'); ?>";
       $('.mymodal-title').text('Edit');
@@ -172,7 +180,6 @@ function edit(id){
     } else { swalErr(res.pesan || 'Data tidak ditemukan'); }
   }).fail(function(){ swalErr('Terjadi kesalahan koneksi'); });
 }
-
 
 function close_modal(){ $('#full-width-modal').modal('hide'); }
 
@@ -236,7 +243,7 @@ function hapus_data(){
 function batal(id){
   Swal.fire({
     title: 'Batalkan transaksi?',
-    text: 'Status akan diubah menjadi Batal.',
+    text: 'Status akan diubah menjadi Batal & poin voucher akan dihapus.',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'Ya, Batalkan',
@@ -260,5 +267,4 @@ function batal(id){
     });
   });
 }
-
 </script>

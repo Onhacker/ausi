@@ -100,6 +100,13 @@ class Api extends MX_Controller {
                 'icon'    => 'mdi mdi-coffee-outline',
                 'require' => ['Voucher Cafe','admin_voucher_cafe','user'],
             ],
+            [
+                'label'   => 'Voucher Kursi Pijat',
+                'url'     => site_url('admin_voucher_kursi_pijat'),
+                'icon'    => 'mdi mdi-seat-recline-extra',
+                'require' => ['Voucher Kursi Pijat','admin_voucher_kursi_pijat','user'],
+            ],
+
         ],
     ];
 
@@ -357,6 +364,14 @@ public function get_menu_mobile()
             'url'     => site_url('admin_voucher_cafe'),
             'icon'    => 'mdi mdi-ticket-percent',
             'require' => ['Voucher Cafe','admin_voucher_cafe','user'],
+        ],
+
+        [
+            'id'      => 'admin_voucher_kursi_pijat',
+            'label'   => 'Voucher Cafe',
+            'url'     => site_url('admin_voucher_kursi_pijat'),
+            'icon'    => 'mdi mdi-spa',
+            'require' => ['Voucher Kursi Pijat','admin_voucher_kursi_pijat','user'],
         ],
 
         // ===== Master / Pengaturan =====

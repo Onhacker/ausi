@@ -155,8 +155,10 @@ if (!function_exists('nav_class')) {
       $menu_patterns = [
         'admin_permohonan','admin_profil/detail_profil','booking',
         'admin_dashboard/monitor','admin_pos','admin_user','hal/kontak',
-        'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*', 'admin_voucher_cafe*'
+        'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*',
+        'admin_voucher_cafe*','admin_voucher_kursi_pijat*'
       ];
+
     ?>
     <div class="nav-item">
       <a href="#" class="<?= nav_class($uri, $menu_patterns) ?>" data-toggle="modal" data-target="#kontakModal">
@@ -233,7 +235,10 @@ if (!function_exists('nav_class')) {
     // helper visibilitas grup
     $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
     $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
-    $showPijat     = user_can_mod(['admin_kursi_pijat']);
+    $showPijat     =
+    user_can_mod(['admin_kursi_pijat']) ||
+    user_can_mod(['admin_voucher_kursi_pijat']);
+
  
 $showKeuLap =
     user_can_mod(['admin_pengeluaran']) ||
@@ -315,6 +320,7 @@ $showKeuLap =
   <?php endif; ?>
 
   <!-- ========== Kursi Pijat ========== -->
+   <!-- ========== Kursi Pijat ========== -->
   <?php if ($showPijat): ?>
   <div class="menu-group" role="group" aria-label="Kursi Pijat">
     <div class="menu-title">Kursi Pijat</div>
@@ -324,8 +330,16 @@ $showKeuLap =
         <span class="emoji" aria-hidden="true">💺</span><span>POS Kursi Pijat</span>
       </a>
     <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_voucher_kursi_pijat'])): ?>
+      <a id="quick-voucher-kursi-pijat-link" href="<?= site_url('admin_voucher_kursi_pijat') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎟️</span><span>Voucher Kursi Pijat</span>
+      </a>
+    <?php endif; ?>
+
   </div>
   <?php endif; ?>
+
 
   <!-- ========== Keuangan & Laporan ========== -->
   <?php if ($showKeuLap): ?>
@@ -498,7 +512,9 @@ $showKeuLap =
   admin_user:          { a: document.getElementById("quick-user-link") },
   admin_setting_web:   { a: document.getElementById("quick-setting-link") },
   admin_unit_lain:     { a: document.getElementById("quick-unit-lain-link") },
-  admin_pengumuman:    { a: document.getElementById("quick-pengumuman-link") }
+  admin_pengumuman:    { a: document.getElementById("quick-pengumuman-link") },
+  admin_kursi_pijat:         { a: document.getElementById("quick-kursi-pijat-link") },          // <-- NEW
+  admin_voucher_kursi_pijat: { a: document.getElementById("quick-voucher-kursi-pijat-link") }, // <-- NEW
 };
 
 

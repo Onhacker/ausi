@@ -1,18 +1,7 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <div class="row">
-  <!--   <div class="col-12">
-      <div class="page-title-box">
-        <div class="page-title-right">
-          <ol class="breadcrumb m-0">
-            <li class="breadcrumb-item active"><?= $subtitle; ?></li>
-          </ol>
-        </div>
-        <h4 class="page-title"><?= $subtitle; ?></h4>
-      </div>
-    </div> -->
-  </div>
+  <div class="row"></div>
 
   <!-- Bar tombol -->
   <div class="row">
@@ -33,40 +22,40 @@
               <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
               </button>
-            <?php } ?>
+              <?php } ?>
             </div>
 
             <div class="d-flex align-items-center gap-2 ms-auto">
               <button type="button" id="btnOpenSetting" class="btn btn-primary btn-rounded btn-sm waves-effect waves-light">
-                <i class="fe-settings me-1"></i> Pengaturan Tarif
+                <i class="fe-settings me-1"></i> Pengaturan Tarif & Voucher
               </button>
             </div>
           </div>
           <small id="price_hint" class="text-dark"></small>
           <hr>
-            <div class="table-responsive">
-          <!-- <table id="datable_1" class="table table-striped table-bordered w-100"> -->
-          <table id="datable_1" class="table table-sm table-striped table-bordered w-100">
+          <div class="table-responsive">
+            <table id="datable_1" class="table table-sm table-striped table-bordered w-100">
+              <thead>
+                <tr>
+                  <th class="text-center" width="5%">
+                    <div class="checkbox checkbox-primary checkbox-single">
+                      <input id="check-all" type="checkbox"><label></label>
+                    </div>
+                  </th>
+                  <th width="5%">No.</th>
+                  <th>Nama</th>
+                  <th>No. HP</th>
+                  <th>Tanggal</th>
+                  <th>Durasi</th>
+                  <th>Sesi</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th width="12%">Aksi</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
 
-            <thead>
-              <tr>
-                <th class="text-center" width="5%">
-                  <div class="checkbox checkbox-primary checkbox-single">
-                    <input id="check-all" type="checkbox"><label></label>
-                  </div>
-                </th>
-                <th width="5%">No.</th>
-                <th>Nama</th>
-                 <th>Tanggal</th>
-                <th>Durasi</th>
-                <th>Sesi</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th width="12%">Aksi</th>
-              </tr>
-            </thead>
-          </table>
-</div>
         </div>
       </div>
     </div>
@@ -89,6 +78,12 @@
               <input type="text" class="form-control" name="nama" id="nama" autocomplete="off" required>
             </div>
 
+            <div class="form-group mb-3">
+              <label class="text-primary">No. HP (untuk voucher)</label>
+              <input type="text" class="form-control" name="no_hp" id="no_hp" autocomplete="off">
+              <small class="text-muted">Opsional, tapi wajib diisi jika ingin mengumpulkan voucher.</small>
+            </div>
+
             <!-- Sesi -> dropdown; value = menit (sesi * durasi_unit) -->
             <div class="form-group mb-3">
               <label class="text-primary">Sesi</label>
@@ -97,27 +92,25 @@
               <div id="estimator" class="mt-2 small text-info"></div>
             </div>
 
-            <!-- Tambahan: Status -->
             <!-- Status (radio) -->
-<div class="form-group mb-3">
-  <label class="text-primary d-block">Status</label>
+            <div class="form-group mb-3">
+              <label class="text-primary d-block">Status</label>
 
-  <div class="form-check form-check-inline">
-    <input class="form-check-input" type="radio" name="status" id="st_baru" value="baru" checked>
-    <label class="form-check-label" for="st_baru">Belum Bayar</label>
-  </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="status" id="st_baru" value="baru" checked>
+                <label class="form-check-label" for="st_baru">Belum Bayar</label>
+              </div>
 
-  <div class="form-check form-check-inline">
-    <input class="form-check-input" type="radio" name="status" id="st_selesai" value="selesai">
-    <label class="form-check-label" for="st_selesai">Lunas</label>
-  </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="status" id="st_selesai" value="selesai">
+                <label class="form-check-label" for="st_selesai">Lunas</label>
+              </div>
 
-  <div class="form-check form-check-inline">
-    <input class="form-check-input" type="radio" name="status" id="st_batal" value="batal">
-    <label class="form-check-label" for="st_batal">Batal</label>
-  </div>
-</div>
-
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="status" id="st_batal" value="batal">
+                <label class="form-check-label" for="st_batal">Batal</label>
+              </div>
+            </div>
 
             <div class="form-group mb-1">
               <label class="text-primary">Catatan (opsional)</label>
@@ -134,12 +127,12 @@
     </div>
   </div>
 
-  <!-- Modal Pengaturan Tarif -->
+  <!-- Modal Pengaturan Tarif & Voucher -->
   <div id="setting-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h4 class="m-0">Pengaturan Tarif Kursi Pijat</h4>
+          <h4 class="m-0">Pengaturan Kursi Pijat & Program Voucher</h4>
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
         </div>
         <div class="modal-body">
@@ -150,10 +143,15 @@
               <input type="hidden" name="harga_satuan" id="harga_satuan">
               <small class="text-muted">Contoh: Rp 20.000</small>
             </div>
-            <div class="col-12 mb-1">
+            <div class="col-12 mb-3">
               <label class="text-primary">Durasi per Unit (menit)</label>
               <input type="number" min="1" step="1" class="form-control" name="durasi_unit" id="durasi_unit" required>
               <small class="text-muted">Contoh: 15</small>
+            </div>
+            <div class="col-12 mb-1">
+              <label class="text-primary">Jumlah main untuk dapat FREE</label>
+              <input type="number" min="1" step="1" class="form-control" name="free_main_threshold" id="free_main_threshold" required>
+              <small class="text-muted">Contoh: 10 (artinya setiap 10x main, dapat 1x gratis).</small>
             </div>
           </form>
         </div>

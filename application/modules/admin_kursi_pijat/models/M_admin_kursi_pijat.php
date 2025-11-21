@@ -4,14 +4,26 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class M_admin_kursi_pijat extends CI_Model {
 
     private $table         = 'kursi_pijat_transaksi kp';
-    //           cek   no     nama           tanggal         durasi            sesi          total              status
-    private $column_order  = [null, null, 'kp.nama',       'kp.created_at', 'kp.durasi_menit', 'kp.sesi', 'kp.total_harga', 'kp.status'];
-    private $column_search = ['kp.nama', 'kp.status', 'kp.catatan', 'kp.created_at']; // ⬅️ tambah created_at
-    private $order         = ['kp.created_at' => 'DESC']; // sudah OK untuk default
+    // cek | no | nama | no_hp | tanggal | durasi | sesi | total | status
+    private $column_order  = [
+        null,
+        null,
+        'kp.nama',
+        'kp.no_hp',
+        'kp.created_at',
+        'kp.durasi_menit',
+        'kp.sesi',
+        'kp.total_harga',
+        'kp.status'
+    ];
+    private $column_search = ['kp.nama','kp.no_hp','kp.status','kp.catatan','kp.created_at'];
+    private $order         = ['kp.created_at' => 'DESC'];
 
     public function __construct(){ parent::__construct(); }
 
-    private function _base_q(){ $this->db->from($this->table); }
+    private function _base_q(){
+        $this->db->from($this->table);
+    }
 
     private function _build_q(){
         $this->_base_q();
@@ -56,4 +68,3 @@ class M_admin_kursi_pijat extends CI_Model {
         return $this->db->count_all_results();
     }
 }
-
