@@ -74,32 +74,68 @@
     };
 
     // susun kolom dinamis (tanpa checkbox)
-    var columns = [
-      { data: "no", orderable: false, className: "text-center" },   // rata tengah
-      { data: "mode",              className: "text-center" },      // rata tengah
-      { data: "meja"}       // rata tengah
-    ];
+    // var columns = [
+    //   { data: "no", orderable: false, className: "text-center" },   // rata tengah
+    //   { data: "mode",              className: "text-center" },      // rata tengah
+    //   { data: "meja"}       // rata tengah
+    // ];
 
-    if (window.IS_KB) {
-      columns.push({ data: "pesanan", orderable: false });
-    }
+    // if (window.IS_KB) {
+    //   columns.push({ data: "pesanan", orderable: false });
+    // }
 
-    columns.push(
-        { data: "waktu",             className: "text-center" },      // rata tengah
-        { data: "lama",  orderable:false, className: "text-center" }, // rata tengah
-        { data: "jumlah",            className: "text-right" },       // rata kanan
-        { data: "status", orderable:true, className: "text-center col-status" },
-        // SEBELUMNYA: { data: "metode", orderable:true, className: "text-center" }
-        { data: "metode", orderable:true, className: "text-center col-metode" }
-      );
+    // columns.push(
+    //     { data: "waktu",             className: "text-center" },      // rata tengah
+    //     { data: "lama",  orderable:false, className: "text-center" }, // rata tengah
+    //     { data: "jumlah",            className: "text-right" },       // rata kanan
+    //     { data: "status", orderable:true, className: "text-center col-status" },
+    //     // SEBELUMNYA: { data: "metode", orderable:true, className: "text-center" }
+    //     { data: "metode", orderable:true, className: "text-center col-metode" }
+    //   );
 
-    if (!window.IS_KB){
-      columns.push({
-        data: "aksi",
-        orderable: false,
-        className: "text-center"                                   // rata tengah
-      });
-    }
+    // if (!window.IS_KB){
+    //   columns.push({
+    //     data: "aksi",
+    //     orderable: false,
+    //     className: "text-center"                                   // rata tengah
+    //   });
+    // }
+
+    // ===== susun kolom dinamis (tanpa checkbox) =====
+var columns;
+
+if (window.IS_KB) {
+  // Kitchen / Bar
+  columns = [
+    { data: "no",   orderable:false, className:"text-center" },
+    { data: "mode", className:"text-center col-mode" },
+    { data: "meja" },
+    { data: "pesanan", orderable:false },
+
+    { data: "waktu",  className:"text-center" },
+    { data: "lama",   orderable:false, className:"text-center" },
+    { data: "jumlah", className:"text-right" }, // nanti bisa di-hide via hide_price_payment
+
+    { data: "status", orderable:true, className:"text-center col-status" },
+    { data: "metode", orderable:true, className:"text-center col-metode" }
+  ];
+} else {
+  // Kasir / Admin
+  columns = [
+    { data: "no",   orderable:false, className:"text-center" },
+    { data: "mode", className:"text-center col-mode" },
+    { data: "meja" },
+
+    { data: "waktu",  className:"text-center" },
+    { data: "lama",   orderable:false, className:"text-center" },
+    { data: "jumlah", className:"text-right" },
+
+    { data: "status", orderable:true, className:"text-center col-status" },
+    { data: "metode", orderable:true, className:"text-center col-metode" },
+    { data: "aksi",   orderable:false, className:"text-center" }
+  ];
+}
+
 
     // bikin <span class="elapsed"> di kolom "Lama" kalau belum ada
     // Buat <span class="elapsed"> di kolom "Lama" + cari start time yang masuk akal
