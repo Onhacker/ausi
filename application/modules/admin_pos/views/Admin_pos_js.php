@@ -85,13 +85,13 @@
     }
 
     columns.push(
-      { data: "waktu",             className: "text-center" },      // rata tengah
-      { data: "lama", orderable:false, className: "text-center" },  // rata tengah
-      { data: "jumlah",            className: "text-right" },       // rata kanan (Bootstrap 4)
-      { data: "status", orderable:true, className: "text-center col-status" },
-                         // biar tetap pakai styling badge dari server
-      { data: "metode", orderable:true,           className: "text-center" }       // rata tengah
-    );
+        { data: "waktu",             className: "text-center" },      // rata tengah
+        { data: "lama",  orderable:false, className: "text-center" }, // rata tengah
+        { data: "jumlah",            className: "text-right" },       // rata kanan
+        { data: "status", orderable:true, className: "text-center col-status" },
+        // SEBELUMNYA: { data: "metode", orderable:true, className: "text-center" }
+        { data: "metode", orderable:true, className: "text-center col-metode" }
+      );
 
     if (!window.IS_KB){
       columns.push({
