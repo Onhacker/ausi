@@ -337,12 +337,21 @@ $showKeuLap =
         <span class="emoji" aria-hidden="true">💸</span><span>Pengeluaran</span>
       </a>
     <?php endif; ?>
+      <?php
+        $uname = strtolower((string)$this->session->userdata('admin_username'));
+        if (
+          in_array($uname, ['admin','kasir'], true)
+          && user_can_mod(['admin_laporan','admin_laporan/index'])
+        ):
+      ?>
+        <a id="quick-laporan-link"
+           href="<?= site_url('admin_laporan') ?>"
+           class="menu-item">
+          <span class="emoji" aria-hidden="true">📊</span>
+          <span>Laporan</span>
+        </a>
+      <?php endif; ?>
 
-    <?php if (user_can_mod(['admin_laporan','admin_laporan/index'])): ?>
-      <a id="quick-laporan-link" href="<?= site_url('admin_laporan') ?>" class="menu-item">
-        <span class="emoji" aria-hidden="true">📊</span><span>Laporan</span>
-      </a>
-    <?php endif; ?>
     <?php if (user_can_mod(['admin_laporan/chart','dashboard'])): ?>
       <a id="quick-statistik-link" href="<?= site_url('admin_laporan/chart') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">📈</span><span>Statistik</span>

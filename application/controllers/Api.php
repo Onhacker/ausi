@@ -104,23 +104,30 @@ class Api extends MX_Controller {
     ];
 
     // ====== Laporan ======
+   $children = [];
+
+    // menu "Laporan Keuangan" hanya utk admin & kasir
+    if (in_array($this->session->userdata('admin_username'), ['admin','kasir'], true)) {
+        $children[] = [
+            'label'   => 'Laporan Keuangan',
+            'url'     => site_url('admin_laporan'),
+            'icon'    => 'mdi mdi-file-chart',
+            'require' => ['Laporan','admin_laporan','user'],
+        ];
+    }
+
+    // menu ini selalu ada
+    $children[] = [
+        'label'   => 'Laporan Rating Produk',
+        'url'     => site_url('admin_rating'),
+        'icon'    => 'mdi mdi-star-outline',
+        'require' => ['Laporan Rating Produk','admin_rating','user'],
+    ];
+
     $MENU_DEF[] = [
-        'label'   => 'Laporan',
-        'icon'    => 'mdi mdi-file-chart',
-        'children'=> [
-            [
-                'label'   => 'Laporan Keuangan',
-                'url'     => site_url('admin_laporan'),
-                'icon'    => 'mdi mdi-file-chart',
-                'require' => ['Laporan','admin_laporan','user'],
-            ],
-            [
-                'label'   => 'Laporan Rating Produk',
-                'url'     => site_url('admin_rating'),
-                'icon'    => 'mdi mdi-star-outline',
-                'require' => ['Laporan Rating Produk','admin_rating','user'],
-            ],
-        ],
+        'label'    => 'Laporan',
+        'icon'     => 'mdi mdi-file-chart',
+        'children' => $children,
     ];
 
     
