@@ -102,7 +102,7 @@ $slides = [
   width:6px;
   height:6px;
   border-radius:50%;
-  background:rgba(0,0,0,.18);
+  background:#fda589;
   transition:all .2s ease;
 }
 
