@@ -24,7 +24,7 @@
               <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
               </button>
-              <?php } ?>
+              <?php endif; ?>
             </div>
 
            
