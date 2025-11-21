@@ -51,7 +51,7 @@
           <th width="6%">No.</th>
           <th>Tanggal</th>
           <th>Kategori</th>
-          <th>Nomor / Ket</th>
+          <th>Keterangan</th>
           <th>Jumlah</th>
           <th>Metode</th>
           <th>Dibuat</th>

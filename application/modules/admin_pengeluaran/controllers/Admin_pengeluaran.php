@@ -61,7 +61,7 @@ class Admin_pengeluaran extends Admin_Controller {
 
                 $ket = trim((string)($r->keterangan ?? ''));
                 if ($ket !== '') {
-                    $ket = '<div class="text-muted small">'.htmlspecialchars($ket,ENT_QUOTES,'UTF-8').'</div>';
+                    $ket = '<div class="text-dark font-italic small">'.htmlspecialchars($ket,ENT_QUOTES,'UTF-8').'</div>';
                 }
 
                 $row = [];
@@ -69,7 +69,7 @@ class Admin_pengeluaran extends Admin_Controller {
                 $row['no']        = '';
                 $row['tanggal']   = htmlspecialchars($tanggal,ENT_QUOTES,'UTF-8');
                 $row['kategori']  = htmlspecialchars($r->kategori ?: '-',ENT_QUOTES,'UTF-8');
-                $row['uraian']    = htmlspecialchars($r->nomor ?: '-',ENT_QUOTES,'UTF-8') . $ket;
+                $row['uraian']    = $ket;
                 $row['jumlah']    = $jumlah_html;
                 $row['metode']    = htmlspecialchars($r->metode_bayar ?: '-',ENT_QUOTES,'UTF-8');
                 $row['dibuat']    = htmlspecialchars(($r->created_by ?: '-').' · '.$created,ENT_QUOTES,'UTF-8');
