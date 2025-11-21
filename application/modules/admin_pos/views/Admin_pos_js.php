@@ -76,7 +76,8 @@
     // susun kolom dinamis (tanpa checkbox)
     var columns = [
       { data: "no", orderable: false, className: "text-center" },   // rata tengah
-      { data: "mode",              className: "text-center" },      // rata tengah
+      // { data: "mode",              className: "text-center" },      // rata tengah
+       { data: "mode", className: "text-center col-mode" },
       { data: "meja"}       // rata tengah
     ];
 
