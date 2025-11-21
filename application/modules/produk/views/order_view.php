@@ -187,14 +187,17 @@
             </style>
 
             <label class="d-flex align-items-center">
-              <span>No. WhatsApp</span>
+              <span>No. WhatsApp <small class="text-muted ml-1">(opsional)</small></span>
 
-              <span class="help-icon pretty"
+              <button type="button"
+              class="help-icon pretty"
               data-toggle="tooltip"
-              data-placement="right"
-              title="Masukkan No. WA untuk menerima struk, detail pembayaran, dan info pesanan lainnya.">
+              data-placement="top"
+              data-trigger="click"
+              title="Masukkan No. WA agar berkesempatan mendapatkan voucher mingguan.">
               ?
-            </span>
+            </button>
+
               </label>
 
               <input type="tel"
@@ -209,10 +212,15 @@
 <div class="form-group col-md-6">
   <label class="d-flex align-items-center">
     <span>Email <small class="text-muted ml-1">(opsional)</small></span>
-    <span class="help-icon pretty"
-          data-toggle="tooltip"
-          data-placement="right"
-          title="Jika diisi, kami info promo menarik ke email ini.">?</span>
+    <button type="button"
+        class="help-icon pretty"
+        data-toggle="tooltip"
+        data-placement="top"
+        data-trigger="click"
+        title="Jika diisi, kami info promo menarik ke email ini.">
+  ?
+</button>
+
   </label>
   <input type="email"
          class="form-control"
@@ -225,12 +233,15 @@
 <div class="form-group col-md-6">
   <label class="d-flex align-items-center">
     <span>Kode Voucher <small class="text-muted ml-1">(opsional)</small></span>
-    <span class="help-icon pretty"
-          data-toggle="tooltip"
-          data-placement="right"
-          title="Masukkan kode voucher promo yang kamu punya.">
-      ?
-    </span>
+   <button type="button"
+        class="help-icon pretty"
+        data-toggle="tooltip"
+        data-placement="top"
+        data-trigger="click"
+        title="Masukkan kode voucher promo yang kamu punya.">
+  ?
+</button>
+
   </label>
   <div class="input-group">
     <input type="text"
@@ -950,8 +961,31 @@ function finishAllProgressSteps(){
   })();
 </script>
 <script>
-  $(function(){ $('[data-toggle="tooltip"]').tooltip({ trigger:'hover focus' }); });
+  $(function () {
+    var $tips = $('[data-toggle="tooltip"]');
+
+    if (!$tips.length) return;
+
+    if (typeof $.fn.tooltip !== 'function') {
+      console.warn('Bootstrap tooltip belum tersedia. Cek apakah bootstrap.js / bootstrap.bundle.js sudah ter-load.');
+      return;
+    }
+
+    $tips.tooltip({
+      container: 'body',
+      trigger: 'click hover focus', // termasuk click biar enak di mobile
+      boundary: 'window'
+    });
+
+    // Tutup tooltip kalau user klik di luar
+    $(document).on('click touchstart', function (e) {
+      if (!$(e.target).closest('[data-toggle="tooltip"]').length) {
+        $tips.tooltip('hide');
+      }
+    });
+  });
 </script>
+
 
 
 
