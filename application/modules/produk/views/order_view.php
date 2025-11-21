@@ -158,46 +158,16 @@
             </div>
           </div>
           <div class="form-group col-md-6">
-            <style>
-              .help-icon.pretty{
-                display:inline-flex;
-                justify-content:center;
-                align-items:center;
-                width:18px;
-                height:18px;
-                margin-left:6px;
-
-                font-size:12px;
-                font-weight:600;
-                line-height:1;
-
-                color:#fff;
-                background:linear-gradient(to bottom,#4f8bff 0%,#1a57e8 100%);
-                border-radius:50%;
-                box-shadow:0 2px 4px rgba(0,0,0,.18);
-                cursor:pointer;
-                border:0;
-              }
-
-              /* biar kursor nunjukin bisa ditekan di mobile */
-              .help-icon.pretty:active{
-                box-shadow:0 1px 2px rgba(0,0,0,.3);
-                transform:scale(.96);
-              }
-            </style>
-
+          
             <label class="d-flex align-items-center">
               <span>No. WhatsApp <small class="text-muted ml-1">(opsional)</small></span>
 
-              <button type="button"
-              class="help-icon pretty"
+           <!--    <span class="help-icon pretty"
               data-toggle="tooltip"
-              data-placement="top"
-              data-trigger="click"
+              data-placement="right"
               title="Masukkan No. WA agar berkesempatan mendapatkan voucher mingguan.">
               ?
-            </button>
-
+            </span> -->
               </label>
 
               <input type="tel"
@@ -206,21 +176,19 @@
               placeholder="08xxxxxxxxxx"
               autocomplete="tel"
               required>
+              <small class="text-muted">
+                Masukkan No. WA untuk undian voucher mingguan.
+              </small>
             </div>
 
             <!-- EMAIL (opsional) -->
 <div class="form-group col-md-6">
   <label class="d-flex align-items-center">
     <span>Email <small class="text-muted ml-1">(opsional)</small></span>
-    <button type="button"
-        class="help-icon pretty"
-        data-toggle="tooltip"
-        data-placement="top"
-        data-trigger="click"
-        title="Jika diisi, kami info promo menarik ke email ini.">
-  ?
-</button>
-
+   <!--  <span class="help-icon pretty"
+          data-toggle="tooltip"
+          data-placement="right"
+          title="Jika diisi, kami info promo menarik ke email ini.">?</span> -->
   </label>
   <input type="email"
          class="form-control"
@@ -233,15 +201,12 @@
 <div class="form-group col-md-6">
   <label class="d-flex align-items-center">
     <span>Kode Voucher <small class="text-muted ml-1">(opsional)</small></span>
-   <button type="button"
-        class="help-icon pretty"
-        data-toggle="tooltip"
-        data-placement="top"
-        data-trigger="click"
-        title="Masukkan kode voucher promo yang kamu punya.">
-  ?
-</button>
-
+  <!--   <span class="help-icon pretty"
+          data-toggle="tooltip"
+          data-placement="right"
+          title="Masukkan kode voucher promo yang kamu punya.">
+      ?
+    </span> -->
   </label>
   <div class="input-group">
     <input type="text"
@@ -960,52 +925,6 @@ function finishAllProgressSteps(){
     $cat.on('input', updateCount);
   })();
 </script>
-<script>
-  $(function () {
-    var $tips = $('[data-toggle="tooltip"]');
-
-    if (!$tips.length) return;
-
-    if (typeof $.fn.tooltip !== 'function') {
-      console.warn('Bootstrap tooltip belum tersedia. Cek bootstrap.js / bootstrap.bundle.js.');
-      return;
-    }
-
-    // Inisialisasi tooltip
-    $tips.tooltip({
-      container: 'body',
-      trigger: 'manual',   // kita kontrol sendiri show/hide
-      boundary: 'window'
-      // placement tetap dibaca dari data-placement="top" di HTML
-    });
-
-    // Klik ikon ? -> toggle tooltip itu
-    $tips.on('click', function (e) {
-      e.stopPropagation();              // jangan tembus ke document
-      var $this = $(this);
-
-      // tutup tooltip lain dulu
-      $tips.not($this).tooltip('hide');
-
-      // toggle tooltip yang diklik
-      $this.tooltip('toggle');
-    });
-
-    // Klik di area mana saja di luar ikon -> semua tooltip tutup
-    $(document).on('click', function () {
-      $tips.tooltip('hide');
-    });
-
-    // (opsional) untuk sentuhan di mobile
-    $(document).on('touchstart', function (e) {
-      if (!$(e.target).closest('[data-toggle="tooltip"]').length) {
-        $tips.tooltip('hide');
-      }
-    });
-  });
-</script>
-
-
 
 
 
