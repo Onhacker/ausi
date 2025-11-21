@@ -465,21 +465,6 @@ if ($ident && property_exists($ident, 'op_mon_open')) {
 </div>
 
 
-<!-- Vendor JS (harus duluan, biar jQuery/SweetAlert dsb sudah ada) -->
-<script src="<?= base_url('assets/admin/js/vendor.min.js'); ?>"></script>
-<script src="<?= base_url('assets/admin/js/app.min.js'); ?>"></script>
-<script src="<?= base_url('assets/admin/js/sw.min.js'); ?>"></script>
-<script>
-  window.AUSI_CFG = {
-    sub_api     : "<?= site_url('produk/subkategori/'); ?>",
-    list_ajax   : "<?= site_url('produk/list_ajax'); ?>",
-    add_to_cart : "<?= site_url('produk/add_to_cart'); ?>",
-    cart_count  : "<?= site_url('produk/cart_count'); ?>"
-  };
-</script>
-
-<!-- Custom logic kita -->
-<script src="<?= base_url('assets/front/produk.min.js') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.js'); ?>"></script>
 
 <?php
 // Asumsi timezone sudah di-set di config (Asia/Makassar)
@@ -496,5 +481,17 @@ if ($today === 5) {
 ?>
 
 <?php $this->load->view("front_end/footer.php") ?>
+<script>
+  window.AUSI_CFG = {
+    sub_api     : "<?= site_url('produk/subkategori/'); ?>",
+    list_ajax   : "<?= site_url('produk/list_ajax'); ?>",
+    add_to_cart : "<?= site_url('produk/add_to_cart'); ?>",
+    cart_count  : "<?= site_url('produk/cart_count'); ?>"
+  };
+</script>
+
+<!-- Custom logic kita -->
+<script src="<?= base_url('assets/front/produk.min.js') ?>?v=<?= filemtime(FCPATH.'assets/front/produk.min.js'); ?>"></script>
+
 
 <?php $this->load->view("modal_produk") ?>

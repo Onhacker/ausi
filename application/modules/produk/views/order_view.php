@@ -261,9 +261,7 @@
   </div>
 </div>
 
-<script src="<?php echo base_url('assets/admin') ?>/js/vendor.min.js"></script>
-<script src="<?php echo base_url('assets/admin') ?>/js/app.min.js"></script>
-<script src="<?php echo base_url('assets/admin') ?>/js/sw.min.js"></script>
+<?php $this->load->view("front_end/footer.php"); ?>
 <script>
 (function(){
   const MODE     = "<?= $mode ?>";
@@ -929,4 +927,3 @@ function finishAllProgressSteps(){
 
 
 
-<?php $this->load->view("front_end/footer.php"); ?>
