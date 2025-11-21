@@ -60,44 +60,64 @@ $slides = [
       </section>
     </div>
 
-<style>
-  /* --- dasar bulatan menu --- */
-.menu-circle{
-  position:relative;
-  width:48px;
-  height:48px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#fff;
-  font-size:24px;
-  font-weight:600;
-  flex-shrink:0;
-}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var scroller = document.getElementById('quickmenu');
+  var dotsWrap = document.getElementById('titik_slide');
+  if (!scroller || !dotsWrap) return;
 
-/* pas loading: sembunyikan emoji */
-.menu-circle.loading .emoji-icon{
-  opacity:0;
-}
+  function buildDots(){
+    dotsWrap.innerHTML = '';
 
-/* pas loading: munculkan spinner mutar */
-.menu-circle.loading::after{
-  content:"";
-  position:absolute;
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  border:3px solid rgba(255,255,255,.6);
-  border-right-color:transparent;
-  animation:quick-spin .6s linear infinite;
-}
+    var viewW  = scroller.clientWidth || 1;
+    var totalW = scroller.scrollWidth || viewW;
 
-@keyframes quick-spin{
-  from { transform:rotate(0deg); }
-  to   { transform:rotate(360deg); }
-}
-</style>
+    // default 3 titik biar selalu kelihatan
+    var dotsCount = 3;
+    if (totalW > viewW + 10){
+      // kalau jauh lebih lebar, naik jadi maksimal 5
+      dotsCount = Math.min(5, Math.max(3, Math.ceil(totalW / viewW)));
+    }
+
+    for (var i = 0; i < dotsCount; i++){
+      var s = document.createElement('span');
+      s.className = 'titik-slide-dot' + (i === 0 ? ' is-active' : '');
+      dotsWrap.appendChild(s);
+    }
+  }
+
+  function updateActiveDot(){
+    var dots = dotsWrap.querySelectorAll('.titik-slide-dot');
+    if (!dots.length) return;
+
+    var viewW  = scroller.clientWidth || 1;
+    var totalW = scroller.scrollWidth || viewW;
+    var maxScroll = Math.max(1, totalW - viewW);
+    var progress = scroller.scrollLeft / maxScroll; // 0..1
+
+    if (!isFinite(progress) || progress < 0) progress = 0;
+    if (progress > 1) progress = 1;
+
+    var idx = Math.round(progress * (dots.length - 1));
+
+    dots.forEach(function(d,i){
+      d.classList.toggle('is-active', i === idx);
+    });
+  }
+
+  // build awal
+  buildDots();
+  updateActiveDot();
+
+  // update saat scroll dan resize
+  scroller.addEventListener('scroll', updateActiveDot);
+  window.addEventListener('resize', function(){
+    buildDots();
+    updateActiveDot();
+  });
+});
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -131,13 +151,15 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="quickmenu-fade left"></div>
         <div class="quickmenu-fade right"></div>
 
-      <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
-   <div class="quickmenu-item">
+       <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
+  <!-- isi menu cepat -->
+  <div class="quickmenu-item">
     <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#007bff;"><span class="emoji-icon">📸</span></div>
       <small class="menu-label">Dine-in</small>
     </a>
   </div>
+
   <div class="quickmenu-item">
     <a href="<?= site_url('produk/delivery') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#17a2b8;"><span class="emoji-icon">🚚</span></div>
@@ -152,12 +174,17 @@ document.addEventListener('DOMContentLoaded', function () {
     </a>
   </div>
 
- 
-
   <div class="quickmenu-item">
     <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none">
       <div class="menu-circle" style="background:#25D366;"><span class="emoji-icon">🎱</span></div>
       <small class="menu-label">Book Billiard</small>
+    </a>
+  </div>
+
+  <div class="quickmenu-item">
+    <a href="<?= site_url('pijat') ?>" class="qcard d-block text-decoration-none">
+      <div class="menu-circle" style="background:#ff9800;"><span class="emoji-icon">💺</span></div>
+      <small class="menu-label">Kursi Pijat</small>
     </a>
   </div>
 
@@ -168,6 +195,11 @@ document.addEventListener('DOMContentLoaded', function () {
     </a>
   </div>
 </div>
+
+<!-- TITIK SLIDE DI BAWAH -->
+<div id="titik_slide" class="titik-slide-dots" aria-hidden="true"></div>
+
+<!-- </div> -->
 
       </div>
        <?php $this->load->view("front_end/banner_jadwal.php"); ?>
@@ -291,132 +323,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     </div>
   </div>
-
-  <style>
-  .free-ongkir-card{
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
-    background: #fff;
-  }
-  .free-ongkir-card::before{
-    /* aksen lembut di pojok */
-    content:"";
-    position:absolute; 
-    right:-60px; 
-    top:-60px;
-    width:180px; 
-    height:180px;
-    background: radial-gradient(closest-side, rgba(40,167,69,.15), transparent 70%);
-    transform: rotate(15deg);
-  }
-  .free-ongkir-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    background: linear-gradient(135deg, #277295, #20c997);
-    box-shadow: 0 8px 18px rgba(32, 201, 151, .25);
-  }
-
-  .badge-chip {
-    display: inline-block;
-    padding: .2rem .4rem;
-    border-radius: 999px;
-    font-weight: 600;
-    background: #f4fff8;
-    border: 1px dashed #28a745;
-    color: #1b5e20;
-  }
-  .badge-chip i{ vertical-align: -2px; }
-
-  .chip-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-  .chip-row .badge-chip{ margin-bottom:.25rem; }
-
-  /* ====== VOUCHER SECTION ====== */
-  .voucher-section{
-    text-align:left;
-    margin-top:1rem;
-  }
-  .voucher-label{
-    display:inline-flex;
-    align-items:center;
-    gap:.4rem;
-    font-size:.75rem;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.08em;
-    color:#277295;
-    margin-bottom:.4rem;
-  }
-  .voucher-dot{
-    width:22px;
-    height:22px;
-    border-radius:999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:.9rem;
-    background:linear-gradient(135deg,#277295,#20c997);
-    box-shadow:0 0 0 4px rgba(39,114,149,.15);
-    color:#fff;
-  }
-  .voucher-label-text{
-    opacity:.9;
-  }
-
-  .voucher-pill{
-    display:flex;
-    align-items:flex-start;
-    gap:.55rem;
-    padding:.55rem .7rem;
-    border-radius:12px;
-    background:#f7fbff;
-    border:1px solid rgba(39,114,149,.06);
-    box-shadow:0 4px 10px rgba(15,23,42,.03);
-    margin-bottom:.45rem;
-  }
-  .voucher-pill-icon{
-    width:32px;
-    height:32px;
-    border-radius:999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:rgba(39,114,149,.08);
-    font-size:1.1rem;
-    flex-shrink:0;
-  }
-  .voucher-pill-icon-student{
-    background:rgba(111,66,193,.08);
-  }
-  .voucher-pill-text{
-    font-size:.8rem;
-    color:#374151;
-    line-height:1.45;
-  }
-  .voucher-pill-title{
-    font-weight:700;
-    margin-bottom:.1rem;
-  }
-
-  @media (max-width: 575.98px){
-    .voucher-section{
-      margin-top:.8rem;
-    }
-    .voucher-pill{
-      padding:.5rem .6rem;
-    }
-  }
-</style>
 
 
 </div>
