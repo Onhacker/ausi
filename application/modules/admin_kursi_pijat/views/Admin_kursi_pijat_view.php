@@ -9,7 +9,9 @@
       <div class="card">
         <div class="card-body">
           <h4 class="header-title"><?= $subtitle; ?></h4>
-
+           <?php
+              $uname_kp = strtolower((string)$this->session->userdata('admin_username'));
+            ?>
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div class="button-list mb-1">
               <button type="button" onclick="add()" class="btn btn-success btn-rounded btn-sm waves-effect waves-light">
@@ -18,16 +20,14 @@
               <button type="button" onclick="refresh()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
               </button>
-              <?php if ($this->session->userdata("admin_username") == "admin") {?>
+              <?php if ($uname_kp === 'admin'): ?>
               <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
               </button>
               <?php } ?>
             </div>
 
-            <?php
-              $uname_kp = strtolower((string)$this->session->userdata('admin_username'));
-            ?>
+           
             <?php if ($uname_kp === 'admin'): ?>
               <div class="d-flex align-items-center gap-2 ms-auto">
                 <button type="button" id="btnOpenSetting" class="btn btn-primary btn-rounded btn-sm waves-effect waves-light">
