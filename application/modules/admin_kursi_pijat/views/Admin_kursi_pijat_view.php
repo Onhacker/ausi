@@ -25,11 +25,17 @@
               <?php } ?>
             </div>
 
-            <div class="d-flex align-items-center gap-2 ms-auto">
-              <button type="button" id="btnOpenSetting" class="btn btn-primary btn-rounded btn-sm waves-effect waves-light">
-                <i class="fe-settings me-1"></i> Pengaturan Tarif & Voucher
-              </button>
-            </div>
+            <?php
+              $uname_kp = strtolower((string)$this->session->userdata('admin_username'));
+            ?>
+            <?php if ($uname_kp === 'admin'): ?>
+              <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" id="btnOpenSetting" class="btn btn-primary btn-rounded btn-sm waves-effect waves-light">
+                  <i class="fe-settings me-1"></i> Pengaturan Tarif & Voucher
+                </button>
+              </div>
+            <?php endif; ?>
+
           </div>
           <small id="price_hint" class="text-dark"></small>
           <hr>
