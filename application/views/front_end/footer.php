@@ -959,25 +959,40 @@ ease; */
   </div>
 
   <!-- ========== FASILITAS ========== -->
-  <div class="quicksection" aria-labelledby="sec-fasilitas">
-    <div class="quicksection-title" id="sec-fasilitas">
-      <span class="section-icon">🏷️</span><span class="section-text">Fasilitas</span>
-    </div>
-    <div class="quicksection-items">
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('pijat') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Kursi Pijat" data-menuloading="1">
-          <div class="menu-circle" style="background:#9a6a38;"><span class="emoji-icon" aria-hidden="true">💆‍♂️</span></div>
-          <small class="menu-label">Kursi Pijat</small>
-        </a>
-      </div>
-      <div class="quickmobilem-item">
-        <a href="<?= site_url('review') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Rating Review" data-menuloading="1">
-          <div class="menu-circle" style="background:#FFC107;"><span class="emoji-icon" aria-hidden="true">📝</span></div>
-          <small class="menu-label">Ratings &amp; Review</small>
-        </a>
-      </div>
-    </div>
+ <div class="quicksection" aria-labelledby="sec-fasilitas">
+  <div class="quicksection-title" id="sec-fasilitas">
+    <span class="section-icon">🏷️</span><span class="section-text">Fasilitas</span>
   </div>
+  <div class="quicksection-items">
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('pijat') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Kursi Pijat" data-menuloading="1">
+        <div class="menu-circle" style="background:#9a6a38;">
+          <span class="emoji-icon" aria-hidden="true">💆‍♂️</span>
+        </div>
+        <small class="menu-label">Kursi Pijat</small>
+      </a>
+    </div>
+    <!-- NEW: PlayStation 4 -->
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('ps4') ?>" class="qcardfoot d-block text-decoration-none" aria-label="PlayStation 4" data-menuloading="1">
+        <div class="menu-circle" style="background:#3F51B5;">
+          <span class="emoji-icon" aria-hidden="true">🎮</span>
+        </div>
+        <small class="menu-label">PlayStation 4</small>
+      </a>
+    </div>
+    <div class="quickmobilem-item">
+      <a href="<?= site_url('review') ?>" class="qcardfoot d-block text-decoration-none" aria-label="Rating Review" data-menuloading="1">
+        <div class="menu-circle" style="background:#FFC107;">
+          <span class="emoji-icon" aria-hidden="true">📝</span>
+        </div>
+        <small class="menu-label">Ratings &amp; Review</small>
+      </a>
+    </div>
+
+    
+  </div>
+</div>
 
   <!-- ========== INFORMASI ========== -->
   <div class="quicksection" aria-labelledby="sec-info">
