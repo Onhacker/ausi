@@ -2405,6 +2405,7 @@ private function _voucher_stats_by_hp(string $no_hp_raw): array {
  * - Bisa testing manual (tambahkan ?no_hp=08xxxxxxxxxx untuk proses 1 nomor)
  */
 public function voucher_issue_job() {
+   file_put_contents(FCPATH.'cron_test.txt', date('c')." JOB TRIGGER\n", FILE_APPEND);
   $this->_nocache_headers();
   $this->_ensure_voucher_table();
 
