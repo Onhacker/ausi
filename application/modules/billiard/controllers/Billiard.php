@@ -2406,7 +2406,8 @@ private function _voucher_stats_by_hp(string $no_hp_raw): array {
  */
 public function voucher_issue_job() {
    // file_put_contents(FCPATH.'cron_test.txt', date('c')." JOB TRIGGER\n", FILE_APPEND);
-  file_put_contents('/home/u665626191/env_cron.log', print_r($_ENV, true), FILE_APPEND);
+ file_put_contents('/home/u665626191/websites/Xv7HnoWox/public_html/cron_test.log', date('Y-m-d H:i:s')."\n", FILE_APPEND);
+
 
   $this->_nocache_headers();
   $this->_ensure_voucher_table();
