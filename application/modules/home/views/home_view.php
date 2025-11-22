@@ -244,7 +244,14 @@ document.addEventListener('DOMContentLoaded', function () {
         <small class="menu-label">Bungkus</small>
       </a>
     </div>
-
+     <div class="quickmenu-item">
+      <a href="<?= site_url('produk/reward') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#ff9800;">
+          <span class="emoji-icon">🎁</span>
+        </div>
+        <small class="menu-label">Reward</small>
+      </a>
+    </div>
     <div class="quickmenu-item">
       <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none">
         <div class="menu-circle" style="background:#25D366;">
@@ -279,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="menu-circle" style="background:#6f42c1;">
           <span class="emoji-icon">🗂️</span>
         </div>
-        <small class="menu-label">Liat Semua</small>
+        <small class="menu-label">Lihat Semua</small>
       </a>
     </div>
 
@@ -289,15 +296,20 @@ document.addEventListener('DOMContentLoaded', function () {
   </div>
 </div>
 <style>
-  .quickmenu-grid{
-    display:grid;
-    grid-template-columns:repeat(4, minmax(0,1fr));
-    gap:.75rem;
-    justify-items:center;
+  .quickmenu-wrap{
+    display:flex;
+    justify-content:center;
+    margin-bottom:.75rem;
   }
 
-  .quickmenu-grid .quickmenu-item{
-    flex:0 0 auto;
+  .quickmenu-grid{
+    display:grid !important;
+    /* DESKTOP & TABLET: auto kesamping, sebanyak yang muat */
+    grid-template-columns:repeat(auto-fit, minmax(90px, 1fr));
+    gap:.75rem;
+    width:100%;
+    margin:0 auto;
+    justify-items:center;
   }
 
   .quickmenu-grid .qcard{
@@ -306,14 +318,30 @@ document.addEventListener('DOMContentLoaded', function () {
     margin:0 auto;
   }
 
-  /* slot kosong biar layout tetap 4 bawah */
   .quickmenu-item-empty{
     visibility:hidden;
   }
+
   .menu-label{
-    text-align: center;
+    display:block;
+    margin-top:.25rem;
+    text-align:center;
+    font-size:11px;
+  }
+
+  /* MOBILE: paksa 4 kolom (4 atas, 4 bawah) */
+  @media (max-width: 576px){
+    .quickmenu-grid{
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      max-width:380px;
+      gap:.6rem;
+    }
+    .menu-label{
+      font-size:10px;
+    }
   }
 </style>
+
 
        <?php $this->load->view("front_end/banner_jadwal.php"); ?>
     </div>

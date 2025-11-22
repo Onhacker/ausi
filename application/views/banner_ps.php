@@ -18,12 +18,6 @@
 
 <div class="ps-wrap mb-2">
 
-  <?php if (!$showPsImage): ?>
-    <!-- overlay background PS (BUKAN /ps) -->
-    <div class="ps-bg">
-      <img src="<?= base_url('assets/images/ps4_ico.webp'); ?>" alt="">
-    </div>
-  <?php endif; ?>
 
   <div class="ps-grid">
 

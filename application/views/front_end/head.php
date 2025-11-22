@@ -331,6 +331,13 @@ if (is_file($img_path)) {
             </a>
           </li>
 
+          <li class="<?= ($uri === 'ps4') ? 'active-menu' : '' ?>">
+            <a href="<?= site_url('ps4'); ?>">
+              <i class="fas fa-gamepad"></i> Playstation
+            </a>
+          </li>
+
+
           <!-- KONTAK -->
           <li class="<?= ($uri === 'hal/kontak') ? 'active-menu' : '' ?>">
             <a href="<?= site_url('hal/kontak'); ?>">
