@@ -96,6 +96,7 @@ class Sitemap extends Onhacker_Controller
 
         // ini yg tadinya error
             ['loc'=>$this->_abs('produk/reward'),          'last'=>$today,       'chg'=>'always', 'prio'=>'0.90'],
+            ['loc'=>$this->_abs('ps4'),          'last'=>$today,       'chg'=>'always', 'prio'=>'0.90'],
         ];
 
         $xml  = '<?xml version="1.0" encoding="UTF-8"?>'."\n";

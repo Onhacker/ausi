@@ -79,6 +79,7 @@ $route['scan'] = 'produk/scan_qr';
 $route['meja_billiard'] = 'hal/jadwal_billiard';
 $route['cafe'] = 'hal/jadwal';
 $route['pijat'] = 'hal/pijat';
+$route['ps4'] = 'hal/ps4';
 $route['review'] = 'hal/review_app';
 $route['monitor'] = 'billiard/monitor';
 // ==== SITEMAP & ROBOTS ====

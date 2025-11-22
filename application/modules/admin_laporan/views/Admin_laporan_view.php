@@ -89,6 +89,9 @@
         <button class="btn btn-sm btn-danger" id="btn-print-kursi">
   <i class="fe-printer"></i> Cetak Kursi Pijat
 </button>
+<button class="btn btn-sm btn-info" id="btn-print-ps">
+  <i class="fe-printer"></i> Cetak PS
+</button>
 
         <button class="btn btn-sm btn-dark" id="btn-print-kurir">
           <i class="fe-truck"></i> Cetak Lap. Kurir
@@ -167,6 +170,26 @@
   </div>
 </div>
 
+  <!-- Omzet PS -->
+  <div class="col-md-6 col-xl-3">
+    <div class="widget-rounded-circle card-box">
+      <div class="row">
+        <div class="col-6">
+          <div class="avatar-lg rounded bg-soft-info">
+            <i class="dripicons-device-desktop font-24 avatar-title text-info"></i>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="text-right">
+            <h3 class="text-dark mt-1"><span id="sum-ps">Rp 0</span></h3>
+            <p class="text-muted mb-1 text-truncate">
+              PlayStation <small>(<span id="cnt-ps">0</span> trx)</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Pengeluaran -->
   <div class="col-md-6 col-xl-3">
@@ -390,7 +413,6 @@ function updateSummary(){
     .done(function(r){
       if (!r || !r.success) return;
 
-      // POS / Billiard / Pengeluaran / Laba (tetap)
       const posTotal  = parseInt((r.pos && r.pos.total) || 0, 10);
       const posCount  = parseInt((r.pos && r.pos.count) || 0, 10);
       const bilTotal  = parseInt((r.billiard && r.billiard.total) || 0, 10);
@@ -399,44 +421,48 @@ function updateSummary(){
       const pengCount = parseInt((r.pengeluaran && r.pengeluaran.count) || 0, 10);
       const labaTotal = parseInt((r.laba && r.laba.total) || 0, 10);
 
-      // Kurir = subset POS (informasi saja, tidak mempengaruhi laba)
+      const kp = r.kursi_pijat || {};
+      const kpTotal = parseInt(kp.total || 0, 10);
+      const kpCount = parseInt(kp.count || 0, 10);
+
+      const ps = r.ps || {};
+      const psTotal = parseInt(ps.total || 0, 10);
+      const psCount = parseInt(ps.count || 0, 10);
+
       const kur      = r.kurir || {};
       const kurTotal = parseInt(kur.total_fee || 0, 10);
       const kurCount = parseInt(kur.count || 0, 10);
       const kurMini  = miniByMethod(kur.by_method || null);
       const isSubset = !!(r.meta && r.meta.kurir_subset_of_pos === true);
 
-      const kp = r.kursi_pijat || {};
-      const kpTotal = parseInt(kp.total || 0, 10);
-      const kpCount = parseInt(kp.count || 0, 10);
-
       if ($('#sum-kp').length)  animateNumber('#sum-kp', kpTotal, IDR, 900);
       if ($('#cnt-kp').length)  animateNumber('#cnt-kp', kpCount, INT, 700);
 
-      // ===== Animate angka (pakai guard elemen) =====
+      if ($('#sum-ps').length)  animateNumber('#sum-ps', psTotal, IDR, 900);
+      if ($('#cnt-ps').length)  animateNumber('#cnt-ps', psCount, INT, 700);
+
       if ($('#sum-pos').length)   animateNumber('#sum-pos',  posTotal,  IDR, 900);
       if ($('#sum-bil').length)   animateNumber('#sum-bil',  bilTotal,  IDR, 900);
       if ($('#sum-peng').length)  animateNumber('#sum-peng', pengTotal, IDR, 900);
       if ($('#sum-laba').length)  animateNumber('#sum-laba', labaTotal, IDR, 900);
-      if ($('#sum-kurir').length) animateNumber('#sum-kurir', kurTotal, IDR, 900); // NEW
+      if ($('#sum-kurir').length) animateNumber('#sum-kurir', kurTotal, IDR, 900);
 
       if ($('#cnt-pos').length)   animateNumber('#cnt-pos',  posCount,  INT, 700);
       if ($('#cnt-bil').length)   animateNumber('#cnt-bil',  bilCount,  INT, 700);
       if ($('#cnt-peng').length)  animateNumber('#cnt-peng', pengCount, INT, 700);
-      if ($('#cnt-kurir').length) animateNumber('#cnt-kurir', kurCount, INT, 700); // NEW
+      if ($('#cnt-kurir').length) animateNumber('#cnt-kurir', kurCount, INT, 700);
 
-      // Mini rincian & catatan subset
       if ($('#kurir-method-mini').length) $('#kurir-method-mini').text(kurMini || '');
       if ($('#kurir-note').length)        $('#kurir-note').text(isSubset ? 'Termasuk di Omzet Cafe (tidak menambah laba bersih)' : '');
     })
     .fail(function(){
-      // (opsional) fallback nol biar nggak blank saat error jaringan
       if ($('#sum-kurir').length) $('#sum-kurir').text('Rp 0');
       if ($('#cnt-kurir').length) $('#cnt-kurir').text('0');
       if ($('#kurir-method-mini').length) $('#kurir-method-mini').text('');
       if ($('#kurir-note').length) $('#kurir-note').text('');
     });
 }
+
 
 
   /* ========== Auto-apply, Reset, Cetak ========== */
@@ -501,6 +527,9 @@ function updateSummary(){
     });
     $('#btn-print-kurir').on('click', function(){
       window.open("<?= site_url('admin_laporan/print_kurir') ?>?" + qs(getParams()), '_blank');
+    });
+     $('#btn-print-ps').on('click', function(){
+      window.open("<?= site_url('admin_laporan/print_ps') ?>?"+qs(getParams()), '_blank');
     });
     $('#btn-print-kursi').on('click', function(){
   window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');

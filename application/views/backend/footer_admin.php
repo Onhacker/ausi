@@ -1,4 +1,3 @@
-
 <?php $uri = $this->uri->uri_string(); ?>
 <?php
 // --- ACTIVE HELPER ---
@@ -156,7 +155,7 @@ if (!function_exists('nav_class')) {
         'admin_permohonan','admin_profil/detail_profil','booking',
         'admin_dashboard/monitor','admin_pos','admin_user','hal/kontak',
         'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*',
-        'admin_voucher_cafe*','admin_voucher_kursi_pijat*'
+        'admin_voucher_cafe*','admin_voucher_kursi_pijat*','admin_ps*','admin_voucher_ps*'
       ];
 
     ?>
@@ -233,13 +232,16 @@ if (!function_exists('nav_class')) {
 
   <?php
     // helper visibilitas grup
-    $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
+    $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_voucher_cafe']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
     $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
     $showPijat     =
     user_can_mod(['admin_kursi_pijat']) ||
     user_can_mod(['admin_voucher_kursi_pijat']);
 
- 
+    $showPS        =
+    user_can_mod(['admin_ps']) ||
+    user_can_mod(['admin_voucher_ps']);
+
 $showKeuLap =
     user_can_mod(['admin_pengeluaran']) ||
     user_can_mod(['admin_laporan']) ||
@@ -279,7 +281,11 @@ $showKeuLap =
         <span class="emoji" aria-hidden="true">☕️</span><span>POS Caffe</span>
       </a>
     <?php endif; ?>
-
+    <?php if (user_can_mod(['admin_voucher_cafe'])): ?>
+      <a id="quick-voucher-cafe-link" href="<?= site_url('admin_voucher_cafe') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎁</span><span>Voucher Cafe</span>
+      </a>
+    <?php endif; ?>
     <?php if (user_can_mod(['admin_pos_riwayat'])): ?>
       <a id="quick-riwayat-caffe-link" href="<?= site_url('admin_pos_riwayat') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">🧾</span><span>Riwayat Caffe</span>
@@ -334,6 +340,26 @@ $showKeuLap =
     <?php if (user_can_mod(['admin_voucher_kursi_pijat'])): ?>
       <a id="quick-voucher-kursi-pijat-link" href="<?= site_url('admin_voucher_kursi_pijat') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">🎟️</span><span>Voucher Kursi Pijat</span>
+      </a>
+    <?php endif; ?>
+
+  </div>
+  <?php endif; ?>
+
+  <!-- ========== PlayStation ========== -->
+  <?php if ($showPS): ?>
+  <div class="menu-group" role="group" aria-label="PlayStation">
+    <div class="menu-title">PlayStation</div>
+
+    <?php if (user_can_mod(['admin_ps'])): ?>
+      <a id="quick-ps-link" href="<?= site_url('admin_ps') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎮</span><span>POS PS</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_voucher_ps'])): ?>
+      <a id="quick-voucher-ps-link" href="<?= site_url('admin_voucher_ps') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎟️</span><span>Voucher PS</span>
       </a>
     <?php endif; ?>
 
@@ -397,11 +423,7 @@ $showKeuLap =
       </a>
     <?php endif; ?>
 
-    <?php if (user_can_mod(['admin_voucher_cafe'])): ?>
-      <a id="quick-voucher-cafe-link" href="<?= site_url('admin_voucher_cafe') ?>" class="menu-item">
-        <span class="emoji" aria-hidden="true">🎁</span><span>Voucher Cafe</span>
-      </a>
-    <?php endif; ?>
+    
 
 
     <?php if (user_can_mod(['admin_kurir'])): ?>
@@ -507,6 +529,10 @@ $showKeuLap =
   admin_laporan:           { a: document.getElementById("quick-laporan-link") },
   admin_laporan_chart:     { a: document.getElementById("quick-statistik-link") }, // Statistik
   admin_rating:            { a: document.getElementById("quick-rating-link") },    // <-- NEW
+
+  // ===== PlayStation =====
+  admin_ps:                { a: document.getElementById("quick-ps-link") },
+  admin_voucher_ps:        { a: document.getElementById("quick-voucher-ps-link") },
 
   // ===== Manajemen & Pengaturan =====
   admin_user:          { a: document.getElementById("quick-user-link") },
@@ -1005,4 +1031,3 @@ function showToast(text, icon = 'success', opts = {}){
 
 
 </script>
-

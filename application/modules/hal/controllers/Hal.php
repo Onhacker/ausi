@@ -93,6 +93,19 @@ class Hal extends MX_Controller {
         $this->load->view('pijat', $data);
     }
 
+    public function ps4()
+    {
+        $rec = $this->fm->web_me();
+
+        $data["rec"]       = $rec;
+        $data["title"]     = "Playstation 4";
+        $data["deskripsi"] = "Nikmati pengalaman bermain terbaik dengan layanan sewa Playstation 4 di " . $rec->nama_website . ". Konsol PS4 lengkap, nyaman, harga hemat, dan cocok untuk hiburan santai. Main sekarang!";
+        $data["prev"]      = base_url("assets/images/ps4_ico.webp");
+
+        $this->load->view('ps', $data);
+    }
+
+
      public function review()
     {
         $rec = $this->fm->web_me();

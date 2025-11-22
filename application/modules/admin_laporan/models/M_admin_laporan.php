@@ -4,9 +4,20 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class M_admin_laporan extends CI_Model
 {
     // Tabel yang dipakai:
-    // POS:            pesanan_paid      (kolom kunci: paid_at, grand_total, paid_method, mode, meja_nama/kode, nama, nomor)
-    // BILLIARD:       billiard_paid     (kolom kunci: paid_at, grand_total, metode_bayar, nama_meja, nama, durasi_jam, kode_booking)
-    // PENGELUARAN:    pengeluaran       (kolom: tanggal, kategori, metode_bayar, jumlah, nomor_ket/keterangan)
+    // POS (Cafe)    : pesanan_paid
+    //   - kunci: paid_at, grand_total, paid_method, mode, meja_nama/kode, nama, nomor
+    //
+    // BILLIARD      : billiard_paid
+    //   - kunci: paid_at, grand_total, metode_bayar, nama_meja, nama, durasi_jam, kode_booking
+    //
+    // PENGELUARAN   : pengeluaran
+    //   - kunci: tanggal, kategori, metode_bayar, jumlah, nomor, keterangan
+    //
+    // KURSI PIJAT   : kursi_pijat_transaksi
+    //   - kunci: mulai, selesai, total_harga, durasi_menit, status, nama, catatan
+    //
+    // PLAYSTATION   : ps_transaksi
+    //   - kunci: mulai, selesai, total_harga, durasi_menit, status, nama, catatan
 
     public function __construct(){ parent::__construct(); }
 
@@ -384,6 +395,101 @@ public function agg_daily_kursi_pijat(array $f): array {
     return $out;
 }
 
+/* ================= PLAYSTATION (PS) ================= */
+
+/**
+ * Mapping status global -> status ps_transaksi
+ * - done/paid   -> selesai
+ * - cancel/void -> batal
+ * - unpaid      -> baru
+ * - all/other   -> tidak difilter
+ */
+private function _map_status_ps(?string $s): ?string {
+    $s = strtolower(trim((string)$s));
+    if ($s === 'done' || $s === 'paid')   return 'selesai';
+    if ($s === 'cancel' || $s === 'void') return 'batal';
+    if ($s === 'unpaid')                  return 'baru';
+    return null; // all/unknown -> no filter
+}
+
+/** Ambil daftar transaksi PS untuk laporan cetak */
+public function fetch_ps(array $f): array {
+    // tanggal berdasarkan selesai kalau ada, kalau tidak pakai mulai
+    $dateExpr = "COALESCE(selesai, mulai)";
+
+    $this->db->select("
+        id_transaksi,
+        nama,
+        durasi_menit,
+        total_harga,
+        mulai,
+        selesai,
+        status,
+        COALESCE(catatan,'') AS catatan
+    ", false)->from('ps_transaksi'); // <-- SESUAIKAN kalau nama tabel beda
+
+    $from = $f['date_from'] ?? null;
+    $to   = $f['date_to']   ?? null;
+    if ($from) $this->db->where("$dateExpr >=", $from);
+    if ($to)   $this->db->where("$dateExpr <=", $to);
+
+    // default: hanya selesai, kecuali user sengaja pilih status lain
+    $ms = $this->_map_status_ps($f['status'] ?? 'all');
+    if ($ms) { $this->db->where('status', $ms); }
+    else     { $this->db->where('status', 'selesai'); }
+
+    $this->db->order_by("$dateExpr ASC", '', false);
+    $this->db->order_by('id_transaksi', 'ASC');
+
+    return $this->db->get()->result();
+}
+
+/** Summary PS: count & total */
+public function sum_ps(array $f): array {
+    $dateExpr = "COALESCE(selesai, mulai)";
+
+    $this->db->select("COUNT(*) AS cnt, COALESCE(SUM(total_harga),0) AS total", false)
+             ->from('ps_transaksi'); // <-- SESUAIKAN kalau nama tabel beda
+
+    $from = $f['date_from'] ?? null;
+    $to   = $f['date_to']   ?? null;
+    if ($from) $this->db->where("$dateExpr >=", $from);
+    if ($to)   $this->db->where("$dateExpr <=", $to);
+
+    $ms = $this->_map_status_ps($f['status'] ?? 'all');
+    if ($ms) { $this->db->where('status', $ms); }
+    else     { $this->db->where('status', 'selesai'); }
+
+    $row = $this->db->get()->row();
+    return [
+        'count' => (int)($row->cnt ?? 0),
+        'total' => (int)($row->total ?? 0)
+    ];
+}
+
+/** Aggregasi harian PS untuk grafik */
+public function agg_daily_ps(array $f): array {
+    $dateExpr = "COALESCE(selesai, mulai)";
+
+    $this->db->select("DATE($dateExpr) AS d, COALESCE(SUM(total_harga),0) AS total", false)
+             ->from('ps_transaksi');
+
+    $from = $f['date_from'] ?? null;
+    $to   = $f['date_to']   ?? null;
+    if ($from) $this->db->where("$dateExpr >=", $from);
+    if ($to)   $this->db->where("$dateExpr <=", $to);
+
+    $ms = $this->_map_status_ps($f['status'] ?? 'all');
+    if ($ms) { $this->db->where('status', $ms); }
+    else     { $this->db->where('status', 'selesai'); }
+
+    $this->db->group_by("DATE($dateExpr)", false);
+
+    $rows = $this->db->get()->result();
+    $out = [];
+    foreach($rows as $r){ $out[$r->d] = (int)$r->total; }
+    return $out;
+}
 
 
 }

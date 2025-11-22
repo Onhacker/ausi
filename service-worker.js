@@ -1,13 +1,13 @@
 /* ===== Service Worker (AUSI) — no-504-from-SW ===== */
 
-const CACHE_NAME  = 'ausi-48';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-49';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 
 /* HTML publik yang boleh dicache (path tanpa query) */
 const HTML_CACHE_WHITELIST = new Set([
   '/', '/home', '/hal', '/hal/kontak', '/hal/privacy_policy',
-  '/hal/jadwal', '/scan', '/produk', '/pijat', '/review',
+  '/hal/jadwal', '/scan', '/produk', '/pijat', '/ps4', '/review',
   '/hal/review', '/hal/pengumuman'
 ]);
 
@@ -15,7 +15,7 @@ const HTML_CACHE_WHITELIST = new Set([
 const urlsToCache = [
   '/', '/home', '/hal', '/hal/kontak', '/hal/privacy_policy',
   '/hal/jadwal', '/scan', '/hal/pengumuman', '/produk', '/review',
-  '/hal/review', '/pijat',
+  '/hal/review', '/pijat','/ps4',
 
   '/developer/manifest?v=1',
   OFFLINE_URL,

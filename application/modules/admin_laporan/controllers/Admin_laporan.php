@@ -29,17 +29,21 @@ class Admin_laporan extends Admin_Controller
 public function summary_json(){
     $f = $this->_parse_filter();
 
-    $pos  = $this->lm->sum_pos($f)        ?: ['count'=>0,'total'=>0,'by_method'=>[]];
-    $bil  = $this->lm->sum_billiard($f)   ?: ['count'=>0,'total'=>0,'by_method'=>[]];
-    $peng = $this->lm->sum_pengeluaran($f)?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
-    $kur  = $this->lm->sum_kurir($f)      ?: ['count'=>0,'total_fee'=>0,'by_method'=>[]];
-    $kp   = $this->lm->sum_kursi_pijat($f)?: ['count'=>0,'total'=>0];
+    $pos  = $this->lm->sum_pos($f)          ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+    $bil  = $this->lm->sum_billiard($f)     ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+    $peng = $this->lm->sum_pengeluaran($f)  ?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
+    $kur  = $this->lm->sum_kurir($f)        ?: ['count'=>0,'total_fee'=>0,'by_method'=>[]];
+    $kp   = $this->lm->sum_kursi_pijat($f)  ?: ['count'=>0,'total'=>0];
+    $ps   = $this->lm->sum_ps($f)           ?: ['count'=>0,'total'=>0];
 
     $pos  = ['count'=>(int)($pos['count']??0),'total'=>(int)($pos['total']??0),'by_method'=>(array)($pos['by_method']??[])];
     $bil  = ['count'=>(int)($bil['count']??0),'total'=>(int)($bil['total']??0),'by_method'=>(array)($bil['by_method']??[])];
     $peng = ['count'=>(int)($peng['count']??0),'total'=>(int)($peng['total']??0),'by_kategori'=>(array)($peng['by_kategori']??[])];
     $kur  = ['count'=>(int)($kur['count']??0),'total_fee'=>(int)($kur['total_fee']??0),'by_method'=>(array)($kur['by_method']??[])];
     $kp   = ['count'=>(int)($kp['count']??0),'total'=>(int)($kp['total']??0)];
+    $ps   = ['count'=>(int)($ps['count']??0),'total'=>(int)($ps['total']??0)];
+
+    $labaTotal = $pos['total'] + $bil['total'] + $kp['total'] + $ps['total'] - $peng['total'];
 
     $out = [
         'success'     => true,
@@ -49,14 +53,18 @@ public function summary_json(){
         'pengeluaran' => $peng,
         'kurir'       => $kur,
         'kursi_pijat' => $kp,
+        'ps'          => $ps,
         'meta'        => [
             'kurir_subset_of_pos' => true,
-            'laba_formula'        => 'pos+billiard+kursi_pijat-pengeluaran',
+            'laba_formula'        => 'pos + billiard + kursi_pijat + ps - pengeluaran',
         ],
-        'laba'        => ['total' => $pos['total'] + $bil['total'] + $kp['total'] - $peng['total']],
+        'laba'        => ['total' => $labaTotal],
     ];
-    return $this->output->set_content_type('application/json','utf-8')->set_output(json_encode($out));
+    return $this->output
+        ->set_content_type('application/json','utf-8')
+        ->set_output(json_encode($out));
 }
+
 
 
 public function print_kursi_pijat(){
@@ -266,26 +274,26 @@ public function print_laba(){
     $sumBil = $this->lm->sum_billiard($f);
     $sumPen = $this->lm->sum_pengeluaran($f);
     $sumKP  = $this->lm->sum_kursi_pijat($f);
+    $sumPS  = $this->lm->sum_ps($f);
 
     // ===== PENYESUAIAN MANUAL: Transaksi 1–7 tidak tercatat (hardcode sementara) =====
-    // Dihitung hanya jika periode laporan MENCAPAI tanggal 05 (bulan & tahun dari filter).
-    $manualInput = 0;                    // default
-    $manualNominal = 38377000;           // Rp 38.377.000
-    // Deteksi periode & bulan-tahun dari filter
+    $manualInput  = 0;
+    $manualNominal= 38377000; // Rp 38.377.000
+
     $start = $f['date_from'] ?? $f['start'] ?? null;
     $end   = $f['date_to']   ?? $f['end']   ?? null;
 
     $yy = null; $mm = null;
-    if (!empty($start)) {                // range berbasis start/end
+    if (!empty($start)) {
         $yy = substr($start, 0, 4);
         $mm = substr($start, 5, 2);
     } elseif (!empty($f['bulan']) && !empty($f['tahun'])) {
         $yy = (string)$f['tahun'];
         $mm = str_pad((int)$f['bulan'], 2, '0', STR_PAD_LEFT);
-    } elseif (!empty($f['tanggal'])) {   // single date
+    } elseif (!empty($f['tanggal'])) {
         $yy = substr($f['tanggal'], 0, 4);
         $mm = substr($f['tanggal'], 5, 2);
-    } else {                              // fallback: bulan berjalan
+    } else {
         $yy = date('Y');
         $mm = date('m');
     }
@@ -297,17 +305,16 @@ public function print_laba(){
         $e = substr($end,   0, 10);
         $includeManual = ($d5 >= $s && $d5 <= $e);
     } else {
-        // Jika bukan range eksplisit (mis. per-bulan / single-date yang sebulan itu),
-        // anggap penyesuaian berlaku untuk bulan tsb.
         $includeManual = true;
     }
     if ($includeManual) { $manualInput = $manualNominal; }
 
     // ===== LABA FINAL =====
-    // Laba final: Cafe + Billiard + Kursi Pijat + Manual − Pengeluaran
+    // Laba final: Cafe + Billiard + Kursi Pijat + PS + Manual − Pengeluaran
     $laba = (int)($sumPos['total'] ?? 0)
           + (int)($sumBil['total'] ?? 0)
           + (int)($sumKP['total']  ?? 0)
+          + (int)($sumPS['total']  ?? 0)
           + (int)$manualInput
           - (int)($sumPen['total'] ?? 0);
 
@@ -318,7 +325,8 @@ public function print_laba(){
         'sumBil'       => $sumBil,
         'sumPen'       => $sumPen,
         'sumKP'        => $sumKP,
-        'manualInput'  => $manualInput,     // <-- dikirim ke view
+        'sumPS'        => $sumPS,
+        'manualInput'  => $manualInput,
         'laba'         => $laba,
         'f'            => $f,
         'idr'          => function($x){ return $this->_idr($x); },
@@ -332,6 +340,7 @@ public function print_laba(){
     $html = $this->load->view('admin_laporan/pdf_laba', $data, true);
     $this->_pdf($data['title'], $html, $filename);
 }
+
 
 
 
@@ -652,7 +661,8 @@ private function _enforce_period_acl(array $f): array
     $cafeMap        = $this->lm->agg_daily_pos($f);
     $billiardMap    = $this->lm->agg_daily_billiard($f);
     $pengeluaranMap = $this->lm->agg_daily_pengeluaran($f);
-    $kpMap          = $this->lm->agg_daily_kursi_pijat($f); // KP wajib
+    $kpMap          = $this->lm->agg_daily_kursi_pijat($f);
+    $psMap          = $this->lm->agg_daily_ps($f);
 
     $tz = new DateTimeZone('Asia/Makassar');
     $startDay = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz) ?: new DateTime($f['date_from'], $tz);
@@ -661,8 +671,8 @@ private function _enforce_period_acl(array $f): array
     $loopStart = clone $startDay; $loopStart->setTime(0,0,0);
     $loopEnd   = clone $endDay;   $loopEnd->setTime(23,59,59);
 
-    $categories=[]; $cafeArr=[]; $bilArr=[]; $pengArr=[]; $kpArr=[]; $labaArr=[];
-    $sumCafe=0; $sumBil=0; $sumPeng=0; $sumKP=0; $sumLaba=0;
+    $categories=[]; $cafeArr=[]; $bilArr=[]; $pengArr=[]; $kpArr=[]; $psArr=[]; $labaArr=[];
+    $sumCafe=0; $sumBil=0; $sumPeng=0; $sumKP=0; $sumPS=0; $sumLaba=0;
 
     $cur = clone $loopStart;
     while ($cur <= $loopEnd){
@@ -671,14 +681,25 @@ private function _enforce_period_acl(array $f): array
         $c  = (int)($cafeMap[$key]        ?? 0);
         $b  = (int)($billiardMap[$key]    ?? 0);
         $kp = (int)($kpMap[$key]          ?? 0);
+        $ps = (int)($psMap[$key]          ?? 0);
         $pe = (int)($pengeluaranMap[$key] ?? 0);
 
-        $l  = $c + $b + $kp - $pe; // ← LABA BARU
+        $l  = $c + $b + $kp + $ps - $pe;
 
         $categories[] = $key;
-        $cafeArr[] = $c; $bilArr[] = $b; $kpArr[] = $kp; $pengArr[] = $pe; $labaArr[] = $l;
+        $cafeArr[] = $c;
+        $bilArr[]  = $b;
+        $kpArr[]   = $kp;
+        $psArr[]   = $ps;
+        $pengArr[] = $pe;
+        $labaArr[] = $l;
 
-        $sumCafe += $c; $sumBil += $b; $sumKP += $kp; $sumPeng += $pe; $sumLaba += $l;
+        $sumCafe += $c;
+        $sumBil  += $b;
+        $sumKP   += $kp;
+        $sumPS   += $ps;
+        $sumPeng += $pe;
+        $sumLaba += $l;
 
         $cur->modify('+1 day');
     }
@@ -690,14 +711,16 @@ private function _enforce_period_acl(array $f): array
         'cafe'          => $cafeArr,
         'billiard'      => $bilArr,
         'kursi_pijat'   => $kpArr,
+        'ps'            => $psArr,
         'pengeluaran'   => $pengArr,
-        'laba'          => $labaArr, // sudah +KP
+        'laba'          => $labaArr,
         'total_rekap'   => [
             'cafe'        => $sumCafe,
             'billiard'    => $sumBil,
             'kursi_pijat' => $sumKP,
+            'ps'          => $sumPS,
             'pengeluaran' => $sumPeng,
-            'laba'        => $sumLaba, // sudah +KP
+            'laba'        => $sumLaba,
         ],
     ];
 
@@ -706,6 +729,30 @@ private function _enforce_period_acl(array $f): array
         ->set_output(json_encode($out));
 }
 
+
+public function print_ps(){
+    $f = $this->_parse_filter();
+
+    $rows = $this->lm->fetch_ps($f);
+    $sum  = $this->lm->sum_ps($f);
+
+    $data = [
+        'title'  => 'Laporan PlayStation (PS)',
+        'period' => $this->_period_label($f),
+        'rows'   => $rows,
+        'sum'    => $sum,
+        'f'      => $f,
+        'idr'    => function($x){ return $this->_idr($x); },
+    ];
+
+    $safePeriod = preg_replace('/[^0-9A-Za-z_-]+/', '_', (string)$data['period']);
+    $safePeriod = trim($safePeriod, '_');
+    if ($safePeriod === '') $safePeriod = date('Ymd');
+    $filename = 'laporan_ps_' . $safePeriod . '.pdf';
+
+    $html = $this->load->view('admin_laporan/pdf_ps', $data, true);
+    $this->_pdf($data['title'], $html, $filename);
+}
 
 
     

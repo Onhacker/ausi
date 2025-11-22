@@ -6,7 +6,8 @@
 /** @var array    $sumBil */
 /** @var array    $sumPen */
 /** @var array    $sumKP */
-/** @var int      $laba */          // (POS + BIL + KP + MANUAL - PENGELUARAN)
+/** @var array    $sumPS */
+/** @var int      $laba */          // (POS + BIL + KP + PS + MANUAL - PENGELUARAN)
 /** @var int      $manualInput */   // penyesuaian manual 1–7
 /** @var callable $idr */
 ?>
@@ -30,6 +31,10 @@
           <td>Kursi Pijat</td>
           <td align="right"><?= $idr($sumKP['total'] ?? 0) ?></td>
         </tr>
+        <tr>
+          <td>PlayStation (PS)</td>
+          <td align="right"><?= $idr($sumPS['total'] ?? 0) ?></td>
+        </tr>
 
         <?php $hasManual = (int)($manualInput ?? 0) > 0; ?>
         <?php if ($hasManual): ?>
@@ -44,7 +49,7 @@
           <td align="right" style="color:#c62828">-<?= $idr($sumPen['total'] ?? 0) ?></td>
         </tr>
         <tr style="background-color:#f9fafb">
-          <td><b>LABA BERSIH (Cafe + Billiard + Kursi Pijat<?= $hasManual ? ' + Input Tgl 1–7' : '' ?> − Pengeluaran)</b></td>
+          <td><b>LABA BERSIH (Cafe + Billiard + Kursi Pijat + PS<?= $hasManual ? ' + Input Tgl 1–7' : '' ?> − Pengeluaran)</b></td>
           <td align="right"><b><?= $idr($laba ?? 0) ?></b></td>
         </tr>
       </table>
@@ -99,7 +104,7 @@ $hasBil = !empty($sumBil['by_method']);
 <div style="margin-top:6px;color:#666;font-size:10pt;">
   <em>Catatan:</em>
   <ul style="margin:6px 0 0 18px; padding:0;">
-    <li><b>LABA BERSIH</b> = Cafe + Billiard + Kursi Pijat<?= $hasManual ? ' + Input Tgl 1–7 (Manual)' : '' ?> − Pengeluaran.</li>
+    <li><b>LABA BERSIH</b> = Cafe + Billiard + Kursi Pijat + PS<?= $hasManual ? ' + Input Tgl 1–7 (Manual)' : '' ?> − Pengeluaran.</li>
     <?php if ($hasManual): ?>
       <li><b>Input Tgl 1–7 (Manual)</b> adalah penyesuaian sementara sebesar <?= $idr($manualInput) ?> pada tanggal <b>05</b>, akan dihapus setelah data asli 1–7 masuk ke sistem.</li>
     <?php endif; ?>

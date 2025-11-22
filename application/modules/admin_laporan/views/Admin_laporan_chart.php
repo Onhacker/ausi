@@ -117,7 +117,8 @@
       <div class="card">
         <div class="card-body">
           <h5 class="card-title mb-1">Laba Harian</h5>
-          <div class="text-muted small mb-2">(Cafe + Billiard - Pengeluaran)</div>
+          <div class="text-muted small mb-2">(Cafe + Billiard + Kursi Pijat + PS - Pengeluaran)</div>
+
           <div id="chartLaba" style="width:100%; height:320px;"></div>
         </div>
       </div>
@@ -308,7 +309,7 @@
         });
       }
     });
-  }(Highcharts));
+  });
 </script>
 
 <script src="<?= base_url('/assets/admin/chart/highcharts.js'); ?>"></script>
@@ -478,24 +479,26 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     return 'Rp ' + (parseInt(n||0,10)).toLocaleString('id-ID');
   }
 
-  function renderCharts(res){
+   function renderCharts(res){
     // info filter aktif di header kartu atas
-   if (res.filter){
-  const dfID = fmtTanggalWaktuIndo(res.filter.date_from, res.filter.time_from);
-  const dtID = fmtTanggalWaktuIndo(res.filter.date_to,   res.filter.time_to);
+    if (res.filter){
+      const dfID = fmtTanggalWaktuIndo(res.filter.date_from, res.filter.time_from);
+      const dtID = fmtTanggalWaktuIndo(res.filter.date_to,   res.filter.time_to);
 
-  infoRangeEl.textContent =
-    'Rentang: ' + dfID +
-    ' s/d '     + dtID +
-    ' | Mode: '   + (res.filter.mode   || '-') +
-    ' | Metode: ' + (res.filter.metode || '-') +
-    ' | Status: ' + (res.filter.status || '-');
-}
+      infoRangeEl.textContent =
+        'Rentang: ' + dfID +
+        ' s/d '     + dtID +
+        ' | Mode: '   + (res.filter.mode   || '-') +
+        ' | Metode: ' + (res.filter.metode || '-') +
+        ' | Status: ' + (res.filter.status || '-');
+    }
 
     if (res.total_rekap){
       infoTotalEl.textContent =
         'Total Cafe: '+rupiah(res.total_rekap.cafe||0)+
         ' · Billiard: '+rupiah(res.total_rekap.billiard||0)+
+        ' · Kursi Pijat: '+rupiah(res.total_rekap.kursi_pijat||0)+
+        ' · PS: '+rupiah(res.total_rekap.ps||0)+
         ' · Pengeluaran: '+rupiah(res.total_rekap.pengeluaran||0)+
         ' · Laba: '+rupiah(res.total_rekap.laba||0);
     }
@@ -505,85 +508,51 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     const billiardData    = res.billiard      || [];
     const pengeluaranData = res.pengeluaran   || [];
     const labaData        = res.laba          || [];
+    const kpData          = res.kursi_pijat   || [];
+    const psData          = res.ps            || [];
 
-    const kpData = res.kursi_pijat || []; // NEW
     const categoriesLabel = categories.map(function (v) {
       return fmtTanggalIndo(v);
     });
+
     const totalPendapatan = cafeData.map(function(v,i){
       const vb = (typeof billiardData[i] !== 'undefined') ? billiardData[i] : 0;
-  const vk = (typeof kpData[i] !== 'undefined') ? kpData[i] : 0; // NEW
-  return v + vb + vk; // NEW: total termasuk KP
-});
+      const vk = (typeof kpData[i]      !== 'undefined') ? kpData[i]      : 0;
+      const vp = (typeof psData[i]      !== 'undefined') ? psData[i]      : 0;
+      return v + vb + vk + vp;
+    });
 
-
-  Highcharts.chart('chartPendapatan', {
-  chart: {
-    type: 'spline' // line halus
-  },
-  title: { text: null },
-  xAxis:{ categories: categoriesLabel, crosshair:true },
-  yAxis: {
-    min: 0,
-    title: { text: 'Rupiah (Rp)' }
-  },
-  tooltip: {
-    shared: true,
-    valueDecimals: 0,
-    valuePrefix: 'Rp '
-  },
-  credits: { enabled: false },
-  exporting: { enabled: true },
-
-  plotOptions: {
-    series: {
-      animation: {
-        duration: 1000 // default durasi, bisa dioverride di tiap series
+    Highcharts.chart('chartPendapatan', {
+      chart: { type: 'spline' },
+      title: { text: null },
+      xAxis: { categories: categoriesLabel, crosshair:true },
+      yAxis: {
+        min: 0,
+        title: { text: 'Rupiah (Rp)' }
       },
-      marker: {
-        enabled: false
+      tooltip: {
+        shared: true,
+        valueDecimals: 0,
+        valuePrefix: 'Rp '
       },
-      lineWidth: 2
-    }
-  },
-
-  series: [
-    {
-      name: 'Cafe / POS',
-      data: cafeData,
-      animation: {
-        duration: 1000,
-        defer: 0      // mulai duluan
-      }
-    },
-    {
-      name: 'Billiard',
-      data: billiardData,
-      animation: {
-        duration: 1000,
-        defer: 300    // muncul sedikit telat
-      }
-    },
-    {
-      name: 'Kursi Pijat',
-      data: kpData,
-      animation: {
-        duration: 1000,
-        defer: 600
-      }
-    },
-    {
-      name: 'Total Pendapatan (Cafe+Billiard+KP)',
-      data: totalPendapatan,
-      animation: {
-        duration: 1000,
-        defer: 900    // terakhir, biar dramatis
-      }
-    }
-  ]
-});
-
-
+      credits: { enabled: false },
+      exporting: { enabled: true },
+      plotOptions: {
+        series: {
+          animation: { duration: 1000 },
+          marker: { enabled: false },
+          lineWidth: 2
+        }
+      },
+      series: [
+        { name: 'Cafe / POS',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
+        { name: 'Billiard',               data: billiardData, animation:{ duration:1000, defer: 300 } },
+        { name: 'Kursi Pijat',            data: kpData,       animation:{ duration:1000, defer: 600 } },
+        { name: 'PlayStation (PS)',       data: psData,       animation:{ duration:1000, defer: 900 } },
+        { name: 'Total Pendapatan (Cafe+Billiard+KP+PS)',
+          data: totalPendapatan,          animation:{ duration:1000, defer:1200 } }
+      ]
+    });
 
     Highcharts.chart('chartPengeluaran', {
       chart:{ type:'column' },
@@ -605,7 +574,7 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     Highcharts.chart('chartLaba', {
       chart:{ type:'area' },
       title:{ text:null },
-        xAxis:{ categories:categoriesLabel, crosshair:true },
+      xAxis:{ categories:categoriesLabel, crosshair:true },
       yAxis:{ title:{ text:'Rupiah (Rp)' } },
       tooltip:{
         shared:true,
@@ -615,10 +584,12 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       credits:{ enabled:false },
       exporting:{ enabled:true },
       series:[
-        { name:'Laba (Cafe+Billiard-Pengeluaran)', data:labaData }
+        { name:'Laba (Cafe + Billiard + KP + PS - Pengeluaran)', data:labaData }
       ]
     });
-  }
+  } // <<< INI yang tadi hilang: tutup renderCharts(res)
+
+
 
   function loadCharts(cbAfter){
     const params = getParams();
@@ -637,7 +608,6 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       }
       renderCharts(res);
 
-      // callback setelah render (misal: scroll ke chart)
       if (typeof cbAfter === 'function'){
         cbAfter();
       }

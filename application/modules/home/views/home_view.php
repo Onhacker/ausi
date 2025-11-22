@@ -619,6 +619,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <?php $this->load->view("banner_pijat") ?>
+<?php $this->load->view("banner_ps") ?>
 
 
 

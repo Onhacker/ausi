@@ -59,6 +59,13 @@ class Api extends MX_Controller {
                 'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
             ],
             [
+                'label'   => 'POS PS',
+                'url'     => site_url('admin_ps'),
+                'icon'    => 'mdi mdi-playstation',
+                'require' => ['POS PS','admin_ps','user'],
+            ],
+
+            [
                 'label'   => 'Pengeluaran',
                 'url'     => site_url('admin_pengeluaran'),
                 'icon'    => 'mdi mdi-cash-100',
@@ -105,6 +112,12 @@ class Api extends MX_Controller {
                 'url'     => site_url('admin_voucher_kursi_pijat'),
                 'icon'    => 'mdi mdi-seat-recline-extra',
                 'require' => ['Voucher Kursi Pijat','admin_voucher_kursi_pijat','user'],
+            ],
+            [
+                'label'   => 'Voucher PS',
+                'url'     => site_url('admin_voucher_ps'),
+                'icon'    => 'mdi mdi-playstation',
+                'require' => ['Voucher PS','admin_voucher_ps','user'],
             ],
 
         ],
@@ -318,6 +331,13 @@ public function get_menu_mobile()
             'require' => ['POS Kursi Pijat','admin_kursi_pijat','user'],
         ],
         [
+            'id'      => 'admin_ps',
+            'label'   => 'POS PS',
+            'url'     => site_url('admin_ps'),
+            'icon'    => 'mdi mdi-playstation',
+            'require' => ['POS PS','admin_ps','user'],
+        ],
+        [
             'id'      => 'admin_pengeluaran',
             'label'   => 'Pengeluaran',
             'url'     => site_url('admin_pengeluaran'),
@@ -368,10 +388,18 @@ public function get_menu_mobile()
 
         [
             'id'      => 'admin_voucher_kursi_pijat',
-            'label'   => 'Voucher Cafe',
+            'label'   => 'Voucher Kursi Pijat',
             'url'     => site_url('admin_voucher_kursi_pijat'),
             'icon'    => 'mdi mdi-spa',
             'require' => ['Voucher Kursi Pijat','admin_voucher_kursi_pijat','user'],
+        ],
+
+         [
+            'id'      => 'admin_voucher_ps',
+            'label'   => 'Voucher PS',
+            'url'     => site_url('admin_voucher_ps'),
+            'icon'    => 'mdi mdi-playstation',
+            'require' => ['Voucher PS','admin_voucher_ps','user'],
         ],
 
         // ===== Master / Pengaturan =====
