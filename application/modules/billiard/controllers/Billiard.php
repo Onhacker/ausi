@@ -2535,20 +2535,20 @@ public function voucher_issue_job() {
 
     $pesan = implode("\n", $lines);
 
-    try {
-      if (function_exists('send_wa_single')) {
-        // kirim ke nomor dalam bentuk 62xxxxxxxxx (tanpa tanda +)
-        $res = send_wa_single($hp_norm, $pesan);
-        $waSent   = true;
-        $waDetail = is_string($res) ? $res : json_encode($res);
-      } else {
-        $errMsg = 'send_wa_single() tidak tersedia';
-        log_message('error', 'WA voucher: function send_wa_single tidak ditemukan.');
-      }
-    } catch (Throwable $e) {
-      $errMsg = $e->getMessage();
-      log_message('error', 'WA voucher error: '.$e->getMessage());
-    }
+    // try {
+    //   if (function_exists('send_wa_single')) {
+    //     // kirim ke nomor dalam bentuk 62xxxxxxxxx (tanpa tanda +)
+    //     $res = send_wa_single($hp_norm, $pesan);
+    //     $waSent   = true;
+    //     $waDetail = is_string($res) ? $res : json_encode($res);
+    //   } else {
+    //     $errMsg = 'send_wa_single() tidak tersedia';
+    //     log_message('error', 'WA voucher: function send_wa_single tidak ditemukan.');
+    //   }
+    // } catch (Throwable $e) {
+    //   $errMsg = $e->getMessage();
+    //   log_message('error', 'WA voucher error: '.$e->getMessage());
+    // }
 
     $created[] = [
       'no_hp_norm'    => $hp_norm,
