@@ -119,7 +119,7 @@
         <div class="col-6">
           <div class="text-right">
             <h3 class="text-dark mt-1"><span id="sum-pos">Rp 0</span></h3>
-            <p class="text-muted mb-1 text-truncate">
+            <p class="text-dark mb-1 text-truncate">
               Omzet Cafe <small>(<span id="cnt-pos">0</span> trx)</small>
             </p>
           </div>
@@ -140,7 +140,7 @@
         <div class="col-6">
           <div class="text-right">
             <h3 class="text-dark mt-1"><span  id="sum-bil">Rp 0</span></h3>
-            <p class="text-muted mb-1 text-truncate">
+            <p class="text-dark mb-1 text-truncate">
               Omzet Billiard <small>(<span id="cnt-bil">0</span> trx)</small>
             </p>
           </div>
@@ -161,7 +161,7 @@
       <div class="col-6">
         <div class="text-right">
           <h3 class="text-dark mt-1"><span id="sum-kp">Rp 0</span></h3>
-          <p class="text-muted mb-1 text-truncate">
+          <p class="text-dark mb-1 text-truncate">
             Kursi Pijat <small>(<span id="cnt-kp">0</span> trx)</small>
           </p>
         </div>
@@ -182,7 +182,7 @@
         <div class="col-6">
           <div class="text-right">
             <h3 class="text-dark mt-1"><span id="sum-ps">Rp 0</span></h3>
-            <p class="text-muted mb-1 text-truncate">
+            <p class="text-dark mb-1 text-truncate">
               PlayStation <small>(<span id="cnt-ps">0</span> trx)</small>
             </p>
           </div>
@@ -203,7 +203,7 @@
         <div class="col-6">
           <div class="text-right">
             <h3 class="text-dark mt-1"><span id="sum-peng">Rp 0</span></h3>
-            <p class="text-muted mb-1 text-truncate">
+            <p class="text-dark mb-1 text-truncate">
               Pengeluaran <small>(<span id="cnt-peng">0</span> trx)</small>
             </p>
           </div>
@@ -224,7 +224,7 @@
         <div class="col-6">
           <div class="text-right">
             <h3 class="text-dark mt-1"><span id="sum-laba">Rp 0</span></h3>
-            <p class="text-muted mb-1 text-truncate">Laba Bersih</p>
+            <p class="text-dark mb-1 text-truncate">Laba Bersih</p>
           </div>
         </div>
       </div> <!-- end row-->
@@ -244,7 +244,7 @@
       <div class="col-6">
         <div class="text-right">
           <h3 class="text-dark mt-1"><span id="sum-kurir">Rp 0</span></h3>
-          <p class="text-muted mb-1 text-truncate">
+          <p class="text-dark mb-1 text-truncate">
             Ongkir Delivery <small>(<span id="cnt-kurir">0</span> trx)</small>
           </p>
           <!-- <small id="kurir-method-mini" class="text-muted d-block"></small> -->
