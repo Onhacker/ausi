@@ -215,86 +215,106 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <!-- RIGHT: RIBBON + QUICK MENU -->
     <div class="col-xl-8">
-      <div class="quickmenu-wrap position-relative">
-        <button class="quickmenu-btn left" type="button" aria-label="Geser kiri">&#10094;</button>
-        <button class="quickmenu-btn right" type="button" aria-label="Geser kanan">&#10095;</button>
-        <div class="quickmenu-fade left"></div>
-        <div class="quickmenu-fade right"></div>
+      <div class="quickmenu-wrap">
+  <div id="quickmenu" class="quickmenu-grid" aria-label="Menu cepat">
 
-       <div id="quickmenu" class="quickmenu-scroll d-flex text-center" tabindex="0" aria-label="Menu cepat geser">
-  <!-- isi menu cepat -->
- <div class="quickmenu-item">
-  <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#007bff;">
-      <span class="emoji-icon">📸</span>
+    <div class="quickmenu-item">
+      <a href="<?= site_url('scan') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#007bff;">
+          <span class="emoji-icon">📸</span>
+        </div>
+        <small class="menu-label">Dine-in</small>
+      </a>
     </div>
-    <small class="menu-label">Dine-in</small>
-  </a>
-</div>
 
-<div class="quickmenu-item">
-  <a href="<?= site_url('produk/delivery') ?>" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#17a2b8;">
-      <span class="emoji-icon">🚚</span>
+    <div class="quickmenu-item">
+      <a href="<?= site_url('produk/delivery') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#17a2b8;">
+          <span class="emoji-icon">🚚</span>
+        </div>
+        <small class="menu-label">Pesan Antar</small>
+      </a>
     </div>
-    <small class="menu-label">Pesan Antar</small>
-  </a>
-</div>
 
-<div class="quickmenu-item">
-  <a href="<?= site_url('produk/walkin') ?>" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#e74c3c;">
-      <span class="emoji-icon">🍱</span>
+    <div class="quickmenu-item">
+      <a href="<?= site_url('produk/walkin') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#e74c3c;">
+          <span class="emoji-icon">🍱</span>
+        </div>
+        <small class="menu-label">Bungkus</small>
+      </a>
     </div>
-    <small class="menu-label">Bungkus</small>
-  </a>
-</div>
 
-<div class="quickmenu-item">
-  <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#25D366;">
-      <span class="emoji-icon">🎱</span>
+    <div class="quickmenu-item">
+      <a href="<?= site_url('billiard') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#25D366;">
+          <span class="emoji-icon">🎱</span>
+        </div>
+        <small class="menu-label">Book Billiard</small>
+      </a>
     </div>
-    <small class="menu-label">Book Billiard</small>
-  </a>
-</div>
-<!-- NEW: PlayStation 4 -->
-<div class="quickmenu-item">
-  <a href="<?= site_url('ps4') ?>" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#3F51B5;">
-      <span class="emoji-icon">🎮</span>
+
+    <!-- BARIS BAWAH -->
+
+    <div class="quickmenu-item">
+      <a href="<?= site_url('ps4') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#3F51B5;">
+          <span class="emoji-icon">🎮</span>
+        </div>
+        <small class="menu-label">PlayStation</small>
+      </a>
     </div>
-    <small class="menu-label">PlayStation</small>
-  </a>
-</div>
-<div class="quickmenu-item">
-  <a href="<?= site_url('pijat') ?>" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#ff9800;">
-      <span class="emoji-icon">💺</span>
+
+    <div class="quickmenu-item">
+      <a href="<?= site_url('pijat') ?>" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#ff9800;">
+          <span class="emoji-icon">💺</span>
+        </div>
+        <small class="menu-label">Kursi Pijat</small>
+      </a>
     </div>
-    <small class="menu-label">Kursi Pijat</small>
-  </a>
-</div>
 
-
-
-<div class="quickmenu-item">
-  <a href="#" data-toggle="modal" data-target="#kontakModalfront" class="qcard d-block text-decoration-none">
-    <div class="menu-circle" style="background:#6f42c1;">
-      <span class="emoji-icon">🗂️</span>
+    <div class="quickmenu-item">
+      <a href="#" data-toggle="modal" data-target="#kontakModalfront" class="qcard d-block text-decoration-none">
+        <div class="menu-circle" style="background:#6f42c1;">
+          <span class="emoji-icon">🗂️</span>
+        </div>
+        <small class="menu-label">Liat Semua</small>
+      </a>
     </div>
-    <small class="menu-label">Liat Semua</small>
-  </a>
+
+    <!-- SLOT KOSONG BIAR GENAP 4 DI BAWAH (boleh diisi menu lain nanti) -->
+    <div class="quickmenu-item quickmenu-item-empty"></div>
+
+  </div>
 </div>
+<style>
+  .quickmenu-grid{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:.75rem;
+    justify-items:center;
+  }
 
-</div>
+  .quickmenu-grid .quickmenu-item{
+    flex:0 0 auto;
+  }
 
-<!-- TITIK SLIDE DI BAWAH -->
-<div id="titik_slide" class="titik-slide-dots" aria-hidden="true"></div>
+  .quickmenu-grid .qcard{
+    width:100%;
+    max-width:90px;
+    margin:0 auto;
+  }
 
-<!-- </div> -->
+  /* slot kosong biar layout tetap 4 bawah */
+  .quickmenu-item-empty{
+    visibility:hidden;
+  }
+  .menu-label{
+    text-align: center;
+  }
+</style>
 
-      </div>
        <?php $this->load->view("front_end/banner_jadwal.php"); ?>
     </div>
   </div>
