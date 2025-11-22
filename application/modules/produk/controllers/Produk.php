@@ -1340,6 +1340,95 @@ private function _get_weekly_winners_from_paid(DateTime $weekStart, DateTime $we
 }
 
 
+public function reward_cron_org()
+{
+    /**
+     * JOB: Pengumuman pemenang mingguan + auto generate voucher mingguan
+     * - Bisa dipanggil via:
+     *   1) CLI  : php index.php produk reward_cron
+     *   2) HTTP : https://ausi.co.id/produk/reward_cron?token=XXXX (untuk cron-job.org)
+     */
+
+    $isCli  = $this->input->is_cli_request();
+    $token  = $this->input->get('token', true);
+    $secret = 'kmzwa8awaa'; // TODO: ganti sendiri, jangan dibiarkan default
+
+    // Hanya boleh:
+    // - CLI (cron di server), atau
+    // - HTTP dengan token yang benar (cron-job.org / web-cron)
+    if (!$isCli && $token !== $secret) {
+        show_error('No direct script access allowed', 403);
+    }
+
+    $this->_nocache_headers();
+    date_default_timezone_set('Asia/Makassar');
+
+    // waktu sekarang WITA
+    $now = new DateTime('now', new DateTimeZone('Asia/Makassar'));
+    $dow = (int)$now->format('w'); // 0 = Minggu
+
+    // jam 08:00 hari ini
+    $todayAnnouncement   = (clone $now)->setTime(8, 0, 0);
+    $isSunday            = ($dow === 0);
+    $isAnnouncementTime  = $isSunday && ($now >= $todayAnnouncement);
+
+    if (!$isAnnouncementTime) {
+        echo "Bukan waktu pengumuman. Sekarang: ".$now->format('Y-m-d H:i:s').PHP_EOL;
+        return;
+    }
+
+    // ======= CARI PEMENANG =======
+
+    // Peraih poin tertinggi
+    $winner_top = $this->db
+        ->select('id, customer_name, customer_phone, points')
+        ->from('voucher_cafe')
+        ->where('points >', 0)
+        ->order_by('points', 'DESC')
+        ->order_by('last_paid_at', 'DESC')
+        ->limit(1)
+        ->get()
+        ->row();
+
+    $winner_random = null;
+
+    if ($winner_top) {
+        // seed berdasarkan tahun+miggu (mis: 202546)
+        $weekSeed = (int)$now->format('oW');
+
+        // Pemenang acak yang KONSISTEN 1 minggu
+        $winner_random = $this->db
+            ->select('id, customer_name, customer_phone, points')
+            ->from('voucher_cafe')
+            ->where('points >', 0)
+            ->where('id !=', $winner_top->id)
+            ->order_by("RAND({$weekSeed})", '', false)
+            ->limit(1)
+            ->get()
+            ->row();
+    }
+
+    // ======= AUTO BUAT VOUCHER MINGGUAN =======
+    $this->_create_weekly_voucher_if_needed($winner_top, 'top', $now);
+    $this->_create_weekly_voucher_if_needed($winner_random, 'random', $now);
+    // ==========================================
+
+    echo "Cron reward selesai.\n";
+
+    if ($winner_top) {
+        echo "Pemenang Top   : {$winner_top->customer_name} ({$winner_top->customer_phone})\n";
+    } else {
+        echo "Tidak ada pemenang Top (tidak ada points > 0)\n";
+    }
+
+    if ($winner_random) {
+        echo "Pemenang Random: {$winner_random->customer_name} ({$winner_random->customer_phone})\n";
+    } else {
+        echo "Pemenang Random: tidak ada / hanya 1 peserta\n";
+    }
+}
+
+
 public function reward_cron()
 {
     // Hanya boleh dipanggil via CLI (cron), bukan lewat browser
