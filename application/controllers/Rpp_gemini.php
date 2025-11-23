@@ -214,33 +214,79 @@ PROMPT;
     $clean = [];
     foreach ($lines as $line) {
         $line = trim($line);
-        if ($line !== '') $clean[] = $line;
+        if ($line !== '') {
+            $clean[] = $line;
+        }
     }
 
     if (count($clean) === 0) return '-';
 
-    // Kalau hanya 1 baris → tampil apa adanya (tanpa numbering)
+    // Kalau hanya 1 baris → tampil apa adanya
     if (count($clean) === 1) {
         return '<div class="numbered-list">' .
                htmlspecialchars($clean[0], ENT_QUOTES, 'UTF-8') .
                '</div>';
     }
 
-    // Kalau lebih dari 1 baris → selalu dinomori 1,2,3 dst (numbering lurus)
-    $html = '<div class="numbered-list">';
-    $i = 1;
+    // Cek apakah ada heading bernomor (1. Pendahuluan, 2) Kegiatan inti, dll)
+    $hasHeading = false;
     foreach ($clean as $line) {
-        // Buang nomor / bullet di depan kalau ada
-        // Contoh yang dibersihkan:
-        // "1. Teks", "2) Teks", "- Teks", "* Teks", "• Teks"
-        $stripped = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $line);
-
-        $display = $i . '. ' . $stripped;
-        $html   .= '<div>' . htmlspecialchars($display, ENT_QUOTES, 'UTF-8') . '</div>';
-        $i++;
+        if (preg_match('/^\d+[\.\)]\s*/', $line)) {
+            $hasHeading = true;
+            break;
+        }
     }
-    $html .= '</div>';
 
+    $html = '<div class="numbered-list">';
+
+    if ($hasHeading) {
+        // MODE: heading bernomor + bullet di bawahnya
+        $no = 1;
+        foreach ($clean as $line) {
+
+            // === Heading bernomor: 1. Pendahuluan / 2) Kegiatan Inti ===
+            if (preg_match('/^\d+[\.\)]\s*(.+)$/', $line, $m)) {
+                $title   = trim($m[1]);
+                $display = $no . '. ' . $title;
+
+                $html .= '<div><strong>' .
+                         htmlspecialchars($display, ENT_QUOTES, 'UTF-8') .
+                         '</strong></div>';
+
+                $no++;
+                continue;
+            }
+
+            // === Baris bullet: - ..., * ..., • ... ===
+            if (preg_match('/^[-*•]\s*(.+)$/u', $line, $m)) {
+                $textLine = '- ' . trim($m[1]);  // distandarkan jadi "- ..."
+            } else {
+                // Baris biasa → dianggap sebagai sub-teks di bawah heading terakhir
+                $textLine = trim($line);
+            }
+
+            // Sub-baris diindent
+            $html .= '<div style="margin-left:1.5em">' .
+                     htmlspecialchars($textLine, ENT_QUOTES, 'UTF-8') .
+                     '</div>';
+        }
+    } else {
+        // MODE: tidak ada heading bernomor → pakai numbering lurus 1,2,3,...
+        $i = 1;
+        foreach ($clean as $line) {
+            // buang nomor / bullet lama kalau ada
+            $stripped = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $line);
+            $display  = $i . '. ' . $stripped;
+
+            $html .= '<div>' .
+                     htmlspecialchars($display, ENT_QUOTES, 'UTF-8') .
+                     '</div>';
+
+            $i++;
+        }
+    }
+
+    $html .= '</div>';
     return $html;
 }
 
