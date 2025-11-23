@@ -2,15 +2,16 @@
 
 <?php
 // Ambil nilai POST (kalau belum submit, hasilnya null)
-$old_nama_guru      = $this->input->post('nama_guru', true);
-$old_mapel          = $this->input->post('mata_pelajaran', true);
-$old_materi         = $this->input->post('materi', true);
-$old_kelas          = $this->input->post('kelas', true);
-$old_semester       = $this->input->post('semester', true);
-$old_fase           = $this->input->post('fase', true);
-$old_tahun_pelajaran= $this->input->post('tahun_pelajaran', true);
-$old_pertemuan      = $this->input->post('pertemuan', true);
-$old_total_waktu    = $this->input->post('total_waktu', true);
+$old_nama_guru          = $this->input->post('nama_guru', true);
+$old_mapel              = $this->input->post('mata_pelajaran', true);
+$old_materi             = $this->input->post('materi', true);
+$old_kelas              = $this->input->post('kelas', true);
+$old_semester           = $this->input->post('semester', true);
+$old_fase               = $this->input->post('fase', true);
+$old_tahun_pelajaran    = $this->input->post('tahun_pelajaran', true);
+$old_pertemuan          = $this->input->post('pertemuan', true);
+$old_total_waktu        = $this->input->post('total_waktu', true);
+$old_perintah_tambahan  = $this->input->post('perintah_tambahan', true);
 
 // Default jika pertama kali dibuka (belum POST)
 if ($old_mapel === null || $old_mapel === '') {
@@ -47,22 +48,42 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
-        input[type="text"], input[type="number"], select {
+
+        /* === FORM CONTROL SERAGAM & LEBIH LEGA === */
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
             border: 1px solid #d1d5db;
-            padding: 0.5rem 0.75rem;
+            padding: 8px !important;       /* placeholder tidak mepet garis */
             border-radius: 0.375rem;
             width: 100%;
             font-size: 0.875rem;
             background-color: #f9fafb;
             color: #1f2937;
+            line-height: 1.5rem;         /* tinggi baris */
+            min-height: 2.9rem;          /* tinggi minimum */
+            box-sizing: border-box;
         }
-        input[type="text"]::placeholder, input[type="number"]::placeholder {
+
+       
+        /* textarea sedikit lebih tinggi & turun dari atas */
+        textarea {
+            padding-top: 0.9rem;
+            min-height: 4rem;
+        }
+
+        input[type="text"]::placeholder,
+        input[type="number"]::placeholder,
+        textarea::placeholder {
             color: #9ca3af;
         }
+
         input[readonly]{
             background-color:#e5e7eb;
             cursor:not-allowed;
         }
+
         .button-primary {
             background-color: #2563eb;
             color: #ffffff;
@@ -82,6 +103,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
             opacity:.8;
             cursor:wait;
         }
+
         .text-label {
             font-size: 0.875rem;
             color: #4b5563;
@@ -153,6 +175,40 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
             height:16px;
         }
     </style>
+
+    <style>
+      /* Biar isi tabel rapi */
+      .document-table td {
+        vertical-align: top;
+        font-size: 0.9rem;
+        text-align: justify;
+      }
+
+      /* === PENTING: munculkan angka di preview === */
+      .document-container ol.numbered-list {
+        list-style-type: decimal !important;  /* tampilkan 1,2,3 */
+        margin: 0 0 .25rem 1.5rem;
+        padding-left: 1.5rem;
+      }
+
+      .document-container ol.numbered-list > li {
+        margin-bottom: 2px;
+        text-align: justify;
+      }
+
+      /* Bullet untuk aktivitas di bawah Pendahuluan / Kegiatan Inti / Penutup */
+      .document-container ol.numbered-list ul {
+        list-style-type: disc !important;
+        margin: 2px 0 4px 1.5rem;
+        padding-left: 0;
+        text-align: justify;
+      }
+
+      .document-container ol.numbered-list ul > li {
+        margin-bottom: 2px;
+      }
+    </style>
+
 </head>
 <body class="p-8">
 
@@ -160,13 +216,15 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
 
     <!-- PANEL FORM -->
     <div class="panel p-6">
-        <h2 class="text-2xl font-bold mb-1">Rencana Pembelajaran Mendalam</h2>
+        <h2 class="text-2xl font-bold mb-1">Rencana Pembelajaran Mendalam SMKN 1 WAJO</h2>
         <p class="text-sm text-gray-600 mb-6">
             Isi data di bawah ini untuk membuat Rencana Pembelajaran Mendalam (RPM) secara otomatis.
-            <br>
-            <strong>Created By Veeya</strong>
+       
+            
         </p>
-
+        
+        <p style="text-align: right;"><strong>RPM Generator By Veeya</strong></p>
+        <br>
         <form method="post" action="<?= current_url(); ?>" id="rpmForm">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -188,19 +246,84 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
                     <label for="mata_pelajaran" class="block text-label">Mata Pelajaran</label>
                     <select id="mata_pelajaran" name="mata_pelajaran" required>
                         <option value="">Pilih mata pelajaran</option>
-                        <option value="Bahasa Inggris" <?= $old_mapel === 'Bahasa Inggris' ? 'selected' : ''; ?>>Bahasa Inggris</option>
-                        <option value="Bahasa Indonesia" <?= $old_mapel === 'Bahasa Indonesia' ? 'selected' : ''; ?>>Bahasa Indonesia</option>
-                        <option value="Matematika" <?= $old_mapel === 'Matematika' ? 'selected' : ''; ?>>Matematika</option>
-                        <option value="PPKN" <?= $old_mapel === 'PPKN' ? 'selected' : ''; ?>>PPKN</option>
-                        <option value="Informatika" <?= $old_mapel === 'Informatika' ? 'selected' : ''; ?>>Informatika</option>
-                        <option value="Simulasi dan Komunikasi Digital" <?= $old_mapel === 'Simulasi dan Komunikasi Digital' ? 'selected' : ''; ?>>
-                            Simulasi dan Komunikasi Digital
-                        </option>
-                        <option value="Dasar-dasar Kejuruan" <?= $old_mapel === 'Dasar-dasar Kejuruan' ? 'selected' : ''; ?>>
-                            Dasar-dasar Kejuruan
-                        </option>
+
+                        <!-- UMUM / MUATAN NASIONAL -->
+                        <optgroup label="Muatan Nasional (Umum)">
+                            <option value="Pendidikan Agama dan Budi Pekerti" <?= $old_mapel === 'Pendidikan Agama dan Budi Pekerti' ? 'selected' : ''; ?>>Pendidikan Agama dan Budi Pekerti</option>
+                            <option value="Pendidikan Pancasila dan Kewarganegaraan" <?= $old_mapel === 'Pendidikan Pancasila dan Kewarganegaraan' ? 'selected' : ''; ?>>Pendidikan Pancasila dan Kewarganegaraan (PPKN)</option>
+                            <option value="Bahasa Indonesia" <?= $old_mapel === 'Bahasa Indonesia' ? 'selected' : ''; ?>>Bahasa Indonesia</option>
+                            <option value="Matematika" <?= $old_mapel === 'Matematika' ? 'selected' : ''; ?>>Matematika</option>
+                            <option value="Sejarah Indonesia" <?= $old_mapel === 'Sejarah Indonesia' ? 'selected' : ''; ?>>Sejarah Indonesia</option>
+                            <option value="Bahasa Inggris" <?= $old_mapel === 'Bahasa Inggris' ? 'selected' : ''; ?>>Bahasa Inggris</option>
+                            <option value="Seni Budaya" <?= $old_mapel === 'Seni Budaya' ? 'selected' : ''; ?>>Seni Budaya</option>
+                            <option value="Pendidikan Jasmani, Olahraga, dan Kesehatan" <?= $old_mapel === 'Pendidikan Jasmani, Olahraga, dan Kesehatan' ? 'selected' : ''; ?>>Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)</option>
+                            <option value="Informatika" <?= $old_mapel === 'Informatika' ? 'selected' : ''; ?>>Informatika</option>
+                            <option value="Bimbingan dan Konseling" <?= $old_mapel === 'Bimbingan dan Konseling' ? 'selected' : ''; ?>>Bimbingan dan Konseling</option>
+                            <option value="Projek Penguatan Profil Pelajar Pancasila" <?= $old_mapel === 'Projek Penguatan Profil Pelajar Pancasila' ? 'selected' : ''; ?>>Projek Penguatan Profil Pelajar Pancasila (P5)</option>
+                        </optgroup>
+
+                        <!-- MUATAN KEWILAYAHAN -->
+                        <optgroup label="Muatan Kewilayahan">
+                            <option value="Bahasa Daerah" <?= $old_mapel === 'Bahasa Daerah' ? 'selected' : ''; ?>>Bahasa Daerah</option>
+                            <option value="Mulok Kewilayahan" <?= $old_mapel === 'Mulok Kewilayahan' ? 'selected' : ''; ?>>Mulok Kewilayahan</option>
+                        </optgroup>
+
+                        <!-- DASAR KEJURUAN / C1 -->
+                        <optgroup label="C1. Dasar-dasar Kejuruan (Lintas Program)">
+                            <option value="Dasar-dasar Kejuruan" <?= $old_mapel === 'Dasar-dasar Kejuruan' ? 'selected' : ''; ?>>Dasar-dasar Kejuruan</option>
+                            <option value="Simulasi dan Komunikasi Digital" <?= $old_mapel === 'Simulasi dan Komunikasi Digital' ? 'selected' : ''; ?>>Simulasi dan Komunikasi Digital</option>
+                            <option value="Projek Kreatif dan Kewirausahaan" <?= $old_mapel === 'Projek Kreatif dan Kewirausahaan' ? 'selected' : ''; ?>>Projek Kreatif dan Kewirausahaan</option>
+                            <option value="Otomatisasi Tata Kelola Perkantoran Dasar" <?= $old_mapel === 'Otomatisasi Tata Kelola Perkantoran Dasar' ? 'selected' : ''; ?>>Otomatisasi Tata Kelola Perkantoran Dasar</option>
+                            <option value="Dasar-dasar Akuntansi dan Keuangan" <?= $old_mapel === 'Dasar-dasar Akuntansi dan Keuangan' ? 'selected' : ''; ?>>Dasar-dasar Akuntansi dan Keuangan</option>
+                            <option value="Dasar-dasar Bisnis dan Pemasaran" <?= $old_mapel === 'Dasar-dasar Bisnis dan Pemasaran' ? 'selected' : ''; ?>>Dasar-dasar Bisnis dan Pemasaran</option>
+                            <option value="Dasar-dasar Teknik Mesin" <?= $old_mapel === 'Dasar-dasar Teknik Mesin' ? 'selected' : ''; ?>>Dasar-dasar Teknik Mesin</option>
+                            <option value="Dasar-dasar Teknik Otomotif" <?= $old_mapel === 'Dasar-dasar Teknik Otomotif' ? 'selected' : ''; ?>>Dasar-dasar Teknik Otomotif</option>
+                            <option value="Dasar-dasar Teknik Komputer dan Jaringan" <?= $old_mapel === 'Dasar-dasar Teknik Komputer dan Jaringan' ? 'selected' : ''; ?>>Dasar-dasar Teknik Komputer dan Jaringan</option>
+                            <option value="Dasar-dasar Rekayasa Perangkat Lunak" <?= $old_mapel === 'Dasar-dasar Rekayasa Perangkat Lunak' ? 'selected' : ''; ?>>Dasar-dasar Rekayasa Perangkat Lunak</option>
+                            <option value="Dasar-dasar Desain Komunikasi Visual" <?= $old_mapel === 'Dasar-dasar Desain Komunikasi Visual' ? 'selected' : ''; ?>>Dasar-dasar Desain Komunikasi Visual</option>
+                        </optgroup>
+
+                        <!-- CONTOH C2/C3 BEBERAPA KOMPETENSI KEAHLIAN UMUM -->
+                        <optgroup label="C2/C3. Teknik Komputer dan Informatika">
+                            <option value="Jaringan Komputer dan Dasar-dasar WAN" <?= $old_mapel === 'Jaringan Komputer dan Dasar-dasar WAN' ? 'selected' : ''; ?>>Jaringan Komputer dan Dasar-dasar WAN</option>
+                            <option value="Administrasi Sistem Jaringan" <?= $old_mapel === 'Administrasi Sistem Jaringan' ? 'selected' : ''; ?>>Administrasi Sistem Jaringan</option>
+                            <option value="Pemrograman Dasar" <?= $old_mapel === 'Pemrograman Dasar' ? 'selected' : ''; ?>>Pemrograman Dasar</option>
+                            <option value="Pemrograman Berorientasi Objek" <?= $old_mapel === 'Pemrograman Berorientasi Objek' ? 'selected' : ''; ?>>Pemrograman Berorientasi Objek</option>
+                            <option value="Pemrograman Web dan Perangkat Bergerak" <?= $old_mapel === 'Pemrograman Web dan Perangkat Bergerak' ? 'selected' : ''; ?>>Pemrograman Web dan Perangkat Bergerak</option>
+                            <option value="Basis Data" <?= $old_mapel === 'Basis Data' ? 'selected' : ''; ?>>Basis Data</option>
+                            <option value="Desain Grafis Percetakan" <?= $old_mapel === 'Desain Grafis Percetakan' ? 'selected' : ''; ?>>Desain Grafis Percetakan</option>
+                        </optgroup>
+
+                        <optgroup label="C2/C3. Bisnis dan Manajemen">
+                            <option value="Akuntansi Dasar" <?= $old_mapel === 'Akuntansi Dasar' ? 'selected' : ''; ?>>Akuntansi Dasar</option>
+                            <option value="Praktikum Akuntansi Perusahaan Jasa dan Dagang" <?= $old_mapel === 'Praktikum Akuntansi Perusahaan Jasa dan Dagang' ? 'selected' : ''; ?>>Praktikum Akuntansi Perusahaan Jasa dan Dagang</option>
+                            <option value="Perbankan Dasar" <?= $old_mapel === 'Perbankan Dasar' ? 'selected' : ''; ?>>Perbankan Dasar</option>
+                            <option value="Bisnis Online dan Pemasaran Digital" <?= $old_mapel === 'Bisnis Online dan Pemasaran Digital' ? 'selected' : ''; ?>>Bisnis Online dan Pemasaran Digital</option>
+                            <option value="Administrasi Umum" <?= $old_mapel === 'Administrasi Umum' ? 'selected' : ''; ?>>Administrasi Umum</option>
+                            <option value="Otomatisasi Tata Kelola Humas dan Keprotokolan" <?= $old_mapel === 'Otomatisasi Tata Kelola Humas dan Keprotokolan' ? 'selected' : ''; ?>>Otomatisasi Tata Kelola Humas dan Keprotokolan</option>
+                        </optgroup>
+
+                        <optgroup label="C2/C3. Teknik Otomotif dan Mesin">
+                            <option value="Teknik Pemeliharaan Mesin Kendaraan Ringan" <?= $old_mapel === 'Teknik Pemeliharaan Mesin Kendaraan Ringan' ? 'selected' : ''; ?>>Teknik Pemeliharaan Mesin Kendaraan Ringan</option>
+                            <option value="Teknik Chasis dan Pemindah Tenaga" <?= $old_mapel === 'Teknik Chasis dan Pemindah Tenaga' ? 'selected' : ''; ?>>Teknik Chasis dan Pemindah Tenaga</option>
+                            <option value="Teknik Kelistrikan Otomotif" <?= $old_mapel === 'Teknik Kelistrikan Otomotif' ? 'selected' : ''; ?>>Teknik Kelistrikan Otomotif</option>
+                            <option value="Teknik Pemesinan Bubut" <?= $old_mapel === 'Teknik Pemesinan Bubut' ? 'selected' : ''; ?>>Teknik Pemesinan Bubut</option>
+                            <option value="Teknik Pengelasan" <?= $old_mapel === 'Teknik Pengelasan' ? 'selected' : ''; ?>>Teknik Pengelasan</option>
+                        </optgroup>
+
+                        <optgroup label="Lain-lain (Sesuaikan SMK)">
+                            <option value="Kepariwisataan dan Perhotelan" <?= $old_mapel === 'Kepariwisataan dan Perhotelan' ? 'selected' : ''; ?>>Kepariwisataan dan Perhotelan</option>
+                            <option value="Tata Boga" <?= $old_mapel === 'Tata Boga' ? 'selected' : ''; ?>>Tata Boga</option>
+                            <option value="Kecantikan Kulit dan Rambut" <?= $old_mapel === 'Kecantikan Kulit dan Rambut' ? 'selected' : ''; ?>>Kecantikan Kulit dan Rambut</option>
+                            <option value="Keperawatan" <?= $old_mapel === 'Keperawatan' ? 'selected' : ''; ?>>Keperawatan</option>
+                            <option value="Farmasi Klinis dan Komunitas" <?= $old_mapel === 'Farmasi Klinis dan Komunitas' ? 'selected' : ''; ?>>Farmasi Klinis dan Komunitas</option>
+                            <option value="Agribisnis Tanaman Pangan dan Hortikultura" <?= $old_mapel === 'Agribisnis Tanaman Pangan dan Hortikultura' ? 'selected' : ''; ?>>Agribisnis Tanaman Pangan dan Hortikultura</option>
+                            <option value="Agribisnis Ternak" <?= $old_mapel === 'Agribisnis Ternak' ? 'selected' : ''; ?>>Agribisnis Ternak</option>
+                        </optgroup>
+
                     </select>
                 </div>
+
                 <div>
                     <label for="materi" class="block text-label">Materi Pokok</label>
                     <input
@@ -271,6 +394,22 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
                         placeholder="Contoh: 9 × 45 Menit"
                         value="<?= htmlspecialchars((string)($old_total_waktu ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
+
+                <div class="md:col-span-2">
+                    <label for="perintah_tambahan" class="block text-label">
+                        Perintah Tambahan (Opsional)
+                    </label>
+                    <textarea
+                        id="perintah_tambahan"
+                        name="perintah_tambahan"
+                        rows="3"
+                        placeholder="Gunakan perintah tambahan untuk merubah hasil. Contoh: Hapus karakter * di awal setiap baris, gunakan kalimat efektif, dll."><?= htmlspecialchars((string)($old_perintah_tambahan ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Contoh: <em>&quot;Hapus semua karakter * di awal baris&quot;</em>,
+                        <em>&quot;Gunakan kalimat singkat dan padat&quot;</em>, dsb.
+                    </p>
+                </div>
+
             </div>
 
             <button type="submit" id="btn-generate" class="w-full mt-6 button-primary">
@@ -278,7 +417,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span class="btn-label">Buat Rencana Pembelajaran Mendalam</span>
+                <span class="btn-label">Generate RPM</span>
             </button>
         </form>
     </div>
@@ -300,7 +439,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
         </div>
 
         <?php if (!empty($rpm_html) && empty($error_msg)): ?>
-            <form method="post" action="<?= site_url('rpp_gemini/download'); ?>" class="mt-4">
+            <form method="post" action="<?= site_url('rpp/download'); ?>" class="mt-4">
                 <textarea name="rpm_content" style="display:none;"><?= htmlspecialchars($rpm_html, ENT_NOQUOTES, 'UTF-8'); ?></textarea>
                 <button type="submit" class="button-download">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">

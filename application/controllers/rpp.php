@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Rpp_gemini extends Onhacker_Controller
+class rpp extends Onhacker_Controller
 {
     // ============= SETTING GEMINI API =============
     // Ganti dengan API key milikmu dari Google AI Studio
@@ -35,6 +35,7 @@ class Rpp_gemini extends Onhacker_Controller
             $tahun_pelajaran  = trim((string)$this->input->post('tahun_pelajaran', TRUE));
             $pertemuan        = (int)$this->input->post('pertemuan');
             $total_waktu      = trim((string)$this->input->post('total_waktu', TRUE));
+            $perintah_tambahan = trim((string)$this->input->post('perintah_tambahan', TRUE));
 
             if ($pertemuan <= 0) $pertemuan = 1;
             if ($mata_pelajaran === '') $mata_pelajaran = 'Bahasa Inggris';
@@ -79,6 +80,12 @@ Struktur JSON yang diminta:
 
 Pastikan JSON valid dan dapat di-parse tanpa error.
 PROMPT;
+// Jika ada perintah tambahan dari guru, sisipkan di akhir prompt
+if ($perintah_tambahan !== '') {
+    $prompt .= "\n\nPerintah tambahan dari guru terkait format/isi output (WAJIB diikuti):\n"
+             . $perintah_tambahan . "\n";
+}
+
 
             $error = '';
             $json  = $this->_call_gemini_rpm_json($prompt, $error);
@@ -123,17 +130,60 @@ PROMPT;
         header("Content-Disposition: attachment; filename=\"{$filename}\"");
         header("Cache-Control: no-store, no-cache, must-revalidate");
 
-        echo "<html><head><meta charset=\"UTF-8\"><title>Rencana Pembelajaran</title>
-        <style>
-          body { font-family: 'Times New Roman', serif; font-size: 11pt; }
-          table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-          th, td { border: 1px solid #000; padding: 6px; vertical-align: top; }
-          th { background-color: #f2f2f2; font-weight: bold; }
-          th.meeting-header { background-color: #e0f2fe; }
-          .numbered-list { padding-left: 0; margin: 0; }
-          .numbered-list > div { margin-bottom: 2px; }
-        </style>
-        </head><body>";
+             echo "<html><head><meta charset=\"UTF-8\"><title>Rencana Pembelajaran Mendalam SMKN 1 WAJO</title>
+<style>
+  body {
+    font-family: 'Times New Roman', serif;
+    font-size: 12pt;
+    line-height: 150%;              /* SPASI 1,5 UMUM */
+    mso-line-height-alt: 18pt;      /* BANTU WORD BACA 1,5 */
+  }
+
+  /* pastikan paragraf & list ikut 1,5 juga */
+  p, li {
+    margin-top: 0;
+    margin-bottom: 4px;
+    line-height: 150%;
+    mso-line-height-alt: 18pt;
+  }
+
+  td, th {
+    line-height: 150%;
+    mso-line-height-alt: 18pt;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  th, td {
+    border: 1px solid #000;
+    padding: 6px;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+  th.meeting-header {
+    background-color: #e0f2fe;
+  }
+
+  .numbered-list {
+    margin: 0;
+    padding-left: 1.0em;  /* agak dekat */
+  }
+  .numbered-list li {
+    margin-bottom: 2px;
+    text-align: justify;
+  }
+
+ 
+</style>
+</head><body>";
+
+
         echo $content;
         echo "</body></html>";
         exit;
@@ -204,12 +254,15 @@ PROMPT;
 
     // ================== HELPER: format teks multi-baris ke HTML ==================
 
-    private function _fmt_multiline(?string $text): string
+    // ================== HELPER: format teks multi-baris ke HTML ==================
+
+// ================== HELPER: format teks multi-baris ke HTML ==================
+private function _fmt_multiline(?string $text): string
 {
     $text = trim((string)$text);
     if ($text === '') return '-';
 
-    // Pecah per baris
+    // Pecah per baris & bersihkan
     $lines = preg_split('/\r\n|\r|\n/', $text);
     $clean = [];
     foreach ($lines as $line) {
@@ -218,77 +271,144 @@ PROMPT;
             $clean[] = $line;
         }
     }
-
-    if (count($clean) === 0) return '-';
-
-    // Kalau hanya 1 baris → tampil apa adanya
-    if (count($clean) === 1) {
-        return '<div class="numbered-list">' .
-               htmlspecialchars($clean[0], ENT_QUOTES, 'UTF-8') .
-               '</div>';
+    if (count($clean) === 0) {
+        return '-';
     }
 
-    // Cek apakah ada heading bernomor (1. Pendahuluan, 2) Kegiatan inti, dll)
-    $hasHeading = false;
+    // ========= DETEKSI: apakah ini "Kerangka Pembelajaran" (Pendahuluan / Kegiatan Inti / Penutup)? =========
+    $hasKerangkaSection = false;
     foreach ($clean as $line) {
-        if (preg_match('/^\d+[\.\)]\s*/', $line)) {
-            $hasHeading = true;
+        // Buang nomor di depan kalau ada (mis. "1. ..." / "2) ...")
+        $body = $line;
+        if (preg_match('/^\d+[\.\)]\s*(.+)$/u', $line, $m)) {
+            $body = trim($m[1]);
+        }
+
+        $lower = mb_strtolower($body, 'UTF-8');
+        if (strpos($lower, 'pendahuluan') !== false ||
+            strpos($lower, 'kegiatan inti') !== false ||
+            strpos($lower, 'penutup') !== false) {
+            $hasKerangkaSection = true;
             break;
         }
     }
 
-    $html = '<div class="numbered-list">';
+    // ========= MODE KERANGKA: Pendahuluan / Kegiatan Inti / Penutup =========
+    if ($hasKerangkaSection) {
+        //   - Tiap bagian jadi <li> dari <ol> (nomor otomatis lurus)
+        //   - Aktivitas di bawahnya jadi <ul><li>, semua rata kiri–kanan
+        $sections = [];
+        $current  = -1;
 
-    if ($hasHeading) {
-        // MODE: heading bernomor + bullet di bawahnya
-        $no = 1;
         foreach ($clean as $line) {
+            $origLine = $line;
+            $body     = $line;
 
-            // === Heading bernomor: 1. Pendahuluan / 2) Kegiatan Inti ===
-            if (preg_match('/^\d+[\.\)]\s*(.+)$/', $line, $m)) {
-                $title   = trim($m[1]);
-                $display = $no . '. ' . $title;
-
-                $html .= '<div><strong>' .
-                         htmlspecialchars($display, ENT_QUOTES, 'UTF-8') .
-                         '</strong></div>';
-
-                $no++;
-                continue;
+            // Buang nomor di depan kalau ada
+            if (preg_match('/^\d+[\.\)]\s*(.+)$/u', $line, $m)) {
+                $body = trim($m[1]);
             }
 
-            // === Baris bullet: - ..., * ..., • ... ===
-            if (preg_match('/^[-*•]\s*(.+)$/u', $line, $m)) {
-                $textLine = '- ' . trim($m[1]);  // distandarkan jadi "- ..."
+            $lower = mb_strtolower($body, 'UTF-8');
+            $isHeading = (strpos($lower, 'pendahuluan') !== false ||
+                          strpos($lower, 'kegiatan inti') !== false ||
+                          strpos($lower, 'penutup') !== false);
+
+            if ($isHeading) {
+                // === Baris ini judul bagian ===
+                $title     = $body;
+                $firstItem = '';
+
+                // Kalau ada ":" → kiri = judul, kanan = isi pertama
+                $posColon = mb_strpos($title, ':');
+                if ($posColon !== false) {
+                    $firstItem = trim(mb_substr($title, $posColon + 1));
+                    $title     = trim(mb_substr($title, 0, $posColon));
+                }
+
+                $sections[] = [
+                    'title' => $title,
+                    'items' => [],
+                ];
+                $current = count($sections) - 1;
+
+                if ($firstItem !== '') {
+                    $sections[$current]['items'][] = $firstItem;
+                }
             } else {
-                // Baris biasa → dianggap sebagai sub-teks di bawah heading terakhir
-                $textLine = trim($line);
+                // === Bukan heading → jadikan bullet di bawah heading terakhir ===
+                if ($current === -1) {
+                    // kalau belum ada heading, skip saja
+                    continue;
+                }
+
+                // Buang nomor / bullet lama di depan
+                $item = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $origLine);
+                $item = trim($item);
+
+                if ($item !== '') {
+                    $sections[$current]['items'][] = $item;
+                }
+            }
+        }
+
+        if (empty($sections)) {
+            return '-';
+        }
+
+        // Render ke HTML:
+        // <ol class="numbered-list">
+        //   <li><strong>Pendahuluan</strong><ul>...</ul></li>
+        //   <li><strong>Kegiatan Inti</strong><ul>...</ul></li>
+        //   ...
+        $html = '<ol class="numbered-list" style="margin:0; padding-left:1.25em; text-align:justify;">';
+        foreach ($sections as $sec) {
+            $html .= '<li style="margin-bottom:4px;">'
+                   . '<strong>'
+                   . htmlspecialchars($sec['title'], ENT_QUOTES, 'UTF-8')
+                   . '</strong>';
+
+            if (!empty($sec['items'])) {
+                $html .= '<ul style="margin:2px 0 2px 1em; padding-left:1em; text-align:justify;">';
+                foreach ($sec['items'] as $item) {
+                    $html .= '<li style="margin:0 0 2px 0;">'
+                           . htmlspecialchars($item, ENT_QUOTES, 'UTF-8')
+                           . '</li>';
+                }
+                $html .= '</ul>';
             }
 
-            // Sub-baris diindent
-            $html .= '<div style="margin-left:1.5em">' .
-                     htmlspecialchars($textLine, ENT_QUOTES, 'UTF-8') .
-                     '</div>';
+            $html .= '</li>';
         }
-    } else {
-        // MODE: tidak ada heading bernomor → pakai numbering lurus 1,2,3,...
-        $i = 1;
-        foreach ($clean as $line) {
-            // buang nomor / bullet lama kalau ada
-            $stripped = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $line);
-            $display  = $i . '. ' . $stripped;
+        $html .= '</ol>';
 
-            $html .= '<div>' .
-                     htmlspecialchars($display, ENT_QUOTES, 'UTF-8') .
-                     '</div>';
-
-            $i++;
-        }
+        return $html;
     }
 
-    $html .= '</div>';
+    // ========= MODE NORMAL (bukan kerangka): numbering lurus pakai <ol><li>, rata kiri–kanan =========
+    $html = '<ol class="numbered-list" style="margin:0; padding-left:1.25em; text-align:justify;">';
+
+    foreach ($clean as $line) {
+        // buang nomor / bullet lama di depan
+        $stripped = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $line);
+        $stripped = trim($stripped);
+        if ($stripped === '') continue;
+
+        $html .= '<li style="margin-bottom:2px;">'
+               . htmlspecialchars($stripped, ENT_QUOTES, 'UTF-8')
+               . '</li>';
+    }
+
+    $html .= '</ol>';
+
+    // Kalau ternyata kosong setelah dibersihkan, kembalikan '-'
+    if ($html === '<ol class="numbered-list" style="margin:0; padding-left:1.25em; text-align:justify;"></ol>') {
+        return '-';
+    }
+
     return $html;
 }
+
 
 
     // ================== HELPER: susun HTML tabel RPM ==================
@@ -364,7 +484,7 @@ PROMPT;
 
         $html = "
 <div class=\"prose prose-sm max-w-none text-gray-800 document-container\">
-  <h3 class=\"font-bold text-center text-lg mb-4\">RENCANA PEMBELAJARAN MENDALAM</h3>
+  <h3 class=\"font-bold text-center text-lg mb-4\">RENCANA PEMBELAJARAN MENDALAM SMKN 1 WAJO</h3>
   <hr class=\"my-4\" />
   <table class=\"document-table\">
     <thead>
