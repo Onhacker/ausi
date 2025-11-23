@@ -196,7 +196,7 @@ class Admin_voucher_cafe extends Admin_Controller {
               .   $btnDetail
               .   $btnEdit
               .   $btnTelp
-              .   $btnPreview
+              // .   $btnPreview
               .   $btnRawbt
               . '</div>';
 
