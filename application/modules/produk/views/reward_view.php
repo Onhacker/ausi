@@ -185,12 +185,12 @@ if (!function_exists('mask_name')) {
                       Voucher order Rp <?= number_format((int)$winner_top->nilai, 0, ',', '.'); ?>
                     </span>
                   </div>
-                <!--   <div class="reward-row">
+                  <div class="reward-row">
                     <span class="reward-row-label">Total Poin</span>
                     <span class="reward-row-value">
                       <?= number_format((int)$winner_top->jumlah_poin, 0, ',', '.'); ?>
                     </span>
-                  </div> -->
+                  </div>
 
                   <div class="reward-note">
                     Berhak atas voucher order senilai <strong>Rp&nbsp;50.000*</strong>.
@@ -233,13 +233,13 @@ if (!function_exists('mask_name')) {
                         Voucher order Rp <?= number_format((int)$winner_random->nilai, 0, ',', '.'); ?>
                       </span>
                     </div>
-                  <!--   <div class="reward-row">
+                    <div class="reward-row">
                       <span class="reward-row-label">Total Poin</span>
                       <span class="reward-row-value">
                         <?= number_format((int)$winner_random->jumlah_poin, 0, ',', '.'); ?>
                       </span>
                     </div>
- -->
+
                     <div class="reward-row">
                       <span class="reward-row-label">Status</span>
                       <span class="reward-row-value">
