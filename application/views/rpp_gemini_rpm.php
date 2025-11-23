@@ -138,6 +138,8 @@
         <h2 class="text-2xl font-bold mb-1">Rencana Pembelajaran Mendalam</h2>
         <p class="text-sm text-gray-600 mb-6">
             Isi data di bawah ini untuk membuat Rencana Pembelajaran Mendalam (RPM) secara otomatis.
+            <br>
+            <strong>Created By Veeya</strong>
         </p>
 
         <form method="post" action="<?= current_url(); ?>" id="rpmForm">
