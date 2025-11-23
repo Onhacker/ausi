@@ -14,6 +14,7 @@ class Rpp_gemini extends Onhacker_Controller
         $this->load->helper(['url', 'form']);
     }
 
+    // Halaman utama: form + hasil RPP
     public function index()
     {
         $data['rpp_result'] = '';
@@ -77,6 +78,32 @@ PROMPT;
         }
 
         $this->load->view('rpp_gemini_form', $data);
+    }
+
+    /**
+     * Endpoint untuk download RPP sebagai file .doc
+     */
+    public function download()
+    {
+        // FALSE di parameter kedua = jangan XSS filter, karena ini teks yang kita kirim sendiri
+        $content = $this->input->post('rpp_content', FALSE);
+        if ($content === null || $content === '') {
+            show_404();
+            return;
+        }
+
+        $filename = 'RPP_1_Lembar_' . date('Ymd_His') . '.doc';
+
+        // Header supaya browser download sebagai dokumen Word
+        header("Content-Type: application/msword; charset=UTF-8");
+        header("Content-Disposition: attachment; filename=\"{$filename}\"");
+        header("Cache-Control: no-store, no-cache, must-revalidate");
+
+        echo "<html><head><meta charset=\"UTF-8\"></head><body>";
+        // Escape HTML lalu ubah newline jadi <br> agar tetap rapi di Word
+        echo nl2br(htmlspecialchars($content, ENT_QUOTES, 'UTF-8'));
+        echo "</body></html>";
+        exit;
     }
 
     /**
