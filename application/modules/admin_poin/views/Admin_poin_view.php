@@ -25,66 +25,66 @@
           </p>
 
           <!-- FILTER BAR -->
-          <div class="d-flex flex-wrap align-items-end justify-content-between mb-2">
-            <div class="filter-bar d-flex flex-wrap align-items-end">
-              <?php
-                $currentYear  = isset($currentYear)  ? (int)$currentYear  : (int)date('Y');
-                $currentMonth = isset($currentMonth) ? (int)$currentMonth : (int)date('n');
-                $currentWeek  = isset($currentWeek)  ? (int)$currentWeek  : (int)ceil(date('j')/7);
-              ?>
+         <div class="d-flex flex-wrap align-items-end justify-content-between mb-2">
+  <div class="filter-bar d-flex flex-wrap align-items-end">
+    <?php
+      $defaultYear  = isset($defaultYear)  ? (int)$defaultYear  : (int)date('Y');
+      $defaultMonth = isset($defaultMonth) ? (int)$defaultMonth : (int)date('n');
+      $defaultWeek  = isset($defaultWeek)  ? (int)$defaultWeek  : (int)ceil(date('j')/7);
 
-              <div class="form-group">
-                <label for="filter_tahun" class="mb-0 small">Tahun</label>
-                <select id="filter_tahun" class="form-control form-control-sm">
-                  <option value="">Semua Tahun</option>
-                  <?php if (!empty($years)): ?>
-                    <?php foreach($years as $y): ?>
-                      <option value="<?= $y; ?>" <?= ($currentYear === (int)$y ? 'selected' : ''); ?>>
-                        <?= $y; ?>
-                      </option>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </select>
-              </div>
+      $bulanNama = [
+        1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
+        5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
+        9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
+      ];
+    ?>
 
-              <div class="form-group">
-                <label for="filter_bulan" class="mb-0 small">Bulan</label>
-                <select id="filter_bulan" class="form-control form-control-sm">
-                  <option value="">Semua Bulan</option>
-                  <?php
-                  $bulanNama = [
-                    1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
-                    5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
-                    9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
-                  ];
-                  foreach($bulanNama as $num=>$label):
-                  ?>
-                    <option value="<?= $num; ?>" <?= ($currentMonth === $num ? 'selected' : ''); ?>>
-                      <?= $label; ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
+    <div class="form-group">
+      <label for="filter_tahun" class="mb-0 small">Tahun</label>
+      <select id="filter_tahun" class="form-control form-control-sm">
+        <option value="">Semua Tahun</option>
+        <?php if (!empty($years)): ?>
+          <?php foreach($years as $y): ?>
+            <option value="<?= $y; ?>" <?= ($defaultYear === (int)$y ? 'selected' : ''); ?>>
+              <?= $y; ?>
+            </option>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </select>
+    </div>
 
-              <div class="form-group">
-                <label for="filter_minggu" class="mb-0 small">Minggu ke-</label>
-                <select id="filter_minggu" class="form-control form-control-sm">
-                  <option value="">Semua Minggu</option>
-                  <option value="1" <?= ($currentWeek === 1 ? 'selected' : ''); ?>>Minggu ke-1 (tgl 1–7)</option>
-                  <option value="2" <?= ($currentWeek === 2 ? 'selected' : ''); ?>>Minggu ke-2 (tgl 8–14)</option>
-                  <option value="3" <?= ($currentWeek === 3 ? 'selected' : ''); ?>>Minggu ke-3 (tgl 15–21)</option>
-                  <option value="4" <?= ($currentWeek === 4 ? 'selected' : ''); ?>>Minggu ke-4 (tgl 22–28)</option>
-                  <option value="5" <?= ($currentWeek === 5 ? 'selected' : ''); ?>>Minggu ke-5 (tgl 29–31)</option>
-                </select>
-              </div>
-            </div>
+    <div class="form-group">
+      <label for="filter_bulan" class="mb-0 small">Bulan</label>
+      <select id="filter_bulan" class="form-control form-control-sm">
+        <option value="">Semua Bulan</option>
+        <?php foreach($bulanNama as $num=>$label): ?>
+          <option value="<?= $num; ?>" <?= ($defaultMonth === $num ? 'selected' : ''); ?>>
+            <?= $label; ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
 
-            <div class="mb-2">
-              <button type="button" onclick="refreshPoin()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
-                <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
-              </button>
-            </div>
-          </div>
+    <div class="form-group">
+      <label for="filter_minggu" class="mb-0 small">Minggu ke-</label>
+      <select id="filter_minggu" class="form-control form-control-sm">
+        <option value="">Semua Minggu</option>
+        <option value="1" <?= ($defaultWeek === 1 ? 'selected' : ''); ?>>Minggu ke-1 (tgl 1–7)</option>
+        <option value="2" <?= ($defaultWeek === 2 ? 'selected' : ''); ?>>Minggu ke-2 (tgl 8–14)</option>
+        <option value="3" <?= ($defaultWeek === 3 ? 'selected' : ''); ?>>Minggu ke-3 (tgl 15–21)</option>
+        <option value="4" <?= ($defaultWeek === 4 ? 'selected' : ''); ?>>Minggu ke-4 (tgl 22–28)</option>
+        <option value="5" <?= ($defaultWeek === 5 ? 'selected' : ''); ?>>Minggu ke-5 (tgl 29–31)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="mb-2">
+    <button type="button" onclick="refreshPoin()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
+      <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
+    </button>
+  </div>
+</div>
+
 
 
           <!-- TABLE -->

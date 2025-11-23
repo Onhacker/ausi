@@ -11,33 +11,50 @@ class Admin_poin extends Admin_Controller {
     }
 
     public function index(){
-        // Pastikan timezone sesuai
-        date_default_timezone_set('Asia/Makassar');
+    $data["controller"] = get_class($this);
+    $data["title"]      = "Poin Loyalty Café";
+    $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
 
-        $data["controller"] = get_class($this);
-        $data["title"]      = "Poin Loyalty Café";
-        $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+    // Cari tanggal expired terakhir di voucher_cafe
+    $last = $this->db
+        ->select('expired_at')
+        ->from('voucher_cafe')
+        ->where('expired_at IS NOT NULL', null, false)
+        ->where('expired_at <>', '0000-00-00')
+        ->order_by('expired_at', 'DESC')
+        ->limit(1)
+        ->get()
+        ->row();
 
-        // Hitung tahun, bulan, dan minggu saat ini
-        $currentYear  = (int)date('Y');
-        $currentMonth = (int)date('n');  // 1-12
-        $currentDay   = (int)date('j');  // 1-31
-        $currentWeek  = (int)ceil($currentDay / 7); // 1-5
-
-        // opsi tahun (misal: tahun sekarang -1 s/d +1)
-        $years = [];
-        for($y = $currentYear - 1; $y <= $currentYear + 1; $y++){
-            $years[] = $y;
-        }
-
-        $data["years"]        = $years;
-        $data["currentYear"]  = $currentYear;
-        $data["currentMonth"] = $currentMonth;
-        $data["currentWeek"]  = $currentWeek;
-
-        $data["content"]  = $this->load->view($data["controller"]."_view",$data,true);
-        $this->render($data);
+    if ($last && !empty($last->expired_at)) {
+        $dt          = new DateTime($last->expired_at);
+        $lastYear    = (int)$dt->format('Y');
+        $lastMonth   = (int)$dt->format('n'); // 1–12
+        $lastDay     = (int)$dt->format('j'); // 1–31
+        $lastWeek    = (int)ceil($lastDay / 7); // 1–5
+    } else {
+        // fallback kalau tabel kosong
+        $dt          = new DateTime();
+        $lastYear    = (int)$dt->format('Y');
+        $lastMonth   = (int)$dt->format('n');
+        $lastDay     = (int)$dt->format('j');
+        $lastWeek    = (int)ceil($lastDay / 7);
     }
+
+    // opsi tahun (misal: tahun sekarang -1 s/d +1)
+    $years = [];
+    for($y = $lastYear - 1; $y <= $lastYear + 1; $y++){
+        $years[] = $y;
+    }
+
+    $data["years"]        = $years;
+    $data["defaultYear"]  = $lastYear;
+    $data["defaultMonth"] = $lastMonth;
+    $data["defaultWeek"]  = $lastWeek;
+
+    $data["content"]  = $this->load->view($data["controller"]."_view",$data,true);
+    $this->render($data);
+}
 
 
     /**
