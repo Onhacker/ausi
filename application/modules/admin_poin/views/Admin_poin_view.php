@@ -223,8 +223,12 @@ function show_detail(id){
       if(res.success){
         Swal.fire({
           title: res.title || 'Detail Poin Pelanggan',
-          html:  res.html  || '-',
+          // bungkus HTML dengan div text-left
+          html:  '<div class="text-left">'+(res.html || '-')+'</div>',
           width: 600,
+          customClass: {
+            htmlContainer: 'text-left' // buat kontainer Swal juga rata kiri
+          },
           confirmButtonText: 'Tutup'
         });
       } else {
@@ -236,4 +240,5 @@ function show_detail(id){
     }
   });
 }
+
 </script>

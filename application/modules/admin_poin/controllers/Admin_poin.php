@@ -154,14 +154,15 @@ class Admin_poin extends Admin_Controller {
         $createdAt  = $row->created_at    ? date('d-m-Y H:i', strtotime($row->created_at))    : '-';
         $updatedAt  = $row->updated_at    ? date('d-m-Y H:i', strtotime($row->updated_at))    : '-';
 
-        // hitung minggu ke- berdasarkan expired_at (1–7, 8–14, dst)
+                // hitung minggu ke- berdasarkan expired_at (1–7, 8–14, dst)
         $mingguKe = '-';
         if ($row->expired_at && $row->expired_at !== '0000-00-00') {
             $day = (int)date('j', strtotime($row->expired_at));
             $mingguKe = (int)ceil($day / 7);
         }
 
-        $html  = '<div class="table-responsive">';
+        // wrapper pakai text-left biar isi rata kiri
+        $html  = '<div class="table-responsive text-left">';
         $html .= '<table class="table table-sm table-striped mb-0">';
         $html .= '<tr><th width="35%">Nama</th><td>'.$nama.'</td></tr>';
         $html .= '<tr><th>No. HP</th><td>'.$hp.'</td></tr>';
@@ -184,5 +185,6 @@ class Admin_poin extends Admin_Controller {
             "html"    => $html
         ]);
     }
+
 
 }
