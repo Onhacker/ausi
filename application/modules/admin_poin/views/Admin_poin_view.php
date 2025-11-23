@@ -8,30 +8,30 @@
   .filter-bar .form-control{
     min-width: 120px;
   }
+
   .periode-label{
-  display: inline-flex;
-  align-items: center;
-  padding: .4rem .85rem;
-  border-radius: 999px;
-  background: #e3f2fd;              /* biru muda soft */
-  border: 1px solid rgba(13,110,253,.25);
-  font-size: .9rem;
-  color: #0b3c8a;                    /* teks agak gelap */
-  gap: .35rem;
-}
+    display: inline-flex;
+    align-items: center;
+    padding: .4rem .85rem;
+    border-radius: 999px;
+    background: #e3f2fd;              /* biru muda soft */
+    border: 1px solid rgba(13,110,253,.25);
+    font-size: .9rem;
+    color: #0b3c8a;                    /* teks agak gelap */
+    gap: .35rem;
+  }
 
-.periode-label .periode-icon{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: #0d6efd;
-  color: #fff;
-  font-size: 14px;
-}
-
+  .periode-label .periode-icon{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 14px;
+  }
 </style>
 
 <div class="container-fluid">
@@ -46,58 +46,62 @@
             Rekap <b>poin loyalty café</b> berdasarkan nomor HP pelanggan.
             Urutan default: <b>Poin tertinggi</b>.
           </p>
-          <!-- Tulisan periode minggu terakhir (di-update via AJAX) -->
-          <div class="periode-label mb-3">
-            <span class="periode-icon mr-2">
-              <i class="mdi mdi-calendar-week"></i>
-            </span>
-            <span id="periode_label">
-              Periode: memuat minggu terakhir berdasarkan data (expired_at).
-            </span>
-          </div>
 
-
-          <!-- FILTER BAR (Tahun & Bulan saja) -->
+          <!-- PERIODE + FILTER BAR dalam satu baris -->
           <div class="d-flex flex-wrap align-items-end justify-content-between mb-2">
-            <div class="filter-bar d-flex flex-wrap align-items-end">
-              <?php
-                $defaultYear  = isset($defaultYear)  ? (int)$defaultYear  : (int)date('Y');
-                $defaultMonth = isset($defaultMonth) ? (int)$defaultMonth : (int)date('n');
 
-                $bulanNama = [
-                  1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
-                  5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
-                  9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
-                ];
-              ?>
-
-              <div class="form-group">
-                <label for="filter_tahun" class="mb-0 small">Tahun</label>
-                <select id="filter_tahun" class="form-control form-control-sm">
-                  <option value="">Semua Tahun</option>
-                  <?php if (!empty($years)): ?>
-                    <?php foreach($years as $y): ?>
-                      <option value="<?= $y; ?>" <?= ($defaultYear === (int)$y ? 'selected' : ''); ?>>
-                        <?= $y; ?>
-                      </option>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </select>
+            <!-- Kiri: badge periode + filter tahun/bulan -->
+            <div class="d-flex flex-wrap align-items-end">
+              <div class="periode-label mb-2 mr-2">
+                <span class="periode-icon mr-2">
+                  <i class="mdi mdi-calendar-week"></i>
+                </span>
+                <span id="periode_label">
+                  Periode: memuat minggu terakhir berdasarkan data (expired_at).
+                </span>
               </div>
 
-              <div class="form-group">
-                <label for="filter_bulan" class="mb-0 small">Bulan</label>
-                <select id="filter_bulan" class="form-control form-control-sm">
-                  <option value="">Semua Bulan</option>
-                  <?php foreach($bulanNama as $num=>$label): ?>
-                    <option value="<?= $num; ?>" <?= ($defaultMonth === $num ? 'selected' : ''); ?>>
-                      <?= $label; ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
+              <div class="filter-bar d-flex flex-wrap align-items-end">
+                <?php
+                  $defaultYear  = isset($defaultYear)  ? (int)$defaultYear  : (int)date('Y');
+                  $defaultMonth = isset($defaultMonth) ? (int)$defaultMonth : (int)date('n');
+
+                  $bulanNama = [
+                    1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
+                    5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
+                    9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
+                  ];
+                ?>
+
+                <div class="form-group">
+                  <label for="filter_tahun" class="mb-0 small">Tahun</label>
+                  <select id="filter_tahun" class="form-control form-control-sm">
+                    <option value="">Semua Tahun</option>
+                    <?php if (!empty($years)): ?>
+                      <?php foreach($years as $y): ?>
+                        <option value="<?= $y; ?>" <?= ($defaultYear === (int)$y ? 'selected' : ''); ?>>
+                          <?= $y; ?>
+                        </option>
+                      <?php endforeach; ?>
+                    <?php endif; ?>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="filter_bulan" class="mb-0 small">Bulan</label>
+                  <select id="filter_bulan" class="form-control form-control-sm">
+                    <option value="">Semua Bulan</option>
+                    <?php foreach($bulanNama as $num=>$label): ?>
+                      <option value="<?= $num; ?>" <?= ($defaultMonth === $num ? 'selected' : ''); ?>>
+                        <?= $label; ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
               </div>
             </div>
 
+            <!-- Kanan: tombol Refresh -->
             <div class="mb-2">
               <button type="button" onclick="refreshPoin()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light">
                 <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
