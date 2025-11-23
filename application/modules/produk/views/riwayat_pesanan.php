@@ -197,7 +197,6 @@ a {
 </div>
 
 <?php $this->load->view("front_end/footer.php") ?>
-
 <script>
 // Halaman riwayat pesanan (perangkat ini) dengan pagination (5 per halaman)
 (function(){
@@ -296,6 +295,20 @@ a {
     return 'secondary';
   }
 
+  // ===== HAPUS SATU ORDER BERDASARKAN INDEX GLOBAL DI ordersCache =====
+  function deleteOrderByIndex(globalIndex){
+    const all   = loadOrdersFromStorage();   // urutan lama (paling lama -> terbaru)
+    const total = all.length;
+    if (!total) return;
+
+    // ordersCache = all.slice().reverse()
+    const origIndex = total - 1 - globalIndex;
+    if (origIndex < 0 || origIndex >= total) return;
+
+    all.splice(origIndex, 1);
+    localStorage.setItem(KEY, JSON.stringify(all));
+  }
+
   // Update tampilan pagination (info range + tombol prev/next)
   function updatePagination(total){
     if (!paginationWrap) return;
@@ -375,6 +388,9 @@ a {
       const paidMethod  = (o.paid_method || '').toUpperCase();
       const deviceBrand = o.device_brand || o.deviceLabel || '';
 
+      // index global di ordersCache (bukan hanya index di slice)
+      const globalIdx = startIndex + idx;
+
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex flex-column flex-wrap';
       li.style.animationDelay = (idx * 40) + 'ms';
@@ -396,10 +412,17 @@ a {
               ${paidMethod ? `<span class="text-uppercase text-dark">Metode: ${paidMethod}</span>` : ''}
             </div>
           </div>
-          <div class="mt-2 mt-sm-0">
+          <div class="mt-2 mt-sm-0 text-right">
             ${amount ? `<div class="order-amount text-right mb-1">${idr(amount)}</div>` : ''}
-            <button type="button" class="btn btn-xs btn-blue btn-jump-order" data-url="${url}">
-              Lihat order
+            <button type="button"
+                    class="btn btn-xs btn-blue btn-jump-order"
+                    data-url="${url}">
+              Lihat
+            </button>
+            <button type="button"
+                    class="btn btn-xs btn-outline-danger btn-delete-order ml-1"
+                    data-idx="${globalIdx}">
+              Hapus
             </button>
           </div>
         </div>
@@ -436,6 +459,40 @@ a {
       });
     });
 
+    // event click untuk tombol "Hapus" (hapus satu order dari riwayat)
+    listEl.querySelectorAll('.btn-delete-order').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const idxStr = this.getAttribute('data-idx');
+        const idx    = parseInt(idxStr, 10);
+        if (Number.isNaN(idx)) return;
+
+        const doDelete = function(){
+          deleteOrderByIndex(idx);
+          // render ulang halaman saat ini
+          renderRiwayat(currentPage || 1);
+        };
+
+        if (typeof Swal !== 'undefined'){
+          Swal.fire({
+            title: 'Hapus pesanan ini?',
+            text: 'Pesanan hanya dihapus dari riwayat di perangkat ini.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal'
+          }).then(function(res){
+            if (res.isConfirmed){
+              doDelete();
+            }
+          });
+        } else {
+          if (confirm('Hapus pesanan ini dari riwayat di perangkat ini?')){
+            doDelete();
+          }
+        }
+      });
+    });
+
     updatePagination(total);
   }
 
@@ -446,7 +503,7 @@ a {
     });
   }
 
-  // Tombol hapus riwayat
+  // Tombol hapus riwayat (semua)
   if (btnClear){
     btnClear.addEventListener('click', function(){
       if (typeof Swal !== 'undefined'){

@@ -241,6 +241,16 @@ a {
     return arr;
   }
 
+  // Hapus satu booking berdasarkan index global (sesuai urutan sort)
+  function deleteBookingByIndex(globalIndex){
+    let arr = loadBookingsFromStorage(); // sudah tersortir desc
+    if (!arr.length) return;
+    if (globalIndex < 0 || globalIndex >= arr.length) return;
+
+    arr.splice(globalIndex, 1);
+    localStorage.setItem(KEY, JSON.stringify(arr));
+  }
+
   // Format created_at/ts → "Senin, 17 Nov 2025 19.03"
   function formatCreatedAt(o){
     try {
@@ -363,6 +373,8 @@ a {
       const url        = buildBookingUrl(o);
       const createdLbl = formatCreatedAt(o);
 
+      const globalIdx  = startIndex + idx; // index global di bookingsCache
+
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex flex-column flex-wrap';
       li.style.animationDelay = (idx * 40) + 'ms';
@@ -380,11 +392,16 @@ a {
               <div>🎱 Waktu main: ${tglView || '-'}${jamMulai ? ' • ' + jamMulai : ''}</div>
             </div>
           </div>
-          <div class="mt-2 mt-sm-0">
+          <div class="mt-2 mt-sm-0 text-right">
             <button type="button"
                     class="btn btn-xs btn-blue btn-jump-order"
                     data-url="${url}">
               Lihat
+            </button>
+            <button type="button"
+                    class="btn btn-xs btn-outline-danger btn-delete-booking ml-1"
+                    data-idx="${globalIdx}">
+              Hapus
             </button>
           </div>
         </div>
@@ -399,7 +416,7 @@ a {
       });
     });
 
-    // event click untuk tombol "Buka booking"
+    // event click untuk tombol "Lihat"
     listEl.querySelectorAll('.btn-jump-order').forEach(function(btn){
       btn.addEventListener('click', function(){
         const url = this.getAttribute('data-url');
@@ -419,6 +436,40 @@ a {
       });
     });
 
+    // event click untuk tombol "Hapus" (hapus satu booking)
+    listEl.querySelectorAll('.btn-delete-booking').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const idxStr = this.getAttribute('data-idx');
+        const idx    = parseInt(idxStr, 10);
+        if (Number.isNaN(idx)) return;
+
+        const doDelete = function(){
+          deleteBookingByIndex(idx);
+          // render ulang halaman saat ini
+          renderRiwayat(currentPage || 1);
+        };
+
+        if (typeof Swal !== 'undefined'){
+          Swal.fire({
+            title: 'Hapus booking ini?',
+            text: 'Booking hanya dihapus dari riwayat di perangkat ini.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal'
+          }).then(function(res){
+            if (res.isConfirmed){
+              doDelete();
+            }
+          });
+        } else {
+          if (confirm('Hapus booking ini dari riwayat di perangkat ini?')){
+            doDelete();
+          }
+        }
+      });
+    });
+
     updatePagination(total);
   }
 
@@ -429,7 +480,7 @@ a {
     });
   }
 
-  // Tombol hapus riwayat (kalau disediakan)
+  // Tombol hapus riwayat (semua)
   if (btnClear){
     btnClear.addEventListener('click', function(){
       if (typeof Swal !== 'undefined'){
@@ -486,3 +537,4 @@ a {
   renderRiwayat(1);
 })();
 </script>
+
