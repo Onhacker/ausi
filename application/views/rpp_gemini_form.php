@@ -60,14 +60,33 @@
       background:#0d6efd;
       color:#fff;
     }
+    .btn-secondary{
+      background:#6c757d;
+      color:#fff;
+    }
     .hint{
       font-size:.78rem;
       color:#777;
     }
-    pre{
-      white-space:pre-wrap;
-      font-family: "JetBrains Mono","Fira Code",monospace;
-      font-size:.85rem;
+    .rpp-output{
+      white-space: pre-line; /* jaga enter & paragraf tetap tampil */
+      line-height: 1.6;
+      font-size: .9rem;
+    }
+    .rpp-header{
+      font-weight:600;
+      margin-bottom:.75rem;
+      font-size:1rem;
+      border-bottom:1px solid #e5e5e5;
+      padding-bottom:.25rem;
+    }
+    .download-bar{
+      margin-top: 15px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap: wrap;
+      gap: 10px;
     }
   </style>
 </head>
@@ -136,8 +155,20 @@
 
 <?php if (!empty($rpp_result)): ?>
   <div class="card">
-    <h3>Hasil RPP dari Gemini</h3>
-    <pre><?= htmlspecialchars($rpp_result, ENT_QUOTES, 'UTF-8'); ?></pre>
+    <div class="rpp-header">Hasil RPP dari Gemini</div>
+    <div class="rpp-output">
+      <?= nl2br(htmlspecialchars($rpp_result, ENT_QUOTES, 'UTF-8')); ?>
+    </div>
+
+    <!-- Form download -->
+    <div class="download-bar">
+      <form method="post" action="<?= site_url('rpp_gemini/download'); ?>">
+        <!-- kirim isi RPP ke controller download -->
+        <textarea name="rpp_content" style="display:none;"><?= htmlspecialchars($rpp_result, ENT_QUOTES, 'UTF-8'); ?></textarea>
+        <button type="submit" class="btn-secondary">Download RPP (.doc)</button>
+      </form>
+      <span class="hint">Klik untuk mengunduh sebagai file Word, bisa diedit lagi sebelum dicetak.</span>
+    </div>
   </div>
 <?php endif; ?>
 
