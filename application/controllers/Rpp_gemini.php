@@ -60,7 +60,7 @@ Struktur JSON yang diminta:
   "tujuan_pembelajaran": "STRING berisi beberapa tujuan, dipisahkan baris baru",
   "kesiapan_murid": "STRING",
   "karakteristik_mapel": "STRING",
-  "dimensi_profil_lulusan": "STRING berisi beberapa poin dimensi profil pelajar Pancasila, dipisahkan baris baru",
+  "dimensi_profil_lulusan": "STRING berisi beberapa poin Dimensi profil lulusan yang terkait, dipisahkan baris baru",
   "pertemuan": [
     {
       "judul_pertemuan": "STRING",
@@ -334,7 +334,7 @@ PROMPT;
     <tbody>
       <tr><td class=\"w-1/3 font-bold\">Kesiapan Murid</td><td class=\"w-2/3\">{$kesiapan}</td></tr>
       <tr><td class=\"font-bold\">Karakteristik Mata Pelajaran</td><td>{$kar_mapel}</td></tr>
-      <tr><td class=\"font-bold\">Dimensi Profil Pelajar Pancasila</td><td>{$profil}</td></tr>
+      <tr><td class=\"font-bold\">Dimensi Profil Lulusan</td><td>{$profil}</td></tr>
     </tbody>
 
     <thead>
