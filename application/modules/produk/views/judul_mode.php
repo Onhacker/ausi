@@ -47,11 +47,11 @@ $is_delivery = ($mode_norm === 'delivery');
 
     <div class="mode-right">
       <!-- Tombol Keluar dari Meja: pakai class untuk binding SweetAlert -->
-      <a href="<?= site_url('produk/leave_table') ?>"
+     <!--  <a href="<?= site_url('produk/leave_table') ?>"
          class="btn btn-sm btn-outline-danger btn-chip js-leave-table"
          data-meja="<?= !empty($meja_info) ? ' '.html_escape($meja_info) : '' ?>">
         Keluar Meja
-      </a>
+      </a> -->
       <span class="mode-badge">DINE-IN</span>
     </div>
   </div>
