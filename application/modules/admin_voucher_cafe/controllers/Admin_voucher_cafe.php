@@ -47,7 +47,8 @@ class Admin_voucher_cafe extends Admin_Controller {
         // label jenis voucher (default: Mingguan)
         $jenis = isset($r->jenis_voucher) ? (string)$r->jenis_voucher : '';
         if ($jenis === 'mingguan') {
-            $jenisLabel = 'Voucher Mingguan';
+            // diminta jadi "Mingguan" saja
+            $jenisLabel = 'Mingguan';
             $jenisClass = 'badge badge-primary';
         } else {
             // fallback kalau nanti ada jenis lain
@@ -79,13 +80,14 @@ class Admin_voucher_cafe extends Admin_Controller {
         }
         $row['nilai'] = $nilaiLabel;
 
-        // periode untuk tampilan (HTML)
+        // ====== PERIODE: tgl_mulai s/d<br>tgl_selesai ======
         if (function_exists('tgl_view')) {
-            $periodeText = tgl_view($r->tgl_mulai).' s/d '.tgl_view($r->tgl_selesai);
-            $periode     = $periodeText;
+            $periodeText = tgl_view($r->tgl_mulai).' s/d<br>'.tgl_view($r->tgl_selesai);
+            $periode     = $periodeText; // sudah HTML
         } else {
-            $periodeText = trim($r->tgl_mulai.' s/d '.$r->tgl_selesai);
-            $periode     = htmlspecialchars($periodeText, ENT_QUOTES, 'UTF-8');
+            $mulai  = htmlspecialchars($r->tgl_mulai,   ENT_QUOTES, 'UTF-8');
+            $seles  = htmlspecialchars($r->tgl_selesai, ENT_QUOTES, 'UTF-8');
+            $periode = $mulai.' s/d<br>'.$seles;
         }
         $row['periode'] = $periode;
 
@@ -115,30 +117,30 @@ class Admin_voucher_cafe extends Admin_Controller {
             }
         }
 
-        // ====== TOMBOL EDIT ======
-        $btnEdit = '<button type="button" class="btn btn-sm btn-warning" '
+        // ====== TOMBOL EDIT (kuning) ======
+        $btnEdit = '<button type="button" class="btn btn-sm btn-warning mr-1" '
                  . 'onclick="edit('.(int)$r->id.')">'
                  . '<i class="fe-edit"></i> '
                  . 'Edit</button>';
 
         // ====== TOMBOL PRINT VOUCHER (THERMAL / RAWBT) ======
-        // Preview desktop
+        // Preview desktop (biru muda / info)
         $previewUrl = site_url(
             'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
             . '?paper=58'
         );
         $btnPreview = '<a href="'.$previewUrl.'" target="_blank" rel="noopener" '
-                    . 'class="btn btn-sm btn-dark" title="Preview voucher (desktop)">'
+                    . 'class="btn btn-sm btn-info mr-1" title="Preview voucher (desktop)">'
                     . '<i class="fa fa-print"></i> '
                     . 'Lihat</a>';
 
-        // RawBT (HP) - auto print & auto close
+        // RawBT (HP) - auto print & auto close (biru / primary)
         $rawbtUrl = site_url(
             'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
             . '?paper=58&rawbt=1&autoprint=1&autoclose=1&embed=1'
         );
         $btnRawbt = '<a href="'.$rawbtUrl.'" target="_blank" rel="noopener" '
-                  . 'class="btn btn-sm btn-success" title="Kirim ke RawBT (HP)">'
+                  . 'class="btn btn-sm btn-primary" title="Kirim ke RawBT (HP)">'
                   . '<i class="fa fa-mobile"></i> '
                   . 'Print</a>';
 
@@ -153,7 +155,7 @@ class Admin_voucher_cafe extends Admin_Controller {
                 // 08xxxx -> +628xxxx
                 $phoneDial = '+62'.substr($phoneRaw, 1);
             } elseif (strpos($phoneRaw, '62') === 0) {
-                // 62xxxx -> +'.$phoneRaw;
+                // 62xxxx -> +62xxxx
                 $phoneDial = '+'.$phoneRaw;
             } else {
                 // asumsi nomor lokal tanpa 0 / 62, tambahkan +62 di depan
@@ -163,12 +165,13 @@ class Admin_voucher_cafe extends Admin_Controller {
             $telUrl = 'tel:'.$phoneDial;
             $telUrl = htmlspecialchars($telUrl, ENT_QUOTES, 'UTF-8');
 
+            // hijau (success) khusus WA
             $btnTelp = '<a href="'.$telUrl.'" '
-                     . 'class="btn btn-sm btn-success" '
+                     . 'class="btn btn-sm btn-success mr-1" '
                      . 'title="Hubungi via WhatsApp / Telepon">'
                      . '<i class="mdi mdi-whatsapp"></i> WA</a>';
         } else {
-            $btnTelp = '<button type="button" class="btn btn-sm btn-secondary" '
+            $btnTelp = '<button type="button" class="btn btn-sm btn-secondary mr-1" '
                      . 'title="Nomor HP tidak tersedia" disabled>'
                      . '<i class="fe-alert-circle"></i> Telp</button>';
         }
@@ -181,7 +184,7 @@ class Admin_voucher_cafe extends Admin_Controller {
 
         // ========================================================
 
-        // Gabungkan tombol (sejajar dalam satu btn-group)
+        // Gabungkan tombol (ada margin antar tombol via .mr-1)
         $row['aksi'] =
             '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi voucher">'
           .   $btnEdit
