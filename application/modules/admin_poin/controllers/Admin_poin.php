@@ -1,174 +1,188 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class M_admin_poin extends CI_Model {
-
-    private $table         = 'voucher_cafe';
-    // no | nama | no_hp | points | transaksi | total_rupiah | minggu_ke | expired_at | aksi
-    private $column_order  = [
-        null,                 // 0 no
-        'customer_name',      // 1
-        'customer_phone',     // 2
-        'points',             // 3
-        'transaksi_count',    // 4
-        'total_rupiah',       // 5
-        null,                 // 6 minggu_ke (expr)
-        'expired_at',         // 7
-        null                  // 8 aksi
-    ];
-    private $column_search = ['customer_name','customer_phone'];
-    private $order         = ['points' => 'DESC']; // default: poin tertinggi
-
-    private $filter_tahun   = null;
-    private $filter_bulan   = null;
-    private $filter_minggu  = null; // di-set otomatis dari DB (minggu terakhir)
-    private $periode_label  = '';
+class Admin_poin extends Admin_Controller {
 
     public function __construct(){
         parent::__construct();
+        $this->load->model('M_admin_poin','dm');
+        $this->load->database();
+        cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
+    }
+
+    public function index(){
+        $data["controller"] = get_class($this);
+        $data["title"]      = "Poin Loyalty Café";
+        $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+
+        // Cari tanggal expired terakhir di voucher_cafe
+        $last = $this->db
+            ->select('expired_at')
+            ->from('voucher_cafe')
+            ->where('expired_at IS NOT NULL', null, false)
+            ->where('expired_at <>', '0000-00-00')
+            ->order_by('expired_at', 'DESC')
+            ->limit(1)
+            ->get()
+            ->row();
+
+        if ($last && !empty($last->expired_at)) {
+            $dt        = new DateTime($last->expired_at);
+            $lastYear  = (int)$dt->format('Y');
+            $lastMonth = (int)$dt->format('n'); // 1–12
+        } else {
+            // fallback kalau tabel kosong
+            $dt        = new DateTime();
+            $lastYear  = (int)$dt->format('Y');
+            $lastMonth = (int)$dt->format('n');
+        }
+
+        // opsi tahun (misal: tahun terakhir -1 s/d +1)
+        $years = [];
+        for($y = $lastYear - 1; $y <= $lastYear + 1; $y++){
+            $years[] = $y;
+        }
+
+        $data["years"]        = $years;
+        $data["defaultYear"]  = $lastYear;
+        $data["defaultMonth"] = $lastMonth;
+
+        $data["content"]  = $this->load->view($data["controller"]."_view",$data,true);
+        $this->render($data);
     }
 
     /**
-     * Set filter tahun & bulan.
-     * Minggu terakhir di bulan tsb dihitung otomatis dari expired_at.
+     * Data untuk DataTables
+     * Filter: tahun, bulan
+     * Minggu ke- diambil otomatis = minggu terakhir yang punya data di bulan tsb
      */
-    public function set_filter($tahun = 0, $bulan = 0){
-        $this->filter_tahun  = $tahun > 0 ? (int)$tahun  : null;
-        $this->filter_bulan  = $bulan > 0 ? (int)$bulan  : null;
-        $this->filter_minggu = null;
-        $this->periode_label = 'Periode: Semua data';
-
-        // Kalau tahun & bulan diisi, cari minggu terakhir yang punya data
-        if ($this->filter_tahun !== null && $this->filter_bulan !== null) {
-            $sql = "
-                SELECT expired_at
-                FROM {$this->table}
-                WHERE expired_at IS NOT NULL
-                  AND expired_at <> '0000-00-00'
-                  AND YEAR(expired_at) = ?
-                  AND MONTH(expired_at) = ?
-                ORDER BY expired_at DESC
-                LIMIT 1
-            ";
-            $row = $this->db->query($sql, [$this->filter_tahun, $this->filter_bulan])->row();
-            if ($row && !empty($row->expired_at)) {
-                $ts   = strtotime($row->expired_at);
-                $day  = (int)date('j', $ts);
-                $week = (int)ceil($day / 7);
-
-                $this->filter_minggu = $week;
-
-                // Hitung range tanggal minggu tsb
-                $startDay = ($week - 1) * 7 + 1;
-                // gunakan date('t') biar tidak perlu ekstensi calendar
-                $daysInMonth = (int)date('t', strtotime($this->filter_tahun.'-'.$this->filter_bulan.'-01'));
-                if ($startDay > $daysInMonth) {
-                    $startDay = $daysInMonth;
-                }
-                $endDay   = min($week * 7, $daysInMonth);
-
-                $bulanLabel = $this->_indo_bulan($this->filter_bulan);
-                $this->periode_label = "Periode: Minggu ke-{$week} (tgl {$startDay}-{$endDay}) {$bulanLabel} {$this->filter_tahun}";
-            } else {
-                $bulanLabel = $this->_indo_bulan($this->filter_bulan);
-                $this->periode_label = "Periode: Tidak ada data untuk {$bulanLabel} {$this->filter_tahun}";
-            }
-        }
-    }
-
-    public function get_periode_label(){
-        return $this->periode_label;
-    }
-
-    private function _indo_bulan($m){
-        $m = (int)$m;
-        $bulan = [
-          1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
-          5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
-          9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
-        ];
-        return isset($bulan[$m]) ? $bulan[$m] : $m;
-    }
-
-    private function _base_q(){
-        $this->db->from($this->table);
-        $this->db->select("
-            id,
-            customer_phone,
-            customer_name,
-            points,
-            transaksi_count,
-            total_rupiah,
-            first_paid_at,
-            last_paid_at,
-            expired_at,
-            token,
-            created_at,
-            updated_at,
-            CEIL(DAY(expired_at) / 7) AS minggu_ke
-        ", false);
-
-        if ($this->filter_tahun !== null) {
-            $this->db->where('YEAR(expired_at)', $this->filter_tahun);
-        }
-        if ($this->filter_bulan !== null) {
-            $this->db->where('MONTH(expired_at)', $this->filter_bulan);
-        }
-        if ($this->filter_minggu !== null) {
-            $this->db->where('CEIL(DAY(expired_at) / 7) = '.$this->filter_minggu, null, false);
-        }
-    }
-
-    private function _build_q(){
-        $this->_base_q();
-
-        // Searching
-        $search = isset($_POST['search']['value']) ? trim($_POST['search']['value']) : '';
-        if($search !== ''){
-            $this->db->group_start();
-            foreach($this->column_search as $i=>$col){
-                if($i === 0){
-                    $this->db->like($col, $search);
-                } else {
-                    $this->db->or_like($col, $search);
-                }
-            }
-            $this->db->group_end();
-        }
-
-        // Ordering
-        if (isset($_POST['order'])){
-            $idx = (int)$_POST['order'][0]['column'];
-            $dir = ($_POST['order'][0]['dir'] === 'desc') ? 'DESC' : 'ASC';
-            $col = $this->column_order[$idx] ?? null;
-
-            if ($col){
-                $this->db->order_by($col, $dir);
-            }
-        } else {
-            // Default: order by points desc
-            foreach($this->order as $col => $dir){
-                $this->db->order_by($col, $dir);
-            }
-        }
-    }
-
     public function get_data(){
-        $this->_build_q();
-        if(isset($_POST['length']) && $_POST['length'] != -1){
-            $this->db->limit((int)$_POST['length'], (int)$_POST['start']);
+        $tahun = (int)$this->input->post('tahun');
+        $bulan = (int)$this->input->post('bulan');
+
+        // set filter (model akan cari minggu terakhir sendiri)
+        $this->dm->set_filter($tahun, $bulan);
+
+        $list          = $this->dm->get_data();
+        $periodeLabel  = $this->dm->get_periode_label(); // untuk ditampilkan di view
+        $data          = [];
+
+        foreach($list as $r){
+            $id            = (int)$r->id;
+            $nama          = isset($r->customer_name) ? trim((string)$r->customer_name) : '';
+            $hp            = isset($r->customer_phone) ? trim((string)$r->customer_phone) : '';
+            $points        = (int)$r->points;
+            $trxCount      = (int)$r->transaksi_count;
+            $totalRupiah   = (int)$r->total_rupiah;
+            $expired       = $r->expired_at;
+            $minggu_ke     = (int)$r->minggu_ke;
+
+            $namaShow = $nama !== '' ? $nama : '-';
+            $hpShow   = $hp   !== '' ? $hp   : '-';
+
+            $expiredShow = ($expired && $expired !== '0000-00-00')
+                ? date('d-m-Y', strtotime($expired))
+                : '-';
+
+            $mingguShow = $minggu_ke > 0 ? ('Minggu ke-'.$minggu_ke) : '-';
+
+            $btnDetail = '<button type="button" class="btn btn-sm btn-outline-primary"'
+                       . ' onclick="show_detail('.$id.')">'
+                       . '<i class="fe-eye me-1"></i>Detail</button>';
+
+            $row = [
+                'no'             => '',
+                'nama'           => htmlspecialchars($namaShow, ENT_QUOTES, 'UTF-8'),
+                'no_hp'          => htmlspecialchars($hpShow, ENT_QUOTES, 'UTF-8'),
+                'points'         => $points,
+                'transaksi'      => $trxCount,
+                'total_rupiah'   => number_format($totalRupiah, 0, ',', '.'),
+                'minggu_ke'      => $mingguShow,
+                'expired_at'     => $expiredShow,
+                'aksi'           => $btnDetail,
+            ];
+            $data[] = $row;
         }
-        return $this->db->get()->result();
+
+        $out = [
+            "draw"            => (int)$this->input->post('draw'),
+            "recordsTotal"    => $this->dm->count_all(),
+            "recordsFiltered" => $this->dm->count_filtered(),
+            "data"            => $data,
+            "periode_label"   => $periodeLabel, // <== untuk update tulisan "Minggu ke ..."
+        ];
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($out));
     }
 
-    public function count_filtered(){
-        $this->_build_q();
-        return $this->db->get()->num_rows();
-    }
+    /**
+     * Detail 1 row poin (by id voucher_cafe)
+     */
+    public function detail(){
+        $id = (int)$this->input->post('id');
+        if($id <= 0){
+            echo json_encode([
+                "success" => false,
+                "title"   => "Gagal",
+                "pesan"   => "ID tidak valid"
+            ]);
+            return;
+        }
 
-    public function count_all(){
-        $this->_base_q();
-        return $this->db->count_all_results();
+        $row = $this->db->get_where('voucher_cafe', ['id' => $id])->row();
+        if(!$row){
+            echo json_encode([
+                "success" => false,
+                "title"   => "Gagal",
+                "pesan"   => "Data tidak ditemukan"
+            ]);
+            return;
+        }
+
+        $nama    = htmlspecialchars((string)$row->customer_name, ENT_QUOTES, 'UTF-8');
+        $hp      = htmlspecialchars((string)$row->customer_phone, ENT_QUOTES, 'UTF-8');
+        $points  = (int)$row->points;
+        $trx     = (int)$row->transaksi_count;
+        $total   = (int)$row->total_rupiah;
+        $token   = htmlspecialchars((string)$row->token, ENT_QUOTES, 'UTF-8');
+
+        $firstPaid  = $row->first_paid_at ? date('d-m-Y H:i', strtotime($row->first_paid_at)) : '-';
+        $lastPaid   = $row->last_paid_at  ? date('d-m-Y H:i', strtotime($row->last_paid_at))  : '-';
+        $expired    = $row->expired_at    ? date('d-m-Y',     strtotime($row->expired_at))    : '-';
+        $createdAt  = $row->created_at    ? date('d-m-Y H:i', strtotime($row->created_at))    : '-';
+        $updatedAt  = $row->updated_at    ? date('d-m-Y H:i', strtotime($row->updated_at))    : '-';
+
+        // hitung minggu ke- berdasarkan expired_at (1–7, 8–14, dst)
+        $mingguKe = '-';
+        if ($row->expired_at && $row->expired_at !== '0000-00-00') {
+            $day = (int)date('j', strtotime($row->expired_at));
+            $mingguKe = (int)ceil($day / 7);
+        }
+
+        $html  = '<div class="table-responsive">';
+        $html .= '<table class="table table-sm table-striped mb-0">';
+        $html .= '<tr><th width="35%">Nama</th><td>'.$nama.'</td></tr>';
+        $html .= '<tr><th>No. HP</th><td>'.$hp.'</td></tr>';
+        $html .= '<tr><th>Poin</th><td>'.$points.'</td></tr>';
+        $html .= '<tr><th>Jumlah Transaksi</th><td>'.$trx.'</td></tr>';
+        $html .= '<tr><th>Total Belanja</th><td>Rp '.number_format($total,0,',','.').'</td></tr>';
+        $html .= '<tr><th>Minggu ke-</th><td>'.$mingguKe.'</td></tr>';
+        $html .= '<tr><th>Expired</th><td>'.$expired.'</td></tr>';
+        $html .= '<tr><th>First Paid</th><td>'.$firstPaid.'</td></tr>';
+        $html .= '<tr><th>Last Paid</th><td>'.$lastPaid.'</td></tr>';
+        $html .= '<tr><th>Token</th><td><code>'.$token.'</code></td></tr>';
+        $html .= '<tr><th>Dibuat</th><td>'.$createdAt.'</td></tr>';
+        $html .= '<tr><th>Diupdate</th><td>'.$updatedAt.'</td></tr>';
+        $html .= '</table>';
+        $html .= '</div>';
+
+        echo json_encode([
+            "success" => true,
+            "title"   => "Detail Poin Pelanggan",
+            "html"    => $html
+        ]);
     }
 
 }

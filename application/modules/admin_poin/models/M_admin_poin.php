@@ -6,35 +6,88 @@ class M_admin_poin extends CI_Model {
     private $table         = 'voucher_cafe';
     // no | nama | no_hp | points | transaksi | total_rupiah | minggu_ke | expired_at | aksi
     private $column_order  = [
-        null,                 // no
+        null,                 // 0 no
         'customer_name',      // 1
         'customer_phone',     // 2
         'points',             // 3
         'transaksi_count',    // 4
         'total_rupiah',       // 5
-        null,                 // 6 minggu_ke (pakai ekspresi, tidak diorder langsung)
+        null,                 // 6 minggu_ke (expr)
         'expired_at',         // 7
         null                  // 8 aksi
     ];
     private $column_search = ['customer_name','customer_phone'];
     private $order         = ['points' => 'DESC']; // default: poin tertinggi
 
-    private $filter_tahun  = null;
-    private $filter_bulan  = null;
-    private $filter_minggu = null;
+    private $filter_tahun   = null;
+    private $filter_bulan   = null;
+    private $filter_minggu  = null; // di-set otomatis dari DB (minggu terakhir)
+    private $periode_label  = '';
 
     public function __construct(){
         parent::__construct();
     }
 
     /**
-     * Set filter minggu & bulan (berdasarkan expired_at)
-     * $minggu: 1–5 (1= tgl 1–7, 2= 8–14, dst)
+     * Set filter tahun & bulan.
+     * Minggu terakhir di bulan tsb dihitung otomatis dari expired_at.
      */
-    public function set_filter($tahun = 0, $bulan = 0, $minggu = 0){
+    public function set_filter($tahun = 0, $bulan = 0){
         $this->filter_tahun  = $tahun > 0 ? (int)$tahun  : null;
         $this->filter_bulan  = $bulan > 0 ? (int)$bulan  : null;
-        $this->filter_minggu = $minggu > 0 ? (int)$minggu : null;
+        $this->filter_minggu = null;
+        $this->periode_label = 'Periode: Semua data';
+
+        // Kalau tahun & bulan diisi, cari minggu terakhir yang punya data
+        if ($this->filter_tahun !== null && $this->filter_bulan !== null) {
+            $sql = "
+                SELECT expired_at
+                FROM {$this->table}
+                WHERE expired_at IS NOT NULL
+                  AND expired_at <> '0000-00-00'
+                  AND YEAR(expired_at) = ?
+                  AND MONTH(expired_at) = ?
+                ORDER BY expired_at DESC
+                LIMIT 1
+            ";
+            $row = $this->db->query($sql, [$this->filter_tahun, $this->filter_bulan])->row();
+            if ($row && !empty($row->expired_at)) {
+                $ts   = strtotime($row->expired_at);
+                $day  = (int)date('j', $ts);
+                $week = (int)ceil($day / 7);
+
+                $this->filter_minggu = $week;
+
+                // Hitung range tanggal minggu tsb
+                $startDay = ($week - 1) * 7 + 1;
+                // gunakan date('t') biar tidak perlu ekstensi calendar
+                $daysInMonth = (int)date('t', strtotime($this->filter_tahun.'-'.$this->filter_bulan.'-01'));
+                if ($startDay > $daysInMonth) {
+                    $startDay = $daysInMonth;
+                }
+                $endDay   = min($week * 7, $daysInMonth);
+
+                $bulanLabel = $this->_indo_bulan($this->filter_bulan);
+                $this->periode_label = "Periode: Minggu ke-{$week} (tgl {$startDay}-{$endDay}) {$bulanLabel} {$this->filter_tahun}";
+            } else {
+                $bulanLabel = $this->_indo_bulan($this->filter_bulan);
+                $this->periode_label = "Periode: Tidak ada data untuk {$bulanLabel} {$this->filter_tahun}";
+            }
+        }
+    }
+
+    public function get_periode_label(){
+        return $this->periode_label;
+    }
+
+    private function _indo_bulan($m){
+        $m = (int)$m;
+        $bulan = [
+          1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
+          5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
+          9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
+        ];
+        return isset($bulan[$m]) ? $bulan[$m] : $m;
     }
 
     private function _base_q(){
@@ -55,15 +108,13 @@ class M_admin_poin extends CI_Model {
             CEIL(DAY(expired_at) / 7) AS minggu_ke
         ", false);
 
-        // Filter tahun & bulan berdasarkan expired_at
         if ($this->filter_tahun !== null) {
             $this->db->where('YEAR(expired_at)', $this->filter_tahun);
         }
         if ($this->filter_bulan !== null) {
             $this->db->where('MONTH(expired_at)', $this->filter_bulan);
         }
-        if ($this->filter_minggu !== null && $this->filter_minggu >= 1 && $this->filter_minggu <= 5) {
-            // Minggu ke-n: 1–7, 8–14, 15–21, 22–28, 29–31
+        if ($this->filter_minggu !== null) {
             $this->db->where('CEIL(DAY(expired_at) / 7) = '.$this->filter_minggu, null, false);
         }
     }
