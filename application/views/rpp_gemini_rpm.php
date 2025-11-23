@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="googlebot" content="noindex, nofollow">
-    <title>Generator Rencana Pembelajaran</title>
+    <title>Generator SMKN 1 WAJO</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -132,8 +132,10 @@
 </head>
 <body class="p-8">
 
-<div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-start">
-    <!-- PANEL KIRI: FORM -->
+<!-- WRAPPER: sekarang vertikal, hasil di bawah form -->
+<div class="max-w-4xl mx-auto flex flex-col gap-8 items-stretch">
+
+    <!-- PANEL FORM -->
     <div class="panel p-6">
         <h2 class="text-2xl font-bold mb-1">Rencana Pembelajaran Mendalam</h2>
         <p class="text-sm text-gray-600 mb-6">
@@ -220,7 +222,7 @@
         </form>
     </div>
 
-    <!-- PANEL KANAN: HASIL DOKUMEN -->
+    <!-- PANEL HASIL DOKUMEN: sekarang di bawah -->
     <div class="panel p-6 flex flex-col h-full">
         <h2 class="text-2xl font-bold mb-4">Hasil Dokumen</h2>
         <div id="documentOutput"
