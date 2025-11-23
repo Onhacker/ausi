@@ -106,49 +106,16 @@ if (!function_exists('nav_class')) {
 <nav class="navbar fixed-bottom navbar-light bg-white shadow-sm d-lg-none navbar-bottom px-0">
   <div class="w-100 d-flex justify-content-between text-center position-relative mx-0 px-0">
 
-   <!--  <div class="nav-item">
-      <a href="<?= base_url() ?>" class="<?= nav_class($uri, ['', 'home']) ?>">
-        <i class="fas fa-home d-block mb-1"></i>
-        <span class="small">Beranda</span>
-      </a>
-    </div>
-
-    <div class="nav-item">
-      <a href="<?= base_url('hal/jadwal') ?>" class="<?= nav_class($uri, ['hal/jadwal*']) ?>">
-        <i class="far fa-calendar-alt d-block mb-1"></i>
-        <span class="small">Jadwal</span>
-      </a>
-    </div> -->
-
-    <!-- <div class="space-left"></div> -->
-
-  <!--   <?php $web = $this->om->web_me();
+    <?php $web = $this->om->web_me();
     if (!function_exists('user_can_mod')) $this->load->helper('menu');
 
     $can_scan   = function_exists('user_can_mod') ? user_can_mod(['admin_pos','scan','checkin/checkout']) : false;
     $target_url = $can_scan ? base_url('admin_pos') : base_url('booking');
     $center_on  = uri_is($uri, $can_scan ? ['admin_pos'] : ['booking']);
     ?>
-    <a href="<?= $target_url ?>"
-       class="center-button <?= $center_on ? 'text-white' : '' ?>"
-       style="text-align:center; <?= $center_on ? 'background-image:none;background-color:#2a5298;' : '' ?>"
-       aria-label="<?= $can_scan ? 'Scan (Check-in/Out)' : 'Booking' ?>">
-      <div>
-        <img src="<?= base_url('assets/images/') . $web->gambar ?>"
-             alt="<?= $can_scan ? 'Scan' : 'Booking' ?>"
-             style="width:50px;height:50px;object-fit:contain;margin-top:0;">
-      </div>
-    </a>
- -->
-    <!-- <div class="space-right"></div> -->
+  
 
-   <!--  <div class="nav-item">
-      <a href="<?= base_url('hal/struktur') ?>" class="<?= nav_class($uri, ['hal/struktur*']) ?>">
-        <i class="fas fa-sitemap d-block mb-1"></i>
-        <span class="small">Struktur</span>
-      </a>
-    </div>
- -->
+
     <?php
       // Semua halaman yang “mewakili” Menu → bikin aktif ikon Menu
       $menu_patterns = [
@@ -232,7 +199,13 @@ if (!function_exists('nav_class')) {
 
   <?php
     // helper visibilitas grup
-    $showCaffe     = user_can_mod(['admin_pos']) || user_can_mod(['admin_voucher_cafe']) || user_can_mod(['admin_pos_riwayat']) || user_can_mod(['admin_meja']);
+    $showCaffe     =
+    user_can_mod(['admin_pos']) ||
+    user_can_mod(['admin_voucher_cafe']) ||
+    user_can_mod(['admin_pos_riwayat']) ||
+    user_can_mod(['admin_meja']) ||
+    user_can_mod(['admin_poin']); // <- biar grup Caffe muncul kalau cuma punya akses poin
+
     $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
     $showPijat     =
     user_can_mod(['admin_kursi_pijat']) ||
@@ -242,7 +215,7 @@ if (!function_exists('nav_class')) {
     user_can_mod(['admin_ps']) ||
     user_can_mod(['admin_voucher_ps']);
 
-$showKeuLap =
+    $showKeuLap =
     user_can_mod(['admin_pengeluaran']) ||
     user_can_mod(['admin_laporan']) ||
     user_can_mod(['admin_laporan/index']) ||
@@ -279,6 +252,12 @@ $showKeuLap =
     <?php if (user_can_mod(['admin_pos'])): ?>
       <a id="quick-pos-link" href="<?= site_url('admin_pos') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">☕️</span><span>POS Caffe</span>
+      </a>
+    <?php endif; ?>
+
+    <?php if (user_can_mod(['admin_poin'])): ?>
+      <a id="quick-poin-link" href="<?= site_url('admin_poin') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">⭐</span><span>Cek Poin</span>
       </a>
     <?php endif; ?>
     <?php if (user_can_mod(['admin_voucher_cafe'])): ?>

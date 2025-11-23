@@ -101,6 +101,13 @@ class Api extends MX_Controller {
         'label'   => 'Voucher',
         'icon'    => 'mdi mdi-ticket-percent',
         'children'=> [
+            
+            [
+                'label'   => 'Cek Poin Cafe',
+                'url'     => site_url('admin_poin'),
+                'icon'    => 'mdi mdi-star-circle',
+                'require' => ['Cek Poin Cafe','admin_poin','user'],
+            ],
             [
                 'label'   => 'Voucher Cafe',
                 'url'     => site_url('admin_voucher_cafe'),
@@ -378,6 +385,15 @@ public function get_menu_mobile()
         ],
 
         // ===== Voucher (BARU) =====
+        [
+            'id'      => 'admin_poin',
+            'label'   => 'Cek Poin',
+            'url'     => site_url('admin_poin'),
+            'icon'    => 'mdi mdi-star-circle',
+            'require' => ['Cek Poin','admin_poin','user'],
+        ],
+
+
         [
             'id'      => 'admin_voucher_cafe',
             'label'   => 'Voucher Cafe',
