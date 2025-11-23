@@ -205,39 +205,45 @@ PROMPT;
     // ================== HELPER: format teks multi-baris ke HTML ==================
 
     private function _fmt_multiline(?string $text): string
-    {
-        $text = trim((string)$text);
-        if ($text === '') return '-';
+{
+    $text = trim((string)$text);
+    if ($text === '') return '-';
 
-        $lines = preg_split('/\r\n|\r|\n/', $text);
-        $clean = [];
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ($line !== '') $clean[] = $line;
-        }
-
-        if (count($clean) === 0) return '-';
-
-        if (count($clean) === 1) {
-            return '<div class="numbered-list">' .
-                   htmlspecialchars($clean[0], ENT_QUOTES, 'UTF-8') .
-                   '</div>';
-        }
-
-        $html = '<div class="numbered-list">';
-        $i = 1;
-        foreach ($clean as $line) {
-            $display = $line;
-            if (!preg_match('/^(\d+\.|-|\*)\s*/', $line)) {
-                $display = $i . '. ' . $line;
-            }
-            $html .= '<div>' . htmlspecialchars($display, ENT_QUOTES, 'UTF-8') . '</div>';
-            $i++;
-        }
-        $html .= '</div>';
-
-        return $html;
+    // Pecah per baris
+    $lines = preg_split('/\r\n|\r|\n/', $text);
+    $clean = [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line !== '') $clean[] = $line;
     }
+
+    if (count($clean) === 0) return '-';
+
+    // Kalau hanya 1 baris → tampil apa adanya (tanpa numbering)
+    if (count($clean) === 1) {
+        return '<div class="numbered-list">' .
+               htmlspecialchars($clean[0], ENT_QUOTES, 'UTF-8') .
+               '</div>';
+    }
+
+    // Kalau lebih dari 1 baris → selalu dinomori 1,2,3 dst (numbering lurus)
+    $html = '<div class="numbered-list">';
+    $i = 1;
+    foreach ($clean as $line) {
+        // Buang nomor / bullet di depan kalau ada
+        // Contoh yang dibersihkan:
+        // "1. Teks", "2) Teks", "- Teks", "* Teks", "• Teks"
+        $stripped = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $line);
+
+        $display = $i . '. ' . $stripped;
+        $html   .= '<div>' . htmlspecialchars($display, ENT_QUOTES, 'UTF-8') . '</div>';
+        $i++;
+    }
+    $html .= '</div>';
+
+    return $html;
+}
+
 
     // ================== HELPER: susun HTML tabel RPM ==================
 
