@@ -31,7 +31,7 @@ class Rpp_gemini extends Onhacker_Controller
             $pertemuan      = trim((string)$this->input->post('pertemuan', TRUE));
             $karakterSiswa  = trim((string)$this->input->post('karakter_siswa', TRUE));
 
-            // Susun prompt RPP
+            // Susun prompt RPP - sekarang minta output HTML rapi
             $prompt = <<<PROMPT
 Kamu adalah pengembang perangkat ajar untuk guru SMK di Indonesia.
 
@@ -48,28 +48,41 @@ Tolong buatkan saya RPP 1 lembar Kurikulum Merdeka dengan data berikut:
 - Jumlah pertemuan: {$pertemuan}
 - Karakteristik siswa: {$karakterSiswa}
 
-Susun RPP 1 lembar Kurikulum Merdeka dengan struktur:
+Susun RPP 1 lembar Kurikulum Merdeka dengan struktur dan format yang menyerupai RPP resmi, dengan ketentuan:
 
-1. Identitas Mata Pelajaran
-2. Capaian Pembelajaran yang relevan (ringkas)
-3. Tujuan Pembelajaran (dirumuskan dalam bentuk perilaku yang dapat diamati)
-4. Profil Pelajar Pancasila yang diintegrasikan
-5. Sarana dan Prasarana
-6. Langkah-langkah Pembelajaran:
-   - Pendahuluan
-   - Kegiatan Inti (sesuai prinsip pembelajaran aktif di Kurikulum Merdeka)
-   - Penutup
-7. Asesmen:
-   - Teknik dan bentuk asesmen
-   - Contoh instrumen singkat
-   - Kriteria penilaian
-8. Pengayaan dan Remedial (singkat)
-9. Refleksi Guru dan Peserta Didik (singkat)
+1. Tampilkan hasil dalam bentuk HTML yang rapi untuk dicetak di Microsoft Word.
+2. Jangan sertakan tag <html>, <head>, atau <body>. Hanya isi body saja.
+3. Gunakan susunan dan heading seperti berikut (boleh disesuaikan seperlunya):
+   - <h2 style="text-align:center; text-transform:uppercase;">RPP 1 LEMBAR</h2>
+   - <h3>IDENTITAS MATA PELAJARAN</h3>
+     Gunakan <table> untuk memuat:
+       • Satuan Pendidikan
+       • Mata Pelajaran
+       • Kelas/Fase
+       • Semester
+       • Tahun Pelajaran
+       • Alokasi Waktu
+       • Nama Guru
+   - <h3>A. Capaian Pembelajaran</h3>
+   - <h3>B. Tujuan Pembelajaran</h3>
+   - <h3>C. Profil Pelajar Pancasila</h3>
+   - <h3>D. Sarana dan Prasarana</h3>
+   - <h3>E. Langkah-langkah Pembelajaran</h3>
+       • Bagi menjadi: Pendahuluan, Kegiatan Inti, Penutup.
+       • Gunakan <ol> dan <ul> untuk langkah-langkah.
+   - <h3>F. Asesmen</h3>
+       • Jelaskan teknik, instrumen singkat, dan kriteria penilaian.
+   - <h3>G. Pengayaan dan Remedial</h3>
+   - <h3>H. Refleksi Guru dan Peserta Didik</h3>
 
-Syarat penulisan:
-- Gunakan bahasa Indonesia formal, rapi, seperti dokumen resmi sekolah.
-- Sesuaikan konteks dengan SMK (contoh, aktivitas bisa terkait dunia kerja atau jurusan).
-- Tampilkan dengan heading yang jelas dan poin-poin yang mudah dibaca.
+4. Gunakan elemen HTML berikut untuk kerapian:
+   - <h2>, <h3> untuk judul dan subjudul.
+   - <p> untuk paragraf.
+   - <ul> dan <ol> untuk daftar.
+   - <table>, <tr>, <td> untuk identitas di bagian atas.
+5. Jangan gunakan tanda strip "-" di awal baris untuk daftar; gunakan tag <ul>/<ol> saja.
+6. Gunakan bahasa Indonesia formal, rapi, dan sesuai konteks SMK.
+
 PROMPT;
 
             // Panggil Gemini
@@ -81,27 +94,29 @@ PROMPT;
     }
 
     /**
-     * Endpoint untuk download RPP sebagai file .doc
+     * Endpoint untuk download RPP sebagai file .doc (berbasis HTML)
      */
     public function download()
     {
-        // FALSE di parameter kedua = jangan XSS filter, karena ini teks yang kita kirim sendiri
-        $content = $this->input->post('rpp_content', FALSE);
-        if ($content === null || $content === '') {
+        // ambil HTML yang sudah di-escape dari textarea
+        $contentEscaped = $this->input->post('rpp_content', FALSE);
+        if ($contentEscaped === null || $contentEscaped === '') {
             show_404();
             return;
         }
 
+        // decode kembali ke HTML asli
+        $content = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
+
         $filename = 'RPP_1_Lembar_' . date('Ymd_His') . '.doc';
 
-        // Header supaya browser download sebagai dokumen Word
         header("Content-Type: application/msword; charset=UTF-8");
         header("Content-Disposition: attachment; filename=\"{$filename}\"");
         header("Cache-Control: no-store, no-cache, must-revalidate");
 
         echo "<html><head><meta charset=\"UTF-8\"></head><body>";
-        // Escape HTML lalu ubah newline jadi <br> agar tetap rapi di Word
-        echo nl2br(htmlspecialchars($content, ENT_QUOTES, 'UTF-8'));
+        // langsung echo HTML RPP
+        echo $content;
         echo "</body></html>";
         exit;
     }

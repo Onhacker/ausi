@@ -6,7 +6,7 @@
   <title>Generator RPP 1 Lembar - Gemini API</title>
   <style>
     body{
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Times New Roman", "Calibri", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       max-width: 960px;
       margin: 20px auto;
       padding: 0 15px;
@@ -69,16 +69,45 @@
       color:#777;
     }
     .rpp-output{
-      white-space: pre-line; /* jaga enter & paragraf tetap tampil */
       line-height: 1.6;
       font-size: .9rem;
     }
-    .rpp-header{
-      font-weight:600;
-      margin-bottom:.75rem;
-      font-size:1rem;
-      border-bottom:1px solid #e5e5e5;
-      padding-bottom:.25rem;
+    /* Styling dasar biar mirip RPP ketika dilihat di browser */
+    .rpp-output h2{
+      text-align:center;
+      text-transform:uppercase;
+      font-size:1.1rem;
+      margin-bottom:.5rem;
+    }
+    .rpp-output h3{
+      font-size:.98rem;
+      margin-top:1rem;
+      margin-bottom:.3rem;
+    }
+    .rpp-output p{
+      margin: .1rem 0 .3rem;
+    }
+    .rpp-output ul,
+    .rpp-output ol{
+      margin-top:0;
+      margin-bottom:.5rem;
+      padding-left:1.2rem;
+    }
+    .rpp-output table{
+      border-collapse: collapse;
+      width:100%;
+      margin-bottom:.8rem;
+      font-size:.9rem;
+    }
+    .rpp-output table, 
+    .rpp-output th,
+    .rpp-output td{
+      border:1px solid #000;
+    }
+    .rpp-output th,
+    .rpp-output td{
+      padding:4px 6px;
+      vertical-align:top;
     }
     .download-bar{
       margin-top: 15px;
@@ -93,7 +122,7 @@
 <body>
 
 <h1>Generator RPP 1 Lembar (Terhubung Gemini API)</h1>
-<p>Isi form lalu klik <b>Generate RPP</b>. Server akan langsung memanggil Gemini dan menampilkan hasil RPP di bawah.</p>
+<p>Isi form lalu klik <b>Generate RPP</b>. Server akan langsung memanggil Gemini dan menampilkan hasil RPP dengan susunan seperti dokumen resmi.</p>
 
 <div class="card">
   <form method="post" action="<?= current_url(); ?>">
@@ -155,19 +184,18 @@
 
 <?php if (!empty($rpp_result)): ?>
   <div class="card">
-    <div class="rpp-header">Hasil RPP dari Gemini</div>
     <div class="rpp-output">
-      <?= nl2br(htmlspecialchars($rpp_result, ENT_QUOTES, 'UTF-8')); ?>
+      <!-- TAMPILKAN HTML DARI GEMINI APA ADANYA -->
+      <?= $rpp_result; ?>
     </div>
 
-    <!-- Form download -->
     <div class="download-bar">
+      <!-- Form download: kirim HTML yang sudah di-escape -->
       <form method="post" action="<?= site_url('rpp_gemini/download'); ?>">
-        <!-- kirim isi RPP ke controller download -->
-        <textarea name="rpp_content" style="display:none;"><?= htmlspecialchars($rpp_result, ENT_QUOTES, 'UTF-8'); ?></textarea>
+        <textarea name="rpp_content" style="display:none;"><?= htmlspecialchars($rpp_result, ENT_NOQUOTES, 'UTF-8'); ?></textarea>
         <button type="submit" class="btn-secondary">Download RPP (.doc)</button>
       </form>
-      <span class="hint">Klik untuk mengunduh sebagai file Word, bisa diedit lagi sebelum dicetak.</span>
+      <span class="hint">Klik untuk mengunduh sebagai file Word. Susunan heading, tabel, dan daftar akan ikut terbawa.</span>
     </div>
   </div>
 <?php endif; ?>
