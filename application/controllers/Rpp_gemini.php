@@ -117,7 +117,7 @@ PROMPT;
         }
 
         $content  = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
-        $filename = 'RPP_' . date('Ymd_His') . '.docx';
+        $filename = 'RPP_' . date('Ymd_His') . '.doc';
 
         header("Content-Type: application/msword; charset=UTF-8");
         header("Content-Disposition: attachment; filename=\"{$filename}\"");
