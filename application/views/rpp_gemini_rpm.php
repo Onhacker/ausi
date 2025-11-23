@@ -1,4 +1,28 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+
+<?php
+// Ambil nilai POST (kalau belum submit, hasilnya null)
+$old_nama_guru      = $this->input->post('nama_guru', true);
+$old_mapel          = $this->input->post('mata_pelajaran', true);
+$old_materi         = $this->input->post('materi', true);
+$old_kelas          = $this->input->post('kelas', true);
+$old_semester       = $this->input->post('semester', true);
+$old_fase           = $this->input->post('fase', true);
+$old_tahun_pelajaran= $this->input->post('tahun_pelajaran', true);
+$old_pertemuan      = $this->input->post('pertemuan', true);
+$old_total_waktu    = $this->input->post('total_waktu', true);
+
+// Default jika pertama kali dibuka (belum POST)
+if ($old_mapel === null || $old_mapel === '') {
+    $old_mapel = 'Bahasa Inggris';
+}
+if ($old_tahun_pelajaran === null || $old_tahun_pelajaran === '') {
+    $old_tahun_pelajaran = '2025/2026';
+}
+if ($old_pertemuan === null || $old_pertemuan === '') {
+    $old_pertemuan = 3;
+}
+?>
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
 <head>
@@ -132,7 +156,6 @@
 </head>
 <body class="p-8">
 
-<!-- WRAPPER: sekarang vertikal, hasil di bawah form -->
 <div class="max-w-4xl mx-auto flex flex-col gap-8 items-stretch">
 
     <!-- PANEL FORM -->
@@ -152,63 +175,101 @@
                 </div>
                 <div>
                     <label for="nama_guru" class="block text-label">Nama Guru</label>
-                    <input type="text" id="nama_guru" name="nama_guru" placeholder="Contoh: Nurhikmah, S.Pd" required>
+                    <input
+                        type="text"
+                        id="nama_guru"
+                        name="nama_guru"
+                        placeholder="Contoh: Nurhikmah, S.Pd"
+                        value="<?= htmlspecialchars((string)($old_nama_guru ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                        required>
                 </div>
 
                 <div>
                     <label for="mata_pelajaran" class="block text-label">Mata Pelajaran</label>
                     <select id="mata_pelajaran" name="mata_pelajaran" required>
                         <option value="">Pilih mata pelajaran</option>
-                        <option value="Bahasa Inggris" selected>Bahasa Inggris</option>
-                        <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                        <option value="Matematika">Matematika</option>
-                        <option value="PPKN">PPKN</option>
-                        <option value="Informatika">Informatika</option>
-                        <option value="Simulasi dan Komunikasi Digital">Simulasi dan Komunikasi Digital</option>
-                        <option value="Dasar-dasar Kejuruan">Dasar-dasar Kejuruan</option>
+                        <option value="Bahasa Inggris" <?= $old_mapel === 'Bahasa Inggris' ? 'selected' : ''; ?>>Bahasa Inggris</option>
+                        <option value="Bahasa Indonesia" <?= $old_mapel === 'Bahasa Indonesia' ? 'selected' : ''; ?>>Bahasa Indonesia</option>
+                        <option value="Matematika" <?= $old_mapel === 'Matematika' ? 'selected' : ''; ?>>Matematika</option>
+                        <option value="PPKN" <?= $old_mapel === 'PPKN' ? 'selected' : ''; ?>>PPKN</option>
+                        <option value="Informatika" <?= $old_mapel === 'Informatika' ? 'selected' : ''; ?>>Informatika</option>
+                        <option value="Simulasi dan Komunikasi Digital" <?= $old_mapel === 'Simulasi dan Komunikasi Digital' ? 'selected' : ''; ?>>
+                            Simulasi dan Komunikasi Digital
+                        </option>
+                        <option value="Dasar-dasar Kejuruan" <?= $old_mapel === 'Dasar-dasar Kejuruan' ? 'selected' : ''; ?>>
+                            Dasar-dasar Kejuruan
+                        </option>
                     </select>
                 </div>
                 <div>
                     <label for="materi" class="block text-label">Materi Pokok</label>
-                    <input type="text" id="materi" name="materi" placeholder="Contoh: Asking and Giving Opinion" required>
+                    <input
+                        type="text"
+                        id="materi"
+                        name="materi"
+                        placeholder="Contoh: Asking and Giving Opinion"
+                        value="<?= htmlspecialchars((string)($old_materi ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                        required>
                 </div>
 
                 <div>
                     <label for="kelas" class="block text-label">Kelas</label>
-                    <input type="text" id="kelas" name="kelas" placeholder="Contoh: X" required>
+                    <input
+                        type="text"
+                        id="kelas"
+                        name="kelas"
+                        placeholder="Contoh: X"
+                        value="<?= htmlspecialchars((string)($old_kelas ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                        required>
                 </div>
                 <div>
                     <label for="semester" class="block text-label">Semester</label>
                     <select id="semester" name="semester" required>
                         <option value="">Pilih semester</option>
-                        <option value="Ganjil">Ganjil</option>
-                        <option value="Genap">Genap</option>
+                        <option value="Ganjil" <?= $old_semester === 'Ganjil' ? 'selected' : ''; ?>>Ganjil</option>
+                        <option value="Genap"  <?= $old_semester === 'Genap'  ? 'selected' : ''; ?>>Genap</option>
                     </select>
                 </div>
 
                 <div>
                     <label for="fase" class="block text-label">Fase</label>
-                    <input type="text" id="fase" name="fase" placeholder="Contoh: E">
+                    <input
+                        type="text"
+                        id="fase"
+                        name="fase"
+                        placeholder="Contoh: E"
+                        value="<?= htmlspecialchars((string)($old_fase ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div>
                     <label for="tahun_pelajaran" class="block text-label">Tahun Ajaran</label>
                     <select id="tahun_pelajaran" name="tahun_pelajaran" required>
                         <option value="">Pilih tahun ajaran</option>
-                        <option value="2023/2024">2023/2024</option>
-                        <option value="2024/2025">2024/2025</option>
-                        <option value="2025/2026" selected>2025/2026</option>
-                        <option value="2026/2027">2026/2027</option>
-                        <option value="2027/2028">2027/2028</option>
+                        <option value="2023/2024" <?= $old_tahun_pelajaran === '2023/2024' ? 'selected' : ''; ?>>2023/2024</option>
+                        <option value="2024/2025" <?= $old_tahun_pelajaran === '2024/2025' ? 'selected' : ''; ?>>2024/2025</option>
+                        <option value="2025/2026" <?= $old_tahun_pelajaran === '2025/2026' ? 'selected' : ''; ?>>2025/2026</option>
+                        <option value="2026/2027" <?= $old_tahun_pelajaran === '2026/2027' ? 'selected' : ''; ?>>2026/2027</option>
+                        <option value="2027/2028" <?= $old_tahun_pelajaran === '2027/2028' ? 'selected' : ''; ?>>2027/2028</option>
                     </select>
                 </div>
 
                 <div>
                     <label for="pertemuan" class="block text-label">Jumlah Pertemuan Dibuat</label>
-                    <input type="number" id="pertemuan" name="pertemuan" value="3" min="1" required>
+                    <input
+                        type="number"
+                        id="pertemuan"
+                        name="pertemuan"
+                        min="1"
+                        value="<?= htmlspecialchars((string)$old_pertemuan, ENT_QUOTES, 'UTF-8'); ?>"
+                        required>
                 </div>
                 <div>
                     <label for="total_waktu" class="block text-label">Deskripsi Total Waktu (Opsional)</label>
-                    <input type="text" id="total_waktu" name="total_waktu" placeholder="Contoh: 9 × 45 Menit">
+                    <input
+                        type="text"
+                        id="total_waktu"
+                        name="total_waktu"
+                        placeholder="Contoh: 9 × 45 Menit"
+                        value="<?= htmlspecialchars((string)($old_total_waktu ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
             </div>
 
@@ -222,7 +283,7 @@
         </form>
     </div>
 
-    <!-- PANEL HASIL DOKUMEN: sekarang di bawah -->
+    <!-- PANEL HASIL DOKUMEN -->
     <div class="panel p-6 flex flex-col h-full">
         <h2 class="text-2xl font-bold mb-4">Hasil Dokumen</h2>
         <div id="documentOutput"

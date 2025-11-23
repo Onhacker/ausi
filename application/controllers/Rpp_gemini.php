@@ -60,7 +60,7 @@ Struktur JSON yang diminta:
   "tujuan_pembelajaran": "STRING berisi beberapa tujuan, dipisahkan baris baru",
   "kesiapan_murid": "STRING",
   "karakteristik_mapel": "STRING",
-  "dimensi_profil_lulusan": "STRING berisi beberapa poin Dimensi profil lulusan yang terkait, dipisahkan baris baru",
+  "dimensi_profil_lulusan": "STRING berisi beberapa poin dan penjelasan Dimensi profil lulusan yang terkait, dipisahkan baris baru",
   "pertemuan": [
     {
       "judul_pertemuan": "STRING",
