@@ -18,12 +18,12 @@
       <div class="card">
         <div class="card-body">
           <h4 class="header-title mb-1"><?= $title; ?></h4>
-          <p class="text-muted mb-1">
+          <p class="text-dark mb-1">
             Rekap <b>poin loyalty café</b> berdasarkan nomor HP pelanggan.
             Urutan default: <b>Poin tertinggi</b>.
           </p>
           <!-- Tulisan periode minggu terakhir (di-update via AJAX) -->
-          <p id="periode_label" class="text-muted small mb-3">
+          <p id="periode_label" class="text-dark small mb-3">
             Periode: memuat minggu terakhir berdasarkan data (expired_at).
           </p>
 
