@@ -4,7 +4,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class Rpp_gemini extends Onhacker_Controller
 {
     // === SETTING GEMINI API ===
-    // TODO: ganti dengan API key milikmu dari Google AI Studio
+    // Ganti dengan API key milikmu dari Google AI Studio
     private $gemini_api_key = 'AIzaSyAc59vtjMm7efqYS6-VDRVTKUMsoOduGzA';
     private $gemini_model   = 'gemini-2.5-flash'; // bisa diganti model lain jika perlu
 
@@ -14,62 +14,70 @@ class Rpp_gemini extends Onhacker_Controller
         $this->load->helper(['url', 'form']);
     }
 
-    // Halaman utama: form + hasil RPP
+    // Halaman utama: form + hasil dokumen
     public function index()
     {
         $data['rpp_result'] = '';
 
         if ($this->input->method(TRUE) === 'POST') {
             // Ambil input dari form
-            $namaGuru       = trim((string)$this->input->post('nama_guru', TRUE));
-            $sekolah        = trim((string)$this->input->post('sekolah', TRUE));
-            $kelas          = trim((string)$this->input->post('kelas', TRUE));
-            $semester       = trim((string)$this->input->post('semester', TRUE));
-            $tahunPelajaran = trim((string)$this->input->post('tahun_pelajaran', TRUE));
-            $materi         = trim((string)$this->input->post('materi', TRUE));
-            $alokasiWaktu   = trim((string)$this->input->post('alokasi_waktu', TRUE));
-            $pertemuan      = trim((string)$this->input->post('pertemuan', TRUE));
-            $karakterSiswa  = trim((string)$this->input->post('karakter_siswa', TRUE));
+            $namaGuru        = trim((string)$this->input->post('nama_guru', TRUE));
+            $sekolah         = trim((string)$this->input->post('sekolah', TRUE));
+            $mataPelajaran   = trim((string)$this->input->post('mata_pelajaran', TRUE));
+            $materi          = trim((string)$this->input->post('materi', TRUE));
+            $kelas           = trim((string)$this->input->post('kelas', TRUE));
+            $semester        = trim((string)$this->input->post('semester', TRUE));
+            $fase            = trim((string)$this->input->post('fase', TRUE));
+            $tahunPelajaran  = trim((string)$this->input->post('tahun_pelajaran', TRUE));
+            $pertemuan       = trim((string)$this->input->post('pertemuan', TRUE));
+            $totalWaktu      = trim((string)$this->input->post('total_waktu', TRUE));
 
-            // Susun prompt RPP - sekarang minta output HTML rapi
+            if ($mataPelajaran === '') {
+                $mataPelajaran = 'Bahasa Inggris'; // default kalau kosong
+            }
+
+            // Susun prompt: RPP / RPM dalam bentuk HTML rapi
             $prompt = <<<PROMPT
 Kamu adalah pengembang perangkat ajar untuk guru SMK di Indonesia.
 
-Tolong buatkan saya RPP 1 lembar Kurikulum Merdeka dengan data berikut:
+Buatkan dokumen Rencana Pembelajaran (bisa berupa RPP 1 Lembar / Rencana Pembelajaran Mendalam) berdasarkan data berikut:
 
-- Nama guru      : {$namaGuru}
-- Sekolah        : {$sekolah}
-- Mata pelajaran : Bahasa Inggris
-- Kelas/Fase     : {$kelas}
-- Semester       : {$semester}
-- Tahun pelajaran: {$tahunPelajaran}
-- Topik/Materi   : {$materi}
-- Alokasi waktu  : {$alokasiWaktu}
-- Jumlah pertemuan: {$pertemuan}
-- Karakteristik siswa: {$karakterSiswa}
+- Satuan Pendidikan : {$sekolah}
+- Nama Guru         : {$namaGuru}
+- Mata Pelajaran    : {$mataPelajaran}
+- Kelas             : {$kelas}
+- Fase              : {$fase}
+- Semester          : {$semester}
+- Tahun Pelajaran   : {$tahunPelajaran}
+- Materi Pokok      : {$materi}
+- Jumlah Pertemuan  : {$pertemuan}
+- Deskripsi Total Waktu : {$totalWaktu}
 
-Susun RPP 1 lembar Kurikulum Merdeka dengan struktur dan format yang menyerupai RPP resmi, dengan ketentuan:
+Ketentuan format:
 
 1. Tampilkan hasil dalam bentuk HTML yang rapi untuk dicetak di Microsoft Word.
 2. Jangan sertakan tag <html>, <head>, atau <body>. Hanya isi body saja.
 3. Gunakan susunan dan heading seperti berikut (boleh disesuaikan seperlunya):
-   - <h2 style="text-align:center; text-transform:uppercase;">RPP 1 LEMBAR</h2>
+   - <h2 style="text-align:center; text-transform:uppercase;">RENCANA PEMBELAJARAN</h2>
    - <h3>IDENTITAS MATA PELAJARAN</h3>
      Gunakan <table> untuk memuat:
        • Satuan Pendidikan
        • Mata Pelajaran
-       • Kelas/Fase
+       • Kelas
+       • Fase
        • Semester
        • Tahun Pelajaran
-       • Alokasi Waktu
+       • Materi Pokok
+       • Jumlah Pertemuan
+       • Total Waktu
        • Nama Guru
-   - <h3>A. Capaian Pembelajaran</h3>
-   - <h3>B. Tujuan Pembelajaran</h3>
-   - <h3>C. Profil Pelajar Pancasila</h3>
+   - <h3>A. Capaian / Tujuan Pembelajaran</h3>
+   - <h3>B. Profil Pelajar Pancasila</h3>
+   - <h3>C. Karakteristik Peserta Didik</h3>
    - <h3>D. Sarana dan Prasarana</h3>
    - <h3>E. Langkah-langkah Pembelajaran</h3>
        • Bagi menjadi: Pendahuluan, Kegiatan Inti, Penutup.
-       • Gunakan <ol> dan <ul> untuk langkah-langkah.
+       • Gunakan <ol> dan <ul> untuk langkah-langkah yang runtut.
    - <h3>F. Asesmen</h3>
        • Jelaskan teknik, instrumen singkat, dan kriteria penilaian.
    - <h3>G. Pengayaan dan Remedial</h3>
@@ -94,28 +102,24 @@ PROMPT;
     }
 
     /**
-     * Endpoint untuk download RPP sebagai file .doc (berbasis HTML)
+     * Endpoint untuk download dokumen sebagai file .doc (berbasis HTML)
      */
     public function download()
     {
-        // ambil HTML yang sudah di-escape dari textarea
         $contentEscaped = $this->input->post('rpp_content', FALSE);
         if ($contentEscaped === null || $contentEscaped === '') {
             show_404();
             return;
         }
 
-        // decode kembali ke HTML asli
         $content = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
-
-        $filename = 'RPP_1_Lembar_' . date('Ymd_His') . '.doc';
+        $filename = 'Rencana_Pembelajaran_' . date('Ymd_His') . '.doc';
 
         header("Content-Type: application/msword; charset=UTF-8");
         header("Content-Disposition: attachment; filename=\"{$filename}\"");
         header("Cache-Control: no-store, no-cache, must-revalidate");
 
         echo "<html><head><meta charset=\"UTF-8\"></head><body>";
-        // langsung echo HTML RPP
         echo $content;
         echo "</body></html>";
         exit;
@@ -166,7 +170,6 @@ PROMPT;
 
         $data = json_decode($response, true);
 
-        // Ambil teks utama dari respon
         if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
             return $data['candidates'][0]['content']['parts'][0]['text'];
         }
