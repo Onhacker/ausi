@@ -117,81 +117,89 @@ class Admin_voucher_cafe extends Admin_Controller {
             }
         }
 
-        // ====== TOMBOL EDIT (kuning) ======
-        $btnEdit = '<button type="button" class="btn btn-sm btn-warning mr-1" '
-                 . 'onclick="edit('.(int)$r->id.')">'
-                 . '<i class="fe-edit"></i> '
-                 . 'Edit</button>';
+                // ====== TOMBOL EDIT (kuning) ======
+            $btnEdit = '<button type="button" class="btn btn-sm btn-warning mr-1" '
+                     . 'onclick="edit('.(int)$r->id.')">'
+                     . '<i class="fe-edit"></i> '
+                     . 'Edit</button>';
 
-        // ====== TOMBOL PRINT VOUCHER (THERMAL / RAWBT) ======
-        // Preview desktop (biru muda / info)
-        $previewUrl = site_url(
-            'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
-            . '?paper=58'
-        );
-        $btnPreview = '<a href="'.$previewUrl.'" target="_blank" rel="noopener" '
-                    . 'class="btn btn-sm btn-info mr-1" title="Preview voucher (desktop)">'
-                    . '<i class="fa fa-print"></i> '
-                    . 'Lihat</a>';
+            // ====== TOMBOL DETAIL (SWAL) ======
+            $btnDetail = '<button type="button" class="btn btn-sm btn-blue mr-1" '
+                       . 'onclick="detailVoucher('.(int)$r->id.')">'
+                       . '<i class="fe-info"></i> '
+                       . 'Detail</button>';
 
-        // RawBT (HP) - auto print & auto close (biru / primary)
-        $rawbtUrl = site_url(
-            'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
-            . '?paper=58&rawbt=1&autoprint=1&autoclose=1&embed=1'
-        );
-        $btnRawbt = '<a href="'.$rawbtUrl.'" target="_blank" rel="noopener" '
-                  . 'class="btn btn-sm btn-primary" title="Kirim ke RawBT (HP)">'
-                  . '<i class="fa fa-mobile"></i> '
-                  . 'Print</a>';
+            // ====== TOMBOL PRINT VOUCHER (THERMAL / RAWBT) ======
+            // Preview desktop (biru muda / info)
+            $previewUrl = site_url(
+                'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
+                . '?paper=58'
+            );
+            $btnPreview = '<a href="'.$previewUrl.'" target="_blank" rel="noopener" '
+                        . 'class="btn btn-sm btn-info mr-1" title="Preview voucher (desktop)">'
+                        . '<i class="fa fa-print"></i> '
+                        . 'Lihat</a>';
 
-        // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
-        $phoneRaw = preg_replace('/\D+/', '', (string)$r->no_hp); // buang selain digit
-        $telUrl   = '';
-        $btnTelp  = '';
+            // RawBT (HP) - auto print & auto close (biru / primary)
+            $rawbtUrl = site_url(
+                'admin_voucher_cafe/print_voucher_termal/'.(int)$r->id
+                . '?paper=58&rawbt=1&autoprint=1&autoclose=1&embed=1'
+            );
+            $btnRawbt = '<a href="'.$rawbtUrl.'" target="_blank" rel="noopener" '
+                      . 'class="btn btn-sm btn-primary" title="Kirim ke RawBT (HP)">'
+                      . '<i class="fa fa-mobile"></i> '
+                      . 'Print</a>';
 
-        if (!empty($phoneRaw)) {
-            // Normalisasi ke format +62xxxxxxxxxxx untuk dial
-            if (strpos($phoneRaw, '0') === 0) {
-                // 08xxxx -> +628xxxx
-                $phoneDial = '+62'.substr($phoneRaw, 1);
-            } elseif (strpos($phoneRaw, '62') === 0) {
-                // 62xxxx -> +62xxxx
-                $phoneDial = '+'.$phoneRaw;
+            // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
+            $phoneRaw = preg_replace('/\D+/', '', (string)$r->no_hp); // buang selain digit
+            $telUrl   = '';
+            $btnTelp  = '';
+
+            if (!empty($phoneRaw)) {
+                // Normalisasi ke format +62xxxxxxxxxxx untuk dial
+                if (strpos($phoneRaw, '0') === 0) {
+                    // 08xxxx -> +628xxxx
+                    $phoneDial = '+62'.substr($phoneRaw, 1);
+                } elseif (strpos($phoneRaw, '62') === 0) {
+                    // 62xxxx -> +62xxxx
+                    $phoneDial = '+'.$phoneRaw;
+                } else {
+                    // asumsi nomor lokal tanpa 0 / 62, tambahkan +62 di depan
+                    $phoneDial = '+62'.$phoneRaw;
+                }
+
+                $telUrl = 'tel:'.$phoneDial;
+                $telUrl = htmlspecialchars($telUrl, ENT_QUOTES, 'UTF-8');
+
+                // hijau (success) khusus WA
+                $btnTelp = '<a href="'.$telUrl.'" '
+                         . 'class="btn btn-sm btn-success mr-1" '
+                         . 'title="Hubungi via WhatsApp / Telepon">'
+                         . '<i class="mdi mdi-whatsapp"></i> WA</a>';
             } else {
-                // asumsi nomor lokal tanpa 0 / 62, tambahkan +62 di depan
-                $phoneDial = '+62'.$phoneRaw;
+                $btnTelp = '<button type="button" class="btn btn-sm btn-secondary mr-1" '
+                         . 'title="Nomor HP tidak tersedia" disabled>'
+                         . '<i class="fe-alert-circle"></i> Telp</button>';
             }
 
-            $telUrl = 'tel:'.$phoneDial;
-            $telUrl = htmlspecialchars($telUrl, ENT_QUOTES, 'UTF-8');
+            // ====== SEMBUNYIKAN EDIT & WA JIKA EXPIRED / HABIS TERPAKAI ======
+            if ($isExpired || $isHabis) {
+                $btnEdit = '';
+                $btnTelp = '';
+            }
 
-            // hijau (success) khusus WA
-            $btnTelp = '<a href="'.$telUrl.'" '
-                     . 'class="btn btn-sm btn-success mr-1" '
-                     . 'title="Hubungi via WhatsApp / Telepon">'
-                     . '<i class="mdi mdi-whatsapp"></i> WA</a>';
-        } else {
-            $btnTelp = '<button type="button" class="btn btn-sm btn-secondary mr-1" '
-                     . 'title="Nomor HP tidak tersedia" disabled>'
-                     . '<i class="fe-alert-circle"></i> Telp</button>';
-        }
+            // ========================================================
 
-        // ====== SEMBUNYIKAN EDIT & WA JIKA EXPIRED / HABIS TERPAKAI ======
-        if ($isExpired || $isHabis) {
-            $btnEdit = '';
-            $btnTelp = '';
-        }
+            // Gabungkan tombol (ada margin antar tombol via .mr-1)
+            $row['aksi'] =
+                '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi voucher">'
+              .   $btnDetail
+              .   $btnEdit
+              .   $btnTelp
+              .   $btnPreview
+              .   $btnRawbt
+              . '</div>';
 
-        // ========================================================
-
-        // Gabungkan tombol (ada margin antar tombol via .mr-1)
-        $row['aksi'] =
-            '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi voucher">'
-          .   $btnEdit
-          .   $btnTelp
-          .   $btnPreview
-          .   $btnRawbt
-          . '</div>';
 
         $data[] = $row;
     }

@@ -242,4 +242,153 @@ function close_modal(){
     if(r.value) $('#full-width-modal').modal('hide');
   });
 }
+
+function detailVoucher(id = null){
+  let targetId = id;
+  if (!targetId){
+    const list_id = [];
+    $(".data-check:checked").each(function(){ list_id.push(this.value); });
+    if (list_id.length !== 1){
+      Swal.fire("Info","Pilih satu data untuk dilihat detailnya.","warning");
+      return;
+    }
+    targetId = list_id[0];
+  }
+
+  loader();
+  $.getJSON("<?= site_url('admin_voucher_cafe/get_one/') ?>"+targetId)
+    .done(function(r){
+      close_loader();
+      if (!r.success){
+        Swal.fire(r.title||'Gagal', r.pesan||'Tidak bisa mengambil data', 'error');
+        return;
+      }
+
+      const d   = r.data || {};
+      const esc = function(s){
+        return String(s || '').replace(/[&<>"'`]/g, function(c){
+          return {
+            '&':'&amp;','<':'&lt;','>':'&gt;',
+            '"':'&quot;',"'":'&#39;','`':'&#x60;'
+          }[c];
+        });
+      };
+      const toInt = (v)=> parseInt(v,10) || 0;
+      const fmtRp = (v)=>{
+        const n = toInt(v);
+        return 'Rp ' + n.toLocaleString('id-ID');
+      };
+
+      // === TANGGAL INDO (dd-mm-yyyy) ===
+      const fmtDateId = (s)=>{
+        if (!s) return '-';
+        const parts = String(s).split('-'); // asumsi: YYYY-MM-DD
+        if (parts.length === 3){
+          return parts[2] + '-' + parts[1] + '-' + parts[0]; // dd-mm-yyyy
+        }
+        return s;
+      };
+
+      const tipeLabel  = d.tipe === 'persen' ? 'Persen (%)' : 'Nominal (Rp)';
+      const nilaiLabel = d.tipe === 'persen'
+        ? (toInt(d.nilai)) + ' %'
+        : fmtRp(d.nilai);
+
+      const minBelanja = d.minimal_belanja ? fmtRp(d.minimal_belanja) : '-';
+      const maxPot     = d.max_potongan    ? fmtRp(d.max_potongan)    : '-';
+
+      // pakai tanggal Indonesia di periode
+      const periode = fmtDateId(d.tgl_mulai) + ' s/d ' + fmtDateId(d.tgl_selesai);
+
+      const used       = toInt(d.klaim_terpakai);
+      const quota      = toInt(d.kuota_klaim);
+      const kuotaText  = used + ' / ' + quota;
+
+      const todayStr = (new Date()).toISOString().slice(0,10);
+      let statusLabel = 'Aktif';
+      let statusClass = 'badge-success';
+
+      if (quota > 0 && used >= quota){
+        statusLabel = 'Habis Terpakai';
+        statusClass = 'badge-danger';
+      } else if (String(d.status) === '0'){
+        statusLabel = 'Nonaktif';
+        statusClass = 'badge-secondary';
+      } else if (d.tgl_selesai && d.tgl_selesai < todayStr){
+        statusLabel = 'Expired';
+        statusClass = 'badge-warning';
+      }
+
+      const jenisVoucher = d.jenis_voucher
+        ? d.jenis_voucher.replace(/_/g,' ')
+        : '-';
+
+      const html =
+        '<div class="table-responsive text-left">'+
+          '<table class="table table-sm table-bordered mb-0">'+
+            '<tbody>'+
+              '<tr>'+
+                '<th style="width:38%;white-space:nowrap;">Kode Voucher</th>'+
+                '<td><code>'+esc(d.kode_voucher)+'</code></td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Nama</th>'+
+                '<td>'+esc(d.nama)+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>No. HP</th>'+
+                '<td>'+esc(d.no_hp)+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Jenis Voucher</th>'+
+                '<td>'+esc(jenisVoucher)+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Tipe &amp; Nilai</th>'+
+                '<td>'+tipeLabel+' &mdash; <strong>'+nilaiLabel+'</strong></td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Minimal Belanja</th>'+
+                '<td>'+minBelanja+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Max Potongan</th>'+
+                '<td>'+maxPot+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Periode</th>'+
+                '<td>'+periode+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Klaim</th>'+
+                '<td>'+kuotaText+'</td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Status</th>'+
+                '<td><span class="badge '+statusClass+'">'+statusLabel+'</span></td>'+
+              '</tr>'+
+              '<tr>'+
+                '<th>Keterangan</th>'+
+                '<td>'+(d.keterangan ? esc(d.keterangan) : '<span class="text-muted">-</span>')+'</td>'+
+              '</tr>'+
+            '</tbody>'+
+          '</table>'+
+        '</div>';
+
+      Swal.fire({
+        title: 'Detail Voucher Cafe',
+        html: html,
+        width: 650,
+        showCloseButton: true,
+        focusConfirm: false,
+        confirmButtonText: 'Tutup'
+      });
+    })
+    .fail(function(){
+      close_loader();
+      Swal.fire("Error","Gagal mengambil data","error");
+    });
+}
+
+
 </script>
