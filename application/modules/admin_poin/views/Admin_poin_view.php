@@ -8,6 +8,30 @@
   .filter-bar .form-control{
     min-width: 120px;
   }
+  .periode-label{
+  display: inline-flex;
+  align-items: center;
+  padding: .4rem .85rem;
+  border-radius: 999px;
+  background: #e3f2fd;              /* biru muda soft */
+  border: 1px solid rgba(13,110,253,.25);
+  font-size: .9rem;
+  color: #0b3c8a;                    /* teks agak gelap */
+  gap: .35rem;
+}
+
+.periode-label .periode-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #0d6efd;
+  color: #fff;
+  font-size: 14px;
+}
+
 </style>
 
 <div class="container-fluid">
@@ -23,9 +47,15 @@
             Urutan default: <b>Poin tertinggi</b>.
           </p>
           <!-- Tulisan periode minggu terakhir (di-update via AJAX) -->
-          <p id="periode_label" class="text-dark small mb-3">
-            Periode: memuat minggu terakhir berdasarkan data (expired_at).
-          </p>
+          <div class="periode-label mb-3">
+            <span class="periode-icon mr-2">
+              <i class="mdi mdi-calendar-week"></i>
+            </span>
+            <span id="periode_label">
+              Periode: memuat minggu terakhir berdasarkan data (expired_at).
+            </span>
+          </div>
+
 
           <!-- FILTER BAR (Tahun & Bulan saja) -->
           <div class="d-flex flex-wrap align-items-end justify-content-between mb-2">
