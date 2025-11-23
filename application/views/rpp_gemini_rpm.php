@@ -439,7 +439,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
         </div>
 
         <?php if (!empty($rpm_html) && empty($error_msg)): ?>
-            <form method="post" action="<?= site_url('rpp/download'); ?>" class="mt-4">
+            <form method="post" action="<?= site_url('rpm/download'); ?>" class="mt-4">
                 <textarea name="rpm_content" style="display:none;"><?= htmlspecialchars($rpm_html, ENT_NOQUOTES, 'UTF-8'); ?></textarea>
                 <button type="submit" class="button-download">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
