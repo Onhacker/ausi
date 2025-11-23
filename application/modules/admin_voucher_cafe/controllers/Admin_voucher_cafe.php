@@ -89,15 +89,18 @@ class Admin_voucher_cafe extends Admin_Controller {
         }
         $row['periode'] = $periode;
 
-                $row['klaim'] = (int)$r->klaim_terpakai.' / '.(int)$r->kuota_klaim;
+        $row['klaim'] = (int)$r->klaim_terpakai.' / '.(int)$r->kuota_klaim;
 
         // ====== STATUS: Aktif, Nonaktif, Expired, Kuota Habis ======
-        $used  = (int)$r->klaim_terpakai;
-        $quota = (int)$r->kuota_klaim;
+        $used      = (int)$r->klaim_terpakai;
+        $quota     = (int)$r->kuota_klaim;
+        $isExpired = false;
+        $isHabis   = false;
 
         if ($quota > 0 && $used >= $quota) {
             // sudah penuh dipakai
             $row['status'] = '<span class="badge badge-danger">Habis Terpakai</span>';
+            $isHabis       = true;
         } else {
             if ((int)$r->status === 0) {
                 $row['status'] = '<span class="badge badge-secondary">Nonaktif</span>';
@@ -105,12 +108,12 @@ class Admin_voucher_cafe extends Admin_Controller {
                 if ($r->tgl_selesai < $today) {
                     // lewat periode → Expired
                     $row['status'] = '<span class="badge badge-warning">Expired</span>';
+                    $isExpired     = true;
                 } else {
                     $row['status'] = '<span class="badge badge-success">Aktif</span>';
                 }
             }
         }
-
 
         // ====== TOMBOL EDIT ======
         $btnEdit = '<button type="button" class="btn btn-sm btn-warning" '
@@ -140,7 +143,6 @@ class Admin_voucher_cafe extends Admin_Controller {
                   . 'Print</a>';
 
         // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
-        // ====== TOMBOL TELEPON CUSTOMER (TELP, ICON WHATSAPP) ======
         $phoneRaw = preg_replace('/\D+/', '', (string)$r->no_hp); // buang selain digit
         $telUrl   = '';
         $btnTelp  = '';
@@ -151,7 +153,7 @@ class Admin_voucher_cafe extends Admin_Controller {
                 // 08xxxx -> +628xxxx
                 $phoneDial = '+62'.substr($phoneRaw, 1);
             } elseif (strpos($phoneRaw, '62') === 0) {
-                // 62xxxx -> +62xxxx
+                // 62xxxx -> +'.$phoneRaw;
                 $phoneDial = '+'.$phoneRaw;
             } else {
                 // asumsi nomor lokal tanpa 0 / 62, tambahkan +62 di depan
@@ -169,6 +171,12 @@ class Admin_voucher_cafe extends Admin_Controller {
             $btnTelp = '<button type="button" class="btn btn-sm btn-secondary" '
                      . 'title="Nomor HP tidak tersedia" disabled>'
                      . '<i class="fe-alert-circle"></i> Telp</button>';
+        }
+
+        // ====== SEMBUNYIKAN EDIT & WA JIKA EXPIRED / HABIS TERPAKAI ======
+        if ($isExpired || $isHabis) {
+            $btnEdit = '';
+            $btnTelp = '';
         }
 
         // ========================================================
