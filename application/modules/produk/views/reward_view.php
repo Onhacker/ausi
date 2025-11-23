@@ -81,8 +81,28 @@ if (!function_exists('mask_name')) {
           // 7 = Minggu (PHP: date('N')), untuk ganti teks "minggu ini" / "minggu lalu"
           $isTodayAnnouncement = !empty($is_announcement_time);
           $hasRange = !empty($periode_mulai_str) && !empty($periode_selesai_str);
+
+          // === LOGIKA: Sembunyikan countdown jika hari Minggu 08:00–23:59 WITA ===
+          // Tujuannya: setelah pengumuman (hari Minggu), timer ke minggu berikutnya tidak tampil dulu.
+          $hideCountdown = false;
+          try {
+              $nowWita = new DateTime('now', new DateTimeZone('Asia/Makassar'));
+              $dow0    = (int)$nowWita->format('w');   // 0 = Minggu
+              $hm      = (int)$nowWita->format('Hi');  // format 4 digit, mis. 0830
+
+              // Sembunyikan hanya jika:
+              // - Hari Minggu
+              // - Waktu antara 08:00 s/d 23:59 WITA
+              // - DAN sudah ada pemenang (supaya sebelum pengumuman, countdown tetap jalan)
+              if (!empty($winner_top) && $dow0 === 0 && $hm >= 800 && $hm <= 2359) {
+                  $hideCountdown = true;
+              }
+          } catch (Exception $e) {
+              $hideCountdown = false;
+          }
           ?>
 
+          <?php if (!$hideCountdown): ?>
           <!-- ===== COUNTDOWN SELALU DI ATAS ===== -->
           <div class="mb-3">
             <p class="mb-1 text-dark small">
@@ -123,6 +143,7 @@ if (!function_exists('mask_name')) {
             </p>
           </div>
           <!-- ===== END COUNTDOWN ===== -->
+          <?php endif; ?>
 
           <?php if (!empty($winner_top)): ?>
 
@@ -247,13 +268,13 @@ if (!function_exists('mask_name')) {
                       </span>
                     </div>
 
-                  <div class="reward-note">
-                    Pemenang acak ditentukan oleh <strong>Robot Ausi</strong> menggunakan
-                    generator angka acak terkomputerisasi dari seluruh pelanggan yang memiliki
-                    <strong>poin &gt; 0</strong> pada pekan tersebut (kecuali peraih poin tertinggi),
-                    sepenuhnya <strong>tanpa campur tangan manusia</strong>.
-                    Pemenang berhak atas <strong>voucher order senilai Rp&nbsp;50.000*</strong>.
-                  </div>
+                    <div class="reward-note">
+                      Pemenang acak ditentukan oleh <strong>Robot Ausi</strong> menggunakan
+                      generator angka acak terkomputerisasi dari seluruh pelanggan yang memiliki
+                      <strong>poin &gt; 0</strong> pada pekan tersebut (kecuali peraih poin tertinggi),
+                      sepenuhnya <strong>tanpa campur tangan manusia</strong>.
+                      Pemenang berhak atas <strong>voucher order senilai Rp&nbsp;50.000*</strong>.
+                    </div>
 
                   </div>
                 </div>
@@ -264,12 +285,6 @@ if (!function_exists('mask_name')) {
             <p class="mt-3 mb-0 small text-dark">
               Voucher dan konfirmasi akan dikirim langsung via WhatsApp oleh admin.
             </p>
-           <!--  <p class="mt-2 mb-0 small text-dark">
-              Peraih voucher ditentukan sepenuhnya oleh <strong>Robot Ausi</strong> sesuai
-              <em>Syarat &amp; Ketentuan Program Reward</em>: poin dihitung dari transaksi
-              berstatus <strong>paid</strong> dalam satu siklus pekan, dengan kombinasi
-              <strong>poin tertinggi</strong> dan <strong>undian acak</strong> tanpa campur tangan manusia.
-            </p> -->
             <p class="mt-2 mb-0 small text-dark">
               <strong>*</strong>Voucher bersifat <strong>non-tunai</strong>, tidak dapat diuangkan,
               tidak dapat dipindahtangankan, dan tidak dapat digabung dengan promo lain
