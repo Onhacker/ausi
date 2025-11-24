@@ -5,16 +5,23 @@ class Rpm extends Onhacker_Controller
 {
     // ============= SETTING GEMINI API =============
     // Ganti dengan API key milikmu dari Google AI Studio
-    private $gemini_api_key = 'AIzaSyAc59vtjMm7efqYS6-VDRVTKUMsoOduGzA';
-    private $gemini_model   = 'gemini-2.5-flash';
+    private $gemini_api_key;
+    private $gemini_model;
 
     public function __construct()
     {
         parent::__construct();
         $this->load->helper(['url', 'form']);
+
+        // load config gemini
+        $this->load->config('gemini');
+        $this->gemini_api_key = (string) $this->config->item('gemini_api_key');
+        $this->gemini_model   = (string) ($this->config->item('gemini_model') ?: 'gemini-2.5-flash');
+
         // Supaya tidak ter-index mesin pencari
         $this->output->set_header('X-Robots-Tag: noindex, nofollow', true);
     }
+
 
     public function index()
     {
