@@ -468,7 +468,7 @@ private function _fmt_multiline(?string $text): string
 <div class="mt-8">
   <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian</h4>
   <p class="text-sm text-gray-700 mb-3">
-    Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik dan berikan instrumen penilaiannya.
+    Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik dan berikan lembar kerja peserta didik beserta instrumen penilaiannya.
   </p>
 ';
 
