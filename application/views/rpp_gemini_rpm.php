@@ -822,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
                     textEl.textContent = steps[idx];
-                }, 1800);
+                }, 2000);
 
                 // Simpan interval ke popup biar bisa dibersihkan saat willClose
                 popup.dataset.rpmIntervalId = interval;
