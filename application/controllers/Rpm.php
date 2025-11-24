@@ -163,21 +163,21 @@ if ($perintah_tambahan !== '') {
      * Download dokumen sebagai .doc (Word)
      */
     public function download()
-{
-    $contentEscaped = $this->input->post('rpm_content', FALSE);
-    if ($contentEscaped === null || $contentEscaped === '') {
-        show_404();
-        return;
-    }
+    {
+        $contentEscaped = $this->input->post('rpm_content', FALSE);
+        if ($contentEscaped === null || $contentEscaped === '') {
+            show_404();
+            return;
+        }
 
-    $content  = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
-    $filename = 'RPP_' . date('Ymd_His') . '.doc';
+        $content  = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
+        $filename = 'RPP_' . date('Ymd_His') . '.doc';
 
-    header("Content-Type: application/msword; charset=UTF-8");
-    header("Content-Disposition: attachment; filename=\"{$filename}\"");
-    header("Cache-Control: no-store, no-cache, must-revalidate");
+        header("Content-Type: application/msword; charset=UTF-8");
+        header("Content-Disposition: attachment; filename=\"{$filename}\"");
+        header("Cache-Control: no-store, no-cache, must-revalidate");
 
-    echo "<html><head><meta charset=\"UTF-8\"><title>Rencana Pembelajaran Mendalam SMKN 1 WAJO</title>
+             echo "<html><head><meta charset=\"UTF-8\"><title>Rencana Pembelajaran Mendalam SMKN 1 WAJO</title>
 <style>
   body {
     font-family: 'Times New Roman', serif;
@@ -185,32 +185,6 @@ if ($perintah_tambahan !== '') {
     line-height: 150%;              /* SPASI 1,5 UMUM */
     mso-line-height-alt: 18pt;      /* BANTU WORD BACA 1,5 */
   }
-
-  /* ===== DEFAULT PAGE (kalau tidak pakai SectionX) ===== */
-  @page {
-    size: 21cm 29.7cm;              /* A4 portrait */
-    margin: 2.5cm;
-  }
-
-  /* ===== SECTION KHUSUS UNTUK WORD ===== */
-  @page Section1 {
-    size: 21cm 29.7cm;              /* portrait */
-    margin: 2.5cm;
-  }
-  div.Section1 { page: Section1; }
-
-  @page Section2 {
-    size: 29.7cm 21cm;              /* landscape */
-    margin: 2.5cm;
-    mso-page-orientation: landscape;
-  }
-  div.Section2 { page: Section2; }
-
-  @page Section3 {
-    size: 21cm 29.7cm;              /* kembali portrait */
-    margin: 2.5cm;
-  }
-  div.Section3 { page: Section3; }
 
   /* pastikan paragraf & list ikut 1,5 juga */
   p, li {
@@ -251,14 +225,16 @@ if ($perintah_tambahan !== '') {
     margin-bottom: 2px;
     text-align: justify;
   }
+
+ 
 </style>
 </head><body>";
 
-    echo $content;
-    echo "</body></html>";
-    exit;
-}
 
+        echo $content;
+        echo "</body></html>";
+        exit;
+    }
 
     // ================== HELPER: panggil Gemini & parse JSON ==================
 
@@ -327,41 +303,40 @@ if ($perintah_tambahan !== '') {
      * Rubrik diambil dari isi asesmen_awal, asesmen_proses, asesmen_akhir.
      */
     private function _build_rubrik_penilaian_html(array $g): string
-{
-    $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
-    $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
-    $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
+    {
+        $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
+        $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
+        $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
 
-    // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
-    if (empty($awal) && empty($proses) && empty($akhir)) {
-        return '';
-    }
+        // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
+        if (empty($awal) && empty($proses) && empty($akhir)) {
+            return '';
+        }
 
-    // Section2 = landscape, dan selalu mulai halaman baru
-    $html = '
-<div class="Section2 mt-8" style="page-break-before:always;">
+        $html = '
+<div class="mt-8">
   <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian</h4>
   <p class="text-sm text-gray-700 mb-3">
     Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik.
   </p>
 ';
 
-    $sections = [
-        'Assessment of Learning (Awal)'   => $awal,
-        'Assessment as Learning (Proses)' => $proses,
-        'Assessment for Learning (Akhir)' => $akhir,
-    ];
+        $sections = [
+            'Assessment of Learning (Awal)'   => $awal,
+            'Assessment as Learning (Proses)' => $proses,
+            'Assessment for Learning (Akhir)' => $akhir,
+        ];
 
-    $secNo = 1;
-    foreach ($sections as $label => $criteria) {
-        if (empty($criteria)) {
-            $secNo++;
-            continue;
-        }
+        $secNo = 1;
+        foreach ($sections as $label => $criteria) {
+            if (empty($criteria)) {
+                $secNo++;
+                continue;
+            }
 
-        $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+            $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
 
-        $html .= '
+            $html .= '
   <h4 class="font-semibold mt-4 mb-2">'.$secNo.'. '.$labelEsc.'</h4>
   <table class="document-table">
     <thead>
@@ -376,11 +351,11 @@ if ($perintah_tambahan !== '') {
     </thead>
     <tbody>
 ';
-        $no = 1;
-        foreach ($criteria as $critRaw) {
-            $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
+            $no = 1;
+            foreach ($criteria as $critRaw) {
+                $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
 
-            $html .= '
+                $html .= '
       <tr>
         <td>'.$no.'</td>
         <td>'.$critEsc.'</td>
@@ -390,21 +365,20 @@ if ($perintah_tambahan !== '') {
         <td>Belum menunjukkan penguasaan yang memadai terhadap aspek <em>'.$critEsc.'</em> dan memerlukan bimbingan intensif.</td>
       </tr>
 ';
-            $no++;
-        }
+                $no++;
+            }
 
-        $html .= '
+            $html .= '
     </tbody>
   </table>
 ';
-        $secNo++;
+            $secNo++;
+        }
+
+        $html .= '</div>';
+
+        return $html;
     }
-
-    $html .= '</div>';
-
-    return $html;
-}
-
 
     // ================== HELPER: format teks multi-baris ke HTML ==================
 
@@ -808,44 +782,43 @@ private function _build_bank_soal_html(array $g): string
      * Lampiran: Rubrik Penilaian Soal (berdasarkan kisi_kisi / indikator soal)
      */
     private function _build_rubrik_soal_html(array $g): string
-{
-    $criteria = [];
+    {
+        $criteria = [];
 
-    // Utamakan pakai "kisi_kisi"
-    if (isset($g['kisi_kisi']) && is_array($g['kisi_kisi'])) {
-        foreach ($g['kisi_kisi'] as $row) {
-            $aspek = trim((string)($row['aspek_dinilai'] ?? ''));
-            $indik = trim((string)($row['indikator']     ?? ''));
-            $key   = $aspek !== '' ? $aspek : $indik;
-            if ($key !== '') {
-                $criteria[] = $key;
-            }
-        }
-    }
-
-    // Fallback: kalau kisi_kisi kosong, ambil indikator dari soal
-    if (empty($criteria)) {
-        foreach (['soal_pilgan', 'soal_uraian'] as $field) {
-            if (!isset($g[$field]) || !is_array($g[$field])) continue;
-            foreach ($g[$field] as $row) {
-                $indik = trim((string)($row['indikator'] ?? ''));
-                if ($indik !== '') {
-                    $criteria[] = $indik;
+        // Utamakan pakai "kisi_kisi"
+        if (isset($g['kisi_kisi']) && is_array($g['kisi_kisi'])) {
+            foreach ($g['kisi_kisi'] as $row) {
+                $aspek = trim((string)($row['aspek_dinilai'] ?? ''));
+                $indik = trim((string)($row['indikator']     ?? ''));
+                $key   = $aspek !== '' ? $aspek : $indik;
+                if ($key !== '') {
+                    $criteria[] = $key;
                 }
             }
         }
-    }
 
-    // unik
-    $criteria = array_values(array_unique($criteria));
+        // Fallback: kalau kisi_kisi kosong, ambil indikator dari soal
+        if (empty($criteria)) {
+            foreach (['soal_pilgan', 'soal_uraian'] as $field) {
+                if (!isset($g[$field]) || !is_array($g[$field])) continue;
+                foreach ($g[$field] as $row) {
+                    $indik = trim((string)($row['indikator'] ?? ''));
+                    if ($indik !== '') {
+                        $criteria[] = $indik;
+                    }
+                }
+            }
+        }
 
-    if (empty($criteria)) {
-        return '';
-    }
+        // unik
+        $criteria = array_values(array_unique($criteria));
 
-    // Section3 = balik ke portrait, juga mulai di halaman baru
-    $html = '
-<div class="Section3 mt-8" style="page-break-before:always;">
+        if (empty($criteria)) {
+            return '';
+        }
+
+        $html = '
+<div class="mt-8">
   <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian Soal</h4>
   <p class="text-sm text-gray-700 mb-3">
     Rubrik ini digunakan untuk menilai jawaban peserta didik terhadap butir-butir soal berdasarkan indikator yang telah dirumuskan dalam kisi-kisi.
@@ -864,11 +837,11 @@ private function _build_bank_soal_html(array $g): string
     <tbody>
 ';
 
-    $no = 1;
-    foreach ($criteria as $crit) {
-        $critEsc = htmlspecialchars($crit, ENT_QUOTES, 'UTF-8');
+        $no = 1;
+        foreach ($criteria as $crit) {
+            $critEsc = htmlspecialchars($crit, ENT_QUOTES, 'UTF-8');
 
-        $html .= '
+            $html .= '
       <tr>
         <td>'.$no.'</td>
         <td>'.$critEsc.'</td>
@@ -878,21 +851,20 @@ private function _build_bank_soal_html(array $g): string
         <td>Jawaban tidak sesuai atau jauh dari indikator <em>'.$critEsc.'</em>, menunjukkan pemahaman yang sangat terbatas dan membutuhkan bimbingan intensif.</td>
       </tr>
 ';
-        $no++;
-    }
+            $no++;
+        }
 
-    $html .= '
+        $html .= '
     </tbody>
   </table>
 </div>';
 
-    return $html;
-}
-
+        return $html;
+    }
 
     // ================== HELPER: susun HTML tabel RPM ==================
 
-   private function _build_rpm_html(array $g, array $meta): string
+    private function _build_rpm_html(array $g, array $meta): string
 {
     $s = function($key, $default='-') use ($meta) {
         $v = $meta[$key] ?? '';
@@ -989,195 +961,187 @@ HTML;
     $fase_kls_sem = $s('fase') . '/' . $s('kelas') . '/' . $s('semester');
     $total        = $s('total_waktu') . ' (' . $s('pertemuan') . ' Pertemuan)';
 
-    // Section1 = semua isi utama (portrait)
     $html = <<<HTML
-<div class="Section1">
-  <div class="prose prose-sm max-w-none text-gray-800 document-container">
-    <h3 class="font-bold text-center text-lg mb-4">RENCANA PEMBELAJARAN MENDALAM SMKN 1 WAJO</h3>
-    <hr class="my-4" />
-    <table class="document-table" style="width:100%; border-collapse:collapse; margin-top:.5rem;">
-      <tbody>
-        <!-- A. IDENTITAS -->
-        <tr>
-          <td colspan="2"
-              class="section-title section-title-main"
-              style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt; letter-spacing:0.08em;">
-            A. IDENTITAS
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Nama Penyusun
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$nama_guru}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Nama Sekolah
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$nama_sklh}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Mata Pelajaran
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$mapel}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Materi Pokok
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$materi}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Tahun Ajaran
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$tahun}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Fase/Kelas/Semester
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$fase_kls_sem}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
-            Total Alokasi Waktu
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
-            {$total}
-          </td>
-        </tr>
+<div class="prose prose-sm max-w-none text-gray-800 document-container">
+  <h3 class="font-bold text-center text-lg mb-4">RENCANA PEMBELAJARAN MENDALAM SMKN 1 WAJO</h3>
+  <hr class="my-4" />
+  <table class="document-table" style="width:100%; border-collapse:collapse; margin-top:.5rem;">
+    <tbody>
+      <!-- A. IDENTITAS -->
+      <tr>
+        <td colspan="2"
+            class="section-title section-title-main"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt; letter-spacing:0.08em;">
+          A. IDENTITAS
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Nama Penyusun
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$nama_guru}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Nama Sekolah
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$nama_sklh}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Mata Pelajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$mapel}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Materi Pokok
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$materi}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Tahun Ajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$tahun}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Fase/Kelas/Semester
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$fase_kls_sem}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Total Alokasi Waktu
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$total}
+        </td>
+      </tr>
 
-        <!-- B. IDENTIFIKASI PESERTA DIDIK & MAPEL -->
-        <tr>
-          <td colspan="2"
-              class="section-title"
-              style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
-            B. IDENTIFIKASI PESERTA DIDIK &amp; MAPEL
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Kesiapan Murid
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$kesiapan}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Karakteristik Mata Pelajaran
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$kar_mapel}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Dimensi Profil Lulusan
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$profil}
-          </td>
-        </tr>
+      <!-- B. IDENTIFIKASI PESERTA DIDIK & MAPEL -->
+      <tr>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          B. IDENTIFIKASI PESERTA DIDIK &amp; MAPEL
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Kesiapan Murid
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$kesiapan}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Karakteristik Mata Pelajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$kar_mapel}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Dimensi Profil Lulusan
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$profil}
+        </td>
+      </tr>
 
-        <!-- C. TUJUAN PEMBELAJARAN -->
-        <tr>
-          <td colspan="2"
-              class="section-title"
-              style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
-            C. TUJUAN PEMBELAJARAN
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Tujuan Pembelajaran
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$tujuan}
-          </td>
-        </tr>
+      <!-- C. TUJUAN PEMBELAJARAN -->
+      <tr>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          C. TUJUAN PEMBELAJARAN
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Tujuan Pembelajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$tujuan}
+        </td>
+      </tr>
 
-        <!-- Dst: Pertemuan -->
+      <!-- DST: PERTEMUAN-PERTEMUAN -->
 {$pertemuanRows}
-        <!-- ASESMEN -->
-        <tr>
-          <td colspan="2"
-              class="section-title"
-              style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
-            {$ases_code}. ASESMEN
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Assessment of Learning (Awal)
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$ases_awal}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Assessment as Learning (Proses)
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$ases_proses}
-          </td>
-        </tr>
-        <tr>
-          <td class="cell-label"
-              style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
-            Assessment for Learning (Akhir)
-          </td>
-          <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
-            {$ases_akhir}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+      <!-- ASESMEN -->
+      <tr>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          {$ases_code}. ASESMEN
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Assessment of Learning (Awal)
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$ases_awal}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Assessment as Learning (Proses)
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$ases_proses}
+        </td>
+      </tr>
+      <tr>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Assessment for Learning (Akhir)
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$ases_akhir}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 HTML;
 
-    // Tambah lampiran lain (masih dalam Section1 = portrait)
-    $html .= $this->_build_kisi_kisi_html($g);
-    $html .= $this->_build_bank_soal_html($g);
-    $html .= '</div>'; // tutup div.Section1
-
-    // Section2: Rubrik Penilaian (landscape)
-    $html .= $this->_build_rubrik_penilaian_html($g);
-
-    // Section3: Rubrik Penilaian Soal (portrait lagi)
-    $html .= $this->_build_rubrik_soal_html($g);
+    // Lampiran-lampiran:
+    $html .= $this->_build_kisi_kisi_html($g);        // 1) Kisi-kisi soal
+    $html .= $this->_build_bank_soal_html($g);        // 2) Bank soal (PG & uraian)
+    $html .= $this->_build_rubrik_penilaian_html($g); // 3) Rubrik penilaian (awal/proses/akhir)
+    $html .= $this->_build_rubrik_soal_html($g);      // 4) Rubrik penilaian soal
 
     return $html;
 }
-
 
 }
