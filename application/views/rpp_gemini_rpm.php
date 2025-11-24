@@ -288,7 +288,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
                         type="text"
                         id="nama_guru"
                         name="nama_guru"
-                        placeholder="Contoh: Nurhikmah, S.Pd"
+                        placeholder="Contoh: Nurhikmah, S.Pd., M.Pd"
                         value="<?= htmlspecialchars((string)($old_nama_guru ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                         required>
                 </div>
