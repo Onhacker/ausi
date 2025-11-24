@@ -865,132 +865,168 @@ private function _build_bank_soal_html(array $g): string
     // ================== HELPER: susun HTML tabel RPM ==================
 
     private function _build_rpm_html(array $g, array $meta): string
-    {
-        $s = function($key, $default = '-') use ($meta) {
-            $v = $meta[$key] ?? '';
-            return $v !== '' ? htmlspecialchars($v, ENT_QUOTES, 'UTF-8') : $default;
-        };
+{
+    $s = function($key, $default='-') use ($meta) {
+        $v = $meta[$key] ?? '';
+        return $v !== '' ? htmlspecialchars($v, ENT_QUOTES, 'UTF-8') : $default;
+    };
 
-        $tujuan   = $this->_fmt_multiline($g['tujuan_pembelajaran']   ?? '');
-        $kesiapan = $this->_fmt_multiline($g['kesiapan_murid']        ?? '');
-        $kar_mapel= $this->_fmt_multiline($g['karakteristik_mapel']   ?? '');
-        $profil   = $this->_fmt_multiline($g['dimensi_profil_lulusan']?? '');
-        $ases_awal   = $this->_fmt_multiline($g['asesmen_awal']   ?? '');
-        $ases_proses = $this->_fmt_multiline($g['asesmen_proses'] ?? '');
-        $ases_akhir  = $this->_fmt_multiline($g['asesmen_akhir']  ?? '');
+    $tujuan   = $this->_fmt_multiline($g['tujuan_pembelajaran']   ?? '');
+    $kesiapan = $this->_fmt_multiline($g['kesiapan_murid']        ?? '');
+    $kar_mapel= $this->_fmt_multiline($g['karakteristik_mapel']   ?? '');
+    $profil   = $this->_fmt_multiline($g['dimensi_profil_lulusan']?? '');
+    $ases_awal   = $this->_fmt_multiline($g['asesmen_awal']   ?? '');
+    $ases_proses = $this->_fmt_multiline($g['asesmen_proses'] ?? '');
+    $ases_akhir  = $this->_fmt_multiline($g['asesmen_akhir']  ?? '');
 
-        // Per pertemuan (D, E, F, ...)
-        $pertemuanHtml = '';
-        $meetings = isset($g['pertemuan']) && is_array($g['pertemuan']) ? $g['pertemuan'] : [];
-        $startCode = ord('D');
+    // ==== Susun baris-baris per pertemuan (D, E, F, ...) ====
+    $pertemuanRows = '';
+    $meetings   = isset($g['pertemuan']) && is_array($g['pertemuan']) ? $g['pertemuan'] : [];
+    $startCode  = ord('D'); // D, E, F, ...
 
-        foreach ($meetings as $idx => $meet) {
-            $code          = chr($startCode + $idx);
-            $judul         = htmlspecialchars((string)($meet['judul_pertemuan'] ?? 'Tanpa Judul'), ENT_QUOTES, 'UTF-8');
-            $alok          = htmlspecialchars((string)($meet['alokasi_waktu_pertemuan'] ?? '-'), ENT_QUOTES, 'UTF-8');
-            $kerangka      = $this->_fmt_multiline($meet['kerangka_pembelajaran_rinci'] ?? '');
-            $memahami      = $this->_fmt_multiline($meet['aktivitas_memahami']         ?? '');
-            $mengaplikasi  = $this->_fmt_multiline($meet['aktivitas_mengaplikasikan']  ?? '');
-            $merefleksikan = $this->_fmt_multiline($meet['aktivitas_merefleksikan']    ?? '');
+    foreach ($meetings as $idx => $meet) {
+        $code          = chr($startCode + $idx);
+        $noPertemuan   = $idx + 1;
+        $judul         = htmlspecialchars((string)($meet['judul_pertemuan'] ?? 'Tanpa Judul'), ENT_QUOTES, 'UTF-8');
+        $alok          = htmlspecialchars((string)($meet['alokasi_waktu_pertemuan'] ?? '-'), ENT_QUOTES, 'UTF-8');
+        $kerangka      = $this->_fmt_multiline($meet['kerangka_pembelajaran_rinci'] ?? '');
+        $memahami      = $this->_fmt_multiline($meet['aktivitas_memahami']         ?? '');
+        $mengaplikasi  = $this->_fmt_multiline($meet['aktivitas_mengaplikasikan']  ?? '');
+        $merefleksikan = $this->_fmt_multiline($meet['aktivitas_merefleksikan']    ?? '');
 
-            $pertemuanHtml .= "
-            <thead>
-              <tr>
-                <th colspan=\"2\" class=\"meeting-header\">{$code}. PERTEMUAN " . ($idx + 1) . ": {$judul}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class=\"w-1/3 font-bold bg-gray-50\">Alokasi Waktu Pertemuan</td>
-                <td>{$alok}</td>
-              </tr>
-              <tr>
-                <td class=\"w-1/3 font-bold bg-gray-50\">Kerangka Pembelajaran Rinci</td>
-                <td>{$kerangka}</td>
-              </tr>
-              <tr>
-                <td class=\"font-bold\">Aktivitas: Memahami</td>
-                <td>{$memahami}</td>
-              </tr>
-              <tr>
-                <td class=\"font-bold\">Aktivitas: Mengaplikasikan</td>
-                <td>{$mengaplikasi}</td>
-              </tr>
-              <tr>
-                <td class=\"font-bold\">Aktivitas: Merefleksikan</td>
-                <td>{$merefleksikan}</td>
-              </tr>
-            </tbody>";
-        }
+        $pertemuanRows .= <<<HTML
+      <tr>
+        <td colspan="2" class="section-title" style="background:#e0f2fe; font-weight:bold; text-align:center;">{$code}. PERTEMUAN {$noPertemuan}: {$judul}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Alokasi Waktu Pertemuan</td>
+        <td class="cell-value" style="width:70%;">{$alok}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Kerangka Pembelajaran Rinci</td>
+        <td class="cell-value" style="width:70%;">{$kerangka}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Aktivitas: Memahami</td>
+        <td class="cell-value" style="width:70%;">{$memahami}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Aktivitas: Mengaplikasikan</td>
+        <td class="cell-value" style="width:70%;">{$mengaplikasi}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Aktivitas: Merefleksikan</td>
+        <td class="cell-value" style="width:70%;">{$merefleksikan}</td>
+      </tr>
 
-        $ases_code = chr($startCode + max(0, count($meetings)));
+HTML;
+    }
 
-        $nama_guru  = $s('nama_guru');
-        $nama_sklh  = $s('nama_sekolah');
-        $mapel      = $s('mata_pelajaran');
-        $materi     = $s('materi');
-        $tahun      = $s('tahun_pelajaran');
-        $fase_kls_sem = $s('fase') . '/' . $s('kelas') . '/' . $s('semester');
-        $total      = $s('total_waktu') . ' (' . $s('pertemuan') . ' Pertemuan)';
+    $ases_code = chr($startCode + max(0, count($meetings)));
 
-        $html = "
-<div class=\"prose prose-sm max-w-none text-gray-800 document-container\">
-  <h3 class=\"font-bold text-center text-lg mb-4\">RENCANA PEMBELAJARAN MENDALAM SMKN 1 WAJO</h3>
-  <hr class=\"my-4\" />
-  <table class=\"document-table\">
-    <thead>
-      <tr><th colspan=\"2\" class=\"bg-gray-200\">A. IDENTITAS</th></tr>
-    </thead>
+    $nama_guru    = $s('nama_guru');
+    $nama_sklh    = $s('nama_sekolah');
+    $mapel        = $s('mata_pelajaran');
+    $materi       = $s('materi');
+    $tahun        = $s('tahun_pelajaran');
+    $fase_kls_sem = $s('fase') . '/' . $s('kelas') . '/' . $s('semester');
+    $total        = $s('total_waktu') . ' (' . $s('pertemuan') . ' Pertemuan)';
+
+    $html = <<<HTML
+<div class="prose prose-sm max-w-none text-gray-800 document-container">
+  <h3 class="font-bold text-center text-lg mb-4">RENCANA PEMBELAJARAN MENDALAM SMKN 1 WAJO</h3>
+  <hr class="my-4" />
+  <table class="document-table" style="width:100%; border-collapse:collapse; margin-top:.5rem;">
     <tbody>
-      <tr><td class=\"w-1/3 font-bold\">Nama Penyusun</td><td class=\"w-2/3\">{$nama_guru}</td></tr>
-      <tr><td class=\"font-bold\">Nama Sekolah</td><td>{$nama_sklh}</td></tr>
-      <tr><td class=\"font-bold\">Mata Pelajaran</td><td>{$mapel}</td></tr>
-      <tr><td class=\"font-bold\">Materi Pokok</td><td>{$materi}</td></tr>
-      <tr><td class=\"font-bold\">Tahun Ajaran</td><td>{$tahun}</td></tr>
-      <tr><td class=\"font-bold\">Fase/Kelas/Semester</td><td>{$fase_kls_sem}</td></tr>
-      <tr><td class=\"font-bold\">Total Alokasi Waktu</td><td>{$total}</td></tr>
-    </tbody>
+      <!-- A. IDENTITAS -->
+      <tr>
+        <td colspan="2" class="section-title section-title-main" style="background:#e5e7eb; font-weight:bold; text-align:center;">A. IDENTITAS</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Nama Penyusun</td>
+        <td class="cell-value" style="width:70%;">{$nama_guru}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Nama Sekolah</td>
+        <td class="cell-value" style="width:70%;">{$nama_sklh}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Mata Pelajaran</td>
+        <td class="cell-value" style="width:70%;">{$mapel}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Materi Pokok</td>
+        <td class="cell-value" style="width:70%;">{$materi}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Tahun Ajaran</td>
+        <td class="cell-value" style="width:70%;">{$tahun}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Fase/Kelas/Semester</td>
+        <td class="cell-value" style="width:70%;">{$fase_kls_sem}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Total Alokasi Waktu</td>
+        <td class="cell-value" style="width:70%;">{$total}</td>
+      </tr>
 
-    <thead>
-      <tr><th colspan=\"2\" class=\"bg-gray-200 mt-4\">B. IDENTIFIKASI PESERTA DIDIK & MAPEL</th></tr>
-    </thead>
-    <tbody>
-      <tr><td class=\"w-1/3 font-bold\">Kesiapan Murid</td><td class=\"w-2/3\">{$kesiapan}</td></tr>
-      <tr><td class=\"font-bold\">Karakteristik Mata Pelajaran</td><td>{$kar_mapel}</td></tr>
-      <tr><td class=\"font-bold\">Dimensi Profil Lulusan</td><td>{$profil}</td></tr>
-    </tbody>
+      <!-- B. IDENTIFIKASI PESERTA DIDIK & MAPEL -->
+      <tr>
+        <td colspan="2" class="section-title" style="background:#e5e7eb; font-weight:bold; text-align:center;">B. IDENTIFIKASI PESERTA DIDIK &amp; MAPEL</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Kesiapan Murid</td>
+        <td class="cell-value" style="width:70%;">{$kesiapan}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Karakteristik Mata Pelajaran</td>
+        <td class="cell-value" style="width:70%;">{$kar_mapel}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Dimensi Profil Lulusan</td>
+        <td class="cell-value" style="width:70%;">{$profil}</td>
+      </tr>
 
-    <thead>
-      <tr><th colspan=\"2\" class=\"bg-gray-200 mt-4\">C. TUJUAN PEMBELAJARAN</th></tr>
-    </thead>
-    <tbody>
-      <tr><td class=\"w-1/3 font-bold\">Tujuan Pembelajaran</td><td class=\"w-2/3\">{$tujuan}</td></tr>
-    </tbody>
+      <!-- C. TUJUAN PEMBELAJARAN -->
+      <tr>
+        <td colspan="2" class="section-title" style="background:#e5e7eb; font-weight:bold; text-align:center;">C. TUJUAN PEMBELAJARAN</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Tujuan Pembelajaran</td>
+        <td class="cell-value" style="width:70%;">{$tujuan}</td>
+      </tr>
 
-    {$pertemuanHtml}
-
-    <thead>
-      <tr><th colspan=\"2\" class=\"bg-gray-200 mt-4\">{$ases_code}. ASESMEN</th></tr>
-    </thead>
-    <tbody>
-      <tr><td class=\"w-1/3 font-bold\">Assessment of Learning (Awal)</td><td>{$ases_awal}</td></tr>
-      <tr><td class=\"font-bold\">Assessment as Learning (Proses)</td><td>{$ases_proses}</td></tr>
-      <tr><td class=\"font-bold\">Assessment for Learning (Akhir)</td><td>{$ases_akhir}</td></tr>
+      <!-- DST: PERTEMUAN-PERTEMUAN -->
+{$pertemuanRows}
+      <!-- ASESMEN -->
+      <tr>
+        <td colspan="2" class="section-title" style="background:#e5e7eb; font-weight:bold; text-align:center;">{$ases_code}. ASESMEN</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Assessment of Learning (Awal)</td>
+        <td class="cell-value" style="width:70%;">{$ases_awal}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Assessment as Learning (Proses)</td>
+        <td class="cell-value" style="width:70%;">{$ases_proses}</td>
+      </tr>
+      <tr>
+        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Assessment for Learning (Akhir)</td>
+        <td class="cell-value" style="width:70%;">{$ases_akhir}</td>
+      </tr>
     </tbody>
   </table>
-</div>";
+</div>
+HTML;
+
     // Lampiran-lampiran:
-        // 1) Kisi-kisi soal (dibangun dari field "kisi_kisi")
-        $html .= $this->_build_kisi_kisi_html($g);
+    $html .= $this->_build_kisi_kisi_html($g);           // 1) Kisi-kisi soal
+    $html .= $this->_build_bank_soal_html($g);           // 2) Bank soal (PG & uraian)
+    $html .= $this->_build_rubrik_penilaian_html($g);    // 3) Rubrik penilaian (awal/proses/akhir)
+    $html .= $this->_build_rubrik_soal_html($g);         // 4) Rubrik penilaian soal
 
-        // 2) Bank soal (pilihan ganda & uraian)
-        $html .= $this->_build_bank_soal_html($g);
-
-        // 3) Rubrik penilaian (berbasis asesmen_awal/proses/akhir) – yang sudah ada
-        $html .= $this->_build_rubrik_penilaian_html($g);
-
-        // 4) Rubrik penilaian soal (berbasis indikator / kisi-kisi)
-        $html .= $this->_build_rubrik_soal_html($g);
-         return $html;
+    return $html;
 }
+
 }
