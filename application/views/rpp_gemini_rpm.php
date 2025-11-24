@@ -528,6 +528,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof Swal === 'undefined') {
         return;
     }
+
+    // steps pakai array yang sudah kamu bikin (boleh tetap yang panjang tadi)
     var steps = [
         'Lagi ngecek dulu semua data yang kamu isi...',
         'Merapiin dulu nama guru, mapel, kelas, dan semesternya...',
@@ -543,15 +545,20 @@ document.addEventListener('DOMContentLoaded', function () {
         'Menyiapkan tampilan preview RPM langsung di layar kamu...',
         'Menyiapkan dokumen dan tombol download biar bisa kamu simpan dan cetak dengan manis 👍'
     ];
+
     var idx = 0;
 
     Swal.fire({
         title: 'Generate RPM dulu ya...',
-        html: '<div id="rpm-loader-text" style="font-size:0.9rem; margin-top:0.5rem;">' + steps[0] + '</div>',
+        html:
+            '<div class="rpm-loader-wrap">' +
+                '<span class="rpm-loader-icon"></span>' +
+                '<span id="rpm-loader-text">' + steps[0] + '</span>' +
+            '</div>',
         allowOutsideClick: false,
         allowEscapeKey: false,
+        showConfirmButton: false,
         didOpen: function (popup) {
-            Swal.showLoading();
             var textEl = popup.querySelector('#rpm-loader-text');
             var interval = setInterval(function () {
                 idx++;
