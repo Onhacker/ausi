@@ -871,18 +871,18 @@ private function _build_bank_soal_html(array $g): string
         return $v !== '' ? htmlspecialchars($v, ENT_QUOTES, 'UTF-8') : $default;
     };
 
-    $tujuan   = $this->_fmt_multiline($g['tujuan_pembelajaran']   ?? '');
-    $kesiapan = $this->_fmt_multiline($g['kesiapan_murid']        ?? '');
-    $kar_mapel= $this->_fmt_multiline($g['karakteristik_mapel']   ?? '');
-    $profil   = $this->_fmt_multiline($g['dimensi_profil_lulusan']?? '');
-    $ases_awal   = $this->_fmt_multiline($g['asesmen_awal']   ?? '');
-    $ases_proses = $this->_fmt_multiline($g['asesmen_proses'] ?? '');
-    $ases_akhir  = $this->_fmt_multiline($g['asesmen_akhir']  ?? '');
+    $tujuan      = $this->_fmt_multiline($g['tujuan_pembelajaran']    ?? '');
+    $kesiapan    = $this->_fmt_multiline($g['kesiapan_murid']         ?? '');
+    $kar_mapel   = $this->_fmt_multiline($g['karakteristik_mapel']    ?? '');
+    $profil      = $this->_fmt_multiline($g['dimensi_profil_lulusan'] ?? '');
+    $ases_awal   = $this->_fmt_multiline($g['asesmen_awal']           ?? '');
+    $ases_proses = $this->_fmt_multiline($g['asesmen_proses']         ?? '');
+    $ases_akhir  = $this->_fmt_multiline($g['asesmen_akhir']          ?? '');
 
-    // ==== Susun baris-baris per pertemuan (D, E, F, ...) ====
+    // ====== SUSUN BARIS-BARIS PER PERTEMUAN (D, E, F, ...) ======
     $pertemuanRows = '';
-    $meetings   = isset($g['pertemuan']) && is_array($g['pertemuan']) ? $g['pertemuan'] : [];
-    $startCode  = ord('D'); // D, E, F, ...
+    $meetings      = isset($g['pertemuan']) && is_array($g['pertemuan']) ? $g['pertemuan'] : [];
+    $startCode     = ord('D'); // D, E, F, ...
 
     foreach ($meetings as $idx => $meet) {
         $code          = chr($startCode + $idx);
@@ -896,27 +896,56 @@ private function _build_bank_soal_html(array $g): string
 
         $pertemuanRows .= <<<HTML
       <tr>
-        <td colspan="2" class="section-title" style="background:#e0f2fe; font-weight:bold; text-align:center;">{$code}. PERTEMUAN {$noPertemuan}: {$judul}</td>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e0f2fe; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          {$code}. PERTEMUAN {$noPertemuan}: {$judul}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Alokasi Waktu Pertemuan</td>
-        <td class="cell-value" style="width:70%;">{$alok}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Alokasi Waktu Pertemuan
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$alok}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Kerangka Pembelajaran Rinci</td>
-        <td class="cell-value" style="width:70%;">{$kerangka}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Kerangka Pembelajaran Rinci
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$kerangka}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Aktivitas: Memahami</td>
-        <td class="cell-value" style="width:70%;">{$memahami}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Aktivitas: Memahami
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$memahami}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Aktivitas: Mengaplikasikan</td>
-        <td class="cell-value" style="width:70%;">{$mengaplikasi}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Aktivitas: Mengaplikasikan
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$mengaplikasi}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Aktivitas: Merefleksikan</td>
-        <td class="cell-value" style="width:70%;">{$merefleksikan}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Aktivitas: Merefleksikan
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$merefleksikan}
+        </td>
       </tr>
 
 HTML;
@@ -940,80 +969,166 @@ HTML;
     <tbody>
       <!-- A. IDENTITAS -->
       <tr>
-        <td colspan="2" class="section-title section-title-main" style="background:#e5e7eb; font-weight:bold; text-align:center;">A. IDENTITAS</td>
+        <td colspan="2"
+            class="section-title section-title-main"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt; letter-spacing:0.08em;">
+          A. IDENTITAS
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Nama Penyusun</td>
-        <td class="cell-value" style="width:70%;">{$nama_guru}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Nama Penyusun
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$nama_guru}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Nama Sekolah</td>
-        <td class="cell-value" style="width:70%;">{$nama_sklh}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Nama Sekolah
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$nama_sklh}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Mata Pelajaran</td>
-        <td class="cell-value" style="width:70%;">{$mapel}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Mata Pelajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$mapel}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Materi Pokok</td>
-        <td class="cell-value" style="width:70%;">{$materi}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Materi Pokok
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$materi}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Tahun Ajaran</td>
-        <td class="cell-value" style="width:70%;">{$tahun}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Tahun Ajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$tahun}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Fase/Kelas/Semester</td>
-        <td class="cell-value" style="width:70%;">{$fase_kls_sem}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Fase/Kelas/Semester
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$fase_kls_sem}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Total Alokasi Waktu</td>
-        <td class="cell-value" style="width:70%;">{$total}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:middle; white-space:nowrap;">
+          Total Alokasi Waktu
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:middle;">
+          {$total}
+        </td>
       </tr>
 
       <!-- B. IDENTIFIKASI PESERTA DIDIK & MAPEL -->
       <tr>
-        <td colspan="2" class="section-title" style="background:#e5e7eb; font-weight:bold; text-align:center;">B. IDENTIFIKASI PESERTA DIDIK &amp; MAPEL</td>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          B. IDENTIFIKASI PESERTA DIDIK &amp; MAPEL
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Kesiapan Murid</td>
-        <td class="cell-value" style="width:70%;">{$kesiapan}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Kesiapan Murid
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$kesiapan}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Karakteristik Mata Pelajaran</td>
-        <td class="cell-value" style="width:70%;">{$kar_mapel}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Karakteristik Mata Pelajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$kar_mapel}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Dimensi Profil Lulusan</td>
-        <td class="cell-value" style="width:70%;">{$profil}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Dimensi Profil Lulusan
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$profil}
+        </td>
       </tr>
 
       <!-- C. TUJUAN PEMBELAJARAN -->
       <tr>
-        <td colspan="2" class="section-title" style="background:#e5e7eb; font-weight:bold; text-align:center;">C. TUJUAN PEMBELAJARAN</td>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          C. TUJUAN PEMBELAJARAN
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Tujuan Pembelajaran</td>
-        <td class="cell-value" style="width:70%;">{$tujuan}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Tujuan Pembelajaran
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$tujuan}
+        </td>
       </tr>
 
       <!-- DST: PERTEMUAN-PERTEMUAN -->
 {$pertemuanRows}
       <!-- ASESMEN -->
       <tr>
-        <td colspan="2" class="section-title" style="background:#e5e7eb; font-weight:bold; text-align:center;">{$ases_code}. ASESMEN</td>
+        <td colspan="2"
+            class="section-title"
+            style="background:#e5e7eb; font-weight:bold; text-align:center; padding:6pt 8pt; font-size:12pt;">
+          {$ases_code}. ASESMEN
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Assessment of Learning (Awal)</td>
-        <td class="cell-value" style="width:70%;">{$ases_awal}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Assessment of Learning (Awal)
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$ases_awal}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Assessment as Learning (Proses)</td>
-        <td class="cell-value" style="width:70%;">{$ases_proses}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Assessment as Learning (Proses)
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$ases_proses}
+        </td>
       </tr>
       <tr>
-        <td class="cell-label" style="width:30%; font-weight:bold; background:#f9fafb;">Assessment for Learning (Akhir)</td>
-        <td class="cell-value" style="width:70%;">{$ases_akhir}</td>
+        <td class="cell-label"
+            style="width:30%; font-weight:bold; background:#f9fafb; padding:4pt 8pt; vertical-align:top; white-space:nowrap;">
+          Assessment for Learning (Akhir)
+        </td>
+        <td class="cell-value" style="width:70%; padding:4pt 8pt; vertical-align:top;">
+          {$ases_akhir}
+        </td>
       </tr>
     </tbody>
   </table>
@@ -1021,10 +1136,10 @@ HTML;
 HTML;
 
     // Lampiran-lampiran:
-    $html .= $this->_build_kisi_kisi_html($g);           // 1) Kisi-kisi soal
-    $html .= $this->_build_bank_soal_html($g);           // 2) Bank soal (PG & uraian)
-    $html .= $this->_build_rubrik_penilaian_html($g);    // 3) Rubrik penilaian (awal/proses/akhir)
-    $html .= $this->_build_rubrik_soal_html($g);         // 4) Rubrik penilaian soal
+    $html .= $this->_build_kisi_kisi_html($g);        // 1) Kisi-kisi soal
+    $html .= $this->_build_bank_soal_html($g);        // 2) Bank soal (PG & uraian)
+    $html .= $this->_build_rubrik_penilaian_html($g); // 3) Rubrik penilaian (awal/proses/akhir)
+    $html .= $this->_build_rubrik_soal_html($g);      // 4) Rubrik penilaian soal
 
     return $html;
 }
