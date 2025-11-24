@@ -756,7 +756,8 @@ private function _build_bank_soal_html(array $g): string
         <td>'.$q.'</td>
         <td>';
             if (!empty($rubLines)) {
-                $html .= '<ol style="margin:0; padding-left:1.5em;">';
+                $html .= '<ol class="numbered-list" style="margin:0; padding-left:1.5em;">';
+
                 foreach ($rubLines as $rl) {
                     $html .= '<li>'.htmlspecialchars($rl, ENT_QUOTES, 'UTF-8').'</li>';
                 }
