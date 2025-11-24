@@ -987,3 +987,4 @@ private function _fmt_multiline(?string $text): string
         $html .= $this->_build_rubrik_soal_html($g);
          return $html;
 }
+}
