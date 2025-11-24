@@ -64,8 +64,6 @@ Data input:
 
 Struktur JSON yang diminta:
 
-Struktur JSON yang diminta:
-
 {
   "tujuan_pembelajaran": "STRING berisi beberapa tujuan, dipisahkan baris baru",
   "kesiapan_murid": "STRING",
