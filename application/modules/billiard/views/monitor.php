@@ -192,7 +192,7 @@
     .status-pill.success{background:#16a34a}
     .status-pill.muted{background:#6b7280}
     .cd{font-weight:700}
-    .ct-meta{margin-top:2px;font-size:12px;color:#6b7280}
+    .ct-meta{margin-top:2px;font-size:16px !important;color:#000000}
     .verify-pill{display:inline-flex;align-items:center;gap:6px;background:#f59e0b;color:#111827;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;border:1px solid rgba(0,0,0,.05)}
     @keyframes pillBlink{50%{opacity:.35}}
     .booking-item.soon .status-pill{background:#fff7ed;color:#7c2d12; box-shadow:0 0 0 0 rgba(251,146,60,.55); animation:pillBlink 1s steps(1,end) infinite}
