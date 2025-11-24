@@ -128,7 +128,16 @@ class Admin_pengeluaran extends Admin_Controller {
     /** Tambah */
     public function create(){
         try{
-            $tanggal   = $this->input->post('tanggal', true) ?: date('Y-m-d H:i:s');
+             $rawTanggal = $this->input->post('tanggal', true);
+
+            // kalau kosong → pakai sekarang
+            if ($rawTanggal === null || $rawTanggal === '') {
+                $tanggal = date('Y-m-d H:i:s');
+            } else {
+                $tanggal = $rawTanggal; // sudah dalam format Y-m-d H:i:s dari JS
+            }
+
+            // $tanggal   = $this->input->post('tanggal', true) ?: date('Y-m-d H:i:s');
             $kategori  = $this->input->post('kategori', true) ?: 'Umum';
             $keterangan= $this->input->post('keterangan', true);
             $jumlahStr = $this->input->post('jumlah', true);
@@ -168,8 +177,16 @@ class Admin_pengeluaran extends Admin_Controller {
         try{
             $id        = (int)$this->input->post('id');
             if ($id<=0){ echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"ID tidak valid"]); return; }
+             $rawTanggal = $this->input->post('tanggal', true);
 
-            $tanggal   = $this->input->post('tanggal', true);
+                // kalau kosong → pakai sekarang
+                if ($rawTanggal === null || $rawTanggal === '') {
+                    $tanggal = date('Y-m-d H:i:s');
+                } else {
+                    $tanggal = $rawTanggal; // sudah dalam format Y-m-d H:i:s dari JS
+                }
+
+            // $tanggal   = $this->input->post('tanggal', true);
             $kategori  = $this->input->post('kategori', true);
             $keterangan= $this->input->post('keterangan', true);
             $jumlahStr = $this->input->post('jumlah', true);

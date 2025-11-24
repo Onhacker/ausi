@@ -202,8 +202,7 @@ function open_form(data){
        data-decimals="0"
        placeholder="0" 
        value="${data?.jumlah||''}">
-<small class="text-muted">Format otomatis: 1.234.567</small>
-
+      <small class="text-muted">Format otomatis: 1.234.567</small>
     </div>
     <div class="form-group">
       <label>Keterangan</label>
@@ -212,51 +211,63 @@ function open_form(data){
   </div>`;
 
   Swal.fire({
-  title: isEdit ? 'Ubah Pengeluaran' : 'Tambah Pengeluaran',
-  html: html,
-  focusConfirm:false,
-  showCancelButton:true,
-  confirmButtonText: isEdit ? 'Simpan' : 'Tambah',
-  cancelButtonText: 'Batal',
+    title: isEdit ? 'Ubah Pengeluaran' : 'Tambah Pengeluaran',
+    html: html,
+    focusConfirm:false,
+    showCancelButton:true,
+    confirmButtonText: isEdit ? 'Simpan' : 'Tambah',
+    cancelButtonText: 'Batal',
 
-  // ⬇️ FORMATTER AKTIF SAAT MODAL TERBUKA
-  didOpen: () => {
-    if (window.IDRFormat) {
-      IDRFormat.bindAll(Swal.getHtmlContainer());
+    didOpen: () => {
+      if (window.IDRFormat) {
+        IDRFormat.bindAll(Swal.getHtmlContainer());
+      }
+    },
+
+    preConfirm: () => {
+      // ⬇️ DI SINI DITARUH
+      const rawTanggal = $('#f-tanggal').val();
+      if (!rawTanggal) {
+        Swal.showValidationMessage('Tanggal tidak boleh kosong');
+        return false; // cegah modal tertutup
+      }
+
+      // convert ke format Y-m-d H:i:s
+      let tanggalKirim = rawTanggal.replace('T',' ');
+      if (tanggalKirim.length === 16) { // "YYYY-mm-dd HH:ii"
+        tanggalKirim += ':00';
+      }
+
+      const jumlahRaw = (window.IDRFormat
+        ? IDRFormat.unformat($('#f-jumlah').val(), 0)
+        : ($('#f-jumlah').val()||'').replace(/[^\d]/g,'') );
+
+      const payload = {
+        tanggal      : tanggalKirim,
+        kategori     : $('#f-kategori').val(),
+        metode_bayar : $('#f-metode').val(),
+        jumlah       : jumlahRaw,
+        keterangan   : $('#f-ket').val()
+      };
+
+      const url = isEdit ? "<?= site_url('admin_pengeluaran/update') ?>" 
+                         : "<?= site_url('admin_pengeluaran/create') ?>";
+      if (isEdit) payload.id = $('#f-id').val();
+
+      return $.post(url, payload, null, 'json').then(res=>{
+        if (!res || !res.success) throw new Error(res?.pesan || 'Gagal menyimpan');
+        return res;
+      }).catch(err=>{
+        Swal.showValidationMessage(err.message || 'Gagal');
+      });
     }
-  },
-
-  preConfirm: () => {
-    const jumlahRaw = (window.IDRFormat
-      ? IDRFormat.unformat($('#f-jumlah').val(), 0)
-      : ($('#f-jumlah').val()||'').replace(/[^\d]/g,'') );
-
-    const payload = {
-      tanggal      : ($('#f-tanggal').val() || '').replace('T',' ')+':00',
-      kategori     : $('#f-kategori').val(),
-      metode_bayar : $('#f-metode').val(),
-      jumlah       : jumlahRaw,          // ⬅️ kirim angka mentah
-      keterangan   : $('#f-ket').val()
-    };
-
-    const url = isEdit ? "<?= site_url('admin_pengeluaran/update') ?>" 
-                       : "<?= site_url('admin_pengeluaran/create') ?>";
-    if (isEdit) payload.id = $('#f-id').val();
-
-    return $.post(url, payload, null, 'json').then(res=>{
-      if (!res || !res.success) throw new Error(res?.pesan || 'Gagal menyimpan');
-      return res;
-    }).catch(err=>{
-      Swal.showValidationMessage(err.message || 'Gagal');
-    });
-  }
-})
-.then(r=>{
+  }).then(r=>{
     if (!r.isConfirmed) return;
     Swal.fire(r.value.title||'OK', r.value.pesan||'Sukses', 'success');
     reload_pengeluaran('form');
   });
 }
+
 
 function edit_one(id){
   loader();
