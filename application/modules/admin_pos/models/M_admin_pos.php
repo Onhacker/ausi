@@ -536,38 +536,69 @@ public function bulk_mark_paid(array $ids){
 
 
     /** Bulk delete */
-   public function bulk_delete(array $ids){
+   /** Bulk delete TANPA peduli status (pending / sent / canceled / paid dll) */
+public function bulk_delete(array $ids){
     $ids = array_values(array_unique(array_map('intval',$ids)));
-    if (!$ids) return ["ok_count"=>0,"paid_ids"=>[],"notfound_ids"=>[],"errors"=>[]];
+    if (!$ids) {
+        return [
+            "ok_count"         => 0,
+            "deleted_ids"      => [],
+            "deleted_paid_ids" => [],
+            "notfound_ids"     => [],
+            "errors"           => [],
+        ];
+    }
 
-    $rows = $this->db->select('id,status')->from('pesanan')->where_in('id',$ids)->get()->result();
+    // Ambil status awal (biar kita tahu mana yang paid)
+    $rows = $this->db->select('id,status')
+                     ->from('pesanan')
+                     ->where_in('id',$ids)
+                     ->get()->result();
     $existMap = [];
-    foreach($rows as $r){ $existMap[(int)$r->id] = strtolower((string)$r->status); }
+    foreach($rows as $r){
+        $existMap[(int)$r->id] = strtolower((string)$r->status);
+    }
 
-    $paid_ids   = [];
-    $notfound   = [];
-    $ok_count   = 0;
-    $errors     = [];
-    $willPurgeArchives = []; // kumpulkan yang benar-benar dihapus
+    $ok_count         = 0;
+    $deleted          = [];
+    $deletedPaid      = [];
+    $notfound         = [];
+    $errors           = [];
+    $willPurgeArchives= []; // untuk bersihkan arsip + item_paid
 
     $this->db->trans_begin();
-    foreach($ids as $id){
-        if (!isset($existMap[$id])){ $notfound[]=$id; continue; }
-        if ($existMap[$id] === 'paid'){ $paid_ids[]=$id; continue; }
 
-        // hapus items dulu
-        $this->db->delete('pesanan_item',['pesanan_id'=>$id]);
-        $ok = $this->db->delete('pesanan',['id'=>$id]);
+    foreach($ids as $id){
+        if (!isset($existMap[$id])){
+            // ID ini memang tidak ada di tabel pesanan
+            $notfound[] = $id;
+            continue;
+        }
+
+        // HAPUS DETAIL DULU
+        $this->db->delete('pesanan_item', ['pesanan_id' => $id]);
+
+        // HAPUS HEADER
+        $ok = $this->db->delete('pesanan', ['id' => $id]);
         if ($ok){
             $ok_count++;
+            $deleted[] = $id;
+
+            // kalau status awalnya paid, catat saja untuk info
+            if ($existMap[$id] === 'paid'){
+                $deletedPaid[] = $id;
+            }
+
             $willPurgeArchives[] = $id;
+
+            // hapus file QRIS kalau ada
             $this->_cleanup_qris($id);
-        }else{
-            $errors[]=$id;
+        } else {
+            $errors[] = $id;
         }
     }
 
-    // >>> bersihkan arsip untuk yang memang terhapus
+    // Bersihkan ARSIP untuk yang benar-benar terhapus (kalau ada)
     if (!empty($willPurgeArchives)){
         $this->_delete_archives_for_orders($willPurgeArchives);
     }
@@ -579,12 +610,40 @@ public function bulk_mark_paid(array $ids){
     }
 
     return [
-        "ok_count"=>$ok_count,
-        "paid_ids"=>$paid_ids,
-        "notfound_ids"=>$notfound,
-        "errors"=>$errors,
+        "ok_count"         => $ok_count,
+        "deleted_ids"      => $deleted,
+        "deleted_paid_ids" => $deletedPaid, // INFO: pesanan paid yang ikut terhapus
+        "notfound_ids"     => $notfound,
+        "errors"           => $errors,
     ];
 }
+
+// === HAPUS SATU (wrapper dari bulk_delete) ===
+public function delete_one(int $id): array
+{
+    $id = (int)$id;
+    if ($id <= 0) {
+        return [
+            'id'       => $id,
+            'ok'       => false,
+            'paid'     => false,
+            'notfound' => true,
+            'errors'   => [$id],
+        ];
+    }
+
+    // pakai logika bulk_delete supaya konsisten (skip status paid, dll.)
+    $res = $this->bulk_delete([$id]);
+
+    return [
+        'id'       => $id,
+        'ok'       => ($res['ok_count'] === 1 && empty($res['errors'])),
+        'paid'     => in_array($id, $res['paid_ids'], true),
+        'notfound' => in_array($id, $res['notfound_ids'], true),
+        'errors'   => $res['errors'],
+    ];
+}
+
 
 // === tambahkan di dalam class M_admin_pos ===
 /** Hapus arsip untuk order tertentu (header & items) */

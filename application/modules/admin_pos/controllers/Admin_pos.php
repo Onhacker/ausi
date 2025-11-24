@@ -1115,27 +1115,47 @@ public function wa_reminder(){
 
     /** Hapus */
    public function hapus_data(){
-        $ids = $this->input->post('id');
-        if (!is_array($ids) || !count($ids)){
-            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Tidak ada data"]); return;
-        }
-        $res = $this->dm->bulk_delete($ids);
-
-        $msgs = [];
-        if (!empty($res['ok_count']))        $msgs[] = $res['ok_count']." data dihapus.";
-        if (!empty($res['paid_ids']))        $msgs[] = "Ditolak (status paid): #".implode(', #', $res['paid_ids']);
-        if (!empty($res['notfound_ids']))    $msgs[] = "Tidak ditemukan: #".implode(', #', $res['notfound_ids']);
-        if (!empty($res['errors']))          $msgs[] = "Gagal: #".implode(', #', $res['errors']);
-
-        $ok = !empty($res['ok_count']) && empty($res['errors']);
-        if ($ok) $this->purge_public_caches();
-
+    $ids = $this->input->post('id');
+    if (!is_array($ids) || !count($ids)){
         echo json_encode([
-            "success"=>$ok,
-            "title"=>$ok?"Berhasil":"Sebagian/Gagal",
-            "pesan"=>implode(' ', $msgs) ?: 'Tidak ada yang diproses.'
+            "success" => false,
+            "title"   => "Gagal",
+            "pesan"   => "Tidak ada data yang dipilih."
         ]);
+        return;
     }
+
+    $res = $this->dm->bulk_delete($ids);
+
+    $msgs = [];
+    if (!empty($res['ok_count'])) {
+        $msgs[] = $res['ok_count']." data dihapus.";
+    }
+    if (!empty($res['deleted_paid_ids'])) {
+        // INFO aja: ada pesanan PAID yang ikut kehapus
+        $msgs[] = "Termasuk pesanan berstatus PAID: #".implode(', #', $res['deleted_paid_ids']);
+    }
+    if (!empty($res['notfound_ids'])) {
+        $msgs[] = "Tidak ditemukan: #".implode(', #', $res['notfound_ids']);
+    }
+    if (!empty($res['errors'])) {
+        $msgs[] = "Gagal dihapus: #".implode(', #', $res['errors']);
+    }
+
+    // sukses = ada yang kehapus DAN tidak ada error db
+    $ok = !empty($res['ok_count']) && empty($res['errors']);
+
+    if ($ok && method_exists($this, 'purge_public_caches')){
+        $this->purge_public_caches();
+    }
+
+    echo json_encode([
+        "success" => $ok,
+        "title"   => $ok ? "Berhasil" : "Sebagian/Gagal",
+        "pesan"   => $msgs ? implode(' ', $msgs) : 'Tidak ada yang diproses.',
+        "detail"  => $res, // buat debug di console kalau mau
+    ]);
+}
 
 
 public function print_struk_termalx($id = null)
