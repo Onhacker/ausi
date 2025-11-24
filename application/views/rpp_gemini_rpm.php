@@ -179,16 +179,34 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
         }
     </style>
 <style>
-  .rpm-title-wrap{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:.5rem;
+  /* Kolom "Pedoman Skor" (supaya tidak melebar-lebar seperti di screenshot) */
+  .document-table td.rubric-score-cell{
+    text-align: left;       /* override justify */
   }
-  .rpm-title-emoji{
-    font-size:1.6rem;
+
+  /* Numbering pedoman skor uraian */
+  .document-container ol.rubric-score-list{
+    list-style-type: decimal;   /* pakai angka 1,2,3,... */
+    margin: 0 0 .25rem 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .document-container ol.rubric-score-list > li{
+    margin-bottom: 2px;
   }
 </style>
+
+    <style>
+      .rpm-title-wrap{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:.5rem;
+      }
+      .rpm-title-emoji{
+        font-size:1.6rem;
+      }
+    </style>
 
     <style>
       /* Biar isi tabel rapi */
@@ -222,26 +240,26 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
         margin-bottom: 2px;
       }
 
-        .rpm-loader-wrap{
-    display:flex;
-    align-items:center;
-    gap:.5rem;
-    font-size:0.9rem;
-    margin-top:.75rem;
-  }
+      .rpm-loader-wrap{
+        display:flex;
+        align-items:center;
+        gap:.5rem;
+        font-size:0.9rem;
+        margin-top:.75rem;
+      }
 
-  .rpm-loader-icon{
-    width:16px;
-    height:16px;
-    border-radius:999px;
-    border:2px solid rgba(148,163,184,.5); /* abu-abu soft */
-    border-top-color:#2563eb;              /* biru primary */
-    animation:rpm-spin 0.8s linear infinite;
-  }
+      .rpm-loader-icon{
+        width:16px;
+        height:16px;
+        border-radius:999px;
+        border:2px solid rgba(148,163,184,.5); /* abu-abu soft */
+        border-top-color:#2563eb;              /* biru primary */
+        animation:rpm-spin 0.8s linear infinite;
+      }
 
-  @keyframes rpm-spin{
-    to { transform: rotate(360deg); }
-  }
+      @keyframes rpm-spin{
+        to { transform: rotate(360deg); }
+      }
     </style>
 
 </head>
@@ -436,7 +454,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
                         id="perintah_tambahan"
                         name="perintah_tambahan"
                         rows="3"
-                        placeholder="Beri Perintah. Contoh : sesuai dengan jurusan teknik komupter dan Jaringan Fase F. Gunakan perintah tambahan untuk merubah hasil. Contoh: Hapus karakter * di awal setiap baris, gunakan kalimat efektif, dll."><?= htmlspecialchars((string)($old_perintah_tambahan ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                        placeholder="Beri Perintah. Contoh : sesuai dengan jurusan teknik komputer dan jaringan Fase F. Gunakan perintah tambahan untuk merubah hasil. Contoh: Hapus karakter * di awal setiap baris, gunakan kalimat efektif, dll."><?= htmlspecialchars((string)($old_perintah_tambahan ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
                     <p class="mt-1 text-xs text-gray-500">
                         Contoh: <em>&quot;Hapus semua karakter * di awal baris&quot;</em>,
                         <em>&quot;Gunakan kalimat singkat dan padat&quot;</em>, dsb.
@@ -500,6 +518,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const spinner = btn.querySelector('.btn-spinner');
     const label   = btn.querySelector('.btn-label');
 
+    const STORAGE_KEY_FORM = 'rpm_form_data';
+    const STORAGE_KEY_PIN  = 'rpm_pin_ok';
+    const RPM_PIN          = '2025'; // UBAH PIN DI SINI
+
     const fieldMessages = {
         nama_guru: 'Nama guru masih kosong nih. Isi dulu ya, biar aku tahu siapa yang bikin RPM kece ini 😄',
         mata_pelajaran: 'Mata pelajaran belum dipilih. Pilih dulu dong, kamu ngajar mapel apa? 😉',
@@ -535,80 +557,239 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function showLoaderSteps() {
-    if (typeof Swal === 'undefined') {
-        return;
-    }
+    // === LocalStorage: simpan & restore isian form ===
+    function restoreFormFromStorage() {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            var json = localStorage.getItem(STORAGE_KEY_FORM);
+            if (!json) return;
+            var data = JSON.parse(json);
+            if (!data || typeof data !== 'object') return;
 
-    // steps pakai array yang sudah kamu bikin (boleh tetap yang panjang tadi)
-    var steps = [
-        'Lagi ngecek dulu semua data yang kamu isi...',
-        'Merapiin dulu nama guru, mapel, kelas, dan semesternya...',
-        'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
-        'Nyocokin materi dengan capaian pembelajaran yang pas...',
-        'Menentukan alokasi waktu tiap pertemuan biar pas dan realistis ⏱️',
-        'Meracik aktivitas pembelajaran biar nggak ngebosenin tapi tetap on track 🎯',
-        'Menyusun kalimat-kalimat pembelajaran biar jelas dan gampang dipahami siswa ✍️',
-        'Menyusun kalimat asesmen dan refleksi biar terasa lebih manusiawi dan friendly 😊',
-        'Merapikan struktur dan format RPM biar enak dibaca di HP maupun laptop 📄',
-        'Sedang poles lagi kalimat-kalimatnya biar makin kece dan rapi 😁',
-        'Double check biar nggak ada bagian penting yang ketinggalan ✅',
-        'Menyiapkan tampilan preview RPM langsung di layar kamu...',
-        'Menyiapkan dokumen dan tombol download biar bisa kamu simpan dan cetak dengan manis 👍'
-    ];
+            var fields = [
+                'nama_guru',
+                'mata_pelajaran',
+                'materi',
+                'kelas',
+                'semester',
+                'fase',
+                'tahun_pelajaran',
+                'pertemuan',
+                'total_waktu',
+                'perintah_tambahan'
+            ];
 
-    var idx = 0;
+            fields.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
 
-   Swal.fire({
-    // Title pakai HTML, ada emoji "berpikir"
-    title:
-        '<div class="rpm-title-wrap">' +
-            '<span class="rpm-title-emoji">🤔</span>' +
-            '<span>Generate RPM dulu ya...</span>' +
-        '</div>',
-
-    // Isi: spinner kecil + teks step
-    html:
-        '<div class="rpm-loader-wrap">' +
-            '<span class="rpm-loader-icon"></span>' +
-            '<span id="rpm-loader-text">' + steps[0] + '</span>' +
-        '</div>',
-
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    showConfirmButton: false,
-
-    didOpen: function (popup) {
-        // === Icon loading bawaan SweetAlert2 (bulat muter di area icon) ===
-        Swal.showLoading();
-
-        var textEl = popup.querySelector('#rpm-loader-text');
-        var interval = setInterval(function () {
-            idx++;
-            if (!textEl || idx >= steps.length) {
-                clearInterval(interval);
-                return;
-            }
-            textEl.textContent = steps[idx];
-        }, 1200);
-
-        // Simpan interval ke popup biar bisa dibersihkan saat willClose
-        popup.dataset.rpmIntervalId = interval;
-    },
-
-    willClose: function(popup){
-        var id = popup && popup.dataset ? popup.dataset.rpmIntervalId : null;
-        if (id) {
-            clearInterval(id);
+                var current = (el.value || '').toString().trim();
+                if (current === '' && data[id] !== undefined && data[id] !== null) {
+                    el.value = data[id];
+                }
+            });
+        } catch (e) {
+            // ignore
         }
     }
-});
 
-}
+    function saveFormToStorage() {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            var data = {};
+            var fields = [
+                'nama_guru',
+                'mata_pelajaran',
+                'materi',
+                'kelas',
+                'semester',
+                'fase',
+                'tahun_pelajaran',
+                'pertemuan',
+                'total_waktu',
+                'perintah_tambahan'
+            ];
+            fields.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                data[id] = (el.value || '').toString();
+            });
+            localStorage.setItem(STORAGE_KEY_FORM, JSON.stringify(data));
+        } catch (e) {
+            // ignore
+        }
+    }
 
+    function setFormEnabled(enabled) {
+        var elems = form.querySelectorAll('input, select, textarea, button');
+        elems.forEach(function (el) {
+            el.disabled = !enabled;
+        });
+    }
+
+    function showPinGate() {
+        if (typeof Swal === 'undefined') return;
+
+        setFormEnabled(false);
+
+        var waText = encodeURIComponent('Assalamualaikum, Ibu Nurhikmah, saya butuh PIN utk Akses RPM Generator, Saya dari ..........');
+        var waLink = 'https://wa.me/6285255541755?text=' + waText;
+
+        Swal.fire({
+            icon: 'info',
+            title: 'PIN Akses RPM',
+            html:
+                '<p style="font-size:0.9rem;margin-bottom:0.75rem;">' +
+                    'Halaman ini dikunci dengan PIN. Kalau belum punya, silakan minta dulu ke Bu Nurhikmah lewat WhatsApp.' +
+                '</p>' +
+                '<p style="margin-bottom:0.75rem;">' +
+                    '<a href="'+ waLink +'" target="_blank" style="color:#2563eb;text-decoration:underline;font-weight:500;">' +
+                        'Klik di sini untuk chat Bu Nurhikmah via WA' +
+                    '</a>' +
+                '</p>' +
+                '<p style="font-size:0.85rem;color:#6b7280;">' +
+                    'Setelah dapat PIN, masukkan di bawah ini ya 👇' +
+                '</p>',
+            input: 'password',
+            inputPlaceholder: 'Masukkan PIN akses di sini',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocomplete: 'off'
+            },
+            confirmButtonText: 'Masuk',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showCancelButton: false,
+            preConfirm: function (value) {
+                if (!value) {
+                    Swal.showValidationMessage('PIN belum diisi, cobain diisi dulu ya 😊');
+                    return false;
+                }
+                if (value !== RPM_PIN) {
+                    Swal.showValidationMessage('PIN-nya masih salah nih. Coba dicek lagi, atau chat Bu Nurhikmah kalau lupa 🔐');
+                    return false;
+                }
+                return true;
+            }
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                try {
+                    if (typeof localStorage !== 'undefined') {
+                        localStorage.setItem(STORAGE_KEY_PIN, '1');
+                    }
+                } catch (e) {}
+                pinOK = true;
+                setFormEnabled(true);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Akses dibuka 🎉',
+                    text: 'Silakan isi form RPM, semoga bermanfaat 😊',
+                    timer: 1600,
+                    showConfirmButton: false
+                });
+            }
+        });
+    }
+
+    // Cek apakah PIN sudah pernah diisi di device ini
+    let pinOK = false;
+    try {
+        if (typeof localStorage !== 'undefined') {
+            pinOK = (localStorage.getItem(STORAGE_KEY_PIN) === '1');
+        }
+    } catch (e) {
+        pinOK = false;
+    }
+
+    if (!pinOK) {
+        setFormEnabled(false);
+        showPinGate();
+    } else {
+        setFormEnabled(true);
+    }
+
+    // Restore form dari localStorage
+    restoreFormFromStorage();
+    form.addEventListener('input', saveFormToStorage);
+    form.addEventListener('change', saveFormToStorage);
+
+    function showLoaderSteps() {
+        if (typeof Swal === 'undefined') {
+            return;
+        }
+
+        var steps = [
+            'Lagi ngecek dulu semua data yang kamu isi...',
+            'Merapiin dulu nama guru, mapel, kelas, dan semesternya...',
+            'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
+            'Nyocokin materi dengan capaian pembelajaran yang pas...',
+            'Menentukan alokasi waktu tiap pertemuan biar pas dan realistis ⏱️',
+            'Meracik aktivitas pembelajaran biar nggak ngebosenin tapi tetap on track 🎯',
+            'Menyusun kalimat-kalimat pembelajaran biar jelas dan gampang dipahami siswa ✍️',
+            'Menyusun kalimat asesmen dan refleksi biar terasa lebih manusiawi dan friendly 😊',
+            'Merapikan struktur dan format RPM biar enak dibaca di HP maupun laptop 📄',
+            'Sedang poles lagi kalimat-kalimatnya biar makin kece dan rapi 😁',
+            'Double check biar nggak ada bagian penting yang ketinggalan ✅',
+            'Menyiapkan tampilan preview RPM langsung di layar kamu...',
+            'Menyiapkan dokumen dan tombol download biar bisa kamu simpan dan cetak dengan manis 👍'
+        ];
+
+        var idx = 0;
+
+        Swal.fire({
+            // Title pakai HTML, ada emoji "berpikir"
+            title:
+                '<div class="rpm-title-wrap">' +
+                    '<span class="rpm-title-emoji">🤔</span>' +
+                    '<span>Generate RPM dulu ya...</span>' +
+                '</div>',
+
+            // Isi: spinner kecil + teks step
+            html:
+                '<div class="rpm-loader-wrap">' +
+                    '<span class="rpm-loader-icon"></span>' +
+                    '<span id="rpm-loader-text">' + steps[0] + '</span>' +
+                '</div>',
+
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+
+            didOpen: function (popup) {
+                // Icon loading bawaan SweetAlert2
+                Swal.showLoading();
+
+                var textEl = popup.querySelector('#rpm-loader-text');
+                var interval = setInterval(function () {
+                    idx++;
+                    if (!textEl || idx >= steps.length) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    textEl.textContent = steps[idx];
+                }, 1200);
+
+                // Simpan interval ke popup biar bisa dibersihkan saat willClose
+                popup.dataset.rpmIntervalId = interval;
+            },
+
+            willClose: function (popup) {
+                var id = popup && popup.dataset ? popup.dataset.rpmIntervalId : null;
+                if (id) {
+                    clearInterval(id);
+                }
+            }
+        });
+    }
 
     form.addEventListener('submit', function (e) {
         e.preventDefault();
+
+        // Kalau belum punya PIN yang valid, paksa buka gate dulu
+        if (!pinOK) {
+            showPinGate();
+            return;
+        }
 
         // Cegah double submit
         if (btn.dataset.submitting === '1') {
