@@ -761,21 +761,33 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        var steps = [
-            'Lagi ngecek dulu semua data yang kamu isi...',
-            'Merapiin dulu nama guru, mapel, kelas, dan semesternya...',
-            'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
-            'Nyocokin materi dengan capaian pembelajaran yang pas...',
-            'Menentukan alokasi waktu tiap pertemuan biar pas dan realistis ⏱️',
-            'Meracik aktivitas pembelajaran biar nggak ngebosenin tapi tetap on track 🎯',
-            'Menyusun kalimat-kalimat pembelajaran biar jelas dan gampang dipahami siswa ✍️',
-            'Menyusun kalimat asesmen dan refleksi biar terasa lebih manusiawi dan friendly 😊',
-            'Merapikan struktur dan format RPM biar enak dibaca di HP maupun laptop 📄',
-            'Sedang poles lagi kalimat-kalimatnya biar makin kece dan rapi 😁',
-            'Double check biar nggak ada bagian penting yang ketinggalan ✅',
-            'Menyiapkan tampilan preview RPM langsung di layar kamu...',
-            'Menyiapkan dokumen dan tombol download biar bisa kamu simpan dan cetak dengan manis 👍'
-        ];
+       var steps = [
+        'Lagi ngecek dulu semua data yang kamu isi...',
+        'Merapiin dulu nama guru, mapel, kelas, dan semesternya...',
+        'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
+        'Nyocokin materi dengan capaian pembelajaran yang pas...',
+        'Menentukan alokasi waktu tiap pertemuan biar pas dan realistis ⏱️',
+        'Meracik aktivitas pembelajaran biar nggak ngebosenin tapi tetap on track 🎯',
+        'Menyusun kalimat-kalimat pembelajaran biar jelas dan gampang dipahami siswa ✍️',
+        'Menyusun kalimat asesmen dan refleksi biar terasa lebih manusiawi dan friendly 😊',
+        'Merapikan struktur dan format RPM biar enak dibaca di HP maupun laptop 📄',
+        'Sedang poles lagi kalimat-kalimatnya biar makin kece dan rapi 😁',
+        'Double check biar nggak ada bagian penting yang ketinggalan ✅',
+
+        // ===== PUISI LOADING UNTUK MENGHIBUR GURU =====
+        'Di antara baris-baris teks, ada niat baik guru yang diam-diam bikin haru 🌙',
+        'RPP disusun pelan-pelan, seperti guru menata harapan di dalam kelas setiap hari 📚',
+        'Setiap tujuan pembelajaran adalah doa kecil agar muridmu kuat melangkah ke depan 🌱',
+        'Kalau hari ini capek menyusun, semoga esok ada senyum murid yang jadi obatnya 😊',
+        'Di balik kata “asesmen” yang kaku, ada perhatianmu yang lembut mengamati satu-satu 💛',
+        'Biar sistem yang kerja keras sekarang, gurunya boleh tarik napas dan minum teh dulu 🍵',
+        'Tenang, pelan-pelan saja… yang penting hatimu tetap tulus buat murid-muridmu 💖',
+
+        // ===== PENUTUP LOADING =====
+        'Menyiapkan tampilan preview RPM langsung di layar kamu...',
+        'Menyiapkan dokumen dan tombol download biar bisa kamu simpan dan cetak dengan manis 👍'
+    ];
+
 
         var idx = 0;
 
