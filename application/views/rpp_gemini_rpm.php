@@ -35,6 +35,10 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SweetAlert2 CSS -->
+    <link href="<?php echo base_url('assets/admin') ?>/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
@@ -66,7 +70,6 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
             box-sizing: border-box;
         }
 
-       
         /* textarea sedikit lebih tinggi & turun dari atas */
         textarea {
             padding-top: 0.9rem;
@@ -219,8 +222,6 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
         <h2 class="text-2xl font-bold mb-1">Rencana Pembelajaran Mendalam SMKN 1 WAJO</h2>
         <p class="text-sm text-gray-600 mb-6">
             Isi data di bawah ini untuk membuat Rencana Pembelajaran Mendalam (RPM) secara otomatis.
-       
-            
         </p>
         
         <p style="text-align: right;"><strong>RPM Generator By Veeya</strong></p>
@@ -452,22 +453,149 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
     </div>
 </div>
 
+<!-- SweetAlert2 JS -->
+<script src="<?php echo base_url('assets/admin') ?>/js/sw.min.js"></script>
+
 <script>
-(function(){
-    const form   = document.getElementById('rpmForm');
-    const btn    = document.getElementById('btn-generate');
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('rpmForm');
+    const btn  = document.getElementById('btn-generate');
     if (!form || !btn) return;
+
+    // Matikan native HTML5 validation biar kita pakai Swal sendiri
+    form.setAttribute('novalidate', 'novalidate');
 
     const spinner = btn.querySelector('.btn-spinner');
     const label   = btn.querySelector('.btn-label');
 
-    form.addEventListener('submit', function () {
-        if (btn.disabled) return;
+    const fieldMessages = {
+        nama_guru: 'Nama guru masih kosong nih. Isi dulu ya, biar aku tahu siapa yang bikin RPM kece ini 😄',
+        mata_pelajaran: 'Mata pelajaran belum dipilih. Pilih dulu dong, kamu ngajar mapel apa? 😉',
+        materi: 'Materi pokok belum diisi. Tulis dulu materi yang mau diajarin biar aku bisa nyusun RPM-nya ✍️',
+        kelas: 'Kelas belum diisi. Contoh: X, XI TKJ 1, atau XII AKL 2. Isi dulu yaa 🙌',
+        semester: 'Semester belum dipilih. Ganjil atau Genap nih? Pilih salah satu dulu ya 😁',
+        tahun_pelajaran: 'Tahun ajaran belum dipilih. Biar administrasinya rapi, pilih dulu tahun ajarannya ✨',
+        pertemuan: 'Jumlah pertemuan masih kosong atau nol. Isi berapa kali pertemuan yang mau kamu buat ya 😊'
+    };
+
+    function getValue(id) {
+        var el = document.getElementById(id);
+        if (!el) return '';
+        return (el.value || '').toString().trim();
+    }
+
+    function showRequiredAlert(fieldId) {
+        var msg = fieldMessages[fieldId] || 'Masih ada data yang kosong nih. Lengkapi dulu yaa 😉';
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Eits, bentar dulu...',
+                text: msg,
+                confirmButtonText: 'Siap, aku isi dulu'
+            }).then(function () {
+                var el = document.getElementById(fieldId);
+                if (el) el.focus();
+            });
+        } else {
+            alert(msg);
+            var el = document.getElementById(fieldId);
+            if (el) el.focus();
+        }
+    }
+
+    function showLoaderSteps() {
+        if (typeof Swal === 'undefined') {
+            return;
+        }
+        var steps = [
+            'Lagi ngecek dulu semua data yang kamu isi...',
+            'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
+            'Menyusun format RPM biar rapi dan enak dibaca ✍️',
+            'Finishing... bentar lagi jadi kok, santai dulu ya ☕'
+        ];
+        var idx = 0;
+
+        Swal.fire({
+            title: 'Generate RPM dulu ya...',
+            html: '<div id="rpm-loader-text" style="font-size:0.9rem; margin-top:0.5rem;">' + steps[0] + '</div>',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: function (popup) {
+                Swal.showLoading();
+                var textEl = popup.querySelector('#rpm-loader-text');
+                var interval = setInterval(function () {
+                    idx++;
+                    if (!textEl || idx >= steps.length) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    textEl.textContent = steps[idx];
+                }, 1200);
+            }
+        });
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // Cegah double submit
+        if (btn.dataset.submitting === '1') {
+            return;
+        }
+
+        var namaGuru     = getValue('nama_guru');
+        var mapel        = getValue('mata_pelajaran');
+        var materi       = getValue('materi');
+        var kelas        = getValue('kelas');
+        var semester     = getValue('semester');
+        var tahunPel     = getValue('tahun_pelajaran');
+        var pertemuanVal = getValue('pertemuan');
+        var pertemuanNum = parseInt(pertemuanVal, 10);
+
+        if (!namaGuru) {
+            showRequiredAlert('nama_guru');
+            return;
+        }
+        if (!mapel) {
+            showRequiredAlert('mata_pelajaran');
+            return;
+        }
+        if (!materi) {
+            showRequiredAlert('materi');
+            return;
+        }
+        if (!kelas) {
+            showRequiredAlert('kelas');
+            return;
+        }
+        if (!semester) {
+            showRequiredAlert('semester');
+            return;
+        }
+        if (!tahunPel) {
+            showRequiredAlert('tahun_pelajaran');
+            return;
+        }
+        if (!pertemuanVal || isNaN(pertemuanNum) || pertemuanNum <= 0) {
+            showRequiredAlert('pertemuan');
+            return;
+        }
+
+        // Kalau lolos semua validasi
+        btn.dataset.submitting = '1';
         btn.disabled = true;
         if (spinner) spinner.classList.remove('hidden');
         if (label)   label.textContent = 'Lagi berpikir keras...';
+
+        // Tampilkan loader step SweetAlert
+        showLoaderSteps();
+
+        // Kasih jeda dikit supaya Swal sempat muncul sebelum halaman reload
+        setTimeout(function () {
+            form.submit();
+        }, 400);
     });
-})();
+});
 </script>
 </body>
 </html>
