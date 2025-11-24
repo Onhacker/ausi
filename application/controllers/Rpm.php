@@ -163,27 +163,44 @@ if ($perintah_tambahan !== '') {
      * Download dokumen sebagai .doc (Word)
      */
     public function download()
-    {
-        $contentEscaped = $this->input->post('rpm_content', FALSE);
-        if ($contentEscaped === null || $contentEscaped === '') {
-            show_404();
-            return;
-        }
+{
+    $contentEscaped = $this->input->post('rpm_content', FALSE);
+    if ($contentEscaped === null || $contentEscaped === '') {
+        show_404();
+        return;
+    }
 
-        $content  = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
-        $filename = 'RPP_' . date('Ymd_His') . '.doc';
+    $content  = htmlspecialchars_decode($contentEscaped, ENT_NOQUOTES);
+    $filename = 'RPP_' . date('Ymd_His') . '.doc';
 
-        header("Content-Type: application/msword; charset=UTF-8");
-        header("Content-Disposition: attachment; filename=\"{$filename}\"");
-        header("Cache-Control: no-store, no-cache, must-revalidate");
+    header("Content-Type: application/msword; charset=UTF-8");
+    header("Content-Disposition: attachment; filename=\"{$filename}\"");
+    header("Cache-Control: no-store, no-cache, must-revalidate");
 
-             echo "<html><head><meta charset=\"UTF-8\"><title>Rencana Pembelajaran Mendalam SMKN 1 WAJO</title>
+    echo "<html><head><meta charset=\"UTF-8\"><title>Rencana Pembelajaran Mendalam SMKN 1 WAJO</title>
 <style>
   body {
     font-family: 'Times New Roman', serif;
     font-size: 12pt;
     line-height: 150%;              /* SPASI 1,5 UMUM */
     mso-line-height-alt: 18pt;      /* BANTU WORD BACA 1,5 */
+  }
+
+  /* === PENGATURAN ORIENTASI HALAMAN UNTUK WORD === */
+  @page {
+    size: 21cm 29.7cm;              /* default: A4 portrait */
+    margin: 2.5cm;
+  }
+
+  @page landscapeSection {
+    size: 29.7cm 21cm;              /* A4 landscape */
+    margin: 2.5cm;
+  }
+
+  /* blok yang pakai class ini akan dicetak landscape */
+  .section-landscape {
+    page: landscapeSection;
+    mso-page-orientation: landscape;
   }
 
   /* pastikan paragraf & list ikut 1,5 juga */
@@ -225,16 +242,14 @@ if ($perintah_tambahan !== '') {
     margin-bottom: 2px;
     text-align: justify;
   }
-
- 
 </style>
 </head><body>";
 
+    echo $content;
+    echo "</body></html>";
+    exit;
+}
 
-        echo $content;
-        echo "</body></html>";
-        exit;
-    }
 
     // ================== HELPER: panggil Gemini & parse JSON ==================
 
@@ -302,41 +317,42 @@ if ($perintah_tambahan !== '') {
      * Bangun HTML "Lampiran: Rubrik Penilaian"
      * Rubrik diambil dari isi asesmen_awal, asesmen_proses, asesmen_akhir.
      */
-    private function _build_rubrik_penilaian_html(array $g): string
-    {
-        $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
-        $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
-        $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
+   private function _build_rubrik_penilaian_html(array $g): string
+{
+    $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
+    $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
+    $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
 
-        // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
-        if (empty($awal) && empty($proses) && empty($akhir)) {
-            return '';
-        }
+    // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
+    if (empty($awal) && empty($proses) && empty($akhir)) {
+        return '';
+    }
 
-        $html = '
-<div class="mt-8">
+    // section-landscape + page-break-before:always -> rubrik di halaman baru & landscape
+    $html = '
+<div class="mt-8 section-landscape" style="page-break-before:always;">
   <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian</h4>
   <p class="text-sm text-gray-700 mb-3">
     Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik.
   </p>
 ';
 
-        $sections = [
-            'Assessment of Learning (Awal)'   => $awal,
-            'Assessment as Learning (Proses)' => $proses,
-            'Assessment for Learning (Akhir)' => $akhir,
-        ];
+    $sections = [
+        'Assessment of Learning (Awal)'   => $awal,
+        'Assessment as Learning (Proses)' => $proses,
+        'Assessment for Learning (Akhir)' => $akhir,
+    ];
 
-        $secNo = 1;
-        foreach ($sections as $label => $criteria) {
-            if (empty($criteria)) {
-                $secNo++;
-                continue;
-            }
+    $secNo = 1;
+    foreach ($sections as $label => $criteria) {
+        if (empty($criteria)) {
+            $secNo++;
+            continue;
+        }
 
-            $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
 
-            $html .= '
+        $html .= '
   <h4 class="font-semibold mt-4 mb-2">'.$secNo.'. '.$labelEsc.'</h4>
   <table class="document-table">
     <thead>
@@ -351,11 +367,11 @@ if ($perintah_tambahan !== '') {
     </thead>
     <tbody>
 ';
-            $no = 1;
-            foreach ($criteria as $critRaw) {
-                $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
+        $no = 1;
+        foreach ($criteria as $critRaw) {
+            $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
 
-                $html .= '
+            $html .= '
       <tr>
         <td>'.$no.'</td>
         <td>'.$critEsc.'</td>
@@ -365,20 +381,21 @@ if ($perintah_tambahan !== '') {
         <td>Belum menunjukkan penguasaan yang memadai terhadap aspek <em>'.$critEsc.'</em> dan memerlukan bimbingan intensif.</td>
       </tr>
 ';
-                $no++;
-            }
+            $no++;
+        }
 
-            $html .= '
+        $html .= '
     </tbody>
   </table>
 ';
-            $secNo++;
-        }
-
-        $html .= '</div>';
-
-        return $html;
+        $secNo++;
     }
+
+    $html .= '</div>';
+
+    return $html;
+}
+
 
     // ================== HELPER: format teks multi-baris ke HTML ==================
 
@@ -664,7 +681,7 @@ private function _build_bank_soal_html(array $g): string
     /* ==================== 1. SOAL PILIHAN GANDA ==================== */
     if (!empty($pilgan)) {
         $html .= '
-  <h5 class="font-semibold mt-2 mb-1">1. Soal Pilihan Ganda</h5>
+  <h4 class="font-semibold mt-2 mb-1">1. Soal Pilihan Ganda</h4>
   <table class="document-table">
     <thead>
       <tr>
@@ -715,7 +732,7 @@ private function _build_bank_soal_html(array $g): string
     /* ==================== 2. SOAL URAIAN ==================== */
     if (!empty($uraian)) {
         $html .= '
-  <h5 class="font-semibold mt-4 mb-1">2. Soal Uraian</h5>
+  <h4 class="font-semibold mt-4 mb-1">2. Soal Uraian</h4>
   <table class="document-table">
     <thead>
       <tr>
