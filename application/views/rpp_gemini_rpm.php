@@ -210,6 +210,27 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
       .document-container ol.numbered-list ul > li {
         margin-bottom: 2px;
       }
+
+        .rpm-loader-wrap{
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+    font-size:0.9rem;
+    margin-top:.75rem;
+  }
+
+  .rpm-loader-icon{
+    width:16px;
+    height:16px;
+    border-radius:999px;
+    border:2px solid rgba(148,163,184,.5); /* abu-abu soft */
+    border-top-color:#2563eb;              /* biru primary */
+    animation:rpm-spin 0.8s linear infinite;
+  }
+
+  @keyframes rpm-spin{
+    to { transform: rotate(360deg); }
+  }
     </style>
 
 </head>
@@ -504,36 +525,46 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function showLoaderSteps() {
-        if (typeof Swal === 'undefined') {
-            return;
-        }
-        var steps = [
-            'Lagi ngecek dulu semua data yang kamu isi...',
-            'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
-            'Menyusun format RPM biar rapi dan enak dibaca ✍️',
-            'Finishing... bentar lagi jadi kok, santai dulu ya ☕'
-        ];
-        var idx = 0;
-
-        Swal.fire({
-            title: 'Generate RPM dulu ya...',
-            html: '<div id="rpm-loader-text" style="font-size:0.9rem; margin-top:0.5rem;">' + steps[0] + '</div>',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: function (popup) {
-                Swal.showLoading();
-                var textEl = popup.querySelector('#rpm-loader-text');
-                var interval = setInterval(function () {
-                    idx++;
-                    if (!textEl || idx >= steps.length) {
-                        clearInterval(interval);
-                        return;
-                    }
-                    textEl.textContent = steps[idx];
-                }, 1200);
-            }
-        });
+    if (typeof Swal === 'undefined') {
+        return;
     }
+    var steps = [
+        'Lagi ngecek dulu semua data yang kamu isi...',
+        'Merapiin dulu nama guru, mapel, kelas, dan semesternya...',
+        'Sedang ngobrol bareng mesin pintar buat nyusun ide 😎',
+        'Nyocokin materi dengan capaian pembelajaran yang pas...',
+        'Menentukan alokasi waktu tiap pertemuan biar pas dan realistis ⏱️',
+        'Meracik aktivitas pembelajaran biar nggak ngebosenin tapi tetap on track 🎯',
+        'Menyusun kalimat-kalimat pembelajaran biar jelas dan gampang dipahami siswa ✍️',
+        'Menyusun kalimat asesmen dan refleksi biar terasa lebih manusiawi dan friendly 😊',
+        'Merapikan struktur dan format RPM biar enak dibaca di HP maupun laptop 📄',
+        'Sedang poles lagi kalimat-kalimatnya biar makin kece dan rapi 😁',
+        'Double check biar nggak ada bagian penting yang ketinggalan ✅',
+        'Menyiapkan tampilan preview RPM langsung di layar kamu...',
+        'Menyiapkan dokumen dan tombol download biar bisa kamu simpan dan cetak dengan manis 👍'
+    ];
+    var idx = 0;
+
+    Swal.fire({
+        title: 'Generate RPM dulu ya...',
+        html: '<div id="rpm-loader-text" style="font-size:0.9rem; margin-top:0.5rem;">' + steps[0] + '</div>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: function (popup) {
+            Swal.showLoading();
+            var textEl = popup.querySelector('#rpm-loader-text');
+            var interval = setInterval(function () {
+                idx++;
+                if (!textEl || idx >= steps.length) {
+                    clearInterval(interval);
+                    return;
+                }
+                textEl.textContent = steps[idx];
+            }, 1200);
+        }
+    });
+}
+
 
     form.addEventListener('submit', function (e) {
         e.preventDefault();
