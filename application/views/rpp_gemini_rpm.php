@@ -178,6 +178,17 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
             height:16px;
         }
     </style>
+<style>
+  .rpm-title-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+  }
+  .rpm-title-emoji{
+    font-size:1.6rem;
+  }
+</style>
 
     <style>
       /* Biar isi tabel rapi */
@@ -548,28 +559,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var idx = 0;
 
-    Swal.fire({
-        title: 'Generate RPM dulu ya...',
-        html:
-            '<div class="rpm-loader-wrap">' +
-                '<span class="rpm-loader-icon"></span>' +
-                '<span id="rpm-loader-text">' + steps[0] + '</span>' +
-            '</div>',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: function (popup) {
-            var textEl = popup.querySelector('#rpm-loader-text');
-            var interval = setInterval(function () {
-                idx++;
-                if (!textEl || idx >= steps.length) {
-                    clearInterval(interval);
-                    return;
-                }
-                textEl.textContent = steps[idx];
-            }, 1200);
+   Swal.fire({
+    // Title pakai HTML, ada emoji "berpikir"
+    title:
+        '<div class="rpm-title-wrap">' +
+            '<span class="rpm-title-emoji">🤔</span>' +
+            '<span>Generate RPM dulu ya...</span>' +
+        '</div>',
+
+    // Isi: spinner kecil + teks step
+    html:
+        '<div class="rpm-loader-wrap">' +
+            '<span class="rpm-loader-icon"></span>' +
+            '<span id="rpm-loader-text">' + steps[0] + '</span>' +
+        '</div>',
+
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+
+    didOpen: function (popup) {
+        // === Icon loading bawaan SweetAlert2 (bulat muter di area icon) ===
+        Swal.showLoading();
+
+        var textEl = popup.querySelector('#rpm-loader-text');
+        var interval = setInterval(function () {
+            idx++;
+            if (!textEl || idx >= steps.length) {
+                clearInterval(interval);
+                return;
+            }
+            textEl.textContent = steps[idx];
+        }, 1200);
+
+        // Simpan interval ke popup biar bisa dibersihkan saat willClose
+        popup.dataset.rpmIntervalId = interval;
+    },
+
+    willClose: function(popup){
+        var id = popup && popup.dataset ? popup.dataset.rpmIntervalId : null;
+        if (id) {
+            clearInterval(id);
         }
-    });
+    }
+});
+
 }
 
 
