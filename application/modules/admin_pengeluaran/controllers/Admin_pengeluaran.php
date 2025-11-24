@@ -128,6 +128,7 @@ class Admin_pengeluaran extends Admin_Controller {
     /** Tambah */
     public function create(){
         try{
+
              $rawTanggal = $this->input->post('tanggal', true);
 
             // kalau kosong → pakai sekarang
@@ -139,7 +140,17 @@ class Admin_pengeluaran extends Admin_Controller {
 
             // $tanggal   = $this->input->post('tanggal', true) ?: date('Y-m-d H:i:s');
             $kategori  = $this->input->post('kategori', true) ?: 'Umum';
-            $keterangan= $this->input->post('keterangan', true);
+            // $keterangan= $this->input->post('keterangan', true);
+            $keterangan = trim((string)$this->input->post('keterangan', true));
+                if ($keterangan === '') {
+                    echo json_encode([
+                        "success" => false,
+                        "title"   => "Gagal",
+                        "pesan"   => "Keterangan tidak boleh kosong"
+                    ]);
+                    return;
+                }
+
             $jumlahStr = $this->input->post('jumlah', true);
             $metode    = $this->input->post('metode_bayar', true) ?: 'cash';
 
@@ -188,7 +199,17 @@ class Admin_pengeluaran extends Admin_Controller {
 
             // $tanggal   = $this->input->post('tanggal', true);
             $kategori  = $this->input->post('kategori', true);
-            $keterangan= $this->input->post('keterangan', true);
+            // $keterangan= $this->input->post('keterangan', true);
+            $keterangan = trim((string)$this->input->post('keterangan', true));
+            if ($keterangan === '') {
+                echo json_encode([
+                    "success" => false,
+                    "title"   => "Gagal",
+                    "pesan"   => "Keterangan tidak boleh kosong"
+                ]);
+                return;
+            }
+
             $jumlahStr = $this->input->post('jumlah', true);
             $metode    = $this->input->post('metode_bayar', true);
 
