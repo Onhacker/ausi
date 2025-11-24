@@ -403,7 +403,7 @@ if ($old_pertemuan === null || $old_pertemuan === '') {
                         id="perintah_tambahan"
                         name="perintah_tambahan"
                         rows="3"
-                        placeholder="Gunakan perintah tambahan untuk merubah hasil. Contoh: Hapus karakter * di awal setiap baris, gunakan kalimat efektif, dll."><?= htmlspecialchars((string)($old_perintah_tambahan ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                        placeholder="Beri Perintah. Contoh : sesuai dengan jurusan teknik komupter dan Jaringan Fase F. Gunakan perintah tambahan untuk merubah hasil. Contoh: Hapus karakter * di awal setiap baris, gunakan kalimat efektif, dll."><?= htmlspecialchars((string)($old_perintah_tambahan ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
                     <p class="mt-1 text-xs text-gray-500">
                         Contoh: <em>&quot;Hapus semua karakter * di awal baris&quot;</em>,
                         <em>&quot;Gunakan kalimat singkat dan padat&quot;</em>, dsb.

@@ -416,6 +416,120 @@ private function _fmt_multiline(?string $text): string
     return $html;
 }
 
+    /**
+     * Ekstrak baris-baris kriteria dari teks asesmen (dipakai untuk rubrik).
+     * - Pecah per baris
+     * - Buang nomor / bullet di depan
+     * - Hilangkan baris kosong
+     */
+    private function _extract_criteria_lines(?string $text): array
+    {
+        $text = trim((string)$text);
+        if ($text === '') {
+            return [];
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', $text);
+        $out   = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+
+            // buang nomor / bullet di depan: "1. ...", "2) ...", "- ...", "• ..."
+            $line = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $line);
+            $line = trim($line);
+
+            if ($line !== '') {
+                $out[] = $line;
+            }
+        }
+
+        return $out;
+    }
+    /**
+     * Bangun HTML "Lampiran: Rubrik Penilaian"
+     * Rubrik diambil dari isi asesmen_awal, asesmen_proses, asesmen_akhir.
+     */
+    private function _build_rubrik_penilaian_html(array $g): string
+    {
+        $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
+        $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
+        $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
+
+        // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
+        if (empty($awal) && empty($proses) && empty($akhir)) {
+            return '';
+        }
+
+        $html = '
+<div class="mt-8">
+  <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian</h4>
+  <p class="text-sm text-gray-700 mb-3">
+    Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik.
+  </p>
+';
+
+        $sections = [
+            'Assessment of Learning (Awal)'   => $awal,
+            'Assessment as Learning (Proses)' => $proses,
+            'Assessment for Learning (Akhir)' => $akhir,
+        ];
+
+        $secNo = 1;
+        foreach ($sections as $label => $criteria) {
+            if (empty($criteria)) {
+                $secNo++;
+                continue;
+            }
+
+            $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+
+            $html .= '
+  <h5 class="font-semibold mt-4 mb-2">'.$secNo.'. '.$labelEsc.'</h5>
+  <table class="document-table">
+    <thead>
+      <tr>
+        <th style="width:32px;">No</th>
+        <th>Kriteria</th>
+        <th>Sangat Baik (4)</th>
+        <th>Baik (3)</th>
+        <th>Cukup (2)</th>
+        <th>Perlu Bimbingan (1)</th>
+      </tr>
+    </thead>
+    <tbody>
+';
+            $no = 1;
+            foreach ($criteria as $critRaw) {
+                $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
+
+                $html .= '
+      <tr>
+        <td>'.$no.'</td>
+        <td>'.$critEsc.'</td>
+        <td>Menunjukkan penguasaan sangat baik terhadap aspek <em>'.$critEsc.'</em>, mandiri dan konsisten.</td>
+        <td>Menunjukkan penguasaan baik terhadap aspek <em>'.$critEsc.'</em>, terdapat sedikit kekeliruan namun tidak mengganggu pencapaian tujuan.</td>
+        <td>Menunjukkan penguasaan cukup terhadap aspek <em>'.$critEsc.'</em>, masih memerlukan bimbingan pada beberapa bagian.</td>
+        <td>Belum menunjukkan penguasaan yang memadai terhadap aspek <em>'.$critEsc.'</em> dan memerlukan bimbingan intensif.</td>
+      </tr>
+';
+                $no++;
+            }
+
+            $html .= '
+    </tbody>
+  </table>
+';
+            $secNo++;
+        }
+
+        $html .= '</div>';
+
+        return $html;
+    }
 
 
     // ================== HELPER: susun HTML tabel RPM ==================
@@ -535,7 +649,7 @@ private function _fmt_multiline(?string $text): string
     </tbody>
   </table>
 </div>";
-
+     $html .= $this->_build_rubrik_penilaian_html($g);
         return $html;
     }
 }
