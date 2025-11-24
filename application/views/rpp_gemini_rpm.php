@@ -518,11 +518,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const spinner = btn.querySelector('.btn-spinner');
     const label   = btn.querySelector('.btn-label');
 
-    const STORAGE_KEY_FORM = 'rpm_form_data';
-    const STORAGE_KEY_PIN  = 'rpm_pin_ok';
-    const RPM_PIN          = '<?= isset($pin)
+    const STORAGE_KEY_FORM    = 'rpm_form_data';
+    const STORAGE_KEY_PIN     = 'rpm_pin_ok';
+    const STORAGE_KEY_PIN_EXP = 'rpm_pin_exp_until'; // simpan batas waktu PIN
+    const RPM_PIN             = '<?= isset($pin)
     ? htmlspecialchars((string)$pin, ENT_QUOTES, 'UTF-8')
-    : '' ?>'; 
+    : '' ?>';
+
 
     const fieldMessages = {
         nama_guru: 'Nama guru masih kosong nih. Isi dulu ya, biar aku tahu siapa yang bikin RPM kece ini 😄',
@@ -693,9 +695,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (result.isConfirmed) {
                 try {
                     if (typeof localStorage !== 'undefined') {
+                        // tandai PIN valid
                         localStorage.setItem(STORAGE_KEY_PIN, '1');
+
+                        // set masa berlaku 24 jam ke depan
+                        var expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 jam
+                        localStorage.setItem(STORAGE_KEY_PIN_EXP, String(expiresAt));
                     }
                 } catch (e) {}
+
                 pinOK = true;
                 setFormEnabled(true);
                 Swal.fire({
@@ -707,14 +715,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
+
     }
 
 
     // Cek apakah PIN sudah pernah diisi di device ini
+    // Cek apakah PIN sudah pernah diisi dan masih berlaku
     let pinOK = false;
     try {
         if (typeof localStorage !== 'undefined') {
-            pinOK = (localStorage.getItem(STORAGE_KEY_PIN) === '1');
+            const flag = localStorage.getItem(STORAGE_KEY_PIN);
+            const exp  = localStorage.getItem(STORAGE_KEY_PIN_EXP);
+
+            if (flag === '1' && exp) {
+                const expTime = parseInt(exp, 10) || 0;
+                if (Date.now() < expTime) {
+                    // masih dalam masa berlaku
+                    pinOK = true;
+                } else {
+                    // sudah lewat 1 hari → bersihkan
+                    localStorage.removeItem(STORAGE_KEY_PIN);
+                    localStorage.removeItem(STORAGE_KEY_PIN_EXP);
+                }
+            }
         }
     } catch (e) {
         pinOK = false;
@@ -726,6 +749,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         setFormEnabled(true);
     }
+
 
     // Restore form dari localStorage
     restoreFormFromStorage();
