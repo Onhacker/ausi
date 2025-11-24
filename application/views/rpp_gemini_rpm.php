@@ -520,10 +520,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const STORAGE_KEY_FORM    = 'rpm_form_data';
     const STORAGE_KEY_PIN     = 'rpm_pin_ok';
-    const STORAGE_KEY_PIN_EXP = 'rpm_pin_exp_until'; // simpan batas waktu PIN
-    const RPM_PIN             = '<?= isset($pin)
-    ? htmlspecialchars((string)$pin, ENT_QUOTES, 'UTF-8')
-    : '' ?>';
+    const STORAGE_KEY_PIN_EXP = 'rpm_pin_exp_until';
+
+    const RPM_PIN = <?= json_encode(isset($pin) ? (string)$pin : ''); ?>;
+
 
 
     const fieldMessages = {

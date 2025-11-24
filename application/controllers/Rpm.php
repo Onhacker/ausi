@@ -25,6 +25,7 @@ class Rpm extends Onhacker_Controller
 
     public function index()
     {
+        $pin_access = '085211'; // PIN DISET DI SINI
         $data = [
             'rpm_html'  => '',
             'error_msg' => '',
@@ -137,7 +138,7 @@ if ($perintah_tambahan !== '') {
             if ($json === null) {
                 $data['error_msg'] = ($error !== '') ? $error : 'Terjadi kesalahan saat memanggil Gemini.';
             } else {
-                $pin_access = '085211'; // PIN DISET DI SINI
+                
                 // Susun HTML tabel rapi berdasarkan JSON
                 $data['rpm_html'] = $this->_build_rpm_html($json, [
                     'nama_sekolah'    => $nama_sekolah,
