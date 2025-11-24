@@ -746,12 +746,12 @@ private function _fmt_multiline(?string $text): string
         <td>'.($no ?: '&nbsp;').'</td>
         <td>'.$q.'</td>
         <td>';
-                if (!empty($rubLines)) {
-                    $html .= '<ul style="margin:0; padding-left:1.2em;">';
+               if (!empty($rubLines)) {
+                    $html .= '<ol style="margin:0; padding-left:1.2em; list-style-type:decimal;">';
                     foreach ($rubLines as $rl) {
                         $html .= '<li>'.$rl.'</li>';
                     }
-                    $html .= '</ul>';
+                    $html .= '</ol>';
                 }
                 $html .= '</td>
       </tr>
