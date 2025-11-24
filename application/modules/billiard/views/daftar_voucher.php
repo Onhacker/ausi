@@ -207,10 +207,10 @@ $valid_days = (int)($batas_hari ?? 30);        // masa berlaku voucher dari crea
                 <!-- Header nama + status -->
                 <div class="d-flex align-items-start justify-content-between mb-2">
                   <div class="pr-2" style="min-width:0;">
-                    <h4 class="mb-0 font-18 text-truncate" title="<?= html_escape($v->nama) ?>">
+                   <!--  <h4 class="mb-0 font-18 text-truncate" title="<?= html_escape($v->nama) ?>">
                       <?= html_escape($v->nama) ?>
-                    </h4>
-                    <div class="text-muted small mt-1">
+                    </h4> -->
+                    <div class="text-dark small mt-1">
                       <?= html_escape($mask_hp($v->no_hp)) ?>
                     </div>
                   </div>
