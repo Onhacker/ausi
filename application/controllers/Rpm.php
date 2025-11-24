@@ -638,23 +638,26 @@ private function _fmt_multiline(?string $text): string
     /**
      * Lampiran: Bank Soal (Pilihan Ganda & Uraian)
      */
-    private function _build_bank_soal_html(array $g): string
-    {
-        $pilgan = isset($g['soal_pilgan']) && is_array($g['soal_pilgan']) ? $g['soal_pilgan'] : [];
-        $uraian = isset($g['soal_uraian']) && is_array($g['soal_uraian']) ? $g['soal_uraian'] : [];
+   /**
+ * Lampiran: Bank Soal (Pilihan Ganda & Uraian)
+ */
+private function _build_bank_soal_html(array $g): string
+{
+    $pilgan = isset($g['soal_pilgan']) && is_array($g['soal_pilgan']) ? $g['soal_pilgan'] : [];
+    $uraian = isset($g['soal_uraian']) && is_array($g['soal_uraian']) ? $g['soal_uraian'] : [];
 
-        if (empty($pilgan) && empty($uraian)) {
-            return '';
-        }
+    if (empty($pilgan) && empty($uraian)) {
+        return '';
+    }
 
-        $html = '
+    $html = '
 <div class="mt-8">
   <h4 class="font-bold text-lg mb-2">Lampiran: Bank Soal</h4>
 ';
 
-        // --- Soal Pilihan Ganda ---
-        if (!empty($pilgan)) {
-            $html .= '
+    // --- Soal Pilihan Ganda ---
+    if (!empty($pilgan)) {
+        $html .= '
   <h5 class="font-semibold mt-2 mb-1">1. Soal Pilihan Ganda</h5>
   <table class="document-table">
     <thead>
@@ -670,24 +673,24 @@ private function _fmt_multiline(?string $text): string
     </thead>
     <tbody>
 ';
-            foreach ($pilgan as $row) {
-                $no   = (int)($row['nomor'] ?? 0);
-                if ($no <= 0) {
-                    $no = 0;
-                }
+        foreach ($pilgan as $row) {
+            $no   = (int)($row['nomor'] ?? 0);
+            if ($no <= 0) {
+                $no = 0;
+            }
 
-                $q    = htmlspecialchars((string)($row['pertanyaan'] ?? ''), ENT_QUOTES, 'UTF-8');
-                $a    = htmlspecialchars((string)($row['opsi_a']     ?? ''), ENT_QUOTES, 'UTF-8');
-                $b    = htmlspecialchars((string)($row['opsi_b']     ?? ''), ENT_QUOTES, 'UTF-8');
-                $c    = htmlspecialchars((string)($row['opsi_c']     ?? ''), ENT_QUOTES, 'UTF-8');
-                $d    = htmlspecialchars((string)($row['opsi_d']     ?? ''), ENT_QUOTES, 'UTF-8');
-                $key  = htmlspecialchars((string)($row['kunci']      ?? ''), ENT_QUOTES, 'UTF-8');
+            $q    = htmlspecialchars((string)($row['pertanyaan'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $a    = htmlspecialchars((string)($row['opsi_a']     ?? ''), ENT_QUOTES, 'UTF-8');
+            $b    = htmlspecialchars((string)($row['opsi_b']     ?? ''), ENT_QUOTES, 'UTF-8');
+            $c    = htmlspecialchars((string)($row['opsi_c']     ?? ''), ENT_QUOTES, 'UTF-8');
+            $d    = htmlspecialchars((string)($row['opsi_d']     ?? ''), ENT_QUOTES, 'UTF-8');
+            $key  = htmlspecialchars((string)($row['kunci']      ?? ''), ENT_QUOTES, 'UTF-8');
 
-                if ($q === '') {
-                    continue;
-                }
+            if ($q === '') {
+                continue;
+            }
 
-                $html .= '
+            $html .= '
       <tr>
         <td>'.($no ?: '&nbsp;').'</td>
         <td>'.$q.'</td>
@@ -698,17 +701,17 @@ private function _fmt_multiline(?string $text): string
         <td style="text-align:center;">'.$key.'</td>
       </tr>
 ';
-            }
+        }
 
-            $html .= '
+        $html .= '
     </tbody>
   </table>
 ';
-        }
+    }
 
-        // --- Soal Uraian ---
-        if (!empty($uraian)) {
-            $html .= '
+    // --- Soal Uraian ---
+    if (!empty($uraian)) {
+        $html .= '
   <h5 class="font-semibold mt-4 mb-1">2. Soal Uraian</h5>
   <table class="document-table">
     <thead>
@@ -721,54 +724,61 @@ private function _fmt_multiline(?string $text): string
     <tbody>
 ';
 
-            foreach ($uraian as $row) {
-                $no   = (int)($row['nomor'] ?? 0);
-                $q    = htmlspecialchars((string)($row['pertanyaan']   ?? ''), ENT_QUOTES, 'UTF-8');
-                $rub  = trim((string)($row['pedoman_skor'] ?? ''));
-                // pecah pedoman per baris -> <ul>
-                $rubLines = [];
-                if ($rub !== '') {
-                    $tmp = preg_split('/\r\n|\r|\n/', $rub);
-                    foreach ($tmp as $rl) {
-                        $rl = trim($rl);
-                        if ($rl !== '') {
-                            $rubLines[] = htmlspecialchars($rl, ENT_QUOTES, 'UTF-8');
-                        }
+        foreach ($uraian as $row) {
+            $no   = (int)($row['nomor'] ?? 0);
+            $q    = htmlspecialchars((string)($row['pertanyaan']   ?? ''), ENT_QUOTES, 'UTF-8');
+            $rub  = trim((string)($row['pedoman_skor'] ?? ''));
+
+            // pecah pedoman per baris -> <ol> bernomor
+            $rubLines = [];
+            if ($rub !== '') {
+                $tmp = preg_split('/\r\n|\r|\n/', $rub);
+                foreach ($tmp as $rl) {
+                    $rl = trim($rl);
+                    if ($rl === '') continue;
+
+                    // buang nomor / bullet di depan: "1. ", "1)", "- ", "• "
+                    $rl = preg_replace('/^\s*(?:\d+[\.\)]|[-*•])\s*/u', '', $rl);
+                    $rl = trim($rl);
+                    if ($rl !== '') {
+                        $rubLines[] = $rl;
                     }
                 }
+            }
 
-                if ($q === '') {
-                    continue;
-                }
+            if ($q === '') {
+                continue;
+            }
 
-                $html .= '
+            $html .= '
       <tr>
         <td>'.($no ?: '&nbsp;').'</td>
         <td>'.$q.'</td>
         <td>';
-               if (!empty($rubLines)) {
-                    $html .= '<ol style="margin:0; padding-left:1.2em; list-style-type:decimal;">';
-                    foreach ($rubLines as $rl) {
-                        $html .= '<li>'.$rl.'</li>';
-                    }
-                    $html .= '</ol>';
+            if (!empty($rubLines)) {
+                $html .= '<ol style="margin:0; padding-left:1.5em;">';
+                foreach ($rubLines as $rl) {
+                    $html .= '<li>'.htmlspecialchars($rl, ENT_QUOTES, 'UTF-8').'</li>';
                 }
-                $html .= '</td>
-      </tr>
-';
+                $html .= '</ol>';
             }
-
-            $html .= '
-    </tbody>
-  </table>
+            $html .= '</td>
+      </tr>
 ';
         }
 
         $html .= '
+    </tbody>
+  </table>
+';
+    }
+
+    $html .= '
 </div>';
 
-        return $html;
-    }
+    return $html;
+}
+
 
     /**
      * Lampiran: Rubrik Penilaian Soal (berdasarkan kisi_kisi / indikator soal)
