@@ -137,6 +137,7 @@ if ($perintah_tambahan !== '') {
             if ($json === null) {
                 $data['error_msg'] = ($error !== '') ? $error : 'Terjadi kesalahan saat memanggil Gemini.';
             } else {
+                $pin_access = '085211'; // PIN DISET DI SINI
                 // Susun HTML tabel rapi berdasarkan JSON
                 $data['rpm_html'] = $this->_build_rpm_html($json, [
                     'nama_sekolah'    => $nama_sekolah,
@@ -149,10 +150,11 @@ if ($perintah_tambahan !== '') {
                     'tahun_pelajaran' => $tahun_pelajaran,
                     'pertemuan'       => $pertemuan,
                     'total_waktu'     => $total_waktu,
+                    'pin'             => $pin_access, // dipakai di dokumen
                 ]);
             }
         }
-
+        $data['pin'] = $pin_access;
         $this->load->view('rpp_gemini_rpm', $data);
     }
 

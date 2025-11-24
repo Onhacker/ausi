@@ -520,7 +520,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const STORAGE_KEY_FORM = 'rpm_form_data';
     const STORAGE_KEY_PIN  = 'rpm_pin_ok';
-    const RPM_PIN          = '2025'; // UBAH PIN DI SINI
+    const RPM_PIN          = '<?= isset($pin)
+    ? htmlspecialchars((string)$pin, ENT_QUOTES, 'UTF-8')
+    : '' ?>'; 
 
     const fieldMessages = {
         nama_guru: 'Nama guru masih kosong nih. Isi dulu ya, biar aku tahu siapa yang bikin RPM kece ini 😄',
@@ -531,6 +533,14 @@ document.addEventListener('DOMContentLoaded', function () {
         tahun_pelajaran: 'Tahun ajaran belum dipilih. Biar administrasinya rapi, pilih dulu tahun ajarannya ✨',
         pertemuan: 'Jumlah pertemuan masih kosong atau nol. Isi berapa kali pertemuan yang mau kamu buat ya 😊'
     };
+
+    function normalizePin(v) {
+        return (v || '')
+        .toString()
+            .replace(/\D+/g, '')   // ambil digit saja
+            .replace(/^0+/, '');   // buang 0 di depan
+        }
+
 
     function getValue(id) {
         var el = document.getElementById(id);
@@ -627,12 +637,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function showPinGate() {
+        function showPinGate() {
         if (typeof Swal === 'undefined') return;
 
         setFormEnabled(false);
 
-        var waText = encodeURIComponent('Assalamualaikum, Ibu Nurhikmah, saya butuh PIN utk Akses RPM Generator, Saya dari ..........');
+        var waText = encodeURIComponent(
+            'Assalamualaikum, Ibu Nurhikmah, saya butuh PIN utk Akses RPM Generator, Saya dari ..........'
+        );
         var waLink = 'https://wa.me/6285255541755?text=' + waText;
 
         Swal.fire({
@@ -650,11 +662,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<p style="font-size:0.85rem;color:#6b7280;">' +
                     'Setelah dapat PIN, masukkan di bawah ini ya 👇' +
                 '</p>',
-            input: 'password',
+            input: 'number', // <<< PIN pakai input number
             inputPlaceholder: 'Masukkan PIN akses di sini',
             inputAttributes: {
                 autocapitalize: 'off',
-                autocomplete: 'off'
+                autocomplete: 'off',
+                min: '0',
+                step: '1'
             },
             confirmButtonText: 'Masuk',
             allowOutsideClick: false,
@@ -665,8 +679,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     Swal.showValidationMessage('PIN belum diisi, cobain diisi dulu ya 😊');
                     return false;
                 }
-                if (value !== RPM_PIN) {
-                    Swal.showValidationMessage('PIN-nya masih salah nih. Coba dicek lagi, atau chat Bu Nurhikmah kalau lupa 🔐');
+
+                // bandingkan setelah dinormalisasi (biar 085211 atau 85211 tetap kebaca)
+                if (normalizePin(value) !== normalizePin(RPM_PIN)) {
+                    Swal.showValidationMessage(
+                        'PIN-nya masih salah nih. Coba dicek lagi, atau chat Bu Nurhikmah kalau lupa 🔐'
+                    );
                     return false;
                 }
                 return true;
@@ -690,6 +708,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
 
     // Cek apakah PIN sudah pernah diisi di device ini
     let pinOK = false;
