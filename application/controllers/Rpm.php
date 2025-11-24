@@ -64,6 +64,8 @@ Data input:
 
 Struktur JSON yang diminta:
 
+Struktur JSON yang diminta:
+
 {
   "tujuan_pembelajaran": "STRING berisi beberapa tujuan, dipisahkan baris baru",
   "kesiapan_murid": "STRING",
@@ -82,8 +84,45 @@ Struktur JSON yang diminta:
   ],
   "asesmen_awal": "STRING berisi beberapa poin, dipisahkan baris baru",
   "asesmen_proses": "STRING berisi beberapa poin, dipisahkan baris baru",
-  "asesmen_akhir": "STRING berisi beberapa poin, dipisahkan baris baru"
+  "asesmen_akhir": "STRING berisi beberapa poin, dipisahkan baris baru",
+
+  "kisi_kisi": [
+    {
+      "indikator": "STRING indikator soal yang jelas dan terukur, diturunkan dari tujuan_pembelajaran dan asesmen",
+      "bentuk_soal": "Pilihan Ganda / Uraian Singkat / Uraian Panjang",
+      "level_kognitif": "Misalnya: C1, C2, C3, atau sebutan lain yang relevan",
+      "nomor_soal": "Nomor soal yang terkait, misalnya: 1 atau 1-2",
+      "aspek_dinilai": "Aspek kemampuan yang dinilai (misalnya: memahami teks, menyusun kalimat, dsb.)",
+      "skor_maksimal": 1
+    }
+    ... (minimal 5 entri)
+  ],
+
+  "soal_pilgan": [
+    {
+      "nomor": 1,
+      "indikator": "STRING, harus konsisten dengan salah satu indikator di kisi_kisi",
+      "pertanyaan": "Teks soal pilihan ganda",
+      "opsi_a": "Pilihan A",
+      "opsi_b": "Pilihan B",
+      "opsi_c": "Pilihan C",
+      "opsi_d": "Pilihan D",
+      "kunci": "A/B/C/D"
+    }
+    ... (minimal 5 soal)
+  ],
+
+  "soal_uraian": [
+    {
+      "nomor": 11,
+      "indikator": "STRING, harus konsisten dengan salah satu indikator di kisi_kisi",
+      "pertanyaan": "Teks soal uraian",
+      "pedoman_skor": "STRING berisi pedoman penskoran per poin jawaban, setiap poin dipisahkan baris baru (\\n)"
+    }
+    ... (1–3 soal uraian)
+  ]
 }
+
 
 Pastikan JSON valid dan dapat di-parse tanpa error.
 PROMPT;
@@ -257,6 +296,87 @@ if ($perintah_tambahan !== '') {
         }
 
         return $json;
+    }
+    /**
+     * Bangun HTML "Lampiran: Rubrik Penilaian"
+     * Rubrik diambil dari isi asesmen_awal, asesmen_proses, asesmen_akhir.
+     */
+    private function _build_rubrik_penilaian_html(array $g): string
+    {
+        $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
+        $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
+        $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
+
+        // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
+        if (empty($awal) && empty($proses) && empty($akhir)) {
+            return '';
+        }
+
+        $html = '
+<div class="mt-8">
+  <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian</h4>
+  <p class="text-sm text-gray-700 mb-3">
+    Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik.
+  </p>
+';
+
+        $sections = [
+            'Assessment of Learning (Awal)'   => $awal,
+            'Assessment as Learning (Proses)' => $proses,
+            'Assessment for Learning (Akhir)' => $akhir,
+        ];
+
+        $secNo = 1;
+        foreach ($sections as $label => $criteria) {
+            if (empty($criteria)) {
+                $secNo++;
+                continue;
+            }
+
+            $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+
+            $html .= '
+  <h4 class="font-semibold mt-4 mb-2">'.$secNo.'. '.$labelEsc.'</h4>
+  <table class="document-table">
+    <thead>
+      <tr>
+        <th style="width:32px;">No</th>
+        <th>Kriteria</th>
+        <th>Sangat Baik (4)</th>
+        <th>Baik (3)</th>
+        <th>Cukup (2)</th>
+        <th>Perlu Bimbingan (1)</th>
+      </tr>
+    </thead>
+    <tbody>
+';
+            $no = 1;
+            foreach ($criteria as $critRaw) {
+                $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
+
+                $html .= '
+      <tr>
+        <td>'.$no.'</td>
+        <td>'.$critEsc.'</td>
+        <td>Menunjukkan penguasaan sangat baik terhadap aspek <em>'.$critEsc.'</em>, mandiri dan konsisten.</td>
+        <td>Menunjukkan penguasaan baik terhadap aspek <em>'.$critEsc.'</em>, terdapat sedikit kekeliruan namun tidak mengganggu pencapaian tujuan.</td>
+        <td>Menunjukkan penguasaan cukup terhadap aspek <em>'.$critEsc.'</em>, masih memerlukan bimbingan pada beberapa bagian.</td>
+        <td>Belum menunjukkan penguasaan yang memadai terhadap aspek <em>'.$critEsc.'</em> dan memerlukan bimbingan intensif.</td>
+      </tr>
+';
+                $no++;
+            }
+
+            $html .= '
+    </tbody>
+  </table>
+';
+            $secNo++;
+        }
+
+        $html .= '</div>';
+
+        return $html;
     }
 
     // ================== HELPER: format teks multi-baris ke HTML ==================
@@ -453,47 +573,255 @@ private function _fmt_multiline(?string $text): string
      * Bangun HTML "Lampiran: Rubrik Penilaian"
      * Rubrik diambil dari isi asesmen_awal, asesmen_proses, asesmen_akhir.
      */
-    private function _build_rubrik_penilaian_html(array $g): string
+        /**
+     * Lampiran: Kisi-kisi Soal (berdasarkan field "kisi_kisi" dari JSON Gemini)
+     */
+    private function _build_kisi_kisi_html(array $g): string
     {
-        $awal   = $this->_extract_criteria_lines($g['asesmen_awal']   ?? '');
-        $proses = $this->_extract_criteria_lines($g['asesmen_proses'] ?? '');
-        $akhir  = $this->_extract_criteria_lines($g['asesmen_akhir']  ?? '');
+        if (!isset($g['kisi_kisi']) || !is_array($g['kisi_kisi']) || empty($g['kisi_kisi'])) {
+            return '';
+        }
 
-        // Kalau tidak ada sama sekali, tidak usah tampilkan lampiran
-        if (empty($awal) && empty($proses) && empty($akhir)) {
+        $rows = $g['kisi_kisi'];
+
+        $html = '
+<div class="mt-8">
+  <h4 class="font-bold text-lg mb-2">Lampiran: Kisi-kisi Soal</h4>
+  <table class="document-table">
+    <thead>
+      <tr>
+        <th style="width:32px;">No</th>
+        <th>Indikator</th>
+        <th>Bentuk Soal</th>
+        <th>Level Kognitif</th>
+        <th>Nomor Soal</th>
+        <th>Aspek Dinilai</th>
+        <th>Skor Maks.</th>
+      </tr>
+    </thead>
+    <tbody>
+';
+
+        $no = 1;
+        foreach ($rows as $row) {
+            $indikator      = htmlspecialchars((string)($row['indikator']      ?? ''), ENT_QUOTES, 'UTF-8');
+            $bentuk         = htmlspecialchars((string)($row['bentuk_soal']    ?? ''), ENT_QUOTES, 'UTF-8');
+            $level          = htmlspecialchars((string)($row['level_kognitif'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $nomor          = htmlspecialchars((string)($row['nomor_soal']     ?? ''), ENT_QUOTES, 'UTF-8');
+            $aspek          = htmlspecialchars((string)($row['aspek_dinilai']  ?? ''), ENT_QUOTES, 'UTF-8');
+            $skor_max       = htmlspecialchars((string)($row['skor_maksimal']  ?? ''), ENT_QUOTES, 'UTF-8');
+
+            if ($indikator === '' && $aspek === '' && $nomor === '') {
+                continue;
+            }
+
+            $html .= '
+      <tr>
+        <td>'.$no.'</td>
+        <td>'.$indikator.'</td>
+        <td>'.$bentuk.'</td>
+        <td>'.$level.'</td>
+        <td>'.$nomor.'</td>
+        <td>'.$aspek.'</td>
+        <td style="text-align:center;">'.$skor_max.'</td>
+      </tr>
+';
+            $no++;
+        }
+
+        $html .= '
+    </tbody>
+  </table>
+</div>';
+
+        return $html;
+    }
+
+    /**
+     * Lampiran: Bank Soal (Pilihan Ganda & Uraian)
+     */
+    private function _build_bank_soal_html(array $g): string
+    {
+        $pilgan = isset($g['soal_pilgan']) && is_array($g['soal_pilgan']) ? $g['soal_pilgan'] : [];
+        $uraian = isset($g['soal_uraian']) && is_array($g['soal_uraian']) ? $g['soal_uraian'] : [];
+
+        if (empty($pilgan) && empty($uraian)) {
             return '';
         }
 
         $html = '
 <div class="mt-8">
-  <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian</h4>
-  <p class="text-sm text-gray-700 mb-3">
-    Rubrik ini disusun berdasarkan rumusan asesmen pada bagian sebelumnya dan digunakan sebagai acuan penilaian kinerja peserta didik dan berikan lembar kerja peserta didik beserta instrumen penilaiannya.
-  </p>
+  <h4 class="font-bold text-lg mb-2">Lampiran: Bank Soal</h4>
 ';
 
-        $sections = [
-            'Assessment of Learning (Awal)'   => $awal,
-            'Assessment as Learning (Proses)' => $proses,
-            'Assessment for Learning (Akhir)' => $akhir,
-        ];
-
-        $secNo = 1;
-        foreach ($sections as $label => $criteria) {
-            if (empty($criteria)) {
-                $secNo++;
-                continue;
-            }
-
-            $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
-
+        // --- Soal Pilihan Ganda ---
+        if (!empty($pilgan)) {
             $html .= '
-  <h5 class="font-semibold mt-4 mb-2">'.$secNo.'. '.$labelEsc.'</h5>
+  <h5 class="font-semibold mt-2 mb-1">1. Soal Pilihan Ganda</h5>
   <table class="document-table">
     <thead>
       <tr>
         <th style="width:32px;">No</th>
-        <th>Kriteria</th>
+        <th>Soal</th>
+        <th style="width:15%;">A</th>
+        <th style="width:15%;">B</th>
+        <th style="width:15%;">C</th>
+        <th style="width:15%;">D</th>
+        <th style="width:8%;">Kunci</th>
+      </tr>
+    </thead>
+    <tbody>
+';
+            foreach ($pilgan as $row) {
+                $no   = (int)($row['nomor'] ?? 0);
+                if ($no <= 0) {
+                    $no = 0;
+                }
+
+                $q    = htmlspecialchars((string)($row['pertanyaan'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $a    = htmlspecialchars((string)($row['opsi_a']     ?? ''), ENT_QUOTES, 'UTF-8');
+                $b    = htmlspecialchars((string)($row['opsi_b']     ?? ''), ENT_QUOTES, 'UTF-8');
+                $c    = htmlspecialchars((string)($row['opsi_c']     ?? ''), ENT_QUOTES, 'UTF-8');
+                $d    = htmlspecialchars((string)($row['opsi_d']     ?? ''), ENT_QUOTES, 'UTF-8');
+                $key  = htmlspecialchars((string)($row['kunci']      ?? ''), ENT_QUOTES, 'UTF-8');
+
+                if ($q === '') {
+                    continue;
+                }
+
+                $html .= '
+      <tr>
+        <td>'.($no ?: '&nbsp;').'</td>
+        <td>'.$q.'</td>
+        <td>'.$a.'</td>
+        <td>'.$b.'</td>
+        <td>'.$c.'</td>
+        <td>'.$d.'</td>
+        <td style="text-align:center;">'.$key.'</td>
+      </tr>
+';
+            }
+
+            $html .= '
+    </tbody>
+  </table>
+';
+        }
+
+        // --- Soal Uraian ---
+        if (!empty($uraian)) {
+            $html .= '
+  <h5 class="font-semibold mt-4 mb-1">2. Soal Uraian</h5>
+  <table class="document-table">
+    <thead>
+      <tr>
+        <th style="width:32px;">No</th>
+        <th>Soal Uraian</th>
+        <th>Pedoman Skor</th>
+      </tr>
+    </thead>
+    <tbody>
+';
+
+            foreach ($uraian as $row) {
+                $no   = (int)($row['nomor'] ?? 0);
+                $q    = htmlspecialchars((string)($row['pertanyaan']   ?? ''), ENT_QUOTES, 'UTF-8');
+                $rub  = trim((string)($row['pedoman_skor'] ?? ''));
+                // pecah pedoman per baris -> <ul>
+                $rubLines = [];
+                if ($rub !== '') {
+                    $tmp = preg_split('/\r\n|\r|\n/', $rub);
+                    foreach ($tmp as $rl) {
+                        $rl = trim($rl);
+                        if ($rl !== '') {
+                            $rubLines[] = htmlspecialchars($rl, ENT_QUOTES, 'UTF-8');
+                        }
+                    }
+                }
+
+                if ($q === '') {
+                    continue;
+                }
+
+                $html .= '
+      <tr>
+        <td>'.($no ?: '&nbsp;').'</td>
+        <td>'.$q.'</td>
+        <td>';
+                if (!empty($rubLines)) {
+                    $html .= '<ul style="margin:0; padding-left:1.2em;">';
+                    foreach ($rubLines as $rl) {
+                        $html .= '<li>'.$rl.'</li>';
+                    }
+                    $html .= '</ul>';
+                }
+                $html .= '</td>
+      </tr>
+';
+            }
+
+            $html .= '
+    </tbody>
+  </table>
+';
+        }
+
+        $html .= '
+</div>';
+
+        return $html;
+    }
+
+    /**
+     * Lampiran: Rubrik Penilaian Soal (berdasarkan kisi_kisi / indikator soal)
+     */
+    private function _build_rubrik_soal_html(array $g): string
+    {
+        $criteria = [];
+
+        // Utamakan pakai "kisi_kisi"
+        if (isset($g['kisi_kisi']) && is_array($g['kisi_kisi'])) {
+            foreach ($g['kisi_kisi'] as $row) {
+                $aspek = trim((string)($row['aspek_dinilai'] ?? ''));
+                $indik = trim((string)($row['indikator']     ?? ''));
+                $key   = $aspek !== '' ? $aspek : $indik;
+                if ($key !== '') {
+                    $criteria[] = $key;
+                }
+            }
+        }
+
+        // Fallback: kalau kisi_kisi kosong, ambil indikator dari soal
+        if (empty($criteria)) {
+            foreach (['soal_pilgan', 'soal_uraian'] as $field) {
+                if (!isset($g[$field]) || !is_array($g[$field])) continue;
+                foreach ($g[$field] as $row) {
+                    $indik = trim((string)($row['indikator'] ?? ''));
+                    if ($indik !== '') {
+                        $criteria[] = $indik;
+                    }
+                }
+            }
+        }
+
+        // unik
+        $criteria = array_values(array_unique($criteria));
+
+        if (empty($criteria)) {
+            return '';
+        }
+
+        $html = '
+<div class="mt-8">
+  <h4 class="font-bold text-lg mb-2">Lampiran: Rubrik Penilaian Soal</h4>
+  <p class="text-sm text-gray-700 mb-3">
+    Rubrik ini digunakan untuk menilai jawaban peserta didik terhadap butir-butir soal berdasarkan indikator yang telah dirumuskan dalam kisi-kisi.
+  </p>
+  <table class="document-table">
+    <thead>
+      <tr>
+        <th style="width:32px;">No</th>
+        <th>Indikator / Aspek yang Dinilai</th>
         <th>Sangat Baik (4)</th>
         <th>Baik (3)</th>
         <th>Cukup (2)</th>
@@ -502,35 +830,31 @@ private function _fmt_multiline(?string $text): string
     </thead>
     <tbody>
 ';
-            $no = 1;
-            foreach ($criteria as $critRaw) {
-                $critEsc = htmlspecialchars($critRaw, ENT_QUOTES, 'UTF-8');
 
-                $html .= '
+        $no = 1;
+        foreach ($criteria as $crit) {
+            $critEsc = htmlspecialchars($crit, ENT_QUOTES, 'UTF-8');
+
+            $html .= '
       <tr>
         <td>'.$no.'</td>
         <td>'.$critEsc.'</td>
-        <td>Menunjukkan penguasaan sangat baik terhadap aspek <em>'.$critEsc.'</em>, mandiri dan konsisten.</td>
-        <td>Menunjukkan penguasaan baik terhadap aspek <em>'.$critEsc.'</em>, terdapat sedikit kekeliruan namun tidak mengganggu pencapaian tujuan.</td>
-        <td>Menunjukkan penguasaan cukup terhadap aspek <em>'.$critEsc.'</em>, masih memerlukan bimbingan pada beberapa bagian.</td>
-        <td>Belum menunjukkan penguasaan yang memadai terhadap aspek <em>'.$critEsc.'</em> dan memerlukan bimbingan intensif.</td>
+        <td>Jawaban sangat lengkap, tepat, dan jelas sesuai indikator <em>'.$critEsc.'</em>; menunjukkan pemahaman mendalam dan penggunaan istilah yang benar.</td>
+        <td>Jawaban sudah tepat dan cukup lengkap sesuai indikator <em>'.$critEsc.'</em>, hanya terdapat kekurangan kecil yang tidak mengganggu makna utama.</td>
+        <td>Jawaban sebagian sudah sesuai indikator <em>'.$critEsc.'</em>, namun masih ada bagian penting yang hilang atau kurang jelas.</td>
+        <td>Jawaban tidak sesuai atau jauh dari indikator <em>'.$critEsc.'</em>, menunjukkan pemahaman yang sangat terbatas dan membutuhkan bimbingan intensif.</td>
       </tr>
 ';
-                $no++;
-            }
-
-            $html .= '
-    </tbody>
-  </table>
-';
-            $secNo++;
+            $no++;
         }
 
-        $html .= '</div>';
+        $html .= '
+    </tbody>
+  </table>
+</div>';
 
         return $html;
     }
-
 
     // ================== HELPER: susun HTML tabel RPM ==================
 
@@ -649,7 +973,17 @@ private function _fmt_multiline(?string $text): string
     </tbody>
   </table>
 </div>";
-     $html .= $this->_build_rubrik_penilaian_html($g);
-        return $html;
-    }
+    // Lampiran-lampiran:
+        // 1) Kisi-kisi soal (dibangun dari field "kisi_kisi")
+        $html .= $this->_build_kisi_kisi_html($g);
+
+        // 2) Bank soal (pilihan ganda & uraian)
+        $html .= $this->_build_bank_soal_html($g);
+
+        // 3) Rubrik penilaian (berbasis asesmen_awal/proses/akhir) – yang sudah ada
+        $html .= $this->_build_rubrik_penilaian_html($g);
+
+        // 4) Rubrik penilaian soal (berbasis indikator / kisi-kisi)
+        $html .= $this->_build_rubrik_soal_html($g);
+         return $html;
 }
