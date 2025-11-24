@@ -494,23 +494,25 @@
 
     function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]}); }
 
-    function renderCards(cards){
-      cards = (cards||[]).slice().sort((a,b)=> (a.meja_id - b.meja_id)); // 1 di kiri, 2 di kanan
+  function renderCards(cards){
+  // 2 di kiri (kolom pertama), 1 di kanan (kolom kedua)
+  cards = (cards || []).slice().sort((a, b) => (b.meja_id - a.meja_id));
 
+  // lanjut kode lama seperti biasa
   // Hitung total booking dari seluruh cards/days
- function countBookings(list){
-  const now = Date.now();
-  let n = 0;
-  (list||[]).forEach(c=>{
-    (c.days||[]).forEach(d=>{
-      (d.bookings||[]).forEach(b=>{
-        const end = Number(b.end_ts||0);
-        if (!end || end > now) n++; // hitung hanya yg belum selesai
+  function countBookings(list){
+    const now = Date.now();
+    let n = 0;
+    (list||[]).forEach(c=>{
+      (c.days||[]).forEach(d=>{
+        (d.bookings||[]).forEach(b=>{
+          const end = Number(b.end_ts||0);
+          if (!end || end > now) n++; // hitung hanya yg belum selesai
+        });
       });
     });
-  });
-  return n;
-}
+    return n;
+  }
 
 
   var trulyEmpty = !Array.isArray(cards) || cards.length===0 || countBookings(cards)===0;
