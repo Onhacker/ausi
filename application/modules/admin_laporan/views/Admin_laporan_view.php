@@ -266,6 +266,22 @@
 
 </div>
 
+<style>
+  /* khusus isi analisa Gemini */
+  #modalAnalisaBody{
+    font-size: 0.98rem;      /* sedikit lebih besar dari default 0.875–0.9 */
+    line-height: 1.6;        /* biar napas */
+  }
+  #modalAnalisaBody h5{
+    font-size: 1.05rem;
+    margin-top: .75rem;
+    margin-bottom: .4rem;
+  }
+  #modalAnalisaBody ul{
+    padding-left: 1.1rem;
+    margin-bottom: .4rem;
+  }
+</style>
 
 <!-- Modal Analisa Bisnis (Gemini) -->
 <div class="modal fade" id="modalAnalisa" tabindex="-1" role="dialog" aria-labelledby="modalAnalisaTitle" aria-hidden="true">
@@ -281,13 +297,13 @@
         <div id="modalAnalisaBody" class="small text-justify">
           <div class="text-center text-muted">
             <i class="fe-activity mr-1"></i>
-            Tekan tombol <strong>Analisa Bisnis</strong> untuk melihat insight dari Gemini.
+            Tekan tombol <strong>Analisa Bisnis</strong> untuk melihat insight dari AI.
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <small class="text-muted mr-auto">
-          Analisa ini dihasilkan otomatis oleh Gemini (Google AI). Gunakan sebagai bahan pertimbangan, bukan keputusan tunggal.
+          Analisa ini dihasilkan otomatis oleh AI. Gunakan sebagai bahan pertimbangan, bukan keputusan tunggal.
         </small>
         <button type="button" class="btn btn-light" data-dismiss="modal">Tutup</button>
       </div>

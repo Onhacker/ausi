@@ -895,7 +895,7 @@ public function print_ps(){
                 ->set_content_type('application/json','utf-8')
                 ->set_output(json_encode([
                     'success' => false,
-                    'error'   => $ai['error'] ?? 'Gagal memanggil Gemini'
+                    'error'   => $ai['error'] ?? 'Gagal memanggil AI'
                 ]));
         }
 
@@ -929,7 +929,7 @@ private function _call_gemini(string $prompt): array
     if ($apiKey === '' || $model === '') {
         return [
             'success' => false,
-            'error'   => 'API key atau model Gemini belum dikonfigurasi.'
+            'error'   => 'API key atau model AI belum dikonfigurasi.'
         ];
     }
 
@@ -974,7 +974,7 @@ private function _call_gemini(string $prompt): array
         $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        log_message('error', 'Gemini analisa_bisnis attempt '.$attempt.' HTTP '.$status.' RESP: '.substr((string)$response, 0, 1500));
+        log_message('error', 'AI analisa_bisnis attempt '.$attempt.' HTTP '.$status.' RESP: '.substr((string)$response, 0, 1500));
 
         if ($errno) {
             $lastError = 'cURL error: ' . $error;
@@ -983,7 +983,7 @@ private function _call_gemini(string $prompt): array
 
             if (isset($data['error']['message'])) {
                 $msg = (string)$data['error']['message'];
-                $lastError = 'ERROR dari Gemini: ' . $msg;
+                $lastError = 'ERROR dari AI: ' . $msg;
 
                 // ==== DETEKSI MODEL OVERLOADED / RESOURCE EXHAUSTED ====
                 $msgLower = strtolower($msg);
@@ -1000,7 +1000,7 @@ private function _call_gemini(string $prompt): array
                     // kalau sudah habis retry → kirim pesan lebih ramah
                     return [
                         'success' => false,
-                        'error'   => 'Model Gemini sedang penuh/sibuk. Coba klik analisa lagi setelah beberapa detik.',
+                        'error'   => 'Model AI sedang penuh/sibuk. Coba klik analisa lagi setelah beberapa detik.',
                     ];
                 }
 
@@ -1016,7 +1016,7 @@ private function _call_gemini(string $prompt): array
                     $finish = $data['candidates'][0]['finishReason'] ?? 'UNKNOWN';
                     return [
                         'success' => false,
-                        'error'   => 'Format respon Gemini tidak dikenali (finishReason='.$finish.').',
+                        'error'   => 'Format respon AI tidak dikenali (finishReason='.$finish.').',
                     ];
                 }
 
@@ -1024,7 +1024,7 @@ private function _call_gemini(string $prompt): array
                 if ($text === '') {
                     return [
                         'success' => false,
-                        'error'   => 'Gemini mengembalikan teks kosong. Coba perpendek periode atau ubah sedikit prompt analisa.',
+                        'error'   => 'AI mengembalikan teks kosong. Coba perpendek periode atau ubah sedikit prompt analisa.',
                     ];
                 }
 
@@ -1033,7 +1033,7 @@ private function _call_gemini(string $prompt): array
                     'output'  => $text,
                 ];
             } else {
-                $lastError = 'Respon Gemini tidak bisa di-decode JSON.';
+                $lastError = 'Respon AI tidak bisa di-decode JSON.';
             }
         }
 
@@ -1048,7 +1048,7 @@ private function _call_gemini(string $prompt): array
     // Kalau semua percobaan gagal
     return [
         'success' => false,
-        'error'   => $lastError ?: 'Gagal memanggil Gemini setelah beberapa percobaan.',
+        'error'   => $lastError ?: 'Gagal memanggil AI setelah beberapa percobaan.',
     ];
 }
 
