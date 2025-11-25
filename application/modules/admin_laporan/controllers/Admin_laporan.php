@@ -3,9 +3,17 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Admin_laporan extends Admin_Controller
 {
+    private $gemini_api_key;
+    private $gemini_model;
+
     public function __construct(){
         parent::__construct();
         $this->load->model('M_admin_laporan', 'lm');
+
+        $this->load->config('gemini');
+        $this->gemini_api_key = (string) $this->config->item('gemini_api_key');
+        $this->gemini_model   = (string) ($this->config->item('gemini_model') ?: 'gemini-2.5-flash');
+
         // kalau perlu batasi akses:
         cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     }
@@ -753,6 +761,213 @@ public function print_ps(){
     $html = $this->load->view('admin_laporan/pdf_ps', $data, true);
     $this->_pdf($data['title'], $html, $filename);
 }
+
+    /** ====== ANALISA BISNIS DENGAN GEMINI (AJAX) ====== */
+    public function analisa_bisnis()
+    {
+        if ( ! $this->input->is_ajax_request()) {
+            show_404();
+        }
+
+        $f           = $this->_parse_filter();
+        $periodLabel = $this->_period_label($f);
+
+        // Ambil angka-angka ringkasan (sama logika dengan summary_json)
+        $pos  = $this->lm->sum_pos($f)          ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+        $bil  = $this->lm->sum_billiard($f)     ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+        $peng = $this->lm->sum_pengeluaran($f)  ?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
+        $kur  = $this->lm->sum_kurir($f)        ?: ['count'=>0,'total_fee'=>0,'by_method'=>[]];
+        $kp   = $this->lm->sum_kursi_pijat($f)  ?: ['count'=>0,'total'=>0];
+        $ps   = $this->lm->sum_ps($f)           ?: ['count'=>0,'total'=>0];
+
+        $posCount   = (int)($pos['count'] ?? 0);
+        $posTotal   = (int)($pos['total'] ?? 0);
+        $bilCount   = (int)($bil['count'] ?? 0);
+        $bilTotal   = (int)($bil['total'] ?? 0);
+        $kpCount    = (int)($kp['count'] ?? 0);
+        $kpTotal    = (int)($kp['total'] ?? 0);
+        $psCount    = (int)($ps['count'] ?? 0);
+        $psTotal    = (int)($ps['total'] ?? 0);
+        $pengCount  = (int)($peng['count'] ?? 0);
+        $pengTotal  = (int)($peng['total'] ?? 0);
+        $kurCount   = (int)($kur['count'] ?? 0);
+        $kurTotal   = (int)($kur['total_fee'] ?? 0);
+
+        $labaTotal  = $posTotal + $bilTotal + $kpTotal + $psTotal - $pengTotal;
+
+        // Label sederhana untuk filter
+        $metodeLabelMap = [
+            'all'      => 'semua metode pembayaran',
+            'cash'     => 'hanya pembayaran tunai (cash)',
+            'qris'     => 'hanya pembayaran via QRIS',
+            'transfer' => 'hanya pembayaran via transfer'
+        ];
+        $modeLabelMap = [
+            'all'      => 'semua mode penjualan',
+            'walkin'   => 'hanya Walk-in / Takeaway',
+            'dinein'   => 'hanya Dine-in (makan di tempat)',
+            'delivery' => 'hanya Delivery'
+        ];
+
+        $metode = $f['metode'] ?? 'all';
+        $mode   = $f['mode']   ?? 'all';
+
+        $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
+        $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
+
+        // ========= SUSUN PROMPT UNTUK GEMINI =========
+        $prompt  = "Kamu adalah konsultan bisnis F&B dan hiburan keluarga untuk sebuah usaha bernama AUSI (cafe, billiard, kursi pijat, dan PlayStation).\n";
+        $prompt .= "Buat analisa bisnis dalam Bahasa Indonesia yang sopan tapi santai, mudah dipahami, dan actionable.\n\n";
+
+        $prompt .= "Periode data: {$periodLabel}\n";
+        $prompt .= "Filter metode pembayaran: {$metodeLabel}\n";
+        $prompt .= "Filter mode penjualan POS cafe: {$modeLabel}\n\n";
+
+        $prompt .= "Data ringkasan (ANGKA ADALAH NOMINAL DALAM RUPIAH TANPA TITIK PEMISAH):\n";
+        $prompt .= "- Cafe: omzet_total = {$posTotal}, jumlah_transaksi = {$posCount}\n";
+        $prompt .= "- Billiard: omzet_total = {$bilTotal}, jumlah_transaksi = {$bilCount}\n";
+        $prompt .= "- Kursi pijat: omzet_total = {$kpTotal}, jumlah_transaksi = {$kpCount}\n";
+        $prompt .= "- PlayStation (PS): omzet_total = {$psTotal}, jumlah_transaksi = {$psCount}\n";
+        $prompt .= "- Pengeluaran operasional: total = {$pengTotal}, jumlah_transaksi = {$pengCount}\n";
+        $prompt .= "- Ongkir delivery (kurir): total_fee = {$kurTotal}, jumlah_transaksi = {$kurCount}\n";
+        $prompt .= "- Laba bersih (Cafe + Billiard + Kursi pijat + PS - Pengeluaran): laba_bersih_final = {$labaTotal}\n";
+        $prompt .= "Catatan: Ongkir delivery (kurir) sudah termasuk dalam transaksi cafe, jadi jangan dihitung laba ganda. Perlakukan ongkir sebagai informasi tambahan tentang channel delivery.\n\n";
+
+        $prompt .= "Tugas kamu:\n";
+        $prompt .= "1. Beri RINGKASAN SINGKAT (1 paragraf) tentang kinerja periode ini.\n";
+        $prompt .= "2. Analisa per unit (Cafe, Billiard, Kursi Pijat, PS): jelaskan kontribusi, potensi masalah, dan peluang masing-masing.\n";
+        $prompt .= "3. Analisa pengeluaran: apakah terlihat berat/ringan dibanding total omzet? Sebutkan risiko jika tren ini berlanjut.\n";
+        $prompt .= "4. Jelaskan Kelebihan (apa yang sudah bagus) dan Kekurangan (apa yang perlu diwaspadai).\n";
+        $prompt .= "5. Beri REKOMENDASI AKSI yang sangat konkret, dikelompokkan menjadi:\n";
+        $prompt .= "   - Perbaikan cepat (mingguan)\n";
+        $prompt .= "   - Perencanaan bulanan\n";
+        $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
+        $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
+
+        $prompt .= "FORMAT OUTPUT:\n";
+        $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
+        $prompt .= "- Gunakan struktur seperti: <h5>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
+        $prompt .= "- Jangan gunakan script atau style, hanya HTML konten saja.\n";
+
+        $ai = $this->_call_gemini($prompt);
+
+        if ( ! $ai['success']) {
+            return $this->output
+                ->set_content_type('application/json','utf-8')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'error'   => $ai['error'] ?? 'Gagal memanggil Gemini'
+                ]));
+        }
+
+        $html = (string)($ai['output'] ?? '');
+
+        // fallback kalau Gemini kirim plain text tanpa HTML
+        if (strpos($html, '<') === false) {
+            $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+        }
+
+        $out = [
+            'success' => true,
+            'title'   => 'Analisa Bisnis AUSI',
+            'html'    => $html,
+            'filter'  => $f,
+        ];
+
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode($out));
+    }
+
+    /** ====== HELPER PANGGIL GEMINI ====== */
+    private function _call_gemini(string $prompt): array
+    {
+        $apiKey = (string)($this->gemini_api_key ?? '');
+        $model  = (string)($this->gemini_model ?? 'gemini-2.5-flash');
+
+        if ($apiKey === '' || $model === '') {
+            return [
+                'success' => false,
+                'error'   => 'API key atau model Gemini belum dikonfigurasi.'
+            ];
+        }
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+             . rawurlencode($model)
+             . ':generateContent?key=' . urlencode($apiKey);
+
+        $payload = [
+            'contents' => [[
+                'parts' => [[ 'text' => $prompt ]]
+            ]],
+            'generationConfig' => [
+                'temperature'      => 0.45,
+                'maxOutputTokens'  => 1024,
+                'topP'             => 0.95,
+            ],
+        ];
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_TIMEOUT        => 40,
+        ]);
+        $body   = curl_exec($ch);
+        $errno  = curl_errno($ch);
+        $error  = curl_error($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($errno) {
+            return [
+                'success' => false,
+                'error'   => 'Curl error: ' . $error
+            ];
+        }
+
+        $data = json_decode($body, true);
+        if ($status >= 400 || !is_array($data)) {
+            return [
+                'success' => false,
+                'error'   => 'HTTP ' . $status . ' / respon Gemini tidak valid.'
+            ];
+        }
+
+        if (isset($data['error'])) {
+            $msg = is_array($data['error']) && isset($data['error']['message'])
+                ? $data['error']['message']
+                : 'Error dari Gemini.';
+            return [
+                'success' => false,
+                'error'   => $msg,
+            ];
+        }
+
+        $text = '';
+        if (!empty($data['candidates'][0]['content']['parts'])) {
+            foreach ($data['candidates'][0]['content']['parts'] as $p) {
+                if (isset($p['text'])) {
+                    $text .= $p['text'];
+                }
+            }
+        }
+
+        $text = trim((string)$text);
+        if ($text === '') {
+            return [
+                'success' => false,
+                'error'   => 'Jawaban dari Gemini kosong.'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'output'  => $text,
+        ];
+    }
 
 
     

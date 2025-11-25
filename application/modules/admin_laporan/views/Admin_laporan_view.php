@@ -83,23 +83,28 @@
     <!-- Tombol Cetak di bawah, rapi & tidak mepet -->
     <div class="d-flex align-items-center justify-content-between flex-wrap">
       <div class="text-muted mb-2">Cetak Laporan</div>
-      <div class="btn-wrap">
+            <div class="btn-wrap">
+        <!-- Tombol analisa bisnis (Gemini) -->
+        <button class="btn btn-sm btn-outline-info" id="btn-analisa">
+          <i class="fe-activity"></i> Analisa Bisnis
+        </button>
+
+        <!-- Tombol-tombol cetak -->
         <button class="btn btn-sm btn-primary" id="btn-print-pos"><i class="fe-printer"></i> Cetak Cafee</button>
         <button class="btn btn-sm btn-blue" id="btn-print-bil"><i class="fe-printer"></i> Cetak Billiard</button>
         <button class="btn btn-sm btn-danger" id="btn-print-kursi">
-  <i class="fe-printer"></i> Cetak Kursi Pijat
-</button>
-<button class="btn btn-sm btn-info" id="btn-print-ps">
-  <i class="fe-printer"></i> Cetak PS
-</button>
-
+          <i class="fe-printer"></i> Cetak Kursi Pijat
+        </button>
+        <button class="btn btn-sm btn-info" id="btn-print-ps">
+          <i class="fe-printer"></i> Cetak PS
+        </button>
         <button class="btn btn-sm btn-dark" id="btn-print-kurir">
           <i class="fe-truck"></i> Cetak Lap. Kurir
         </button>
-
         <button class="btn btn-sm btn-warning" id="btn-print-peng"><i class="fe-printer"></i> Cetak Pengeluaran</button>
         <button class="btn btn-sm btn-success" id="btn-print-laba"><i class="fe-dollar-sign"></i> Cetak Laba</button>
       </div>
+
     </div>
   </div>
 </div>
@@ -260,6 +265,38 @@
 
 
 </div>
+
+
+<!-- Modal Analisa Bisnis (Gemini) -->
+<div class="modal fade" id="modalAnalisa" tabindex="-1" role="dialog" aria-labelledby="modalAnalisaTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAnalisaTitle">Analisa Bisnis AUSI</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="modalAnalisaBody" class="small text-justify">
+          <div class="text-center text-muted">
+            <i class="fe-activity mr-1"></i>
+            Tekan tombol <strong>Analisa Bisnis</strong> untuk melihat insight dari Gemini.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <small class="text-muted mr-auto">
+          Analisa ini dihasilkan otomatis oleh Gemini (Google AI). Gunakan sebagai bahan pertimbangan, bukan keputusan tunggal.
+        </small>
+        <button type="button" class="btn btn-light" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 <script>
 (function(){
   /* ========== COUNTER-UP helper (tanpa plugin eksternal) ========== */
@@ -532,8 +569,53 @@ function updateSummary(){
       window.open("<?= site_url('admin_laporan/print_ps') ?>?"+qs(getParams()), '_blank');
     });
     $('#btn-print-kursi').on('click', function(){
-  window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');
-});
+      window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');
+    });
+
+
+        // ========== ANALISA BISNIS (Gemini) ==========
+    $('#btn-analisa').on('click', function(){
+      const $btn   = $(this);
+      const oldHtml = $btn.html();
+
+      $btn.prop('disabled', true).html(
+        '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>' +
+        'Menganalisis...'
+      );
+
+      $.ajax({
+        type: 'POST',
+        url: "<?= site_url('admin_laporan/analisa_bisnis') ?>",
+        data: getParams(),
+        dataType: 'json'
+      })
+      .done(function(res){
+        if (res && res.success){
+          $('#modalAnalisaTitle').text(res.title || 'Analisa Bisnis AUSI');
+          $('#modalAnalisaBody').html(res.html || '-');
+          $('#modalAnalisa').modal('show');
+        } else {
+          const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa bisnis.';
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('Gagal', msg, 'error');
+          } else {
+            alert(msg);
+          }
+        }
+      })
+      .fail(function(xhr){
+        const msg = 'Terjadi kesalahan saat menghubungi server.';
+        if (typeof Swal !== 'undefined') {
+          Swal.fire('Error', msg, 'error');
+        } else {
+          alert(msg);
+        }
+      })
+      .always(function(){
+        $btn.prop('disabled', false).html(oldHtml);
+      });
+    });
+
 
 
   });
