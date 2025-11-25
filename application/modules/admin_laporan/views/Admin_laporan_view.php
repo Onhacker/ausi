@@ -195,26 +195,7 @@
       </div>
     </div>
   </div>
-  <!-- Omzet PS -->
-  <div class="col-md-6 col-xl-3">
-    <div class="widget-rounded-circle card-box">
-      <div class="row">
-        <div class="col-6">
-          <div class="avatar-lg rounded bg-soft-info">
-            <i class="dripicons-device-desktop font-24 avatar-title text-info"></i>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-ps">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
-              PlayStation <small>(<span id="cnt-ps">0</span> trx)</small>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+ 
 
   <!-- TOTAL PEMASUKAN (semua unit, tanpa ongkir) -->
   <div class="col-md-6 col-xl-3">
