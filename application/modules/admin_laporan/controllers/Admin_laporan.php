@@ -908,11 +908,11 @@ private function _call_gemini(string $prompt): array
             'parts' => [['text' => $prompt]],
         ]],
         'generationConfig' => [
-            // mirip RPM: kita paksa format teks tunggal
-            'responseMimeType' => 'text/html',
+            'responseMimeType' => 'text/plain',  // ⬅ BUKAN text/html
             'temperature'      => 0.45,
-            'maxOutputTokens'  => 2048, // boleh kamu turunkan/naikkan
+            'maxOutputTokens'  => 2048,
         ],
+
     ];
 
     $ch = curl_init($url);
