@@ -69,38 +69,24 @@
     <hr class="my-3">
 
     <!-- Tombol Cetak di bawah, rapi & tidak mepet -->
+        <!-- Tools: Analisa Bisnis -->
     <div class="d-flex align-items-center justify-content-between flex-wrap">
-      <div class="text-muted mb-2">Cetak Laporan</div>
-            <div class="btn-wrap">
+      <div class="text-muted mb-2">Tools</div>
+      <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
         <button class="btn btn-sm btn-outline-info" id="btn-analisa">
           <i class="fe-activity"></i> Analisa Bisnis
         </button>
-
-        <!-- Tombol-tombol cetak -->
-        <button class="btn btn-sm btn-primary" id="btn-print-pos"><i class="fe-printer"></i> Cetak Cafee</button>
-        <button class="btn btn-sm btn-blue" id="btn-print-bil"><i class="fe-printer"></i> Cetak Billiard</button>
-        <button class="btn btn-sm btn-danger" id="btn-print-kursi">
-          <i class="fe-printer"></i> Cetak Kursi Pijat
-        </button>
-        <button class="btn btn-sm btn-info" id="btn-print-ps">
-          <i class="fe-printer"></i> Cetak PS
-        </button>
-        <button class="btn btn-sm btn-dark" id="btn-print-kurir">
-          <i class="fe-truck"></i> Cetak Lap. Kurir
-        </button>
-        <button class="btn btn-sm btn-warning" id="btn-print-peng"><i class="fe-printer"></i> Cetak Pengeluaran</button>
-        <button class="btn btn-sm btn-success" id="btn-print-laba"><i class="fe-dollar-sign"></i> Cetak Laba</button>
       </div>
-
     </div>
+
   </div>
 </div>
 
 
   <!-- RINGKASAN (Widget Rounded) -->
 <div class="row mb-3">
-  <!-- Omzet POS -->
+    <!-- Omzet POS -->
   <div class="col-md-6 col-xl-3">
     <div class="widget-rounded-circle card-box">
       <div class="row">
@@ -118,10 +104,17 @@
           </div>
         </div>
       </div> <!-- end row-->
+
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-print-pos">
+          <i class="fe-printer"></i> Cetak Cafe
+        </button>
+      </div>
     </div> <!-- end widget-rounded-circle-->
   </div> <!-- end col-->
 
-  <!-- Omzet Billiard -->
+
+    <!-- Omzet Billiard -->
   <div class="col-md-6 col-xl-3">
     <div class="widget-rounded-circle card-box">
       <div class="row">
@@ -139,29 +132,43 @@
           </div>
         </div>
       </div> <!-- end row-->
+
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-print-bil">
+          <i class="fe-printer"></i> Cetak Billiard
+        </button>
+      </div>
     </div> <!-- end widget-rounded-circle-->
   </div> <!-- end col-->
 
- <!-- Omzet Kursi Pijat -->
-<div class="col-md-6 col-xl-3">
-  <div class="widget-rounded-circle card-box">
-    <div class="row">
-      <div class="col-6">
-        <div class="avatar-lg rounded bg-soft-pink">
-          <i class="dripicons-rocket font-24 avatar-title text-danger"></i>
+
+  <!-- Omzet Kursi Pijat -->
+  <div class="col-md-6 col-xl-3">
+    <div class="widget-rounded-circle card-box">
+      <div class="row">
+        <div class="col-6">
+          <div class="avatar-lg rounded bg-soft-pink">
+            <i class="dripicons-rocket font-24 avatar-title text-danger"></i>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="text-right">
+            <h3 class="text-dark mt-1"><span id="sum-kp">Rp 0</span></h3>
+            <p class="text-dark mb-1 text-truncate">
+              Kursi Pijat <small>(<span id="cnt-kp">0</span> trx)</small>
+            </p>
+          </div>
         </div>
       </div>
-      <div class="col-6">
-        <div class="text-right">
-          <h3 class="text-dark mt-1"><span id="sum-kp">Rp 0</span></h3>
-          <p class="text-dark mb-1 text-truncate">
-            Kursi Pijat <small>(<span id="cnt-kp">0</span> trx)</small>
-          </p>
-        </div>
+
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-print-kursi">
+          <i class="fe-printer"></i> Cetak Kursi Pijat
+        </button>
       </div>
     </div>
   </div>
-</div>
+
 
   <!-- Omzet PS -->
   <div class="col-md-6 col-xl-3">
@@ -181,9 +188,15 @@
           </div>
         </div>
       </div>
+
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-info" id="btn-print-ps">
+          <i class="fe-printer"></i> Cetak PS
+        </button>
+      </div>
     </div>
   </div>
- 
+
 
   <!-- TOTAL PEMASUKAN (semua unit, tanpa ongkir) -->
   <div class="col-md-6 col-xl-3">
@@ -209,7 +222,7 @@
     </div>
   </div>
 
-  <!-- Pengeluaran -->
+    <!-- Pengeluaran -->
   <div class="col-md-6 col-xl-3">
     <div class="widget-rounded-circle card-box">
       <div class="row">
@@ -227,6 +240,12 @@
           </div>
         </div>
       </div> <!-- end row-->
+
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-warning" id="btn-print-peng">
+          <i class="fe-printer"></i> Cetak Pengeluaran
+        </button>
+      </div>
     </div> <!-- end widget-rounded-circle-->
   </div>
 
@@ -247,34 +266,42 @@
           </div>
         </div>
       </div> <!-- end row-->
+
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-success" id="btn-print-laba">
+          <i class="fe-printer"></i> Cetak Laba
+        </button>
+      </div>
     </div> <!-- end widget-rounded-circle-->
   </div> <!-- end col-->
 
-
-   <!-- Ongkir Delivery -->
-<div class="col-md-6 col-xl-3">
-  <div class="widget-rounded-circle card-box">
-    <div class="row">
-      <div class="col-6">
-        <div class="avatar-lg rounded bg-soft-secondary">
-          <i class="dripicons-location font-24 avatar-title text-secondary"></i>
+  <!-- Ongkir Delivery -->
+  <div class="col-md-6 col-xl-3">
+    <div class="widget-rounded-circle card-box">
+      <div class="row">
+        <div class="col-6">
+          <div class="avatar-lg rounded bg-soft-secondary">
+            <i class="dripicons-location font-24 avatar-title text-secondary"></i>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="text-right">
+            <h3 class="text-dark mt-1"><span id="sum-kurir">Rp 0</span></h3>
+            <p class="text-dark mb-1 text-truncate">
+              Ongkir Delivery <small>(<span id="cnt-kurir">0</span> trx)</small>
+            </p>
+            <small id="kurir-note" class="text-muted d-block"></small> 
+          </div>
         </div>
       </div>
-      <div class="col-6">
-        <div class="text-right">
-          <h3 class="text-dark mt-1"><span id="sum-kurir">Rp 0</span></h3>
-          <p class="text-dark mb-1 text-truncate">
-            Ongkir Delivery <small>(<span id="cnt-kurir">0</span> trx)</small>
-          </p>
-          <!-- <small id="kurir-method-mini" class="text-muted d-block"></small> -->
-          <small id="kurir-note" class="text-muted d-block"></small> 
 
-        </div>
+      <div class="mt-2 text-right">
+        <button type="button" class="btn btn-sm btn-outline-dark" id="btn-print-kurir">
+          <i class="fe-truck"></i> Cetak Lap. Kurir
+        </button>
       </div>
     </div>
   </div>
-</div>
-
 
 
 
