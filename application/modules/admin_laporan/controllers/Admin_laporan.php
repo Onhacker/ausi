@@ -1012,7 +1012,45 @@ private function _call_gemini(string $prompt): array
 
             } elseif (is_array($data)) {
                 // ==== SUCCESS PATH ====
-                if (!isset($da
+                if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $finish = $data['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+                    return [
+                        'success' => false,
+                        'error'   => 'Format respon Gemini tidak dikenali (finishReason='.$finish.').',
+                    ];
+                }
+
+                $text = trim((string)$data['candidates'][0]['content']['parts'][0]['text']);
+                if ($text === '') {
+                    return [
+                        'success' => false,
+                        'error'   => 'Gemini mengembalikan teks kosong. Coba perpendek periode atau ubah sedikit prompt analisa.',
+                    ];
+                }
+
+                return [
+                    'success' => true,
+                    'output'  => $text,
+                ];
+            } else {
+                $lastError = 'Respon Gemini tidak bisa di-decode JSON.';
+            }
+        }
+
+        // Kalau di sini berarti bukan overloaded yg bisa kita tangani dengan continue
+        // atau decode-nya gagal → kalau masih boleh retry, coba lagi sebentar
+        if ($attempt <= $maxRetry) {
+            usleep(300000); // 0.3 detik
+        }
+
+    } while ($attempt <= $maxRetry);
+
+    // Kalau semua percobaan gagal
+    return [
+        'success' => false,
+        'error'   => $lastError ?: 'Gagal memanggil Gemini setelah beberapa percobaan.',
+    ];
+}
 
 
 
