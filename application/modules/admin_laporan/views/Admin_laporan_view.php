@@ -55,13 +55,14 @@
         </select>
       </div>
 
-    <div class="form-group col-12 col-md-2 d-flex align-items-end">
-      <button type="button"
-              class="btn btn-secondary btn-sm ml-md-auto mb-0"
-              id="btn-reset">
+      <div class="form-group col-12 col-md-2 d-flex align-items-end">
+        <button type="button"
+        class="btn btn-secondary btn-sm btn-block"
+        id="btn-reset">
         <i class="fe-rotate-ccw"></i> Reset
       </button>
     </div>
+
 
     </div>
 
@@ -97,15 +98,15 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-pos">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
+            <h3 class="text-dark"><span id="sum-pos">Rp 0</span></h3>
+            <p class="text-dark text-truncate">
               Omzet Cafe <small>(<span id="cnt-pos">0</span> trx)</small>
             </p>
           </div>
         </div>
       </div> <!-- end row-->
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-primary" id="btn-print-pos">
           <i class="fe-printer"></i> Cetak Cafe
         </button>
@@ -125,15 +126,15 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span  id="sum-bil">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
+            <h3 class="text-dark"><span  id="sum-bil">Rp 0</span></h3>
+            <p class="text-dark text-truncate">
               Omzet Billiard <small>(<span id="cnt-bil">0</span> trx)</small>
             </p>
           </div>
         </div>
       </div> <!-- end row-->
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-pink" id="btn-print-bil">
           <i class="fe-printer"></i> Cetak Billiard
         </button>
@@ -153,15 +154,15 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-kp">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
+            <h3 class="text-dark"><span id="sum-kp">Rp 0</span></h3>
+            <p class="text-dark text-truncate">
               Kursi Pijat <small>(<span id="cnt-kp">0</span> trx)</small>
             </p>
           </div>
         </div>
       </div>
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-danger" id="btn-print-kursi">
           <i class="fe-printer"></i> Cetak Kursi Pijat
         </button>
@@ -181,15 +182,15 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-ps">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
+            <h3 class="text-dark"><span id="sum-ps">Rp 0</span></h3>
+            <p class="text-dark text-truncate">
               PlayStation <small>(<span id="cnt-ps">0</span> trx)</small>
             </p>
           </div>
         </div>
       </div>
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-blue" id="btn-print-ps">
           <i class="fe-printer"></i> Cetak PS
         </button>
@@ -209,10 +210,10 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1">
+            <h3 class="text-dark">
               <span id="sum-total-in">Rp 0</span>
             </h3>
-            <p class="text-dark mb-1 text-truncate">
+            <p class="text-dark text-truncate">
               Total Pemasukan
               <small class="d-block text-muted">Cafe + Billiard + KP + PS</small>
             </p>
@@ -233,15 +234,15 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-peng">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
+            <h3 class="text-dark"><span id="sum-peng">Rp 0</span></h3>
+            <p class="text-dark text-truncate">
               Pengeluaran <small>(<span id="cnt-peng">0</span> trx)</small>
             </p>
           </div>
         </div>
       </div> <!-- end row-->
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-warning" id="btn-print-peng">
           <i class="fe-printer"></i> Cetak Pengeluaran
         </button>
@@ -261,13 +262,13 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-laba">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">Laba Bersih</p>
+            <h3 class="text-dark"><span id="sum-laba">Rp 0</span></h3>
+            <p class="text-dark text-truncate">Laba Bersih</p>
           </div>
         </div>
       </div> <!-- end row-->
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-success" id="btn-print-laba">
           <i class="fe-printer"></i> Cetak Laba
         </button>
@@ -286,8 +287,8 @@
         </div>
         <div class="col-6">
           <div class="text-right">
-            <h3 class="text-dark mt-1"><span id="sum-kurir">Rp 0</span></h3>
-            <p class="text-dark mb-1 text-truncate">
+            <h3 class="text-dark"><span id="sum-kurir">Rp 0</span></h3>
+            <p class="text-dark text-truncate">
               Ongkir Delivery <small>(<span id="cnt-kurir">0</span> trx)</small>
             </p>
             <small id="kurir-note" class="text-muted d-block"></small> 
@@ -295,7 +296,7 @@
         </div>
       </div>
 
-      <div class="mt-2 text-right">
+      <div class="text-right">
         <button type="button" class="btn btn-sm btn-dark" id="btn-print-kurir">
           <i class="fe-truck"></i> Cetak Lap. Kurir
         </button>
