@@ -1,16 +1,7 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
-  <div class="row"><div class="col-12">
-    <div class="page-title-box">
-      <div class="page-title-right">
-        <ol class="breadcrumb m-0">
-          <li class="breadcrumb-item active"><?= $subtitle; ?></li>
-        </ol>
-      </div>
-      <h4 class="page-title"><?= $title; ?></h4>
-    </div>
-  </div></div>
+  
 
 <!-- ========== FILTER BAR (rapi + reset + cetak di bawah) ========== -->
 <style>
@@ -21,6 +12,7 @@
 
 <div class="card mb-3">
   <div class="card-body">
+     <h4 class="header-title"><?php echo $title ?></h4>
     <div class="form-row">
       <div class="form-group col-md-4">
         <label class="mb-1">Periode</label>

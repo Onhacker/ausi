@@ -20,7 +20,7 @@ class Admin_laporan extends Admin_Controller
 
     public function index(){
         $data["controller"] = get_class($this);
-        $data["title"]      = "Laporan";
+        $data["title"]      = "Laporan Keuangan";
         $data["subtitle"]   = "Ringkasan & Cetak";
         $data["content"]    = $this->load->view('Admin_laporan_view',$data,true);
         $this->render($data);
