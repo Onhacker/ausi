@@ -303,7 +303,7 @@
       </div>
       <div class="modal-footer">
         <small class="text-muted mr-auto">
-          Analisa ini dihasilkan otomatis oleh AI. Gunakan sebagai bahan pertimbangan, bukan keputusan tunggal.
+          Hasil Analisa. Gunakan sebagai bahan pertimbangan, bukan keputusan tunggal.
         </small>
         <button type="button" class="btn btn-light" data-dismiss="modal">Tutup</button>
       </div>

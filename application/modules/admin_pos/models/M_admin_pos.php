@@ -694,6 +694,10 @@ private function _delete_archives_for_orders(array $order_ids): void
                     'created_at'  => !empty($order->created_at) ? $order->created_at : null,
                     'updated_at'  => !empty($order->updated_at) ? $order->updated_at : null,
                     'archived_at' => date('Y-m-d H:i:s'),
+                    'courier_id'    => isset($order->courier_id) ? (int)$order->courier_id : null,
+                    'courier_name'  => isset($order->courier_name) ? (string)$order->courier_name : null,
+                    'courier_phone' => isset($order->courier_phone) ? (string)$order->courier_phone : null,
+
                 ];
                 $this->db->insert('pesanan_paid', $mapOrder);
                 $pesanan_paid_id = (int)$this->db->insert_id();
