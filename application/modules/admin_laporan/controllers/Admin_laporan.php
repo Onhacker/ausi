@@ -816,8 +816,9 @@ public function print_ps(){
         $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
 
         // ========= SUSUN PROMPT UNTUK GEMINI =========
-        $prompt  = "Kamu adalah konsultan bisnis F&B dan hiburan keluarga untuk sebuah usaha bernama AUSI (cafe, billiard, kursi pijat, dan PlayStation).\n";
-        $prompt .= "Buat analisa bisnis dalam Bahasa Indonesia yang sopan tapi santai, mudah dipahami, dan actionable.\n\n";
+                $prompt  = "Kamu adalah konsultan bisnis F&B dan hiburan keluarga untuk sebuah usaha bernama AUSI (cafe, billiard, kursi pijat, dan PlayStation).\n";
+        $prompt .= "Buat analisa bisnis dalam Bahasa Indonesia yang sopan tapi santai, mudah dipahami, dan actionable. Hindari topik sensitif seperti SARA, politik, atau hal-hal di luar konteks bisnis.\n\n";
+
 
         $prompt .= "Periode data: {$periodLabel}\n";
         $prompt .= "Filter metode pembayaran: {$metodeLabel}\n";
@@ -843,7 +844,7 @@ public function print_ps(){
         $prompt .= "   - Perencanaan bulanan\n";
         $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
         $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
-        $prompt .= "7. Batasi jawaban maksimal sekitar 500–700 kata, jangan terlalu panjang.\n\n";
+
         $prompt .= "FORMAT OUTPUT:\n";
         $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
         $prompt .= "- Gunakan struktur seperti: <h5>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
@@ -880,10 +881,11 @@ public function print_ps(){
     }
 
    /** ====== HELPER PANGGIL GEMINI ====== */
+/** ====== HELPER PANGGIL GEMINI (HTML) ====== */
 private function _call_gemini(string $prompt): array
 {
     $apiKey = (string)($this->gemini_api_key ?? '');
-    $model  = (string)($this->gemini_model ?? 'gemini-2.5-flash');
+    $model  = (string)($this->gemini_model   ?? '');
 
     if ($apiKey === '' || $model === '') {
         return [
@@ -892,104 +894,83 @@ private function _call_gemini(string $prompt): array
         ];
     }
 
-    // HATI-HATI: di config gemini_model sebaiknya HANYA isi "gemini-2.5-flash"
-    // Jangan pakai "models/..." atau sudah ada ":generateContent"
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-         . rawurlencode($model)
-         . ':generateContent?key=' . urlencode($apiKey);
+    // CONTOH: $model = 'gemini-2.5-flash'
+    // Jangan pakai "models/..." di config
+    $url = sprintf(
+        'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s',
+        $model,
+        $apiKey
+    );
 
     $payload = [
         'contents' => [[
-            'parts' => [[ 'text' => $prompt ]]
+            'role'  => 'user',
+            'parts' => [['text' => $prompt]],
         ]],
         'generationConfig' => [
-            'temperature'     => 0.45,
-            'maxOutputTokens' => 1024,
-            'topP'            => 0.95,
+            // mirip RPM: kita paksa format teks tunggal
+            'responseMimeType' => 'text/html',
+            'temperature'      => 0.45,
+            'maxOutputTokens'  => 2048, // boleh kamu turunkan/naikkan
         ],
     ];
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
+        CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
         CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_TIMEOUT        => 40,
+        CURLOPT_TIMEOUT        => 60,
     ]);
-    $body   = curl_exec($ch);
-    $errno  = curl_errno($ch);
-    $error  = curl_error($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    $response = curl_exec($ch);
+    $errno    = curl_errno($ch);
+    $error    = curl_error($ch);
+    $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // Log mentah supaya bisa dicek di application/logs
-    log_message('error', 'Gemini analisa_bisnis HTTP '.$status.' RESP: '.substr((string)$body,0,2000));
+    // log mentah buat debug di application/logs
+    log_message('error', 'Gemini analisa_bisnis HTTP '.$status.' RESP: '.substr((string)$response, 0, 2000));
 
     if ($errno) {
         return [
             'success' => false,
-            'error'   => 'Curl error: ' . $error
+            'error'   => 'cURL error: ' . $error,
         ];
     }
 
-    $data = json_decode($body, true);
+    $data = json_decode($response, true);
     if (!is_array($data)) {
         return [
             'success' => false,
-            'error'   => 'Respon Gemini tidak bisa di-decode JSON.'
+            'error'   => 'Respon Gemini tidak bisa di-decode JSON.',
         ];
     }
 
-    // Kalau ada error dari API
-    if (isset($data['error'])) {
-        $msg = is_array($data['error']) && isset($data['error']['message'])
-            ? $data['error']['message']
-            : 'Error dari Gemini.';
+    if (isset($data['error']['message'])) {
         return [
             'success' => false,
-            'error'   => $msg,
+            'error'   => 'ERROR dari Gemini: ' . $data['error']['message'],
         ];
     }
 
-        $candidate = $data['candidates'][0] ?? null;
-        if (!$candidate) {
-            return [
-                'success' => false,
-                'error'   => 'Gemini tidak mengembalikan candidate.'
-            ];
-        }
-
-        // === FINISH REASON HANDLING ===
-        $finish = $candidate['finishReason'] ?? 'FINISH_REASON_UNSPECIFIED';
-
-        // Kalau diblokir SAFETY baru kita anggap error
-        if ($finish === 'SAFETY') {
-            return [
-                'success' => false,
-                'error'   => 'Jawaban diblokir oleh safety Gemini.'
-            ];
-        }
-
-        // MAX_TOKENS = kepanjangan, tapi tetap ada teks → kita TERIMA sebagai sukses (analisa mungkin kepotong di akhir)
-        // FINISH_REASON_UNSPECIFIED juga kita anggap OK.
-        // Jadi yang dianggap OK: STOP, MAX_TOKENS, FINISH_REASON_UNSPECIFIED
-
-
-    $parts = $candidate['content']['parts'] ?? [];
-    $text  = '';
-
-    foreach ($parts as $p) {
-        if (isset($p['text'])) {
-            $text .= $p['text'] . "\n";
-        }
+    // Pola sama seperti _call_gemini_rpm_json:
+    if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+        $finish = $data['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+        return [
+            'success' => false,
+            'error'   => 'Format respon Gemini tidak dikenali (finishReason='.$finish.').',
+        ];
     }
 
-    $text = trim((string)$text);
+    $text = trim((string)$data['candidates'][0]['content']['parts'][0]['text']);
+
     if ($text === '') {
+        // di sini kita lapor jujur, tapi TANPA asumsi
         return [
             'success' => false,
-            'error'   => 'Gemini mengembalikan teks kosong (mungkin terblokir safety).'
+            'error'   => 'Gemini mengembalikan teks kosong. Coba perpendek filter/periode atau ubah sedikit prompt.',
         ];
     }
 
@@ -998,6 +979,7 @@ private function _call_gemini(string $prompt): array
         'output'  => $text,
     ];
 }
+
 
     
 }
