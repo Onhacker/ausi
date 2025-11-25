@@ -952,7 +952,7 @@ private function _call_gemini(string $prompt): array
         ],
     ];
 
-    $maxRetry  = 2;         // total percobaan: 1 + 2 retry = 3
+    $maxRetry  = 1;         // total percobaan: 1 + 2 retry = 3
     $attempt   = 0;
     $lastError = '';
 
