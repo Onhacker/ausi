@@ -601,7 +601,7 @@ function updateSummary(){
                 alert(msg);
               }
             }
-          });
+          })
 
       .fail(function(xhr){
         const msg = 'Terjadi kesalahan saat menghubungi server.';
