@@ -768,6 +768,42 @@ public function print_ps(){
         if ( ! $this->input->is_ajax_request()) {
             show_404();
         }
+        // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
+        $rateKey   = 'analisa_bisnis_hits';
+        $now       = time();
+        $window    = 60; // 60 detik
+        $maxCalls  = 3;
+
+        $hits = $this->session->userdata($rateKey);
+        if ( ! is_array($hits)) {
+            $hits = [];
+        }
+
+        // buang hit yang sudah lewat dari 60 detik
+        $hits = array_filter($hits, function($ts) use ($now, $window){
+            return ($now - (int)$ts) < $window;
+        });
+
+        if (count($hits) >= $maxCalls) {
+            // simpan lagi sisa hit (optional)
+            $this->session->set_userdata($rateKey, $hits);
+
+            return $this->output
+                ->set_content_type('application/json','utf-8')
+                ->set_output(json_encode([
+                    'success'      => false,
+                    'rate_limited' => true,
+                    'error'        => 'Hanya bisa menganalisis maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
+                ]));
+        }
+
+        // masih di bawah limit → tambahkan hit baru
+        $hits[] = $now;
+        $this->session->set_userdata($rateKey, $hits);
+
+        // ========== LANJUT LOGIKA LAMA ==========
+        $f           = $this->_parse_filter();
+        $periodLabel = $this->_period_label($f);
 
         $f           = $this->_parse_filter();
         $periodLabel = $this->_period_label($f);
@@ -844,6 +880,8 @@ public function print_ps(){
         $prompt .= "   - Perencanaan bulanan\n";
         $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
         $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
+        $prompt .= "7. Jelaskan dengan cukup rinci (sekitar 700–1000 kata), jangan terlalu singkat.\n\n";
+
 
         $prompt .= "FORMAT OUTPUT:\n";
         $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
@@ -910,7 +948,7 @@ private function _call_gemini(string $prompt): array
         'generationConfig' => [
             'responseMimeType' => 'text/plain',  // ⬅ BUKAN text/html
             'temperature'      => 0.45,
-            'maxOutputTokens'  => 2048,
+            'maxOutputTokens'  => 3072,
         ],
 
     ];

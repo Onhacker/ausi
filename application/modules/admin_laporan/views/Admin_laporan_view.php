@@ -584,25 +584,25 @@ function updateSummary(){
       );
 
       $.ajax({
-        type: 'POST',
-        url: "<?= site_url('admin_laporan/analisa_bisnis') ?>",
-        data: getParams(),
-        dataType: 'json'
-      })
-      .done(function(res){
-        if (res && res.success){
-          $('#modalAnalisaTitle').text(res.title || 'Analisa Bisnis AUSI');
-          $('#modalAnalisaBody').html(res.html || '-');
-          $('#modalAnalisa').modal('show');
-        } else {
-          const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa bisnis.';
-          if (typeof Swal !== 'undefined') {
-            Swal.fire('Gagal', msg, 'error');
-          } else {
-            alert(msg);
-          }
-        }
-      })
+            url: "<?= site_url('admin_laporan/analisa_bisnis') ?>",
+            type: "POST",
+            data: getParams(),
+            dataType: "json"
+          }).done(function(res){
+            if (res && res.success) {
+              $('#modalAnalisaTitle').text(res.title || 'Analisa Bisnis AUSI');
+              $('#modalAnalisaBody').html(res.html || '-');
+              $('#modalAnalisa').modal('show');
+            } else {
+              const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa bisnis.';
+              if (typeof Swal !== 'undefined') {
+                Swal.fire('Gagal', msg, 'error');
+              } else {
+                alert(msg);
+              }
+            }
+          });
+
       .fail(function(xhr){
         const msg = 'Terjadi kesalahan saat menghubungi server.';
         if (typeof Swal !== 'undefined') {
