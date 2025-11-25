@@ -852,7 +852,10 @@ public function print_ps(){
         $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
 
         // ========= SUSUN PROMPT UNTUK GEMINI =========
-                $prompt  = "Kamu adalah konsultan bisnis F&B dan hiburan keluarga untuk sebuah usaha bernama AUSI (cafe, billiard, kursi pijat, dan PlayStation).\n";
+        $prompt  = "Kamu adalah konsultan bisnis untuk sebuah usaha bernama AUSI Cafe & Billiard, "
+         . "yang memiliki beberapa unit: Cafe, Billiard, Kursi Pijat, dan PlayStation.\n";
+        $prompt .= "Fokuskan analisa pada bisnis cafe dan billiard sebagai inti usaha, lalu kaitkan juga dengan kursi pijat dan PlayStation sebagai pendukung.\n";
+
         $prompt .= "Buat analisa bisnis dalam Bahasa Indonesia yang sopan tapi santai, mudah dipahami, dan actionable. Hindari topik sensitif seperti SARA, politik, atau hal-hal di luar konteks bisnis.\n\n";
 
 
@@ -885,7 +888,7 @@ public function print_ps(){
 
         $prompt .= "FORMAT OUTPUT:\n";
         $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
-        $prompt .= "- Gunakan struktur seperti: <h5>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
+        $prompt .= "- Gunakan struktur seperti: <h4>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
         $prompt .= "- Jangan gunakan script atau style, hanya HTML konten saja.\n";
 
         $ai = $this->_call_gemini($prompt);
