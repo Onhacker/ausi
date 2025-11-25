@@ -843,7 +843,7 @@ public function print_ps(){
         $prompt .= "   - Perencanaan bulanan\n";
         $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
         $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
-
+        $prompt .= "7. Batasi jawaban maksimal sekitar 500–700 kata, jangan terlalu panjang.\n\n";
         $prompt .= "FORMAT OUTPUT:\n";
         $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
         $prompt .= "- Gunakan struktur seperti: <h5>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
@@ -952,22 +952,29 @@ private function _call_gemini(string $prompt): array
         ];
     }
 
-    $candidate = $data['candidates'][0] ?? null;
-    if (!$candidate) {
-        return [
-            'success' => false,
-            'error'   => 'Gemini tidak mengembalikan candidate.'
-        ];
-    }
+        $candidate = $data['candidates'][0] ?? null;
+        if (!$candidate) {
+            return [
+                'success' => false,
+                'error'   => 'Gemini tidak mengembalikan candidate.'
+            ];
+        }
 
-    // Kalau finishReason bukan STOP, biasanya karena SAFETY
-    $finish = $candidate['finishReason'] ?? 'FINISH_REASON_UNSPECIFIED';
-    if ($finish !== 'STOP') {
-        return [
-            'success' => false,
-            'error'   => 'Jawaban diblokir oleh Gemini (finishReason: '.$finish.').',
-        ];
-    }
+        // === FINISH REASON HANDLING ===
+        $finish = $candidate['finishReason'] ?? 'FINISH_REASON_UNSPECIFIED';
+
+        // Kalau diblokir SAFETY baru kita anggap error
+        if ($finish === 'SAFETY') {
+            return [
+                'success' => false,
+                'error'   => 'Jawaban diblokir oleh safety Gemini.'
+            ];
+        }
+
+        // MAX_TOKENS = kepanjangan, tapi tetap ada teks → kita TERIMA sebagai sukses (analisa mungkin kepotong di akhir)
+        // FINISH_REASON_UNSPECIFIED juga kita anggap OK.
+        // Jadi yang dianggap OK: STOP, MAX_TOKENS, FINISH_REASON_UNSPECIFIED
+
 
     $parts = $candidate['content']['parts'] ?? [];
     $text  = '';
