@@ -880,7 +880,7 @@ public function print_ps(){
         $prompt .= "   - Perencanaan bulanan\n";
         $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
         $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
-        $prompt .= "7. Jelaskan dengan cukup rinci (sekitar 700–1000 kata), jangan terlalu singkat.\n\n";
+        // $prompt .= "7. Jelaskan dengan cukup rinci (sekitar 700–1000 kata), jangan terlalu singkat.\n\n";
 
 
         $prompt .= "FORMAT OUTPUT:\n";
@@ -920,6 +920,7 @@ public function print_ps(){
 
    /** ====== HELPER PANGGIL GEMINI ====== */
 /** ====== HELPER PANGGIL GEMINI (HTML) ====== */
+/** ====== HELPER PANGGIL GEMINI (HTML) DENGAN AUTO-RETRY ====== */
 private function _call_gemini(string $prompt): array
 {
     $apiKey = (string)($this->gemini_api_key ?? '');
@@ -932,8 +933,6 @@ private function _call_gemini(string $prompt): array
         ];
     }
 
-    // CONTOH: $model = 'gemini-2.5-flash'
-    // Jangan pakai "models/..." di config
     $url = sprintf(
         'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s',
         $model,
@@ -946,77 +945,75 @@ private function _call_gemini(string $prompt): array
             'parts' => [['text' => $prompt]],
         ]],
         'generationConfig' => [
-            'responseMimeType' => 'text/plain',  // ⬅ BUKAN text/html
+            // TIDAK boleh text/html → pakai text/plain saja
+            'responseMimeType' => 'text/plain',
             'temperature'      => 0.45,
-            'maxOutputTokens'  => 3072,
+            // 'maxOutputTokens'  => 2048,
         ],
-
     ];
 
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_TIMEOUT        => 60,
-    ]);
+    $maxRetry  = 2;         // total percobaan: 1 + 2 retry = 3
+    $attempt   = 0;
+    $lastError = '';
 
-    $response = curl_exec($ch);
-    $errno    = curl_errno($ch);
-    $error    = curl_error($ch);
-    $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    do {
+        $attempt++;
 
-    // log mentah buat debug di application/logs
-    log_message('error', 'Gemini analisa_bisnis HTTP '.$status.' RESP: '.substr((string)$response, 0, 2000));
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_TIMEOUT        => 60,
+        ]);
 
-    if ($errno) {
-        return [
-            'success' => false,
-            'error'   => 'cURL error: ' . $error,
-        ];
-    }
+        $response = curl_exec($ch);
+        $errno    = curl_errno($ch);
+        $error    = curl_error($ch);
+        $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-    $data = json_decode($response, true);
-    if (!is_array($data)) {
-        return [
-            'success' => false,
-            'error'   => 'Respon Gemini tidak bisa di-decode JSON.',
-        ];
-    }
+        log_message('error', 'Gemini analisa_bisnis attempt '.$attempt.' HTTP '.$status.' RESP: '.substr((string)$response, 0, 1500));
 
-    if (isset($data['error']['message'])) {
-        return [
-            'success' => false,
-            'error'   => 'ERROR dari Gemini: ' . $data['error']['message'],
-        ];
-    }
+        if ($errno) {
+            $lastError = 'cURL error: ' . $error;
+        } else {
+            $data = json_decode($response, true);
 
-    // Pola sama seperti _call_gemini_rpm_json:
-    if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-        $finish = $data['candidates'][0]['finishReason'] ?? 'UNKNOWN';
-        return [
-            'success' => false,
-            'error'   => 'Format respon Gemini tidak dikenali (finishReason='.$finish.').',
-        ];
-    }
+            if (isset($data['error']['message'])) {
+                $msg = (string)$data['error']['message'];
+                $lastError = 'ERROR dari Gemini: ' . $msg;
 
-    $text = trim((string)$data['candidates'][0]['content']['parts'][0]['text']);
+                // ==== DETEKSI MODEL OVERLOADED / RESOURCE EXHAUSTED ====
+                $msgLower = strtolower($msg);
+                if (
+                    strpos($msgLower, 'overloaded') !== false ||
+                    strpos($msgLower, 'resource has been exhausted') !== false
+                ) {
+                    // kalau masih boleh retry → tunggu sebentar lalu ulang
+                    if ($attempt <= $maxRetry) {
+                        usleep(500000); // 0.5 detik
+                        continue;
+                    }
 
-    if ($text === '') {
-        // di sini kita lapor jujur, tapi TANPA asumsi
-        return [
-            'success' => false,
-            'error'   => 'Gemini mengembalikan teks kosong. Coba perpendek filter/periode atau ubah sedikit prompt.',
-        ];
-    }
+                    // kalau sudah habis retry → kirim pesan lebih ramah
+                    return [
+                        'success' => false,
+                        'error'   => 'Model Gemini sedang penuh/sibuk. Coba klik analisa lagi setelah beberapa detik.',
+                    ];
+                }
 
-    return [
-        'success' => true,
-        'output'  => $text,
-    ];
-}
+                // error lain (bukan overloaded) → langsung keluar
+                return [
+                    'success' => false,
+                    'error'   => $lastError,
+                ];
+
+            } elseif (is_array($data)) {
+                // ==== SUCCESS PATH ====
+                if (!isset($da
+
 
 
     
