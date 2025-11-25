@@ -55,14 +55,14 @@
         </select>
       </div>
 
-      <div class="form-group col-12 col-md-2 d-flex flex-wrap align-items-center justify-content-start justify-content-md-end btn-wrap">
-       <!--  <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
-          <span class="btn-label"><i class="fe-filter"></i></span> Terapkan
-        </button> -->
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-reset">
-          <i class="fe-rotate-ccw"></i> Reset
-        </button>
-      </div>
+    <div class="form-group col-12 col-md-2 d-flex align-items-end">
+      <button type="button"
+              class="btn btn-secondary btn-sm ml-md-auto mb-0"
+              id="btn-reset">
+        <i class="fe-rotate-ccw"></i> Reset
+      </button>
+    </div>
+
     </div>
 
 
