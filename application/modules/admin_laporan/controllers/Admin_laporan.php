@@ -879,96 +879,118 @@ public function print_ps(){
             ->set_output(json_encode($out));
     }
 
-    /** ====== HELPER PANGGIL GEMINI ====== */
-    private function _call_gemini(string $prompt): array
-    {
-        $apiKey = (string)($this->gemini_api_key ?? '');
-        $model  = (string)($this->gemini_model ?? 'gemini-2.5-flash');
+   /** ====== HELPER PANGGIL GEMINI ====== */
+private function _call_gemini(string $prompt): array
+{
+    $apiKey = (string)($this->gemini_api_key ?? '');
+    $model  = (string)($this->gemini_model ?? 'gemini-2.5-flash');
 
-        if ($apiKey === '' || $model === '') {
-            return [
-                'success' => false,
-                'error'   => 'API key atau model Gemini belum dikonfigurasi.'
-            ];
-        }
-
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-             . rawurlencode($model)
-             . ':generateContent?key=' . urlencode($apiKey);
-
-        $payload = [
-            'contents' => [[
-                'parts' => [[ 'text' => $prompt ]]
-            ]],
-            'generationConfig' => [
-                'temperature'      => 0.45,
-                'maxOutputTokens'  => 1024,
-                'topP'             => 0.95,
-            ],
-        ];
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS     => json_encode($payload),
-            CURLOPT_TIMEOUT        => 40,
-        ]);
-        $body   = curl_exec($ch);
-        $errno  = curl_errno($ch);
-        $error  = curl_error($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($errno) {
-            return [
-                'success' => false,
-                'error'   => 'Curl error: ' . $error
-            ];
-        }
-
-        $data = json_decode($body, true);
-        if ($status >= 400 || !is_array($data)) {
-            return [
-                'success' => false,
-                'error'   => 'HTTP ' . $status . ' / respon Gemini tidak valid.'
-            ];
-        }
-
-        if (isset($data['error'])) {
-            $msg = is_array($data['error']) && isset($data['error']['message'])
-                ? $data['error']['message']
-                : 'Error dari Gemini.';
-            return [
-                'success' => false,
-                'error'   => $msg,
-            ];
-        }
-
-        $text = '';
-        if (!empty($data['candidates'][0]['content']['parts'])) {
-            foreach ($data['candidates'][0]['content']['parts'] as $p) {
-                if (isset($p['text'])) {
-                    $text .= $p['text'];
-                }
-            }
-        }
-
-        $text = trim((string)$text);
-        if ($text === '') {
-            return [
-                'success' => false,
-                'error'   => 'Jawaban dari Gemini kosong.'
-            ];
-        }
-
+    if ($apiKey === '' || $model === '') {
         return [
-            'success' => true,
-            'output'  => $text,
+            'success' => false,
+            'error'   => 'API key atau model Gemini belum dikonfigurasi.'
         ];
     }
 
+    // HATI-HATI: di config gemini_model sebaiknya HANYA isi "gemini-2.5-flash"
+    // Jangan pakai "models/..." atau sudah ada ":generateContent"
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+         . rawurlencode($model)
+         . ':generateContent?key=' . urlencode($apiKey);
+
+    $payload = [
+        'contents' => [[
+            'parts' => [[ 'text' => $prompt ]]
+        ]],
+        'generationConfig' => [
+            'temperature'     => 0.45,
+            'maxOutputTokens' => 1024,
+            'topP'            => 0.95,
+        ],
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_TIMEOUT        => 40,
+    ]);
+    $body   = curl_exec($ch);
+    $errno  = curl_errno($ch);
+    $error  = curl_error($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // Log mentah supaya bisa dicek di application/logs
+    log_message('error', 'Gemini analisa_bisnis HTTP '.$status.' RESP: '.substr((string)$body,0,2000));
+
+    if ($errno) {
+        return [
+            'success' => false,
+            'error'   => 'Curl error: ' . $error
+        ];
+    }
+
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        return [
+            'success' => false,
+            'error'   => 'Respon Gemini tidak bisa di-decode JSON.'
+        ];
+    }
+
+    // Kalau ada error dari API
+    if (isset($data['error'])) {
+        $msg = is_array($data['error']) && isset($data['error']['message'])
+            ? $data['error']['message']
+            : 'Error dari Gemini.';
+        return [
+            'success' => false,
+            'error'   => $msg,
+        ];
+    }
+
+    $candidate = $data['candidates'][0] ?? null;
+    if (!$candidate) {
+        return [
+            'success' => false,
+            'error'   => 'Gemini tidak mengembalikan candidate.'
+        ];
+    }
+
+    // Kalau finishReason bukan STOP, biasanya karena SAFETY
+    $finish = $candidate['finishReason'] ?? 'FINISH_REASON_UNSPECIFIED';
+    if ($finish !== 'STOP') {
+        return [
+            'success' => false,
+            'error'   => 'Jawaban diblokir oleh Gemini (finishReason: '.$finish.').',
+        ];
+    }
+
+    $parts = $candidate['content']['parts'] ?? [];
+    $text  = '';
+
+    foreach ($parts as $p) {
+        if (isset($p['text'])) {
+            $text .= $p['text'] . "\n";
+        }
+    }
+
+    $text = trim((string)$text);
+    if ($text === '') {
+        return [
+            'success' => false,
+            'error'   => 'Gemini mengembalikan teks kosong (mungkin terblokir safety).'
+        ];
+    }
+
+    return [
+        'success' => true,
+        'output'  => $text,
+    ];
+}
 
     
 }
