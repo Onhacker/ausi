@@ -13,34 +13,29 @@
 <div class="card mb-3">
   <div class="card-body">
      <h4 class="header-title"><?php echo $title ?></h4>
-    <div class="form-row">
-      <div class="form-group col-md-4">
+    <div class="form-row align-items-end">
+      <div class="form-group col-12 col-md-2">
         <label class="mb-1">Periode</label>
         <select id="preset" class="form-control form-control-sm">
           <option value="today">Hari ini</option>
           <option value="yesterday">Kemarin</option>
-         
           <option value="this_week">Minggu ini</option>
           <option value="this_month">Bulan ini</option>
           <option value="range">Rentang Tanggal</option>
-         
         </select>
       </div>
 
-      <!-- GANTI: input tanggal lama -->
-      <div class="form-group col-md-4">
-        <label class="mb-1" for="dt_from">Dari (Tanggal & Jam)</label>
+      <div class="form-group col-12 col-md-2">
+        <label class="mb-1" for="dt_from">Dari (Tanggal &amp; Jam)</label>
         <input type="datetime-local" id="dt_from" class="form-control form-control-sm">
       </div>
 
-      <div class="form-group col-md-4">
-        <label class="mb-1" for="dt_to">Sampai (Tanggal & Jam)</label>
+      <div class="form-group col-12 col-md-2">
+        <label class="mb-1" for="dt_to">Sampai (Tanggal &amp; Jam)</label>
         <input type="datetime-local" id="dt_to" class="form-control form-control-sm">
       </div>
 
-
-
-      <div class="form-group col-md-6">
+      <div class="form-group col-12 col-md-2">
         <label class="mb-1">Metode Pembayaran</label>
         <select id="metode" class="form-control form-control-sm">
           <option value="all">Semua</option>
@@ -50,7 +45,7 @@
         </select>
       </div>
 
-      <div class="form-group col-md-6">
+      <div class="form-group col-12 col-md-2">
         <label class="mb-1">Mode (POS Cafe)</label>
         <select id="mode" class="form-control form-control-sm">
           <option value="all">Semua</option>
@@ -60,7 +55,7 @@
         </select>
       </div>
 
-      <div class="form-group col-12 d-flex flex-wrap align-items-center btn-wrap">
+      <div class="form-group col-12 col-md-2 d-flex flex-wrap align-items-center justify-content-start justify-content-md-end btn-wrap">
         <button type="button" class="btn btn-primary btn-sm" id="btn-apply">
           <span class="btn-label"><i class="fe-filter"></i></span> Terapkan
         </button>
@@ -69,6 +64,7 @@
         </button>
       </div>
     </div>
+
 
     <hr class="my-3">
 
