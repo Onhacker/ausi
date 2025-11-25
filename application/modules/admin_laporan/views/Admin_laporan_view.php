@@ -195,6 +195,50 @@
       </div>
     </div>
   </div>
+  <!-- Omzet PS -->
+  <div class="col-md-6 col-xl-3">
+    <div class="widget-rounded-circle card-box">
+      <div class="row">
+        <div class="col-6">
+          <div class="avatar-lg rounded bg-soft-info">
+            <i class="dripicons-device-desktop font-24 avatar-title text-info"></i>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="text-right">
+            <h3 class="text-dark mt-1"><span id="sum-ps">Rp 0</span></h3>
+            <p class="text-dark mb-1 text-truncate">
+              PlayStation <small>(<span id="cnt-ps">0</span> trx)</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOTAL PEMASUKAN (semua unit, tanpa ongkir) -->
+  <div class="col-md-6 col-xl-3">
+    <div class="widget-rounded-circle card-box">
+      <div class="row">
+        <div class="col-6">
+          <div class="avatar-lg rounded bg-soft-secondary">
+            <i class="dripicons-graph-line font-24 avatar-title text-secondary"></i>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="text-right">
+            <h3 class="text-dark mt-1">
+              <span id="sum-total-in">Rp 0</span>
+            </h3>
+            <p class="text-dark mb-1 text-truncate">
+              Total Pemasukan
+              <small class="d-block text-muted">Cafe + Billiard + KP + PS</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Pengeluaran -->
   <div class="col-md-6 col-xl-3">
@@ -215,7 +259,8 @@
         </div>
       </div> <!-- end row-->
     </div> <!-- end widget-rounded-circle-->
-  </div> <!-- end col-->
+  </div>
+
 
   <!-- Laba Bersih -->
   <div class="col-md-6 col-xl-3">
@@ -481,7 +526,7 @@ function updateSummary(){
       const ps = r.ps || {};
       const psTotal = parseInt(ps.total || 0, 10);
       const psCount = parseInt(ps.count || 0, 10);
-
+      const totalIn = posTotal + bilTotal + kpTotal + psTotal;
       const kur      = r.kurir || {};
       const kurTotal = parseInt(kur.total_fee || 0, 10);
       const kurCount = parseInt(kur.count || 0, 10);
@@ -496,6 +541,7 @@ function updateSummary(){
 
       if ($('#sum-pos').length)   animateNumber('#sum-pos',  posTotal,  IDR, 900);
       if ($('#sum-bil').length)   animateNumber('#sum-bil',  bilTotal,  IDR, 900);
+       if ($('#sum-total-in').length)animateNumber('#sum-total-in', totalIn,  IDR, 900);
       if ($('#sum-peng').length)  animateNumber('#sum-peng', pengTotal, IDR, 900);
       if ($('#sum-laba').length)  animateNumber('#sum-laba', labaTotal, IDR, 900);
       if ($('#sum-kurir').length) animateNumber('#sum-kurir', kurTotal, IDR, 900);

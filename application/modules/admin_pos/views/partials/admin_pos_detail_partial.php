@@ -567,9 +567,19 @@ $pm_label    = 'Lihat Order';
           alert(res && res.msg ? res.msg : 'Gagal menugaskan kurir.');
         }
       },
-      error: function(){
-        alert('Terjadi kesalahan jaringan/server.');
+      error: function(xhr){
+        var msg = 'Terjadi kesalahan jaringan/server.';
+        if (xhr.responseJSON && xhr.responseJSON.msg){
+          msg = xhr.responseJSON.msg;
+        } else if (xhr.responseText) {
+          try {
+            var j = JSON.parse(xhr.responseText);
+            if (j.msg) msg = j.msg;
+          } catch(e){}
+        }
+        alert(msg);
       },
+
       complete: function(){
         $overlay.addClass('d-none');
         if ($btn.length){
