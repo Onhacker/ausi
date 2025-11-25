@@ -74,7 +74,7 @@
       <div class="text-muted mb-2">Tools</div>
       <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
-        <button class="btn btn-sm btn-outline-info" id="btn-analisa">
+        <button class="btn btn-sm btn-info" id="btn-analisa">
           <i class="fe-activity"></i> Analisa Bisnis
         </button>
       </div>
@@ -106,7 +106,7 @@
       </div> <!-- end row-->
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-print-pos">
+        <button type="button" class="btn btn-sm btn-primary" id="btn-print-pos">
           <i class="fe-printer"></i> Cetak Cafe
         </button>
       </div>
@@ -134,7 +134,7 @@
       </div> <!-- end row-->
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-print-bil">
+        <button type="button" class="btn btn-sm btn-primary" id="btn-print-bil">
           <i class="fe-printer"></i> Cetak Billiard
         </button>
       </div>
@@ -162,7 +162,7 @@
       </div>
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-print-kursi">
+        <button type="button" class="btn btn-sm btn-danger" id="btn-print-kursi">
           <i class="fe-printer"></i> Cetak Kursi Pijat
         </button>
       </div>
@@ -190,7 +190,7 @@
       </div>
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-info" id="btn-print-ps">
+        <button type="button" class="btn btn-sm btn-info" id="btn-print-ps">
           <i class="fe-printer"></i> Cetak PS
         </button>
       </div>
@@ -242,7 +242,7 @@
       </div> <!-- end row-->
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-warning" id="btn-print-peng">
+        <button type="button" class="btn btn-sm btn-warning" id="btn-print-peng">
           <i class="fe-printer"></i> Cetak Pengeluaran
         </button>
       </div>
@@ -268,7 +268,7 @@
       </div> <!-- end row-->
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-success" id="btn-print-laba">
+        <button type="button" class="btn btn-sm btn-success" id="btn-print-laba">
           <i class="fe-printer"></i> Cetak Laba
         </button>
       </div>
@@ -296,7 +296,7 @@
       </div>
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-outline-dark" id="btn-print-kurir">
+        <button type="button" class="btn btn-sm btn-dark" id="btn-print-kurir">
           <i class="fe-truck"></i> Cetak Lap. Kurir
         </button>
       </div>
