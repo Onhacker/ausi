@@ -74,7 +74,7 @@
       <div class="text-muted mb-2">Tools</div>
       <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
-        <button class="btn btn-sm btn-info" id="btn-analisa">
+        <button class="btn btn-sm btn-blue" id="btn-analisa">
           <i class="fe-activity"></i> Analisa Bisnis
         </button>
       </div>
@@ -134,7 +134,7 @@
       </div> <!-- end row-->
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-primary" id="btn-print-bil">
+        <button type="button" class="btn btn-sm btn-pink" id="btn-print-bil">
           <i class="fe-printer"></i> Cetak Billiard
         </button>
       </div>
@@ -190,7 +190,7 @@
       </div>
 
       <div class="mt-2 text-right">
-        <button type="button" class="btn btn-sm btn-info" id="btn-print-ps">
+        <button type="button" class="btn btn-sm btn-blue" id="btn-print-ps">
           <i class="fe-printer"></i> Cetak PS
         </button>
       </div>
