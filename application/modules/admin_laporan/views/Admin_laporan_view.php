@@ -76,7 +76,7 @@
       <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
         <button class="btn btn-sm btn-blue" id="btn-analisa">
-          <i class="fe-activity"></i> Analisa Bisnis
+          <i class="fe-activity"></i> Analisa Robot Ausi
         </button>
       </div>
     </div>

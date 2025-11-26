@@ -764,162 +764,218 @@ public function print_ps(){
 
     /** ====== ANALISA BISNIS DENGAN GEMINI (AJAX) ====== */
     public function analisa_bisnis()
-    {
-        if ( ! $this->input->is_ajax_request()) {
-            show_404();
-        }
-        // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
-        $rateKey   = 'analisa_bisnis_hits';
-        $now       = time();
-        $window    = 60; // 60 detik
-        $maxCalls  = 3;
+{
+    if ( ! $this->input->is_ajax_request()) {
+        show_404();
+    }
 
-        $hits = $this->session->userdata($rateKey);
-        if ( ! is_array($hits)) {
-            $hits = [];
-        }
+    // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
+    $rateKey   = 'analisa_bisnis_hits';
+    $nowUnix   = time();
+    $window    = 60; // 60 detik
+    $maxCalls  = 3;
 
-        // buang hit yang sudah lewat dari 60 detik
-        $hits = array_filter($hits, function($ts) use ($now, $window){
-            return ($now - (int)$ts) < $window;
-        });
+    $hits = $this->session->userdata($rateKey);
+    if ( ! is_array($hits)) {
+        $hits = [];
+    }
 
-        if (count($hits) >= $maxCalls) {
-            // simpan lagi sisa hit (optional)
-            $this->session->set_userdata($rateKey, $hits);
+    // buang hit yang sudah lewat dari 60 detik
+    $hits = array_filter($hits, function($ts) use ($nowUnix, $window){
+        return ($nowUnix - (int)$ts) < $window;
+    });
 
-            return $this->output
-                ->set_content_type('application/json','utf-8')
-                ->set_output(json_encode([
-                    'success'      => false,
-                    'rate_limited' => true,
-                    'error'        => 'Hanya bisa menganalisis maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
-                ]));
-        }
-
-        // masih di bawah limit → tambahkan hit baru
-        $hits[] = $now;
+    if (count($hits) >= $maxCalls) {
         $this->session->set_userdata($rateKey, $hits);
-
-        // ========== LANJUT LOGIKA LAMA ==========
-        $f           = $this->_parse_filter();
-        $periodLabel = $this->_period_label($f);
-
-        $f           = $this->_parse_filter();
-        $periodLabel = $this->_period_label($f);
-
-        // Ambil angka-angka ringkasan (sama logika dengan summary_json)
-        $pos  = $this->lm->sum_pos($f)          ?: ['count'=>0,'total'=>0,'by_method'=>[]];
-        $bil  = $this->lm->sum_billiard($f)     ?: ['count'=>0,'total'=>0,'by_method'=>[]];
-        $peng = $this->lm->sum_pengeluaran($f)  ?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
-        $kur  = $this->lm->sum_kurir($f)        ?: ['count'=>0,'total_fee'=>0,'by_method'=>[]];
-        $kp   = $this->lm->sum_kursi_pijat($f)  ?: ['count'=>0,'total'=>0];
-        $ps   = $this->lm->sum_ps($f)           ?: ['count'=>0,'total'=>0];
-
-        $posCount   = (int)($pos['count'] ?? 0);
-        $posTotal   = (int)($pos['total'] ?? 0);
-        $bilCount   = (int)($bil['count'] ?? 0);
-        $bilTotal   = (int)($bil['total'] ?? 0);
-        $kpCount    = (int)($kp['count'] ?? 0);
-        $kpTotal    = (int)($kp['total'] ?? 0);
-        $psCount    = (int)($ps['count'] ?? 0);
-        $psTotal    = (int)($ps['total'] ?? 0);
-        $pengCount  = (int)($peng['count'] ?? 0);
-        $pengTotal  = (int)($peng['total'] ?? 0);
-        $kurCount   = (int)($kur['count'] ?? 0);
-        $kurTotal   = (int)($kur['total_fee'] ?? 0);
-
-        $labaTotal  = $posTotal + $bilTotal + $kpTotal + $psTotal - $pengTotal;
-
-        // Label sederhana untuk filter
-        $metodeLabelMap = [
-            'all'      => 'semua metode pembayaran',
-            'cash'     => 'hanya pembayaran tunai (cash)',
-            'qris'     => 'hanya pembayaran via QRIS',
-            'transfer' => 'hanya pembayaran via transfer'
-        ];
-        $modeLabelMap = [
-            'all'      => 'semua mode penjualan',
-            'walkin'   => 'hanya Walk-in / Takeaway',
-            'dinein'   => 'hanya Dine-in (makan di tempat)',
-            'delivery' => 'hanya Delivery'
-        ];
-
-        $metode = $f['metode'] ?? 'all';
-        $mode   = $f['mode']   ?? 'all';
-
-        $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
-        $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
-
-        // ========= SUSUN PROMPT UNTUK GEMINI =========
-        $prompt  = "Kamu adalah konsultan bisnis untuk sebuah usaha bernama AUSI Cafe & Billiard, "
-         . "yang memiliki beberapa unit: Cafe, Billiard, Kursi Pijat, dan PlayStation.\n";
-        $prompt .= "Fokuskan analisa pada bisnis cafe dan billiard sebagai inti usaha, lalu kaitkan juga dengan kursi pijat dan PlayStation sebagai pendukung.\n";
-
-        $prompt .= "Buat analisa bisnis dalam Bahasa Indonesia yang sopan tapi santai, mudah dipahami, dan actionable. Hindari topik sensitif seperti SARA, politik, atau hal-hal di luar konteks bisnis.\n\n";
-
-
-        $prompt .= "Periode data: {$periodLabel}\n";
-        $prompt .= "Filter metode pembayaran: {$metodeLabel}\n";
-        $prompt .= "Filter mode penjualan POS cafe: {$modeLabel}\n\n";
-
-        $prompt .= "Data ringkasan (ANGKA ADALAH NOMINAL DALAM RUPIAH TANPA TITIK PEMISAH):\n";
-        $prompt .= "- Cafe: omzet_total = {$posTotal}, jumlah_transaksi = {$posCount}\n";
-        $prompt .= "- Billiard: omzet_total = {$bilTotal}, jumlah_transaksi = {$bilCount}\n";
-        $prompt .= "- Kursi pijat: omzet_total = {$kpTotal}, jumlah_transaksi = {$kpCount}\n";
-        $prompt .= "- PlayStation (PS): omzet_total = {$psTotal}, jumlah_transaksi = {$psCount}\n";
-        $prompt .= "- Pengeluaran operasional: total = {$pengTotal}, jumlah_transaksi = {$pengCount}\n";
-        $prompt .= "- Ongkir delivery (kurir): total_fee = {$kurTotal}, jumlah_transaksi = {$kurCount}\n";
-        $prompt .= "- Laba bersih (Cafe + Billiard + Kursi pijat + PS - Pengeluaran): laba_bersih_final = {$labaTotal}\n";
-        $prompt .= "Catatan: Ongkir delivery (kurir) sudah termasuk dalam transaksi cafe, jadi jangan dihitung laba ganda. Perlakukan ongkir sebagai informasi tambahan tentang channel delivery.\n\n";
-
-        $prompt .= "Tugas kamu:\n";
-        $prompt .= "1. Beri RINGKASAN SINGKAT (1 paragraf) tentang kinerja periode ini.\n";
-        $prompt .= "2. Analisa per unit (Cafe, Billiard, Kursi Pijat, PS): jelaskan kontribusi, potensi masalah, dan peluang masing-masing.\n";
-        $prompt .= "3. Analisa pengeluaran: apakah terlihat berat/ringan dibanding total omzet? Sebutkan risiko jika tren ini berlanjut.\n";
-        $prompt .= "4. Jelaskan Kelebihan (apa yang sudah bagus) dan Kekurangan (apa yang perlu diwaspadai).\n";
-        $prompt .= "5. Beri REKOMENDASI AKSI yang sangat konkret, dikelompokkan menjadi:\n";
-        $prompt .= "   - Perbaikan cepat (mingguan)\n";
-        $prompt .= "   - Perencanaan bulanan\n";
-        $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
-        $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
-        // $prompt .= "7. Jelaskan dengan cukup rinci (sekitar 700–1000 kata), jangan terlalu singkat.\n\n";
-
-
-        $prompt .= "FORMAT OUTPUT:\n";
-        $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
-        $prompt .= "- Gunakan struktur seperti: <h4>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
-        $prompt .= "- Jangan gunakan script atau style, hanya HTML konten saja.\n";
-
-        $ai = $this->_call_gemini($prompt);
-
-        if ( ! $ai['success']) {
-            return $this->output
-                ->set_content_type('application/json','utf-8')
-                ->set_output(json_encode([
-                    'success' => false,
-                    'error'   => $ai['error'] ?? 'Gagal memanggil AI'
-                ]));
-        }
-
-        $html = (string)($ai['output'] ?? '');
-
-        // fallback kalau Gemini kirim plain text tanpa HTML
-        if (strpos($html, '<') === false) {
-            $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
-        }
-
-        $out = [
-            'success' => true,
-            'title'   => 'Analisa Bisnis AUSI',
-            'html'    => $html,
-            'filter'  => $f,
-        ];
 
         return $this->output
             ->set_content_type('application/json','utf-8')
-            ->set_output(json_encode($out));
+            ->set_output(json_encode([
+                'success'      => false,
+                'rate_limited' => true,
+                'error'        => 'Hanya bisa menganalisis maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
+            ]));
     }
+
+    // masih di bawah limit → tambahkan hit baru
+    $hits[] = $nowUnix;
+    $this->session->set_userdata($rateKey, $hits);
+
+    // ========== FILTER & LABEL PERIODE ==========
+    $f           = $this->_parse_filter();
+    $periodLabel = $this->_period_label($f);
+
+    // ========== INFO WAKTU (SUPAYA TAHU MASIH PAGI / PERIODE BELUM SELESAI) ==========
+    $tz  = new DateTimeZone('Asia/Makassar');
+    $now = new DateTime('now', $tz);
+
+    try {
+        $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz)
+            ?: new DateTime($f['date_from'], $tz);
+    } catch (\Exception $e) {
+        $df = new DateTime('now', $tz);
+    }
+
+    try {
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'], $tz)
+            ?: new DateTime($f['date_to'], $tz);
+    } catch (\Exception $e) {
+        $dt = new DateTime('now', $tz);
+    }
+
+    $infoWaktu  = "Informasi waktu server saat ini untuk konteks analisa:\n";
+    $infoWaktu .= "- Waktu sekarang: " . $now->format('d/m/Y H:i') . " WITA\n";
+    $infoWaktu .= "- Periode filter: " . $df->format('d/m/Y H:i') . " s.d " . $dt->format('d/m/Y H:i') . " WITA\n";
+
+    $periodeMasihBerjalan = false;
+
+    if ($now >= $df && $now <= $dt) {
+        $periodeMasihBerjalan = true;
+
+        if ($df->format('Y-m-d') === $dt->format('Y-m-d')) {
+            // 1 hari, tapi belum selesai (misal masih pagi)
+            $infoWaktu .= "Catatan penting: Periode ini masih BERJALAN pada hari yang sama dan belum selesai (baru sampai sekitar jam "
+                        . $now->format('H:i') . ").\n";
+            $infoWaktu .= "Angka-angka ini harus dianggap SEMENTARA, bukan hasil akhir satu hari penuh.\n";
+        } else {
+            // rentang beberapa hari dan masih jalan
+            $infoWaktu .= "Catatan penting: Periode ini masih BERJALAN (beberapa hari ke depan belum selesai sepenuhnya).\n";
+            $infoWaktu .= "Analisa sebaiknya dianggap sementara.\n";
+        }
+    } else {
+        if ($dt < $now) {
+            // periode sudah lewat, boleh kesimpulan final
+            $infoWaktu .= "Periode ini sudah SELESAI (masa lalu), kamu boleh memberikan kesimpulan final untuk periode ini.\n";
+        } else {
+            // filter di masa depan (kasus jarang)
+            $infoWaktu .= "Periode filter berada di masa depan dibanding waktu sekarang. Jika datanya nol, anggap saja belum ada transaksi.\n";
+        }
+    }
+
+    // Ambil angka-angka ringkasan (sama logika dengan summary_json)
+    $pos  = $this->lm->sum_pos($f)          ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+    $bil  = $this->lm->sum_billiard($f)     ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+    $peng = $this->lm->sum_pengeluaran($f)  ?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
+    $kur  = $this->lm->sum_kurir($f)        ?: ['count'=>0,'total_fee'=>0,'by_method'=>[]];
+    $kp   = $this->lm->sum_kursi_pijat($f)  ?: ['count'=>0,'total'=>0];
+    $ps   = $this->lm->sum_ps($f)           ?: ['count'=>0,'total'=>0];
+
+    $posCount   = (int)($pos['count'] ?? 0);
+    $posTotal   = (int)($pos['total'] ?? 0);
+    $bilCount   = (int)($bil['count'] ?? 0);
+    $bilTotal   = (int)($bil['total'] ?? 0);
+    $kpCount    = (int)($kp['count'] ?? 0);
+    $kpTotal    = (int)($kp['total'] ?? 0);
+    $psCount    = (int)($ps['count'] ?? 0);
+    $psTotal    = (int)($ps['total'] ?? 0);
+    $pengCount  = (int)($peng['count'] ?? 0);
+    $pengTotal  = (int)($peng['total'] ?? 0);
+    $kurCount   = (int)($kur['count'] ?? 0);
+    $kurTotal   = (int)($kur['total_fee'] ?? 0);
+
+    $labaTotal  = $posTotal + $bilTotal + $kpTotal + $psTotal - $pengTotal;
+
+    // Label sederhana untuk filter
+    $metodeLabelMap = [
+        'all'      => 'semua metode pembayaran',
+        'cash'     => 'hanya pembayaran tunai (cash)',
+        'qris'     => 'hanya pembayaran via QRIS',
+        'transfer' => 'hanya pembayaran via transfer'
+    ];
+    $modeLabelMap = [
+        'all'      => 'semua mode penjualan',
+        'walkin'   => 'hanya Walk-in / Takeaway',
+        'dinein'   => 'hanya Dine-in (makan di tempat)',
+        'delivery' => 'hanya Delivery'
+    ];
+
+    $metode = $f['metode'] ?? 'all';
+    $mode   = $f['mode']   ?? 'all';
+
+    $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
+    $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
+
+    // ========= SUSUN PROMPT UNTUK GEMINI =========
+    $prompt  = "Kamu adalah konsultan bisnis untuk sebuah usaha bernama AUSI Cafe & Billiard, "
+             . "yang memiliki beberapa unit: Cafe, Billiard, Kursi Pijat, dan PlayStation.\n";
+    $prompt .= "Fokuskan analisa pada bisnis cafe dan billiard sebagai inti usaha, lalu kaitkan juga dengan kursi pijat dan PlayStation sebagai pendukung.\n";
+    $prompt .= "Buat analisa bisnis dalam Bahasa Indonesia yang sopan tapi santai, mudah dipahami, dan actionable. Hindari topik sensitif seperti SARA, politik, atau hal-hal di luar konteks bisnis.\n\n";
+
+    $prompt .= "Periode data: {$periodLabel}\n";
+    $prompt .= "Filter metode pembayaran: {$metodeLabel}\n";
+    $prompt .= "Filter mode penjualan POS cafe: {$modeLabel}\n\n";
+
+    // INFO WAKTU MASUK KE PROMPT
+    $prompt .= $infoWaktu . "\n";
+
+    // Instruksi khusus: kalau periode masih berjalan, jangan sok-sokan final
+    if ($periodeMasihBerjalan) {
+        $prompt .= "PERHATIKAN: Periode masih BERJALAN (belum selesai). ";
+        $prompt .= "Jadi, semua analisa harus dianggap SEMENTARA.\n";
+        $prompt .= "- Jangan menulis seolah-olah satu hari penuh sudah selesai.\n";
+        $prompt .= "- Gunakan frasa seperti 'di jam-jam awal', 'sementara ini', atau 'berdasarkan data sementara'.\n";
+        $prompt .= "- Hindari kalimat yang terlalu final seperti 'hari ini sepi sekali' seolah-olah sudah menutup buku.\n\n";
+    } else {
+        $prompt .= "Periode sudah selesai, kamu boleh memberi kesimpulan final untuk periode tersebut.\n\n";
+    }
+
+    $prompt .= "Data ringkasan (ANGKA ADALAH NOMINAL DALAM RUPIAH TANPA TITIK PEMISAH):\n";
+    $prompt .= "- Cafe: omzet_total = {$posTotal}, jumlah_transaksi = {$posCount}\n";
+    $prompt .= "- Billiard: omzet_total = {$bilTotal}, jumlah_transaksi = {$bilCount}\n";
+    $prompt .= "- Kursi pijat: omzet_total = {$kpTotal}, jumlah_transaksi = {$kpCount}\n";
+    $prompt .= "- PlayStation (PS): omzet_total = {$psTotal}, jumlah_transaksi = {$psCount}\n";
+    $prompt .= "- Pengeluaran operasional: total = {$pengTotal}, jumlah_transaksi = {$pengCount}\n";
+    $prompt .= "- Ongkir delivery (kurir): total_fee = {$kurTotal}, jumlah_transaksi = {$kurCount}\n";
+    $prompt .= "- Laba bersih (Cafe + Billiard + Kursi pijat + PS - Pengeluaran): laba_bersih_final = {$labaTotal}\n";
+    $prompt .= "Catatan: Ongkir delivery (kurir) sudah termasuk dalam transaksi cafe, jadi jangan dihitung laba ganda. Perlakukan ongkir sebagai informasi tambahan tentang channel delivery.\n\n";
+
+    $prompt .= "Tugas kamu:\n";
+    $prompt .= "1. Beri RINGKASAN SINGKAT (1 paragraf) tentang kinerja periode ini.\n";
+    $prompt .= "2. Analisa per unit (Cafe, Billiard, Kursi Pijat, PS): jelaskan kontribusi, potensi masalah, dan peluang masing-masing.\n";
+    $prompt .= "3. Analisa pengeluaran: apakah terlihat berat/ringan dibanding total omzet? Sebutkan risiko jika tren ini berlanjut.\n";
+    $prompt .= "4. Jelaskan Kelebihan (apa yang sudah bagus) dan Kekurangan (apa yang perlu diwaspadai).\n";
+    $prompt .= "5. Beri REKOMENDASI AKSI yang sangat konkret, dikelompokkan menjadi:\n";
+    $prompt .= "   - Perbaikan cepat (mingguan)\n";
+    $prompt .= "   - Perencanaan bulanan\n";
+    $prompt .= "   - Arah strategi 3–6 bulan ke depan\n";
+    $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
+    $prompt .= "Jika periode masih berjalan, ulangi sekali lagi di bagian awal analisa bahwa ini data sementara dan bisa berubah di jam-jam berikutnya.\n\n";
+
+    $prompt .= "FORMAT OUTPUT:\n";
+    $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
+    $prompt .= "- Gunakan struktur seperti: <h4>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
+    $prompt .= "- Jangan gunakan script atau style, hanya HTML konten saja.\n";
+
+    $ai = $this->_call_gemini($prompt);
+
+    if ( ! $ai['success']) {
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode([
+                'success' => false,
+                'error'   => $ai['error'] ?? 'Gagal memanggil AI'
+            ]));
+    }
+
+    $html = (string)($ai['output'] ?? '');
+
+    // fallback kalau Gemini kirim plain text tanpa HTML
+    if (strpos($html, '<') === false) {
+        $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+    }
+
+    $out = [
+        'success' => true,
+        'title'   => 'Analisa Bisnis AUSI',
+        'html'    => $html,
+        'filter'  => $f,
+    ];
+
+    return $this->output
+        ->set_content_type('application/json','utf-8')
+        ->set_output(json_encode($out));
+}
+
 
    /** ====== HELPER PANGGIL GEMINI ====== */
 /** ====== HELPER PANGGIL GEMINI (HTML) ====== */
