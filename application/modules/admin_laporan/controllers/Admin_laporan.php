@@ -833,26 +833,22 @@ public function print_ps(){
         $periodeMasihBerjalan = true;
 
         if ($df->format('Y-m-d') === $dt->format('Y-m-d')) {
-            // 1 hari, tapi belum selesai (misal masih pagi)
             $infoWaktu .= "Catatan penting: Periode ini masih BERJALAN pada hari yang sama dan belum selesai (baru sampai sekitar jam "
                         . $now->format('H:i') . ").\n";
             $infoWaktu .= "Angka-angka ini harus dianggap SEMENTARA, bukan hasil akhir satu hari penuh.\n";
         } else {
-            // rentang beberapa hari dan masih jalan
             $infoWaktu .= "Catatan penting: Periode ini masih BERJALAN (beberapa hari ke depan belum selesai sepenuhnya).\n";
             $infoWaktu .= "Analisa sebaiknya dianggap sementara.\n";
         }
     } else {
         if ($dt < $now) {
-            // periode sudah lewat, boleh kesimpulan final
             $infoWaktu .= "Periode ini sudah SELESAI (masa lalu), kamu boleh memberikan kesimpulan final untuk periode ini.\n";
         } else {
-            // filter di masa depan (kasus jarang)
             $infoWaktu .= "Periode filter berada di masa depan dibanding waktu sekarang. Jika datanya nol, anggap saja belum ada transaksi.\n";
         }
     }
 
-    // Ambil angka-angka ringkasan (sama logika dengan summary_json)
+    // ========== AMBIL ANGKA RINGKASAN ==========
     $pos  = $this->lm->sum_pos($f)          ?: ['count'=>0,'total'=>0,'by_method'=>[]];
     $bil  = $this->lm->sum_billiard($f)     ?: ['count'=>0,'total'=>0,'by_method'=>[]];
     $peng = $this->lm->sum_pengeluaran($f)  ?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
@@ -875,7 +871,7 @@ public function print_ps(){
 
     $labaTotal  = $posTotal + $bilTotal + $kpTotal + $psTotal - $pengTotal;
 
-    // Label sederhana untuk filter
+    // ========== LABEL FILTER METODE & MODE ==========
     $metodeLabelMap = [
         'all'      => 'semua metode pembayaran',
         'cash'     => 'hanya pembayaran tunai (cash)',
@@ -895,6 +891,23 @@ public function print_ps(){
     $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
     $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
 
+    // ========== CATATAN KHUSUS MODE (SUPAYA AI BENERAN BACA WALKIN / DINEIN / DELIVERY) ==========
+    $modeSpecificNote = '';
+    switch ($mode) {
+        case 'dinein':
+            $modeSpecificNote = "Catatan penting: semua angka Cafe yang muncul HANYA transaksi DINE-IN (makan di tempat), tidak mencakup walk-in/takeaway maupun delivery.\n";
+            break;
+        case 'walkin':
+            $modeSpecificNote = "Catatan penting: semua angka Cafe yang muncul HANYA transaksi WALK-IN/TAKEAWAY, tidak mencakup dine-in maupun delivery.\n";
+            break;
+        case 'delivery':
+            $modeSpecificNote = "Catatan penting: semua angka Cafe yang muncul HANYA transaksi DELIVERY, tidak mencakup dine-in maupun walk-in/takeaway.\n";
+            break;
+        default:
+            $modeSpecificNote = "Catatan: angka Cafe menggabungkan semua mode (dine-in, walk-in/takeaway, dan delivery).\n";
+            break;
+    }
+
     // ========= SUSUN PROMPT UNTUK GEMINI =========
     $prompt  = "Kamu adalah konsultan bisnis untuk sebuah usaha bernama AUSI Cafe & Billiard, "
              . "yang memiliki beberapa unit: Cafe, Billiard, Kursi Pijat, dan PlayStation.\n";
@@ -905,10 +918,11 @@ public function print_ps(){
     $prompt .= "Filter metode pembayaran: {$metodeLabel}\n";
     $prompt .= "Filter mode penjualan POS cafe: {$modeLabel}\n\n";
 
-    // INFO WAKTU MASUK KE PROMPT
+    // INFO WAKTU + MODE MASUK KE PROMPT
     $prompt .= $infoWaktu . "\n";
+    $prompt .= $modeSpecificNote . "\n";
 
-    // Instruksi khusus: kalau periode masih berjalan, jangan sok-sokan final
+    // Instruksi: kalau periode masih berjalan → analisa sementara saja
     if ($periodeMasihBerjalan) {
         $prompt .= "PERHATIKAN: Periode masih BERJALAN (belum selesai). ";
         $prompt .= "Jadi, semua analisa harus dianggap SEMENTARA.\n";
@@ -917,6 +931,13 @@ public function print_ps(){
         $prompt .= "- Hindari kalimat yang terlalu final seperti 'hari ini sepi sekali' seolah-olah sudah menutup buku.\n\n";
     } else {
         $prompt .= "Periode sudah selesai, kamu boleh memberi kesimpulan final untuk periode tersebut.\n\n";
+    }
+
+    // Instruksi tambahan: kalau mode bukan all, jangan sok bahas mode lain
+    if ($mode !== 'all') {
+        $prompt .= "Perhatian khusus: data Cafe yang kamu analisa HANYA untuk mode '{$mode}' ({$modeLabel}).\n";
+        $prompt .= "- Jangan membuat asumsi tentang performa mode lain yang tidak ada di data.\n";
+        $prompt .= "- Saat membahas Cafe, jelaskan bahwa ini adalah performa untuk channel tersebut saja (bukan seluruh cafe).\n\n";
     }
 
     $prompt .= "Data ringkasan (ANGKA ADALAH NOMINAL DALAM RUPIAH TANPA TITIK PEMISAH):\n";
