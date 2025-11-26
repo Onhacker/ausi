@@ -39,8 +39,18 @@ class M_admin_pengeluaran extends CI_Model {
     private function _base_q(){
         $this->db->from($this->table);
         $this->db->select('
-            p.id, p.nomor, p.tanggal, p.kategori, p.keterangan, p.jumlah,
-            p.metode_bayar, p.created_by, p.updated_by, p.created_at, p.updated_at
+            p.id,
+            p.nomor,
+            p.tanggal,
+            p.kategori,
+            p.keterangan,
+            p.jumlah,
+            p.metode_bayar,
+            p.created_by,
+            p.updated_by,
+            p.created_at,
+            p.updated_at,
+            CONCAT_WS(" - ", p.nomor, p.keterangan) AS nomor_ket
         ');
 
         if ($this->f_kategori !== 'all'){
@@ -56,6 +66,7 @@ class M_admin_pengeluaran extends CI_Model {
             $this->db->where('p.tanggal <=', $this->f_dto.' 23:59:59');
         }
     }
+
 
     private function _build_q(){
         $this->_base_q();
@@ -129,4 +140,27 @@ class M_admin_pengeluaran extends CI_Model {
     public function delete(int $id){
         return $this->db->delete('pengeluaran',['id'=>$id]);
     }
+
+   public function get_all_for_print(string $search = '')
+    {
+        $this->_base_q();
+
+        // ikutkan search seperti di DataTables
+        if ($search !== '') {
+            $this->db->group_start();
+            foreach ($this->column_search as $i => $col) {
+                if ($i === 0) $this->db->like($col, $search);
+                else          $this->db->or_like($col, $search);
+            }
+            $this->db->group_end();
+        }
+
+        // urut sama seperti tampilan
+        $this->db->order_by('p.tanggal', 'DESC');
+        $this->db->order_by('p.id', 'DESC');
+
+        return $this->db->get()->result();
+    }
+
+
 }

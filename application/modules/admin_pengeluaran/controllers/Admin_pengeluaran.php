@@ -248,4 +248,125 @@ class Admin_pengeluaran extends Admin_Controller {
         if ($ok){ $this->purge_public_caches(); }
         echo json_encode(["success"=>$ok,"title"=>$ok?"Berhasil":"Gagal","pesan"=>$ok?"Data dihapus":"Tidak bisa menghapus data"]);
     }
+
+    private function _pdf($title, $html, $filename='laporan.pdf'){
+        $this->load->library('pdf'); // TCPDF wrapper
+        
+        $pdf = new Pdf('L', PDF_UNIT, 'A4', true, 'UTF-8', false);
+
+        $pdf->SetCreator('AusiApp');
+        $pdf->SetAuthor('AusiApp');
+        $pdf->SetTitle($title);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(TRUE, 10);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
+        // PAKSA landscape
+        $pdf->AddPage('L', 'A4');
+
+        $pdf->SetFont('dejavusans','',9);
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $pdf->Output($filename, 'I');
+        exit;
+    }
+
+    public function cetak()
+{
+    // Ambil filter dari GET (sesuai JS tombol Cetak)
+    $kategori = $this->input->get('kategori', true) ?: 'all';
+    $metode   = $this->input->get('metode', true)   ?: 'all';
+    $dfrom    = $this->input->get('date_from', true) ?: '';
+    $dto      = $this->input->get('date_to', true)   ?: '';
+    $search   = trim((string)$this->input->get('q', true) ?? '');
+
+    // set filter ke model
+    $this->dm->set_filters($kategori, $metode, $dfrom, $dto);
+
+    // ambil semua baris sesuai filter (tanpa limit)
+    $rows = $this->dm->get_all_for_print($search);
+
+    // ==== hitung summary ====
+    $sum = [
+        'count'       => 0,
+        'total'       => 0,
+        'by_kategori' => []
+    ];
+
+    foreach ($rows as $r) {
+        $sum['count']++;
+        $jml = (int)$r->jumlah;
+        $sum['total'] += $jml;
+
+        $katKey = $r->kategori ?: 'Tanpa Kategori';
+        if (!isset($sum['by_kategori'][$katKey])) {
+            $sum['by_kategori'][$katKey] = 0;
+        }
+        $sum['by_kategori'][$katKey] += $jml;
+    }
+
+    // helper format Rupiah
+    $idr = function($n){
+        return 'Rp '.number_format((int)$n, 0, ',', '.');
+    };
+
+    // helper tanggal Indonesia (dengan jam)
+    $tgl_indo = function($datetimeStr, $withTime = true){
+        if (empty($datetimeStr)) return '-';
+        $ts = strtotime($datetimeStr);
+        if ($ts === false) return '-';
+        $bulan = [
+            1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+                 'Jul', 'Agus', 'Sept', 'Okt', 'Nov', 'Des'
+        ];
+        $res = date('d', $ts).' '.$bulan[(int)date('n', $ts)].' '.date('Y', $ts);
+        if ($withTime) {
+            $res .= ' '.date('H:i', $ts);
+        }
+        return $res;
+    };
+
+    $title = 'Laporan Pengeluaran';
+
+    // teks periode pakai tanggal Indo juga
+    if ($dfrom || $dto) {
+        $p1 = $dfrom ? $tgl_indo($dfrom.' 00:00:00', false) : '...';
+        $p2 = $dto   ? $tgl_indo($dto.' 23:59:59', false)   : '...';
+        $periode_text = $p1.' s.d '.$p2;
+    } else {
+        $periode_text = 'Semua tanggal';
+    }
+
+    $ketKategori = ($kategori === 'all') ? 'Semua Kategori' : $kategori;
+    $ketMetode   = ($metode === 'all')   ? 'Semua Metode'   : strtoupper($metode);
+
+    $filter_text = 'Kategori: '.$ketKategori.' | Metode: '.$ketMetode;
+    if ($search !== '') {
+        $filter_text .= ' | Pencarian: "'.$search.'"';
+    }
+
+    // siapkan data untuk view PDF
+    $data = [
+        'title'        => $title,
+        'rows'         => $rows,
+        'sum'          => $sum,
+        'idr'          => $idr,
+        'tgl_indo'     => $tgl_indo,
+        'periode_text' => $periode_text,
+        'filter_text'  => $filter_text,
+    ];
+
+    // render view jadi HTML string
+    $html = $this->load->view('Admin_pengeluaran_pdf', $data, true);
+
+    // Nama file PDF
+    $fnFrom = $dfrom ?: 'all';
+    $fnTo   = $dto   ?: 'all';
+    $filename = 'pengeluaran-'.$fnFrom.'-'.$fnTo.'.pdf';
+
+    $this->_pdf($title, $html, $filename);
+}
+
+
+
 }

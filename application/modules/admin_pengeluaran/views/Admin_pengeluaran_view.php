@@ -24,6 +24,9 @@
       <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
     </button>
 
+   
+
+
     <input type="date" id="filter-from" class="form-control form-control-sm mb-2 mr-2" style="width:160px">
     <input type="date" id="filter-to"   class="form-control form-control-sm mb-2 mr-2" style="width:160px">
 
@@ -42,6 +45,9 @@
       <option value="qris">QRIS</option>
       <option value="transfer">Transfer</option>
     </select>
+     <button type="button" class="btn btn-success btn-sm mb-2 ml-2" id="btn-print">
+      <span class="btn-label"><i class="fe-printer"></i></span>Cetak
+    </button>
   </div>
 
  
@@ -147,7 +153,24 @@ $(document).ready(function(){
     const id = parseInt($(this).attr('data-id')||'0', 10);
     if (id > 0){ show_detail(id); }
   });
+   // CETAK PDF sesuai filter + pencarian DataTables
+  $('#btn-print').on('click', function(){
+    const dfrom = $('#filter-from').val() || '';
+    const dto   = $('#filter-to').val()   || '';
+    const kat   = $('#filter-kategori').val() || 'all';
+    const met   = $('#filter-metode').val()   || 'all';
+    const q     = table ? table.search() : '';
 
+    const params = [];
+    if (dfrom) params.push('date_from='+encodeURIComponent(dfrom));
+    if (dto)   params.push('date_to='+encodeURIComponent(dto));
+    if (kat)   params.push('kategori='+encodeURIComponent(kat));
+    if (met)   params.push('metode='+encodeURIComponent(met));
+    if (q)     params.push('q='+encodeURIComponent(q));
+
+    const url = "<?= site_url('admin_pengeluaran/cetak'); ?>"+(params.length ? ('?'+params.join('&')) : '');
+    window.open(url, '_blank'); // buka di tab baru
+  });
   // filter → reload
   $('#filter-kategori, #filter-metode, #filter-from, #filter-to').on('change', function(){
     reload_pengeluaran('user');

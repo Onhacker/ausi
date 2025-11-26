@@ -1,5 +1,6 @@
 <script>
-var table, save_method = 'add';
+var table, save_method = 'add', isSaving = false;
+
 
 function loader(){
   if (window.Swal) {
@@ -157,13 +158,20 @@ function edit(id=null){
 }
 
 function simpan(){
+  if (isSaving) return;       // Cegah klik ganda
+  isSaving = true;
+
   const url = (save_method === 'add')
     ? "<?= site_url('admin_voucher_cafe/add') ?>"
     : "<?= site_url('admin_voucher_cafe/update') ?>";
 
-  const fd = new FormData(document.getElementById('form_app'));
+  const fd   = new FormData(document.getElementById('form_app'));
+  const $btn = $('#btnSimpan');
+  const oldHtml = $btn.html();
 
+  $btn.prop('disabled', true).html('Menyimpan...');
   loader();
+
   $.ajax({
     url: url,
     type: 'POST',
@@ -187,8 +195,12 @@ function simpan(){
   }).fail(function(){
     close_loader();
     Swal.fire('Gagal','Tidak dapat mengirim data','error');
+  }).always(function(){
+    isSaving = false;
+    $btn.prop('disabled', false).html(oldHtml);
   });
 }
+
 
 function hapus_data(){
   const list_id = [];
