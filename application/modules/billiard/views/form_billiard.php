@@ -158,12 +158,19 @@
                   <i class="mdi mdi-calendar-clock"></i>
                   <small> Buka - Tutup <?= $open ?>–<?= $close ?> WITA</small>
                 </p>
-
+ -->
                 <?php if ($m->catatan) : ?>
-                  <div class="alert alert-success mb-2" role="alert">
+                  <style type="text/css">
+                    .alert-catatan {
+                     
+                      margin: 0rem 0rem !important;
+                      
+                    }
+                  </style>
+                  <div class="alert alert-catatan alert-success mb-2" role="alert">
                     <i class="mdi mdi-check-all mr-2"></i> <?= html_escape($m->catatan) ?>
                   </div>
-                <?php endif; ?> -->
+                <?php endif; ?>
               </label>
             </div>
           </div>
@@ -238,6 +245,11 @@
                   <option value="3">3 Jam</option>
                   <option value="4">4 Jam</option>
                   <option value="5">5 Jam</option>
+                  <option value="6">6 Jam</option>
+                  <option value="7">7 Jam</option>
+                  <option value="8">8 Jam</option>
+                  <option value="9">9 Jam</option>
+                  <option value="10">10 Jam</option>
                 </select>
               </div>
 
