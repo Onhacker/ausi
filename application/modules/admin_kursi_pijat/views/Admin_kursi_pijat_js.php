@@ -1,4 +1,6 @@
 <script type="text/javascript">
+  let isSaving = false;
+
 let table;
 let saveUrl = "<?= site_url(strtolower($controller).'/add'); ?>";
 let SETTING = { harga_satuan: 0, durasi_unit: 1, free_main_threshold: 10 };
@@ -184,18 +186,37 @@ function edit(id){
 function close_modal(){ $('#full-width-modal').modal('hide'); }
 
 function simpan(){
+  if (isSaving) return; // cegah dobel klik
+  isSaving = true;
+
+  const $btn = $('#btnSimpan');
+  const btnTxt = $btn.html();
+  $btn.prop('disabled', true).html('Menyimpan...');
+
   $.ajax({
-    url: saveUrl, type: "POST", dataType: "json", data: $('#form_app').serialize(),
+    url: saveUrl,
+    type: "POST",
+    dataType: "json",
+    data: $('#form_app').serialize(),
     success: function(res){
       if(res.success){
         close_modal();
         swalToast('success','Berhasil',res.pesan || 'Data tersimpan');
         refresh();
-      } else { swalErr(res.pesan || 'Gagal memproses'); }
+      } else {
+        swalErr(res.pesan || 'Gagal memproses');
+      }
     },
-    error: function(){ swalErr('Terjadi kesalahan koneksi'); }
+    error: function(){
+      swalErr('Terjadi kesalahan koneksi');
+    },
+    complete: function(){
+      isSaving = false;
+      $btn.prop('disabled', false).html(btnTxt);
+    }
   });
 }
+
 
 /* ==== Bayar (set lunas) ==== */
 function bayar(id){

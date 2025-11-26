@@ -127,7 +127,9 @@
         <div class="modal-footer">
           <div class="text-start me-auto"></div>
           <button type="button" class="btn btn-secondary waves-effect" onclick="close_modal()">Batal</button>
-          <button type="button" onclick="simpan()" class="btn btn-primary waves-effect waves-light">Simpan</button>
+          <!-- <button type="button" onclick="simpan()" class="btn btn-primary waves-effect waves-light">Simpan</button> -->
+          <button type="button" id="btnSimpan" onclick="simpan()" class="btn btn-primary waves-effect waves-light">Simpan</button>
+
         </div>
       </div>
     </div>
