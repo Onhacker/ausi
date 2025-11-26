@@ -1561,7 +1561,7 @@ public function analisa_tim()
 
     $prompt .= "FORMAT OUTPUT:\n";
     $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
-    $prompt .= "- Gunakan struktur seperti: <h4>, <h5>, <p>, <ul><li>, dan <hr> bila perlu.\n";
+    $prompt .= "- Gunakan struktur seperti: <h4>, <p>, <ul><li>, dan <hr> bila perlu.\n";
     $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Singkat', 'Kinerja Kasir', 'Kinerja Kitchen', 'Kinerja Bar', 'Rekomendasi untuk Tim AUSI'.\n";
 
     // PANGGIL GEMINI
