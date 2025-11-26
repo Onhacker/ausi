@@ -15,23 +15,29 @@ function unmaskRupiah(str){ const n = String(str||'').replace(/[^\d]/g,''); retu
 function formatRupiah(n){ return 'Rp ' + formatRupiahNumber(n); }
 
 /* ==== Sesi options ==== */
-function buildSesiOptions(selectedMinutes=null){
+function buildSesiOptions(selectedMinutes = null){
   const unit = Math.max(1, parseInt(SETTING.durasi_unit,10));
   const $sel = $('#durasi_menit');
   $sel.empty();
-  for(let i=1;i<=10;i++){
-    const menit = i*unit;
+
+  // bikin 1–10 sesi standar
+  for(let i = 1; i <= 10; i++){
+    const menit = i * unit;
     $sel.append(`<option value="${menit}">${i} sesi (${menit} menit)</option>`);
   }
-  if(selectedMinutes){
-    if($sel.find(`option[value="${selectedMinutes}"]`).length===0){
-      const i = Math.ceil(selectedMinutes/unit);
-      $sel.append(`<option value="${selectedMinutes}">Custom: ${i} sesi (${selectedMinutes} menit)</option>`);
-    }
-    $sel.val(String(selectedMinutes));
-  }else{
-    $sel.val(String(unit));
+
+  // tentukan nilai yang dipilih
+  let targetMenit = unit; // default: 1 sesi
+
+  if (selectedMinutes){
+    // bulatkan durasi lama ke sesi terdekat (dibulatkan ke atas)
+    let sesi = Math.ceil(selectedMinutes / unit);
+    if (sesi < 1) sesi = 1;
+    if (sesi > 10) sesi = 10;
+    targetMenit = sesi * unit;
   }
+
+  $sel.val(String(targetMenit));
 }
 
 /* ==== Estimator ==== */
