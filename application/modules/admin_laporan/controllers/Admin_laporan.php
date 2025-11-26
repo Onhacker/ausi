@@ -962,10 +962,17 @@ public function print_ps(){
     $prompt .= "6. Jika angka masih kecil, tetap beri insight dan ide promosi/optimasi operasional yang relevan.\n\n";
     $prompt .= "Jika periode masih berjalan, ulangi sekali lagi di bagian awal analisa bahwa ini data sementara dan bisa berubah di jam-jam berikutnya.\n\n";
 
+    // ===== IDENTITAS ASISTEN (Robot AUSI) =====
+    $prompt .= "IDENTITAS ASISTEN:\n";
+    $prompt .= "- Di bagian PALING AWAL output (sebelum ringkasan singkat), tulis satu kalimat perkenalan TANPA tanda kutip:\n";
+    $prompt .= "  Halo, saya Robot AUSI, asisten analisa otomatis di AUSI Cafe & Billiard.\n";
+    $prompt .= "- Setelah kalimat perkenalan itu, baru lanjutkan dengan judul atau ringkasan singkat sesuai instruksi.\n\n";
+
     $prompt .= "FORMAT OUTPUT:\n";
     $prompt .= "- Tulis dalam HTML sederhana yang ramah Bootstrap (tanpa tag <html> atau <body>).\n";
     $prompt .= "- Gunakan struktur seperti: <h4>, <p>, <ul><li>, <strong>, dan <hr> bila perlu.\n";
     $prompt .= "- Jangan gunakan script atau style, hanya HTML konten saja.\n";
+
 
     $ai = $this->_call_gemini($prompt);
 
@@ -1559,10 +1566,17 @@ public function analisa_tim()
     $prompt .= "- Hindari istilah teknis yang ribet; jelaskan dengan kalimat yang mudah dipahami.\n";
     $prompt .= "- Jangan membahas hal di luar konteks (politik, SARA, dan sebagainya).\n\n";
 
+    // ===== IDENTITAS ASISTEN (Robot AUSI) =====
+    $prompt .= "IDENTITAS ASISTEN:\n";
+    $prompt .= "- Di bagian PALING AWAL output (sebelum bagian 'Ringkasan Singkat'), tulis satu kalimat perkenalan TANPA tanda kutip:\n";
+    $prompt .= "  Halo, saya Robot AUSI, asisten analisa otomatis di AUSI Cafe & Billiard.\n";
+    $prompt .= "- Setelah kalimat perkenalan itu, baru masuk ke Ringkasan Singkat dan bagian lain.\n\n";
+
     $prompt .= "FORMAT OUTPUT:\n";
     $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
     $prompt .= "- Gunakan struktur seperti: <h4>, <p>, <ul><li>, dan <hr> bila perlu.\n";
     $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Singkat', 'Kinerja Kasir', 'Kinerja Kitchen', 'Kinerja Bar', 'Rekomendasi untuk Tim AUSI'.\n";
+
 
     // PANGGIL GEMINI
     $ai = $this->_call_gemini($prompt);
@@ -1829,10 +1843,17 @@ public function analisa_tim()
         $prompt .= "- Hindari kritik yang menjatuhkan; gunakan bahasa yang membangun.\n";
         $prompt .= "- Jangan bahas topik di luar konteks bisnis (politik, SARA, dll).\n\n";
 
+        // ===== IDENTITAS ASISTEN (Robot AUSI) =====
+        $prompt .= "IDENTITAS ASISTEN:\n";
+        $prompt .= "- Di bagian PALING AWAL output (sebelum 'Ringkasan Pengeluaran'), tulis satu kalimat perkenalan TANPA tanda kutip:\n";
+        $prompt .= "  Halo, saya Robot AUSI, asisten analisa otomatis di AUSI Cafe & Billiard.\n";
+        $prompt .= "- Setelah kalimat ini, lanjutkan dengan struktur Ringkasan Pengeluaran dan bagian-bagian lain.\n\n";
+
         $prompt .= "FORMAT OUTPUT:\n";
         $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
         $prompt .= "- Gunakan <h4>, <p>, <ul><li>, dan <hr> bila perlu.\n";
         $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Pengeluaran', 'Perbandingan dengan Pemasukan', 'Analisa per Kategori', 'Kemungkinan Salah Kategori', 'Rekomendasi Tindak Lanjut'.\n";
+
 
         // ========== PANGGIL GEMINI ==========
         $ai = $this->_call_gemini($prompt);

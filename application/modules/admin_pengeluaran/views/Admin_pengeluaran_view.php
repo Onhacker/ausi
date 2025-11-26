@@ -54,6 +54,9 @@
      <button type="button" class="btn btn-success btn-sm mb-2 ml-2" id="btn-print">
       <span class="btn-label"><i class="fe-printer"></i></span>Cetak
     </button>
+     <button type="button" class="btn btn-secondary btn-sm mb-2 ml-2" id="btn-reset">
+      <i class="fe-rotate-ccw"></i> Reset
+    </button>
   </div>
 
  
@@ -365,6 +368,25 @@ function hapus_one(id){
       .fail(function(){ close_loader(); Swal.fire('Error','Koneksi bermasalah / error 500','error'); });
   });
 }
+  // tombol RESET filter
+  $('#btn-reset').on('click', function(){
+    $('#filter-from').val('');
+    $('#filter-to').val('');
+    $('#filter-kategori').val('all');
+    $('#filter-metode').val('all');
+
+    if (table) {
+      table.search('');   // bersihkan kotak "Cari"
+      table.draw();       // redraw
+      reload_pengeluaran('reset');
+    }
+  });
+
+  // filter → reload
+  $('#filter-kategori, #filter-metode, #filter-from, #filter-to').on('change', function(){
+    reload_pengeluaran('user');
+  });
+
 </script>
 <script>
 /* ====== IDR live formatter (titik ribuan, koma desimal) ====== */
