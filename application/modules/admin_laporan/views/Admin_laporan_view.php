@@ -81,6 +81,9 @@
          <button class="btn btn-sm btn-warning" id="btn-analisa-pengeluaran">
           <i class="fe-pie-chart"></i> Analisa Pengeluaran
         </button>
+        <button class="btn btn-sm btn-info" id="btn-analisa-produk">
+          <i class="fe-package"></i> Analisa Produk
+        </button>
         <button class="btn btn-sm btn-primary" id="btn-analisa-tim">
           <i class="fe-users"></i> Analisa Tim
         </button>
@@ -636,6 +639,47 @@ function updateSummary(){
     $('#btn-print-kursi').on('click', function(){
       window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');
     });
+
+        // ========== ANALISA PRODUK (Portofolio Menu) ==========
+    $('#btn-analisa-produk').on('click', function(){
+      const $btn    = $(this);
+      const oldHtml = $btn.html();
+
+      $btn.prop('disabled', true).html(
+        '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>' +
+        'Menganalisis produk...'
+      );
+
+      $.ajax({
+        url: "<?= site_url('admin_laporan/analisa_produk') ?>",
+        type: "POST",
+        data: getParams(), // kirim filter juga sebagai konteks saja
+        dataType: "json"
+      }).done(function(res){
+        if (res && res.success) {
+          $('#modalAnalisaTitle').text(res.title || 'Analisa Portofolio Produk AUSI');
+          $('#modalAnalisaBody').html(res.html || '-');
+          $('#modalAnalisa').modal('show');
+        } else {
+          const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa produk.';
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('Gagal', msg, 'error');
+          } else {
+            alert(msg);
+          }
+        }
+      }).fail(function(){
+        const msg = 'Terjadi kesalahan saat menghubungi server.';
+        if (typeof Swal !== 'undefined') {
+          Swal.fire('Error', msg, 'error');
+        } else {
+          alert(msg);
+        }
+      }).always(function(){
+        $btn.prop('disabled', false).html(oldHtml);
+      });
+    });
+
 
         // ========== ANALISA TIM AUSI (Kasir, Kitchen, Bar) ==========
     $('#btn-analisa-tim').on('click', function(){

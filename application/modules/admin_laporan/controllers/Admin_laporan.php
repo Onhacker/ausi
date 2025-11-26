@@ -1894,6 +1894,387 @@ public function analisa_tim()
             ->set_output(json_encode($out));
     }
 
+/**
+ * Snapshot portofolio produk saat ini dari tabel `produk`.
+ * Tidak pakai periode transaksi, hanya stok, harga, terlaris, rating, dll.
+ */
+private function _get_produk_snapshot(): array
+{
+    $rows = $this->db
+        ->select('id,kategori_id,sub_kategori_id,nama,harga,hpp,stok,terlaris,terlaris_score,terlaris_score_updated_at,is_active,rating_sum,rating_count,rating_avg,created_at,updated_at')
+        ->from('produk')
+        ->get()
+        ->result();
+
+    $tz      = new DateTimeZone('Asia/Makassar');
+    $now     = new DateTime('now', $tz);
+    $newFrom = (clone $now)->modify('-30 days'); // definisi "produk baru": 30 hari terakhir
+
+    $total = 0;
+    $active = 0;
+    $inactive = 0;
+    $totalStock = 0;
+
+    $sumPrice = 0;  $cntPrice = 0;
+    $sumMarginPct = 0; $cntMarginPct = 0;
+    $sumRating = 0; $cntRating = 0;
+
+    $items = [];
+
+    foreach ($rows as $r) {
+        $total++;
+
+        $isActive = ((int)$r->is_active === 1);
+        if ($isActive) $active++; else $inactive++;
+
+        $stok  = (int)$r->stok;
+        $harga = (float)$r->harga;
+        $hpp   = is_null($r->hpp) ? null : (float)$r->hpp;
+
+        if ($isActive) {
+            $totalStock += $stok;
+        }
+
+        if ($harga > 0) {
+            $sumPrice += $harga;
+            $cntPrice++;
+        }
+
+        $marginPct = null;
+        if (!is_null($hpp) && $hpp > 0 && $harga > 0) {
+            $marginPct = (($harga - $hpp) / $hpp) * 100.0;
+            $sumMarginPct += $marginPct;
+            $cntMarginPct++;
+        }
+
+        $ratingAvg   = (float)$r->rating_avg;
+        $ratingCount = (int)$r->rating_count;
+        if ($ratingAvg > 0 && $ratingCount > 0) {
+            $sumRating += $ratingAvg;
+            $cntRating++;
+        }
+
+        $createdAt = null;
+        $isNew = false;
+        if (!empty($r->created_at)) {
+            try {
+                $createdAt = new DateTime($r->created_at, $tz);
+                if ($createdAt >= $newFrom) {
+                    $isNew = true;
+                }
+            } catch (\Exception $e) {
+                $createdAt = null;
+            }
+        }
+
+        $items[] = [
+            'id'              => (int)$r->id,
+            'nama'            => (string)$r->nama,
+            'kategori_id'     => (int)$r->kategori_id,
+            'sub_kategori_id' => is_null($r->sub_kategori_id) ? null : (int)$r->sub_kategori_id,
+            'harga'           => $harga,
+            'hpp'             => $hpp,
+            'stok'            => $stok,
+            'terlaris'        => (int)$r->terlaris,
+            'terlaris_score'  => (float)$r->terlaris_score,
+            'rating_avg'      => $ratingAvg,
+            'rating_count'    => $ratingCount,
+            'is_active'       => $isActive,
+            'is_new'          => $isNew,
+            'created_at'      => (string)$r->created_at,
+        ];
+    }
+
+    // ==== Segmentasi produk ====
+    // Top terlaris (urut terlaris_score -> terlaris)
+    $topSelling = $items;
+    usort($topSelling, function($a, $b){
+        $cmp = $b['terlaris_score'] <=> $a['terlaris_score'];
+        if ($cmp !== 0) return $cmp;
+        return $b['terlaris'] <=> $a['terlaris'];
+    });
+    $topSelling = array_slice($topSelling, 0, 20);
+
+    // Low stock & zero stock
+    $lowStock = [];
+    $zeroStock = [];
+    foreach ($items as $p) {
+        if (!$p['is_active']) continue;
+        if ($p['stok'] <= 0) {
+            $zeroStock[] = $p;
+        } elseif ($p['stok'] <= 5) {
+            $lowStock[] = $p;
+        }
+    }
+    $lowStock  = array_slice($lowStock, 0, 20);
+    $zeroStock = array_slice($zeroStock, 0, 20);
+
+    // Rating bagus tapi penjualan rendah
+    $highRatingLowSales = [];
+    foreach ($items as $p) {
+        if (!$p['is_active']) continue;
+        if ($p['rating_avg'] >= 4.5 && $p['rating_count'] >= 2 && $p['terlaris'] <= 10) {
+            $highRatingLowSales[] = $p;
+        }
+    }
+    $highRatingLowSales = array_slice($highRatingLowSales, 0, 20);
+
+    // Produk baru tapi masih lambat
+    $newButSlow = [];
+    foreach ($items as $p) {
+        if ($p['is_new'] && $p['terlaris'] <= 3 && $p['is_active']) {
+            $newButSlow[] = $p;
+        }
+    }
+    $newButSlow = array_slice($newButSlow, 0, 20);
+
+    return [
+        'total'          => $total,
+        'active'         => $active,
+        'inactive'       => $inactive,
+        'total_stock'    => $totalStock,
+        'avg_price'      => $cntPrice > 0 ? ($sumPrice / $cntPrice) : 0,
+        'avg_margin_pct' => $cntMarginPct > 0 ? ($sumMarginPct / $cntMarginPct) : null,
+        'avg_rating'     => $cntRating > 0 ? ($sumRating / $cntRating) : null,
+        'items'          => $items,
+        'top_selling'    => $topSelling,
+        'low_stock'      => $lowStock,
+        'zero_stock'     => $zeroStock,
+        'high_rating_low_sales' => $highRatingLowSales,
+        'new_but_slow'   => $newButSlow,
+    ];
+}
+/** ====== ANALISA PORTOFOLIO PRODUK (MENU) BERDASARKAN TABEL `produk` ====== */
+public function analisa_produk()
+{
+    if ( ! $this->input->is_ajax_request()) {
+        show_404();
+    }
+
+    // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
+    $rateKey   = 'analisa_produk_hits';
+    $nowUnix   = time();
+    $window    = 60; // detik
+    $maxCalls  = 3;
+
+    $hits = $this->session->userdata($rateKey);
+    if ( ! is_array($hits)) {
+        $hits = [];
+    }
+
+    $hits = array_filter($hits, function($ts) use ($nowUnix, $window){
+        return ($nowUnix - (int)$ts) < $window;
+    });
+
+    if (count($hits) >= $maxCalls) {
+        $this->session->set_userdata($rateKey, $hits);
+
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode([
+                'success'      => false,
+                'rate_limited' => true,
+                'error'        => 'Hanya bisa menganalisis produk maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
+            ]));
+    }
+
+    $hits[] = $nowUnix;
+    $this->session->set_userdata($rateKey, $hits);
+
+    // ========== FILTER (cuma dipakai sebagai konteks tulisan, produk tetap snapshot saat ini) ==========
+    $f           = $this->_parse_filter();
+    $periodLabel = $this->_period_label($f);
+
+    $tz  = new DateTimeZone('Asia/Makassar');
+    $now = new DateTime('now', $tz);
+
+    // Info waktu, tapi ditegaskan bahwa data produk adalah snapshot saat ini
+    $infoWaktu  = "Informasi waktu server saat ini untuk konteks analisa produk:\n";
+    $infoWaktu .= "- Waktu sekarang: " . $now->format('d/m/Y H:i') . " WITA\n";
+    $infoWaktu .= "- Filter periode keuangan yang sedang dipilih: {$periodLabel}\n";
+    $infoWaktu .= "- CATATAN: Data produk yang dianalisa adalah snapshot kondisi saat ini di tabel `produk` (stok, terlaris, rating), bukan histori per periode.\n\n";
+
+    // ========== AMBIL SNAPSHOT PRODUK ==========
+    $snap = $this->_get_produk_snapshot();
+
+    $totalProduk    = (int)($snap['total']          ?? 0);
+    $activeProduk   = (int)($snap['active']         ?? 0);
+    $inactiveProduk = (int)($snap['inactive']       ?? 0);
+    $totalStock     = (int)($snap['total_stock']    ?? 0);
+    $avgPrice       = (float)($snap['avg_price']    ?? 0);
+    $avgMarginPct   = $snap['avg_margin_pct'];
+    $avgRating      = $snap['avg_rating'];
+
+    // helper buat list text
+    $listTop = "";
+    $i = 0;
+    foreach ($snap['top_selling'] as $p) {
+        $i++;
+        if ($i > 20) break;
+        $listTop .= "- [{$i}] nama=\"".str_replace(["\n","\r"],' ', $p['nama'])
+                 .  "\", harga={$p['harga']}, stok={$p['stok']}, terlaris={$p['terlaris']}, "
+                 .  "score_terlaris={$p['terlaris_score']}, rating_avg={$p['rating_avg']}, rating_count={$p['rating_count']}\n";
+    }
+    if ($listTop === "") {
+        $listTop = "- (Belum ada data terlaris / semua produk terlaris_score = 0)\n";
+    }
+
+    $listLowStock = "";
+    $i = 0;
+    foreach ($snap['low_stock'] as $p) {
+        $i++;
+        $listLowStock .= "- [{$i}] nama=\"".str_replace(["\n","\r"],' ', $p['nama'])
+                      .  "\", stok={$p['stok']}, harga={$p['harga']}, terlaris={$p['terlaris']}\n";
+    }
+    if ($listLowStock === "") {
+        $listLowStock = "- (Tidak ada produk aktif dengan stok <= 5 selain yang stoknya 0)\n";
+    }
+
+    $listZeroStock = "";
+    $i = 0;
+    foreach ($snap['zero_stock'] as $p) {
+        $i++;
+        $listZeroStock .= "- [{$i}] nama=\"".str_replace(["\n","\r"],' ', $p['nama'])
+                       .  "\", stok={$p['stok']}, harga={$p['harga']}, terlaris={$p['terlaris']}\n";
+    }
+    if ($listZeroStock === "") {
+        $listZeroStock = "- (Tidak ada produk aktif yang stoknya 0)\n";
+    }
+
+    $listHighRatingLowSales = "";
+    $i = 0;
+    foreach ($snap['high_rating_low_sales'] as $p) {
+        $i++;
+        $listHighRatingLowSales .= "- [{$i}] nama=\"".str_replace(["\n","\r"],' ', $p['nama'])
+                                 .  "\", rating_avg={$p['rating_avg']}, rating_count={$p['rating_count']}, terlaris={$p['terlaris']}, stok={$p['stok']}\n";
+    }
+    if ($listHighRatingLowSales === "") {
+        $listHighRatingLowSales = "- (Belum ada contoh kuat produk dengan rating tinggi tapi penjualan rendah sesuai kriteria yang dipakai).\n";
+    }
+
+    $listNewButSlow = "";
+    $i = 0;
+    foreach ($snap['new_but_slow'] as $p) {
+        $i++;
+        $listNewButSlow .= "- [{$i}] nama=\"".str_replace(["\n","\r"],' ', $p['nama'])
+                         .  "\", created_at={$p['created_at']}, terlaris={$p['terlaris']}, stok={$p['stok']}\n";
+    }
+    if ($listNewButSlow === "") {
+        $listNewButSlow = "- (Tidak ditemukan produk baru 30 hari terakhir dengan penjualan yang sangat pelan menurut kriteria sederhana ini.)\n";
+    }
+
+    // ========== SUSUN PROMPT UNTUK GEMINI ==========
+    $prompt  = "Kamu adalah konsultan produk/menu untuk usaha AUSI Cafe & Billiard.\n";
+    $prompt .= "Fokus analisa ini adalah PORTOFOLIO PRODUK (menu makanan & minuman) berdasarkan tabel `produk`.\n\n";
+
+    $prompt .= $infoWaktu;
+
+    $prompt .= "RINGKASAN ANGKA UTAMA PORTOFOLIO PRODUK:\n";
+    $prompt .= "- total_produk_di_database         = {$totalProduk}\n";
+    $prompt .= "- produk_aktif (is_active=1)       = {$activeProduk}\n";
+    $prompt .= "- produk_non_aktif (is_active=0)   = {$inactiveProduk}\n";
+    $prompt .= "- total_stok_produk_aktif          = {$totalStock}\n";
+    $prompt .= "- harga_rata_rata_produk_aktif     = {$avgPrice}\n";
+    if (!is_null($avgMarginPct)) {
+        $prompt .= "- margin_kotor_rata_rata (estimasi) = ".round($avgMarginPct,1)." persen (dari field harga dan hpp, hanya untuk produk yang punya hpp)\n";
+    } else {
+        $prompt .= "- margin_kotor_rata_rata (estimasi) = (belum bisa dihitung karena hpp banyak yang kosong)\n";
+    }
+    if (!is_null($avgRating)) {
+        $prompt .= "- rating_rata_rata_produk_ber-rating = ".round($avgRating,2)." dari 5\n";
+    } else {
+        $prompt .= "- rating_rata_rata_produk_ber-rating = (belum bisa dihitung karena hampir tidak ada rating)\n";
+    }
+    $prompt .= "\n";
+
+    $prompt .= "KETERANGAN FIELD YANG DIPAKAI:\n";
+    $prompt .= "- harga       : harga jual satuan produk dalam rupiah (tanpa titik).\n";
+    $prompt .= "- hpp         : perkiraan harga pokok penjualan per produk (boleh kosong).\n";
+    $prompt .= "- stok        : stok produk (jumlah unit yang bisa dijual).\n";
+    $prompt .= "- terlaris    : angka volume terjual (counter), semakin besar semakin laris.\n";
+    $prompt .= "- terlaris_score : skor algoritma terlaris yang mempertimbangkan waktu, semakin besar semakin laris.\n";
+    $prompt .= "- rating_avg  : rating rata-rata (0–5) berdasarkan ulasan pelanggan.\n";
+    $prompt .= "- rating_count: jumlah ulasan.\n";
+    $prompt .= "- is_active   : 1 = produk masih dijual, 0 = disembunyikan dari menu.\n\n";
+
+    $prompt .= "DAFTAR PRODUK TERLARIS (MAKSIMAL 20 ITEM, URUT TERLARIS_SCORE → TERLARIS):\n";
+    $prompt .= $listTop . "\n";
+
+    $prompt .= "DAFTAR PRODUK DENGAN STOK RENDAH (aktif, stok antara 1 s.d 5):\n";
+    $prompt .= $listLowStock . "\n";
+
+    $prompt .= "DAFTAR PRODUK DENGAN STOK 0 (aktif tapi stok 0):\n";
+    $prompt .= $listZeroStock . "\n";
+
+    $prompt .= "DAFTAR PRODUK DENGAN RATING BAGUS TAPI PENJUALAN MASIH RENDAH\n";
+    $prompt .= "(rating_avg >= 4.5, rating_count >= 2, terlaris <= 10):\n";
+    $prompt .= $listHighRatingLowSales . "\n";
+
+    $prompt .= "DAFTAR PRODUK BARU (±30 HARI TERAKHIR) TAPI PENJUALANNYA MASIH PELAN (terlaris <= 3):\n";
+    $prompt .= $listNewButSlow . "\n";
+
+    $prompt .= "\nPETUNJUK UNTUK INTERPRETASI (boleh kamu gunakan sebagai patokan kasar, bukan aturan baku):\n";
+    $prompt .= "- Produk dengan terlaris_score sangat tinggi dan stok relatif aman = tulang punggung menu yang perlu dijaga kualitas & ketersediaannya.\n";
+    $prompt .= "- Produk dengan stok rendah/0 tapi terlaris tinggi = risiko kehabisan stok, perlu perhatian pembelian/produksi.\n";
+    $prompt .= "- Produk dengan rating tinggi tapi penjualan rendah = kandidat untuk dipromosikan (misalnya ditonjolkan di menu, dibuatkan bundling, atau konten media sosial).\n";
+    $prompt .= "- Produk baru yang penjualannya lambat = bisa jadi butuh edukasi pelanggan atau butuh perbaikan harga/penyajian/nama menu.\n\n";
+
+    $prompt .= "TUGASMU:\n";
+    $prompt .= "1. Buat RINGKASAN SINGKAT tentang kondisi portofolio produk AUSI saat ini (berapa banyak menu, apakah variannya terlalu banyak/ terlalu sedikit, dll).\n";
+    $prompt .= "2. Analisa PRODUK TERLARIS: siapa saja menu tulang punggung (top 3–5) dan bagaimana sebaiknya dijaga (stok, kualitas, konsistensi rasa).\n";
+    $prompt .= "3. Analisa RISIKO STOK: jelaskan apa dampak jika produk-produk yang stoknya rendah/0 dibiarkan (misalnya pelanggan kecewa, penjualan hilang, pengalaman dine-in terganggu).\n";
+    $prompt .= "4. Analisa PELUANG PROMOSI: gunakan daftar produk dengan rating bagus tapi penjualan rendah, juga produk-produk baru, untuk memberi ide promosi konkret.\n";
+    $prompt .= "5. Jika informasi margin (hpp) cukup, komentari secara umum apakah rentang harga & margin sudah sehat atau perlu penyesuaian.\n";
+    $prompt .= "6. Berikan REKOMENDASI PRAKTIS yang dibagi menjadi:\n";
+    $prompt .= "   - Perbaikan cepat (1–2 minggu ke depan): misalnya top-up stok, menonaktifkan menu membingungkan, mengubah urutan menu, highlight di kasir.\n";
+    $prompt .= "   - Perbaikan menengah (1–3 bulan): misal redesign menu, bundling paket, penyesuaian harga untuk menu tertentu.\n";
+    $prompt .= "   - Arah pengembangan produk (3–6 bulan): misalnya fokus ke jenis menu tertentu, kurangi menu yang sepi, eksplorasi varian baru dari menu favorit.\n\n";
+
+    $prompt .= "GAYA BAHASA:\n";
+    $prompt .= "- Pakai Bahasa Indonesia yang sopan tapi santai, seperti laporan ke pemilik usaha dan tim dapur/bar.\n";
+    $prompt .= "- Hindari bahasa yang menjatuhkan; gunakan nada suportif dan membangun.\n";
+    $prompt .= "- Jangan bahas topik di luar konteks bisnis (politik, SARA, dll).\n\n";
+
+    // IDENTITAS ASISTEN
+    $prompt .= "IDENTITAS ASISTEN:\n";
+    $prompt .= "- Di bagian PALING AWAL output, tulis satu kalimat perkenalan TANPA tanda kutip:\n";
+    $prompt .= "  Halo, saya Robot AUSI, asisten analisa otomatis di AUSI Cafe & Billiard.\n";
+    $prompt .= "- Setelah kalimat ini, lanjutkan dengan bagian 'Ringkasan Portofolio Produk' dan seterusnya.\n\n";
+
+    $prompt .= "FORMAT OUTPUT:\n";
+    $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
+    $prompt .= "- Gunakan <h4>, <p>, <ul><li>, dan <hr> bila perlu.\n";
+    $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Portofolio Produk', 'Produk Terlaris dan Tulang Punggung Menu', 'Risiko Stok dan Ketersediaan Menu', 'Peluang Promosi Produk', 'Rekomendasi Tindak Lanjut'.\n";
+
+    // PANGGIL GEMINI
+    $ai = $this->_call_gemini($prompt);
+
+    if ( ! $ai['success']) {
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode([
+                'success' => false,
+                'error'   => $ai['error'] ?? 'Gagal memanggil AI untuk analisa produk.',
+            ]));
+    }
+
+    $html = (string)($ai['output'] ?? '');
+    if (strpos($html, '<') === false) {
+        $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+    }
+
+    $out = [
+        'success' => true,
+        'title'   => 'Analisa Portofolio Produk AUSI',
+        'html'    => $html,
+        'filter'  => $f,
+        'snapshot'=> $snap,
+    ];
+
+    return $this->output
+        ->set_content_type('application/json','utf-8')
+        ->set_output(json_encode($out));
+}
 
     
 }
