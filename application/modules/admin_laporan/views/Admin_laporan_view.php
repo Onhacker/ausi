@@ -641,7 +641,7 @@ function updateSummary(){
 
       $btn.prop('disabled', true).html(
         '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>' +
-        'Analisa tim...'
+        'Sedang menganalisa Kinerja tim...'
       );
 
       $.ajax({
