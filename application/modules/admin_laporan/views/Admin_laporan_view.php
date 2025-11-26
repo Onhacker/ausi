@@ -75,8 +75,11 @@
       <div class="text-muted mb-2">Tools</div>
       <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
-        <button class="btn btn-sm btn-blue" id="btn-analisa">
-          <i class="fe-activity"></i> Analisa Robot Ausi
+        <button class="btn btn-sm btn-blue mr-1" id="btn-analisa">
+          <i class="fe-activity"></i> Analisa Bisnis Robot Ausi
+        </button>
+        <button class="btn btn-sm btn-outline-primary" id="btn-analisa-tim">
+          <i class="fe-users"></i> Analisa Tim AUSI
         </button>
       </div>
     </div>
@@ -629,6 +632,46 @@ function updateSummary(){
     });
     $('#btn-print-kursi').on('click', function(){
       window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');
+    });
+
+        // ========== ANALISA TIM AUSI (Kasir, Kitchen, Bar) ==========
+    $('#btn-analisa-tim').on('click', function(){
+      const $btn    = $(this);
+      const oldHtml = $btn.html();
+
+      $btn.prop('disabled', true).html(
+        '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>' +
+        'Analisa tim...'
+      );
+
+      $.ajax({
+        url: "<?= site_url('admin_laporan/analisa_tim') ?>",
+        type: "POST",
+        data: getParams(), // pakai filter yang sama (periode, metode, mode)
+        dataType: "json"
+      }).done(function(res){
+        if (res && res.success) {
+          $('#modalAnalisaTitle').text(res.title || 'Analisa Kinerja Tim AUSI');
+          $('#modalAnalisaBody').html(res.html || '-');
+          $('#modalAnalisa').modal('show');
+        } else {
+          const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa kinerja tim.';
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('Gagal', msg, 'error');
+          } else {
+            alert(msg);
+          }
+        }
+      }).fail(function(){
+        const msg = 'Terjadi kesalahan saat menghubungi server.';
+        if (typeof Swal !== 'undefined') {
+          Swal.fire('Error', msg, 'error');
+        } else {
+          alert(msg);
+        }
+      }).always(function(){
+        $btn.prop('disabled', false).html(oldHtml);
+      });
     });
 
 

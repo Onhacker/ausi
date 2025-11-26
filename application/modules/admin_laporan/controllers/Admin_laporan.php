@@ -1132,6 +1132,451 @@ private function _call_gemini(string $prompt): array
     ];
 }
 
+    /**
+     * Ambil ringkasan metrik kinerja tim (kasir, kitchen, bar) dari tabel pesanan.
+     * - Pakai created_at antara date_from & date_to (filter waktu).
+     * - Bisa difilter mode (dinein/walkin/delivery) dan metode bayar (cash/qris/transfer).
+     * - TIDAK memakai kasir_start_at (karena sering kosong), hanya kasir_duration_sec, kitchen_duration_s, bar_duration_s.
+     */
+    private function _get_tim_metrics(array $f): array
+    {
+        $where = "created_at >= ? AND created_at <= ?";
+        $binds = [
+            $f['date_from'] ?? date('Y-m-d 00:00:00'),
+            $f['date_to']   ?? date('Y-m-d 23:59:59'),
+        ];
+
+        $mode   = $f['mode']   ?? 'all';
+        $metode = $f['metode'] ?? 'all';
+
+        if ($mode !== 'all') {
+            $where .= " AND mode = ?";
+            $binds[] = $mode;
+        }
+
+        if ($metode !== 'all') {
+            // paid_method di pesanan: enum('cash','transfer','qris','')
+            $where .= " AND paid_method = ?";
+            $binds[] = $metode;
+        }
+
+        // ===== RINGKASAN GLOBAL =====
+        $sqlGlobal = "
+            SELECT
+              COUNT(*) AS total_order,
+              SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS paid_count,
+
+              AVG(NULLIF(kasir_duration_sec,0))   AS avg_kasir_sec,
+              MIN(NULLIF(kasir_duration_sec,0))   AS min_kasir_sec,
+              MAX(NULLIF(kasir_duration_sec,0))   AS max_kasir_sec,
+
+              AVG(NULLIF(kitchen_duration_s,0))   AS avg_kitchen_sec,
+              MIN(NULLIF(kitchen_duration_s,0))   AS min_kitchen_sec,
+              MAX(NULLIF(kitchen_duration_s,0))   AS max_kitchen_sec,
+
+              AVG(NULLIF(bar_duration_s,0))       AS avg_bar_sec,
+              MIN(NULLIF(bar_duration_s,0))       AS min_bar_sec,
+              MAX(NULLIF(bar_duration_s,0))       AS max_bar_sec,
+
+              SUM(CASE WHEN status_pesanan_kitchen = 1 THEN 1 ELSE 0 END) AS kitchen_proses,
+              SUM(CASE WHEN status_pesanan_kitchen = 2 THEN 1 ELSE 0 END) AS kitchen_selesai,
+
+              SUM(CASE WHEN status_pesanan_bar = 1 THEN 1 ELSE 0 END)     AS bar_proses,
+              SUM(CASE WHEN status_pesanan_bar = 2 THEN 1 ELSE 0 END)     AS bar_selesai,
+
+              SUM(CASE WHEN status_pesanan = 1 THEN 1 ELSE 0 END)         AS pesanan_proses,
+              SUM(CASE WHEN status_pesanan = 2 THEN 1 ELSE 0 END)         AS pesanan_selesai
+            FROM pesanan
+            WHERE {$where}
+        ";
+
+        $rowG = $this->db->query($sqlGlobal, $binds)->row_array() ?: [];
+
+        $global = [
+            'total_order'      => (int)($rowG['total_order']      ?? 0),
+            'paid_count'       => (int)($rowG['paid_count']       ?? 0),
+
+            'avg_kasir_sec'    => (float)($rowG['avg_kasir_sec']  ?? 0),
+            'min_kasir_sec'    => (int)  ($rowG['min_kasir_sec']  ?? 0),
+            'max_kasir_sec'    => (int)  ($rowG['max_kasir_sec']  ?? 0),
+
+            'avg_kitchen_sec'  => (float)($rowG['avg_kitchen_sec']?? 0),
+            'min_kitchen_sec'  => (int)  ($rowG['min_kitchen_sec']?? 0),
+            'max_kitchen_sec'  => (int)  ($rowG['max_kitchen_sec']?? 0),
+
+            'avg_bar_sec'      => (float)($rowG['avg_bar_sec']    ?? 0),
+            'min_bar_sec'      => (int)  ($rowG['min_bar_sec']    ?? 0),
+            'max_bar_sec'      => (int)  ($rowG['max_bar_sec']    ?? 0),
+
+            'kitchen_proses'   => (int)($rowG['kitchen_proses']   ?? 0),
+            'kitchen_selesai'  => (int)($rowG['kitchen_selesai']  ?? 0),
+
+            'bar_proses'       => (int)($rowG['bar_proses']       ?? 0),
+            'bar_selesai'      => (int)($rowG['bar_selesai']      ?? 0),
+
+            'pesanan_proses'   => (int)($rowG['pesanan_proses']   ?? 0),
+            'pesanan_selesai'  => (int)($rowG['pesanan_selesai']  ?? 0),
+        ];
+
+        // ===== RINGKASAN KASIR PER METODE BAYAR =====
+        $sqlKasir = "
+            SELECT
+              COALESCE(paid_method, '') AS paid_method,
+              COUNT(*) AS total_order,
+              SUM(CASE WHEN kasir_duration_sec > 0 THEN 1 ELSE 0 END) AS with_duration,
+              AVG(NULLIF(kasir_duration_sec,0)) AS avg_kasir_sec
+            FROM pesanan
+            WHERE {$where}
+            GROUP BY COALESCE(paid_method, '')
+        ";
+
+        $rowsKasir = $this->db->query($sqlKasir, $binds)->result_array();
+        $kasirByMethod = [];
+        if (!empty($rowsKasir)) {
+            foreach ($rowsKasir as $r) {
+                $key = strtolower(trim((string)$r['paid_method']));
+                if ($key === '') $key = '-';
+                $kasirByMethod[$key] = [
+                    'total_order'   => (int)($r['total_order']   ?? 0),
+                    'with_duration' => (int)($r['with_duration'] ?? 0),
+                    'avg_kasir_sec' => (float)($r['avg_kasir_sec'] ?? 0),
+                ];
+            }
+        }
+
+        // ===== RINGKASAN PER MODE (dinein / walkin / delivery) =====
+        $sqlMode = "
+            SELECT
+              mode,
+              COUNT(*) AS total_order,
+              AVG(NULLIF(kasir_duration_sec,0))   AS avg_kasir_sec,
+              AVG(NULLIF(kitchen_duration_s,0))   AS avg_kitchen_sec,
+              AVG(NULLIF(bar_duration_s,0))       AS avg_bar_sec,
+              SUM(CASE WHEN status_pesanan_kitchen = 1 THEN 1 ELSE 0 END) AS kitchen_proses,
+              SUM(CASE WHEN status_pesanan_kitchen = 2 THEN 1 ELSE 0 END) AS kitchen_selesai,
+              SUM(CASE WHEN status_pesanan_bar = 1 THEN 1 ELSE 0 END)     AS bar_proses,
+              SUM(CASE WHEN status_pesanan_bar = 2 THEN 1 ELSE 0 END)     AS bar_selesai
+            FROM pesanan
+            WHERE {$where}
+            GROUP BY mode
+        ";
+
+        $rowsMode = $this->db->query($sqlMode, $binds)->result_array();
+        $modeBreakdown = [];
+        if (!empty($rowsMode)) {
+            foreach ($rowsMode as $r) {
+                $mkey = strtolower(trim((string)$r['mode']));
+                $modeBreakdown[$mkey] = [
+                    'total_order'     => (int)($r['total_order']       ?? 0),
+                    'avg_kasir_sec'   => (float)($r['avg_kasir_sec']   ?? 0),
+                    'avg_kitchen_sec' => (float)($r['avg_kitchen_sec'] ?? 0),
+                    'avg_bar_sec'     => (float)($r['avg_bar_sec']     ?? 0),
+                    'kitchen_proses'  => (int)($r['kitchen_proses']    ?? 0),
+                    'kitchen_selesai' => (int)($r['kitchen_selesai']   ?? 0),
+                    'bar_proses'      => (int)($r['bar_proses']        ?? 0),
+                    'bar_selesai'     => (int)($r['bar_selesai']       ?? 0),
+                ];
+            }
+        }
+
+        return [
+            'global'          => $global,
+            'kasir_by_method' => $kasirByMethod,
+            'mode_breakdown'  => $modeBreakdown,
+        ];
+    }
+    /** ====== ANALISA KINERJA TIM AUSI (KASIR, KITCHEN, BAR) ====== */
+    public function analisa_tim()
+    {
+        if ( ! $this->input->is_ajax_request()) {
+            show_404();
+        }
+
+        // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
+        $rateKey   = 'analisa_tim_hits';
+        $nowUnix   = time();
+        $window    = 60; // detik
+        $maxCalls  = 3;
+
+        $hits = $this->session->userdata($rateKey);
+        if ( ! is_array($hits)) {
+            $hits = [];
+        }
+
+        // buang hit yg sudah lewat dari window
+        $hits = array_filter($hits, function($ts) use ($nowUnix, $window){
+            return ($nowUnix - (int)$ts) < $window;
+        });
+
+        if (count($hits) >= $maxCalls) {
+            $this->session->set_userdata($rateKey, $hits);
+
+            return $this->output
+                ->set_content_type('application/json','utf-8')
+                ->set_output(json_encode([
+                    'success'      => false,
+                    'rate_limited' => true,
+                    'error'        => 'Hanya bisa menganalisis tim maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
+                ]));
+        }
+
+        // masih di bawah limit → tambah hit
+        $hits[] = $nowUnix;
+        $this->session->set_userdata($rateKey, $hits);
+
+        // ========== FILTER & LABEL PERIODE ==========
+        $f           = $this->_parse_filter();
+        $periodLabel = $this->_period_label($f);
+
+        // ========== INFO WAKTU (PERIODE MASIH BERJALAN / SUDAH SELESAI) ==========
+        $tz  = new DateTimeZone('Asia/Makassar');
+        $now = new DateTime('now', $tz);
+
+        try {
+            $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz)
+                ?: new DateTime($f['date_from'], $tz);
+        } catch (\Exception $e) {
+            $df = new DateTime('now', $tz);
+        }
+
+        try {
+            $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'], $tz)
+                ?: new DateTime($f['date_to'], $tz);
+        } catch (\Exception $e) {
+            $dt = new DateTime('now', $tz);
+        }
+
+        $infoWaktu  = "Informasi waktu server saat ini untuk konteks analisa tim:\n";
+        $infoWaktu .= "- Waktu sekarang: " . $now->format('d/m/Y H:i') . " WITA\n";
+        $infoWaktu .= "- Periode filter (berdasarkan created_at pesanan): " . $df->format('d/m/Y H:i') . " s.d " . $dt->format('d/m/Y H:i') . " WITA\n";
+
+        $periodeMasihBerjalan = false;
+
+        if ($now >= $df && $now <= $dt) {
+            $periodeMasihBerjalan = true;
+
+            if ($df->format('Y-m-d') === $dt->format('Y-m-d')) {
+                $infoWaktu .= "Catatan: Periode ini MASIH BERJALAN pada hari yang sama (data sementara, baru sampai sekitar jam "
+                            . $now->format('H:i') . ").\n";
+            } else {
+                $infoWaktu .= "Catatan: Periode ini MASIH BERJALAN (tanggal akhir belum lewat seluruhnya), jadi data masih sementara.\n";
+            }
+        } else {
+            if ($dt < $now) {
+                $infoWaktu .= "Periode ini SUDAH SELESAI (masa lalu), sehingga kamu boleh memberikan evaluasi final.\n";
+            } else {
+                $infoWaktu .= "Periode filter berada di masa depan. Jika datanya nol, anggap saja belum ada pesanan.\n";
+            }
+        }
+
+        // ========== AMBIL METRIK TIM DARI TABEL PESANAN ==========
+        $metrics = $this->_get_tim_metrics($f);
+        $g       = $metrics['global']          ?? [];
+        $kbm     = $metrics['kasir_by_method'] ?? [];
+        $mb      = $metrics['mode_breakdown']  ?? [];
+
+        $totalOrder    = (int)($g['total_order']    ?? 0);
+        $paidCount     = (int)($g['paid_count']     ?? 0);
+
+        $avgKasirSec   = (float)($g['avg_kasir_sec']   ?? 0);
+        $minKasirSec   = (int)  ($g['min_kasir_sec']   ?? 0);
+        $maxKasirSec   = (int)  ($g['max_kasir_sec']   ?? 0);
+
+        $avgKitchenSec = (float)($g['avg_kitchen_sec'] ?? 0);
+        $minKitchenSec = (int)  ($g['min_kitchen_sec'] ?? 0);
+        $maxKitchenSec = (int)  ($g['max_kitchen_sec'] ?? 0);
+
+        $avgBarSec     = (float)($g['avg_bar_sec']     ?? 0);
+        $minBarSec     = (int)  ($g['min_bar_sec']     ?? 0);
+        $maxBarSec     = (int)  ($g['max_bar_sec']     ?? 0);
+
+        $kitchenProses  = (int)($g['kitchen_proses']   ?? 0);
+        $kitchenSelesai = (int)($g['kitchen_selesai']  ?? 0);
+        $barProses      = (int)($g['bar_proses']       ?? 0);
+        $barSelesai     = (int)($g['bar_selesai']      ?? 0);
+        $psnProses      = (int)($g['pesanan_proses']   ?? 0);
+        $psnSelesai     = (int)($g['pesanan_selesai']  ?? 0);
+
+        // konversi ke menit untuk nyaman dibaca
+        $avgKasirMin   = $avgKasirSec   > 0 ? round($avgKasirSec   / 60, 1) : 0;
+        $avgKitchenMin = $avgKitchenSec > 0 ? round($avgKitchenSec / 60, 1) : 0;
+        $avgBarMin     = $avgBarSec     > 0 ? round($avgBarSec     / 60, 1) : 0;
+
+        // LABEL FILTER MODE & METODE (biar AI ngerti konteks)
+        $metodeLabelMap = [
+            'all'      => 'semua metode pembayaran',
+            'cash'     => 'hanya pembayaran tunai (cash)',
+            'qris'     => 'hanya pembayaran via QRIS',
+            'transfer' => 'hanya pembayaran via transfer',
+        ];
+        $modeLabelMap = [
+            'all'      => 'semua mode pesanan (dine-in, walk-in, delivery)',
+            'walkin'   => 'hanya pesanan Walk-in / Takeaway',
+            'dinein'   => 'hanya pesanan Dine-in (makan di tempat)',
+            'delivery' => 'hanya pesanan Delivery',
+        ];
+
+        $metode = $f['metode'] ?? 'all';
+        $mode   = $f['mode']   ?? 'all';
+
+        $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
+        $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
+
+        // ========= SUSUN PROMPT UNTUK GEMINI (ANALISA TIM) =========
+        $prompt  = "Kamu adalah konsultan operasional untuk TIM AUSI (kasir, kitchen, dan bar) di usaha AUSI Cafe & Billiard.\n";
+        $prompt .= "Fokus kamu bukan ke angka keuangan, tetapi ke KINERJA TIM: kecepatan pelayanan, antrian yang masih menggantung, serta kekuatan dan kelemahan di setiap bagian.\n\n";
+
+        $prompt .= "PERIODE DATA:\n";
+        $prompt .= "- Label periode: ".$periodLabel."\n";
+        $prompt .= "- Filter metode pembayaran: ".$metodeLabel."\n";
+        $prompt .= "- Filter mode pesanan: ".$modeLabel."\n\n";
+
+        $prompt .= $infoWaktu . "\n";
+
+        if ($periodeMasihBerjalan) {
+            $prompt .= "PERHATIAN: Periode masih BERJALAN, jadi analisa ini harus dianggap SEMENTARA. ";
+            $prompt .= "Gunakan frasa seperti 'sementara ini', 'di jam-jam awal', dan jangan seolah-olah closing harian sudah selesai.\n\n";
+        } else {
+            $prompt .= "Periode sudah selesai, kamu boleh memberi evaluasi yang lebih final.\n\n";
+        }
+
+        $prompt .= "STRUKTUR DATA YANG KAMI PAKAI:\n";
+        $prompt .= "- kasir_duration_sec: lama proses di kasir sampai pembayaran selesai (dalam detik). Field kasir_start_at sengaja TIDAK DIPAKAI karena sering kosong.\n";
+        $prompt .= "- kitchen_duration_s: lama proses pesanan di kitchen (detik).\n";
+        $prompt .= "- bar_duration_s: lama proses pesanan di bar (detik).\n";
+        $prompt .= "- status_pesanan_kitchen: 1 = masih proses, 2 = selesai.\n";
+        $prompt .= "- status_pesanan_bar    : 1 = masih proses, 2 = selesai.\n";
+        $prompt .= "- status_pesanan        : 1 = menunggu / belum tuntas, 2 = telah diantar.\n\n";
+
+        $prompt .= "RINGKASAN GLOBAL KINERJA TIM (SEMUA PESANAN YANG MASUK PADA PERIODE INI BERDASARKAN created_at):\n";
+        $prompt .= "- total_pesanan          = ".$totalOrder."\n";
+        $prompt .= "- jumlah_pesanan_sudah_bayar (paid_at terisi) = ".$paidCount."\n";
+        $prompt .= "- kitchen: selesai = ".$kitchenSelesai.", masih_proses = ".$kitchenProses."\n";
+        $prompt .= "- bar    : selesai = ".$barSelesai.", masih_proses = ".$barProses."\n";
+        $prompt .= "- pesanan global: selesai = ".$psnSelesai.", masih_proses = ".$psnProses."\n\n";
+
+        $prompt .= "DURASI RATA-RATA (hanya dihitung kalau durasi > 0, dalam detik dan menit):\n";
+        $prompt .= "- kasir    : rata_rata = ".$avgKasirSec." detik (~".$avgKasirMin." menit), tercepat = ".$minKasirSec." detik, terlambat = ".$maxKasirSec." detik.\n";
+        $prompt .= "- kitchen  : rata_rata = ".$avgKitchenSec." detik (~".$avgKitchenMin." menit), tercepat = ".$minKitchenSec." detik, terlambat = ".$maxKitchenSec." detik.\n";
+        $prompt .= "- bar      : rata_rata = ".$avgBarSec." detik (~".$avgBarMin." menit), tercepat = ".$minBarSec." detik, terlambat = ".$maxBarSec." detik.\n\n";
+
+        // Referensi standar kasar (bukan aturan baku)
+        $prompt .= "Sebagai REFERENSI KASAR (bukan aturan baku), kamu boleh menganggap:\n";
+        $prompt .= "- Kasir: <= 3 menit sangat baik, 3–7 menit masih wajar, > 7 menit mulai terasa lambat.\n";
+        $prompt .= "- Kitchen: <= 15 menit baik, 15–25 menit normal, > 25 menit perlu perhatian.\n";
+        $prompt .= "- Bar (minuman/snack): <= 5 menit baik, 5–10 menit normal, > 10 menit cenderung lambat.\n";
+        $prompt .= "Jangan menulis angka ini sebagai aturan resmi, cukup jadikan patokan untuk menjelaskan apakah kinerja relatif cepat atau lambat.\n\n";
+
+        // Kasir per metode bayar
+        $prompt .= "RINGKASAN KASIR PER METODE PEMBAYARAN (jika ada):\n";
+        if (empty($kbm)) {
+            $prompt .= "- Tidak ada data terpisah per metode bayar (cash/qris/transfer) untuk periode ini.\n";
+        } else {
+            foreach ($kbm as $methodKey => $m) {
+                $labelMet = $methodKey;
+                if ($methodKey === 'cash')     $labelMet = 'CASH (tunai)';
+                if ($methodKey === 'qris')     $labelMet = 'QRIS';
+                if ($methodKey === 'transfer') $labelMet = 'TRANSFER';
+                if ($methodKey === '-')        $labelMet = 'tanpa_label (paid_method kosong)';
+
+                $avgSec  = (float)($m['avg_kasir_sec'] ?? 0);
+                $avgMin  = $avgSec > 0 ? round($avgSec / 60, 1) : 0;
+                $totOrd  = (int)($m['total_order']   ?? 0);
+                $withDur = (int)($m['with_duration'] ?? 0);
+
+                $prompt .= "- ".$labelMet.": total_pesanan = ".$totOrd.", yang_punya_durasi_kasir = ".$withDur.", rata_rata_kasir = ".$avgSec." detik (~".$avgMin." menit).\n";
+            }
+        }
+        $prompt .= "\n";
+
+        // Ringkasan per mode
+        $prompt .= "RINGKASAN PER MODE (dinein / walkin / delivery) JIKA ADA:\n";
+        if (empty($mb)) {
+            $prompt .= "- Tidak ada pemecahan per mode untuk periode ini.\n\n";
+        } else {
+            foreach ($mb as $modeKey => $mm) {
+                $labelMode = $modeKey;
+                if ($modeKey === 'dinein')  $labelMode = 'DINE-IN (makan di tempat)';
+                if ($modeKey === 'walkin')  $labelMode = 'WALK-IN / TAKEAWAY';
+                if ($modeKey === 'delivery')$labelMode = 'DELIVERY';
+
+                $avgKasirM   = (float)($mm['avg_kasir_sec']   ?? 0);
+                $avgKasirMnt = $avgKasirM > 0 ? round($avgKasirM / 60, 1) : 0;
+
+                $avgKitM     = (float)($mm['avg_kitchen_sec'] ?? 0);
+                $avgKitMnt   = $avgKitM > 0 ? round($avgKitM / 60, 1) : 0;
+
+                $avgBarM     = (float)($mm['avg_bar_sec']     ?? 0);
+                $avgBarMnt   = $avgBarM > 0 ? round($avgBarM / 60, 1) : 0;
+
+                $prompt .= "- Mode ".$labelMode.": total_pesanan = ".(int)($mm['total_order'] ?? 0)
+                         . ", rata_rata_kasir = ".$avgKasirM." detik (~".$avgKasirMnt." menit)"
+                         . ", rata_rata_kitchen = ".$avgKitM." detik (~".$avgKitMnt." menit)"
+                         . ", rata_rata_bar = ".$avgBarM." detik (~".$avgBarMnt." menit)"
+                         . ", kitchen_proses = ".(int)($mm['kitchen_proses'] ?? 0)
+                         . ", kitchen_selesai = ".(int)($mm['kitchen_selesai'] ?? 0)
+                         . ", bar_proses = ".(int)($mm['bar_proses'] ?? 0)
+                         . ", bar_selesai = ".(int)($mm['bar_selesai'] ?? 0).".\n";
+            }
+            $prompt .= "\n";
+        }
+
+        // Instruksi cara membaca nilai 0
+        $prompt .= "CATATAN PENTING UNTUKMU:\n";
+        $prompt .= "- Jika rata-rata durasi = 0 detik atau semua nilai 0, anggap data belum cukup (belum tercatat), BUKAN berarti pelayanannya super cepat.\n";
+        $prompt .= "- Tetap jelaskan bahwa pencatatan durasi perlu diperbaiki jika banyak nilai nol.\n\n";
+
+        // TUGAS UNTUK AI
+        $prompt .= "TUGASMU:\n";
+        $prompt .= "1. Berikan gambaran singkat tentang beban kerja tim pada periode ini (ramai/sepi, banyak pesanan menggantung atau tidak).\n";
+        $prompt .= "2. Analisa KINERJA KASIR: kecepatan rata-rata, perbandingan antar metode bayar (cash vs QRIS vs transfer), dan apakah ada indikasi kasir kewalahan.\n";
+        $prompt .= "3. Analisa KINERJA KITCHEN: apakah durasi masak masih dalam batas wajar, apakah banyak pesanan yang statusnya masih proses, serta dampaknya ke pengalaman pelanggan.\n";
+        $prompt .= "4. Analisa KINERJA BAR: kecepatan pembuatan minuman/snack, dan apakah ada bottleneck di bar.\n";
+        $prompt .= "5. Soroti KELEBIHAN dan KEKURANGAN tim secara seimbang. Jangan hanya menilai negatif; apresiasi juga hal yang sudah baik.\n";
+        $prompt .= "6. Berikan REKOMENDASI PRAKTIS untuk tim: misalnya pengaturan shift kasir, cara mengurangi antrian di kitchen/bar, ide standar waktu layanan, atau perbaikan alur komunikasi.\n";
+        $prompt .= "7. Jika data sangat sedikit atau banyak nol, katakan secara jujur bahwa data masih terbatas dan berikan saran memperbaiki pencatatan dulu.\n\n";
+
+        $prompt .= "GAYA BAHASA:\n";
+        $prompt .= "- Pakai Bahasa Indonesia yang sopan tapi santai, seperti komunikasi ke pemilik usaha dan tim internal.\n";
+        $prompt .= "- Hindari istilah teknis yang ribet; jelaskan dengan kalimat yang mudah dipahami.\n";
+        $prompt .= "- Jangan membahas hal di luar konteks (politik, SARA, dan sebagainya).\n\n";
+
+        $prompt .= "FORMAT OUTPUT:\n";
+        $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
+        $prompt .= "- Gunakan struktur seperti: <h4>, <h5>, <p>, <ul><li>, dan <hr> bila perlu.\n";
+        $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Singkat', 'Kinerja Kasir', 'Kinerja Kitchen', 'Kinerja Bar', 'Rekomendasi untuk Tim AUSI'.\n";
+
+        // PANGGIL GEMINI
+        $ai = $this->_call_gemini($prompt);
+
+        if ( ! $ai['success']) {
+            return $this->output
+                ->set_content_type('application/json','utf-8')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'error'   => $ai['error'] ?? 'Gagal memanggil AI untuk analisa tim.',
+                ]));
+        }
+
+        $html = (string)($ai['output'] ?? '');
+
+        // fallback kalau Gemini kirim plain text
+        if (strpos($html, '<') === false) {
+            $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+        }
+
+        $out = [
+            'success' => true,
+            'title'   => 'Analisa Kinerja Tim AUSI',
+            'html'    => $html,
+            'filter'  => $f,
+            'metrics' => $metrics, // kalau mau dipakai di front-end nanti
+        ];
+
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode($out));
+    }
 
 
     
