@@ -673,6 +673,11 @@ private function _delete_archives_for_orders(array $order_ids): void
             if ($exist) {
                 $pesanan_paid_id = (int)$exist->id;
             } else {
+                                // --- Normalisasi courier_* supaya tidak NULL saat di-insert ke pesanan_paid ---
+                $courierId    = isset($order->courier_id) ? (int)$order->courier_id : 0;
+                $courierName  = trim((string)($order->courier_name  ?? ''));
+                $courierPhone = trim((string)($order->courier_phone ?? ''));
+
                 // Mapping kolom yang ADA di pesanan_paid (sesuai skema kamu)
                 $mapOrder = [
                     'src_id'      => (int)$order->id,
@@ -694,9 +699,9 @@ private function _delete_archives_for_orders(array $order_ids): void
                     'created_at'  => !empty($order->created_at) ? $order->created_at : null,
                     'updated_at'  => !empty($order->updated_at) ? $order->updated_at : null,
                     'archived_at' => date('Y-m-d H:i:s'),
-                    'courier_id'    => isset($order->courier_id) ? (int)$order->courier_id : null,
-                    'courier_name'  => isset($order->courier_name) ? (string)$order->courier_name : null,
-                    'courier_phone' => isset($order->courier_phone) ? (string)$order->courier_phone : null,
+                    'courier_id'    => $courierId,
+                    'courier_name'  => $courierName,
+                    'courier_phone' => $courierPhone,
 
                 ];
                 $this->db->insert('pesanan_paid', $mapOrder);
