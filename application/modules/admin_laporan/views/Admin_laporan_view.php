@@ -72,7 +72,7 @@
     <!-- Tombol Cetak di bawah, rapi & tidak mepet -->
         <!-- Tools: Analisa Bisnis -->
     <div class="d-flex align-items-center justify-content-between flex-wrap">
-      <div class="text-muted mb-2">Tools Robot Ausi</div>
+      <div class="text-dark mb-2">Tools Robot Ausi</div>
       <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
         <button class="btn btn-sm btn-blue mr-1" id="btn-analisa">

@@ -36,8 +36,14 @@
       <option value="Bahan Baku">Bahan Baku</option>
       <option value="Operasional">Operasional</option>
       <option value="Gaji">Gaji</option>
+      <option value="Billiard">Billiard</option>
       <option value="Lain-lain">Lain-lain</option>
+      <option value="Investasi Peralatan">Investasi Peralatan</option>
+      <option value="Prive Pemilik">Prive Pemilik</option>
+      <option value="Pemasaran dan Promosi">Pemasaran dan Promosi</option>
+      <option value="Perlengkapan Dapur">Perlengkapan Dapur</option>
     </select>
+
 
     <select id="filter-metode" class="form-control form-control-sm mb-2" style="width:140px">
       <option value="all" selected>Semua Metode</option>
@@ -195,7 +201,20 @@ function open_form(data){
   const isEdit = !!data;
   const id     = data?.id || '';
   const dt     = data?.tanggal ? data.tanggal.replace(' ','T').slice(0,16) : '';
-  const optsKat = ['Umum','Bahan Baku','Operasional','Gaji','Lain-lain'];
+  // const optsKat = ['Umum','Bahan Baku','Operasional','Gaji','Peralatan dan Perlengkapan','Lain-lain'];
+  const optsKat = [
+    'Umum',
+    'Bahan Baku',
+    'Operasional',
+    'Gaji',
+    'Billiard',
+    'Investasi Peralatan',
+    'Prive Pemilik',
+    'Pemasaran dan Promosi',
+    'Perlengkapan Dapur',
+    'Lain-lain'
+  ];
+
   const optsPay = ['cash','qris','transfer'];
 
   let html = `
@@ -229,7 +248,7 @@ function open_form(data){
     </div>
     <div class="form-group">
       <label>Keterangan</label>
-      <textarea id="f-ket" class="form-control" rows="3" placeholder="opsional">${data?.keterangan||''}</textarea>
+      <textarea id="f-ket" class="form-control" rows="3" placeholder="Contoh beli stik, beli susu">${data?.keterangan||''}</textarea>
     </div>
   </div>`;
 

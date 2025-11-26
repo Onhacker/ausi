@@ -1803,7 +1803,7 @@ public function analisa_tim()
         }
 
         $prompt .= "PETUNJUK UNTUK MENILAI KEWAJARAN:\n";
-        $prompt .= "- Secara umum untuk bisnis F&B kecil-menengah, total pengeluaran operasional (termasuk bahan baku, gaji, sewa, listrik, dll) ";
+        $prompt .= "- Secara umum untuk bisnis Cafe dan Billiard kecil-menengah, total pengeluaran operasional (termasuk bahan baku, gaji, sewa, listrik, dll) ";
         $prompt .= "yang mendekati atau melebihi 80% dari pemasukan patut diwaspadai (laba sangat tipis atau bahkan rugi).\n";
         $prompt .= "- Jangan gunakan angka ini sebagai aturan baku, tapi sebagai patokan kasar untuk mengatakan 'wajar', 'perlu dipantau', atau 'tidak wajar'.\n\n";
 
