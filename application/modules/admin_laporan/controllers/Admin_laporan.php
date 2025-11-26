@@ -1138,153 +1138,166 @@ private function _call_gemini(string $prompt): array
      * - Bisa difilter mode (dinein/walkin/delivery) dan metode bayar (cash/qris/transfer).
      * - TIDAK memakai kasir_start_at (karena sering kosong), hanya kasir_duration_sec, kitchen_duration_s, bar_duration_s.
      */
-    private function _get_tim_metrics(array $f): array
-    {
-        $where = "created_at >= ? AND created_at <= ?";
-        $binds = [
-            $f['date_from'] ?? date('Y-m-d 00:00:00'),
-            $f['date_to']   ?? date('Y-m-d 23:59:59'),
-        ];
+    /**
+ * Ambil ringkasan metrik kinerja tim (kasir, kitchen, bar) dari tabel pesanan.
+ * - Pakai created_at antara date_from & date_to (filter waktu).
+ * - Bisa difilter mode (dinein/walkin/delivery) dan metode bayar (cash/qris/transfer).
+ * - TIDAK memakai kasir_start_at (karena sering kosong), hanya kasir_duration_sec, kitchen_duration_s, bar_duration_s.
+ */
+private function _get_tim_metrics(array $f): array
+{
+    $where = "created_at >= ? AND created_at <= ?";
+    $binds = [
+        $f['date_from'] ?? date('Y-m-d 00:00:00'),
+        $f['date_to']   ?? date('Y-m-d 23:59:59'),
+    ];
 
-        $mode   = $f['mode']   ?? 'all';
-        $metode = $f['metode'] ?? 'all';
+    $mode   = $f['mode']   ?? 'all';
+    $metode = $f['metode'] ?? 'all';
 
-        if ($mode !== 'all') {
-            $where .= " AND mode = ?";
-            $binds[] = $mode;
-        }
-
-        if ($metode !== 'all') {
-            // paid_method di pesanan: enum('cash','transfer','qris','')
-            $where .= " AND paid_method = ?";
-            $binds[] = $metode;
-        }
-
-        // ===== RINGKASAN GLOBAL =====
-        $sqlGlobal = "
-            SELECT
-              COUNT(*) AS total_order,
-              SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS paid_count,
-
-              AVG(NULLIF(kasir_duration_sec,0))   AS avg_kasir_sec,
-              MIN(NULLIF(kasir_duration_sec,0))   AS min_kasir_sec,
-              MAX(NULLIF(kasir_duration_sec,0))   AS max_kasir_sec,
-
-              AVG(NULLIF(kitchen_duration_s,0))   AS avg_kitchen_sec,
-              MIN(NULLIF(kitchen_duration_s,0))   AS min_kitchen_sec,
-              MAX(NULLIF(kitchen_duration_s,0))   AS max_kitchen_sec,
-
-              AVG(NULLIF(bar_duration_s,0))       AS avg_bar_sec,
-              MIN(NULLIF(bar_duration_s,0))       AS min_bar_sec,
-              MAX(NULLIF(bar_duration_s,0))       AS max_bar_sec,
-
-              SUM(CASE WHEN status_pesanan_kitchen = 1 THEN 1 ELSE 0 END) AS kitchen_proses,
-              SUM(CASE WHEN status_pesanan_kitchen = 2 THEN 1 ELSE 0 END) AS kitchen_selesai,
-
-              SUM(CASE WHEN status_pesanan_bar = 1 THEN 1 ELSE 0 END)     AS bar_proses,
-              SUM(CASE WHEN status_pesanan_bar = 2 THEN 1 ELSE 0 END)     AS bar_selesai,
-
-              SUM(CASE WHEN status_pesanan = 1 THEN 1 ELSE 0 END)         AS pesanan_proses,
-              SUM(CASE WHEN status_pesanan = 2 THEN 1 ELSE 0 END)         AS pesanan_selesai
-            FROM pesanan
-            WHERE {$where}
-        ";
-
-        $rowG = $this->db->query($sqlGlobal, $binds)->row_array() ?: [];
-
-        $global = [
-            'total_order'      => (int)($rowG['total_order']      ?? 0),
-            'paid_count'       => (int)($rowG['paid_count']       ?? 0),
-
-            'avg_kasir_sec'    => (float)($rowG['avg_kasir_sec']  ?? 0),
-            'min_kasir_sec'    => (int)  ($rowG['min_kasir_sec']  ?? 0),
-            'max_kasir_sec'    => (int)  ($rowG['max_kasir_sec']  ?? 0),
-
-            'avg_kitchen_sec'  => (float)($rowG['avg_kitchen_sec']?? 0),
-            'min_kitchen_sec'  => (int)  ($rowG['min_kitchen_sec']?? 0),
-            'max_kitchen_sec'  => (int)  ($rowG['max_kitchen_sec']?? 0),
-
-            'avg_bar_sec'      => (float)($rowG['avg_bar_sec']    ?? 0),
-            'min_bar_sec'      => (int)  ($rowG['min_bar_sec']    ?? 0),
-            'max_bar_sec'      => (int)  ($rowG['max_bar_sec']    ?? 0),
-
-            'kitchen_proses'   => (int)($rowG['kitchen_proses']   ?? 0),
-            'kitchen_selesai'  => (int)($rowG['kitchen_selesai']  ?? 0),
-
-            'bar_proses'       => (int)($rowG['bar_proses']       ?? 0),
-            'bar_selesai'      => (int)($rowG['bar_selesai']      ?? 0),
-
-            'pesanan_proses'   => (int)($rowG['pesanan_proses']   ?? 0),
-            'pesanan_selesai'  => (int)($rowG['pesanan_selesai']  ?? 0),
-        ];
-
-        // ===== RINGKASAN KASIR PER METODE BAYAR =====
-        $sqlKasir = "
-            SELECT
-              COALESCE(paid_method, '') AS paid_method,
-              COUNT(*) AS total_order,
-              SUM(CASE WHEN kasir_duration_sec > 0 THEN 1 ELSE 0 END) AS with_duration,
-              AVG(NULLIF(kasir_duration_sec,0)) AS avg_kasir_sec
-            FROM pesanan
-            WHERE {$where}
-            GROUP BY COALESCE(paid_method, '')
-        ";
-
-        $rowsKasir = $this->db->query($sqlKasir, $binds)->result_array();
-        $kasirByMethod = [];
-        if (!empty($rowsKasir)) {
-            foreach ($rowsKasir as $r) {
-                $key = strtolower(trim((string)$r['paid_method']));
-                if ($key === '') $key = '-';
-                $kasirByMethod[$key] = [
-                    'total_order'   => (int)($r['total_order']   ?? 0),
-                    'with_duration' => (int)($r['with_duration'] ?? 0),
-                    'avg_kasir_sec' => (float)($r['avg_kasir_sec'] ?? 0),
-                ];
-            }
-        }
-
-        // ===== RINGKASAN PER MODE (dinein / walkin / delivery) =====
-        $sqlMode = "
-            SELECT
-              mode,
-              COUNT(*) AS total_order,
-              AVG(NULLIF(kasir_duration_sec,0))   AS avg_kasir_sec,
-              AVG(NULLIF(kitchen_duration_s,0))   AS avg_kitchen_sec,
-              AVG(NULLIF(bar_duration_s,0))       AS avg_bar_sec,
-              SUM(CASE WHEN status_pesanan_kitchen = 1 THEN 1 ELSE 0 END) AS kitchen_proses,
-              SUM(CASE WHEN status_pesanan_kitchen = 2 THEN 1 ELSE 0 END) AS kitchen_selesai,
-              SUM(CASE WHEN status_pesanan_bar = 1 THEN 1 ELSE 0 END)     AS bar_proses,
-              SUM(CASE WHEN status_pesanan_bar = 2 THEN 1 ELSE 0 END)     AS bar_selesai
-            FROM pesanan
-            WHERE {$where}
-            GROUP BY mode
-        ";
-
-        $rowsMode = $this->db->query($sqlMode, $binds)->result_array();
-        $modeBreakdown = [];
-        if (!empty($rowsMode)) {
-            foreach ($rowsMode as $r) {
-                $mkey = strtolower(trim((string)$r['mode']));
-                $modeBreakdown[$mkey] = [
-                    'total_order'     => (int)($r['total_order']       ?? 0),
-                    'avg_kasir_sec'   => (float)($r['avg_kasir_sec']   ?? 0),
-                    'avg_kitchen_sec' => (float)($r['avg_kitchen_sec'] ?? 0),
-                    'avg_bar_sec'     => (float)($r['avg_bar_sec']     ?? 0),
-                    'kitchen_proses'  => (int)($r['kitchen_proses']    ?? 0),
-                    'kitchen_selesai' => (int)($r['kitchen_selesai']   ?? 0),
-                    'bar_proses'      => (int)($r['bar_proses']        ?? 0),
-                    'bar_selesai'     => (int)($r['bar_selesai']       ?? 0),
-                ];
-            }
-        }
-
-        return [
-            'global'          => $global,
-            'kasir_by_method' => $kasirByMethod,
-            'mode_breakdown'  => $modeBreakdown,
-        ];
+    if ($mode !== 'all') {
+        $where .= " AND mode = ?";
+        $binds[] = $mode;
     }
+
+    if ($metode !== 'all') {
+        // paid_method di pesanan: enum('cash','transfer','qris','')
+        $where .= " AND paid_method = ?";
+        $binds[] = $metode;
+    }
+
+    // ===== RINGKASAN GLOBAL =====
+    $sqlGlobal = "
+        SELECT
+          COUNT(*) AS total_order,
+
+          -- indikator utama penyelesaian: sudah dibayar
+          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS paid_count,
+          SUM(CASE WHEN paid_at IS NULL     THEN 1 ELSE 0 END) AS unpaid_count,
+
+          AVG(NULLIF(kasir_duration_sec,0))   AS avg_kasir_sec,
+          MIN(NULLIF(kasir_duration_sec,0))   AS min_kasir_sec,
+          MAX(NULLIF(kasir_duration_sec,0))   AS max_kasir_sec,
+
+          AVG(NULLIF(kitchen_duration_s,0))   AS avg_kitchen_sec,
+          MIN(NULLIF(kitchen_duration_s,0))   AS min_kitchen_sec,
+          MAX(NULLIF(kitchen_duration_s,0))   AS max_kitchen_sec,
+
+          AVG(NULLIF(bar_duration_s,0))       AS avg_bar_sec,
+          MIN(NULLIF(bar_duration_s,0))       AS min_bar_sec,
+          MAX(NULLIF(bar_duration_s,0))       AS max_bar_sec,
+
+          SUM(CASE WHEN status_pesanan_kitchen = 1 THEN 1 ELSE 0 END) AS kitchen_proses,
+          SUM(CASE WHEN status_pesanan_kitchen = 2 THEN 1 ELSE 0 END) AS kitchen_selesai,
+
+          SUM(CASE WHEN status_pesanan_bar = 1 THEN 1 ELSE 0 END)     AS bar_proses,
+          SUM(CASE WHEN status_pesanan_bar = 2 THEN 1 ELSE 0 END)     AS bar_selesai,
+
+          -- catatan: ini cuma FLAG di sistem, sering tidak diupdate
+          SUM(CASE WHEN status_pesanan = 1 THEN 1 ELSE 0 END)         AS pesanan_flag_proses,
+          SUM(CASE WHEN status_pesanan = 2 THEN 1 ELSE 0 END)         AS pesanan_flag_selesai
+        FROM pesanan
+        WHERE {$where}
+    ";
+
+    $rowG = $this->db->query($sqlGlobal, $binds)->row_array() ?: [];
+
+    $global = [
+        'total_order'        => (int)($rowG['total_order']        ?? 0),
+        'paid_count'         => (int)($rowG['paid_count']         ?? 0),
+        'unpaid_count'       => (int)($rowG['unpaid_count']       ?? 0),
+
+        'avg_kasir_sec'      => (float)($rowG['avg_kasir_sec']    ?? 0),
+        'min_kasir_sec'      => (int)  ($rowG['min_kasir_sec']    ?? 0),
+        'max_kasir_sec'      => (int)  ($rowG['max_kasir_sec']    ?? 0),
+
+        'avg_kitchen_sec'    => (float)($rowG['avg_kitchen_sec']  ?? 0),
+        'min_kitchen_sec'    => (int)  ($rowG['min_kitchen_sec']  ?? 0),
+        'max_kitchen_sec'    => (int)  ($rowG['max_kitchen_sec']  ?? 0),
+
+        'avg_bar_sec'        => (float)($rowG['avg_bar_sec']      ?? 0),
+        'min_bar_sec'        => (int)  ($rowG['min_bar_sec']      ?? 0),
+        'max_bar_sec'        => (int)  ($rowG['max_bar_sec']      ?? 0),
+
+        'kitchen_proses'     => (int)($rowG['kitchen_proses']     ?? 0),
+        'kitchen_selesai'    => (int)($rowG['kitchen_selesai']    ?? 0),
+
+        'bar_proses'         => (int)($rowG['bar_proses']         ?? 0),
+        'bar_selesai'        => (int)($rowG['bar_selesai']        ?? 0),
+
+        // INGAT: ini hanya flag di sistem, BUKAN bukti fisik belum/udah diantar
+        'pesanan_flag_proses'=> (int)($rowG['pesanan_flag_proses']?? 0),
+        'pesanan_flag_selesai'=> (int)($rowG['pesanan_flag_selesai']?? 0),
+    ];
+
+    // ===== RINGKASAN KASIR PER METODE BAYAR =====
+    $sqlKasir = "
+        SELECT
+          COALESCE(paid_method, '') AS paid_method,
+          COUNT(*) AS total_order,
+          SUM(CASE WHEN kasir_duration_sec > 0 THEN 1 ELSE 0 END) AS with_duration,
+          AVG(NULLIF(kasir_duration_sec,0)) AS avg_kasir_sec
+        FROM pesanan
+        WHERE {$where}
+        GROUP BY COALESCE(paid_method, '')
+    ";
+
+    $rowsKasir = $this->db->query($sqlKasir, $binds)->result_array();
+    $kasirByMethod = [];
+    if (!empty($rowsKasir)) {
+        foreach ($rowsKasir as $r) {
+            $key = strtolower(trim((string)$r['paid_method']));
+            if ($key === '') $key = '-';
+            $kasirByMethod[$key] = [
+                'total_order'   => (int)($r['total_order']   ?? 0),
+                'with_duration' => (int)($r['with_duration'] ?? 0),
+                'avg_kasir_sec' => (float)($r['avg_kasir_sec'] ?? 0),
+            ];
+        }
+    }
+
+    // ===== RINGKASAN PER MODE (dinein / walkin / delivery) =====
+    $sqlMode = "
+        SELECT
+          mode,
+          COUNT(*) AS total_order,
+          AVG(NULLIF(kasir_duration_sec,0))   AS avg_kasir_sec,
+          AVG(NULLIF(kitchen_duration_s,0))   AS avg_kitchen_sec,
+          AVG(NULLIF(bar_duration_s,0))       AS avg_bar_sec,
+          SUM(CASE WHEN status_pesanan_kitchen = 1 THEN 1 ELSE 0 END) AS kitchen_proses,
+          SUM(CASE WHEN status_pesanan_kitchen = 2 THEN 1 ELSE 0 END) AS kitchen_selesai,
+          SUM(CASE WHEN status_pesanan_bar = 1 THEN 1 ELSE 0 END)     AS bar_proses,
+          SUM(CASE WHEN status_pesanan_bar = 2 THEN 1 ELSE 0 END)     AS bar_selesai
+        FROM pesanan
+        WHERE {$where}
+        GROUP BY mode
+    ";
+
+    $rowsMode = $this->db->query($sqlMode, $binds)->result_array();
+    $modeBreakdown = [];
+    if (!empty($rowsMode)) {
+        foreach ($rowsMode as $r) {
+            $mkey = strtolower(trim((string)$r['mode']));
+            $modeBreakdown[$mkey] = [
+                'total_order'     => (int)($r['total_order']       ?? 0),
+                'avg_kasir_sec'   => (float)($r['avg_kasir_sec']   ?? 0),
+                'avg_kitchen_sec' => (float)($r['avg_kitchen_sec'] ?? 0),
+                'avg_bar_sec'     => (float)($r['avg_bar_sec']     ?? 0),
+                'kitchen_proses'  => (int)($r['kitchen_proses']    ?? 0),
+                'kitchen_selesai' => (int)($r['kitchen_selesai']   ?? 0),
+                'bar_proses'      => (int)($r['bar_proses']        ?? 0),
+                'bar_selesai'     => (int)($r['bar_selesai']       ?? 0),
+            ];
+        }
+    }
+
+    return [
+        'global'          => $global,
+        'kasir_by_method' => $kasirByMethod,
+        'mode_breakdown'  => $modeBreakdown,
+    ];
+}
+
     /** ====== ANALISA KINERJA TIM AUSI (KASIR, KITCHEN, BAR) ====== */
     public function analisa_tim()
     {
@@ -1375,27 +1388,31 @@ private function _call_gemini(string $prompt): array
         $kbm     = $metrics['kasir_by_method'] ?? [];
         $mb      = $metrics['mode_breakdown']  ?? [];
 
-        $totalOrder    = (int)($g['total_order']    ?? 0);
-        $paidCount     = (int)($g['paid_count']     ?? 0);
+               $totalOrder    = (int)($g['total_order']        ?? 0);
+        $paidCount     = (int)($g['paid_count']         ?? 0);
+        $unpaidCount   = (int)($g['unpaid_count']       ?? max(0, $totalOrder - $paidCount));
 
-        $avgKasirSec   = (float)($g['avg_kasir_sec']   ?? 0);
-        $minKasirSec   = (int)  ($g['min_kasir_sec']   ?? 0);
-        $maxKasirSec   = (int)  ($g['max_kasir_sec']   ?? 0);
+        $avgKasirSec   = (float)($g['avg_kasir_sec']    ?? 0);
+        $minKasirSec   = (int)  ($g['min_kasir_sec']    ?? 0);
+        $maxKasirSec   = (int)  ($g['max_kasir_sec']    ?? 0);
 
-        $avgKitchenSec = (float)($g['avg_kitchen_sec'] ?? 0);
-        $minKitchenSec = (int)  ($g['min_kitchen_sec'] ?? 0);
-        $maxKitchenSec = (int)  ($g['max_kitchen_sec'] ?? 0);
+        $avgKitchenSec = (float)($g['avg_kitchen_sec']  ?? 0);
+        $minKitchenSec = (int)  ($g['min_kitchen_sec']  ?? 0);
+        $maxKitchenSec = (int)  ($g['max_kitchen_sec']  ?? 0);
 
-        $avgBarSec     = (float)($g['avg_bar_sec']     ?? 0);
-        $minBarSec     = (int)  ($g['min_bar_sec']     ?? 0);
-        $maxBarSec     = (int)  ($g['max_bar_sec']     ?? 0);
+        $avgBarSec     = (float)($g['avg_bar_sec']      ?? 0);
+        $minBarSec     = (int)  ($g['min_bar_sec']      ?? 0);
+        $maxBarSec     = (int)  ($g['max_bar_sec']      ?? 0);
 
-        $kitchenProses  = (int)($g['kitchen_proses']   ?? 0);
-        $kitchenSelesai = (int)($g['kitchen_selesai']  ?? 0);
-        $barProses      = (int)($g['bar_proses']       ?? 0);
-        $barSelesai     = (int)($g['bar_selesai']      ?? 0);
-        $psnProses      = (int)($g['pesanan_proses']   ?? 0);
-        $psnSelesai     = (int)($g['pesanan_selesai']  ?? 0);
+        $kitchenProses  = (int)($g['kitchen_proses']     ?? 0);
+        $kitchenSelesai = (int)($g['kitchen_selesai']    ?? 0);
+        $barProses      = (int)($g['bar_proses']         ?? 0);
+        $barSelesai     = (int)($g['bar_selesai']        ?? 0);
+
+        // ini cuma FLAG internal (sering tidak diupdate)
+        $psnFlagProses  = (int)($g['pesanan_flag_proses']  ?? 0);
+        $psnFlagSelesai = (int)($g['pesanan_flag_selesai'] ?? 0);
+
 
         // konversi ke menit untuk nyaman dibaca
         $avgKasirMin   = $avgKasirSec   > 0 ? round($avgKasirSec   / 60, 1) : 0;
@@ -1440,20 +1457,30 @@ private function _call_gemini(string $prompt): array
             $prompt .= "Periode sudah selesai, kamu boleh memberi evaluasi yang lebih final.\n\n";
         }
 
-        $prompt .= "STRUKTUR DATA YANG KAMI PAKAI:\n";
-        $prompt .= "- kasir_duration_sec: lama proses di kasir sampai pembayaran selesai (dalam detik). Field kasir_start_at sengaja TIDAK DIPAKAI karena sering kosong.\n";
+                $prompt .= "STRUKTUR DATA YANG KAMI PAKAI:\n";
+        $prompt .= "- kasir_duration_sec: lama proses di kasir sampai transaksi selesai di kasir (detik). Field kasir_start_at sengaja TIDAK DIPAKAI karena sering kosong.\n";
         $prompt .= "- kitchen_duration_s: lama proses pesanan di kitchen (detik).\n";
         $prompt .= "- bar_duration_s: lama proses pesanan di bar (detik).\n";
-        $prompt .= "- status_pesanan_kitchen: 1 = masih proses, 2 = selesai.\n";
-        $prompt .= "- status_pesanan_bar    : 1 = masih proses, 2 = selesai.\n";
-        $prompt .= "- status_pesanan        : 1 = menunggu / belum tuntas, 2 = telah diantar.\n\n";
+        $prompt .= "- status_pesanan_kitchen: 1 = masih proses, 2 = selesai (diupdate manual, TIDAK selalu rapi).\n";
+        $prompt .= "- status_pesanan_bar    : 1 = masih proses, 2 = selesai (diupdate manual, TIDAK selalu rapi).\n";
+        $prompt .= "- status_pesanan        : 1 = BELUM ditandai selesai di sistem, 2 = SUDAH ditandai selesai di sistem.\n";
+        $prompt .= "  Penting: status_pesanan TIDAK selalu mencerminkan apakah makanan/minuman benar-benar sudah sampai ke pelanggan.\n\n";
 
-        $prompt .= "RINGKASAN GLOBAL KINERJA TIM (SEMUA PESANAN YANG MASUK PADA PERIODE INI BERDASARKAN created_at):\n";
-        $prompt .= "- total_pesanan          = ".$totalOrder."\n";
-        $prompt .= "- jumlah_pesanan_sudah_bayar (paid_at terisi) = ".$paidCount."\n";
-        $prompt .= "- kitchen: selesai = ".$kitchenSelesai.", masih_proses = ".$kitchenProses."\n";
-        $prompt .= "- bar    : selesai = ".$barSelesai.", masih_proses = ".$barProses."\n";
-        $prompt .= "- pesanan global: selesai = ".$psnSelesai.", masih_proses = ".$psnProses."\n\n";
+
+                $prompt .= "RINGKASAN GLOBAL KINERJA TIM (SEMUA PESANAN BERDASARKAN created_at):\n";
+        $prompt .= "- total_pesanan_masuk                         = ".$totalOrder."\n";
+        $prompt .= "- pesanan_sudah_dibayar (paid_at terisi)      = ".$paidCount."\n";
+        $prompt .= "- pesanan_belum_dibayar                       = ".$unpaidCount."\n";
+        $prompt .= "- kitchen (flag_status): selesai = ".$kitchenSelesai.", masih_proses = ".$kitchenProses."\n";
+        $prompt .= "- bar     (flag_status): selesai = ".$barSelesai.", masih_proses = ".$barProses."\n";
+        $prompt .= "- pesanan global (FLAG status di sistem, sering tidak rapi): selesai = ".$psnFlagSelesai.", masih_proses = ".$psnFlagProses."\n\n";
+
+        $prompt .= "PENTING UNTUK INTERPRETASI:\n";
+        $prompt .= "- Anggap pesanan yang SUDAH DIBAYAR (paid_at terisi) sebagai pesanan yang secara sistem sudah dianggap selesai.\n";
+        $prompt .= "- Flag status_pesanan = 1 sering berarti 'belum diupdate di sistem', BUKAN otomatis berarti pesanan belum diantar ke pelanggan.\n";
+        $prompt .= "- JANGAN menulis kalimat seperti 'tidak ada satu pun pesanan yang sudah sampai ke pelanggan' hanya karena status_pesanan masih 1.\n";
+        $prompt .= "- Jika ingin menyorot masalah, gunakan kalimat seperti: 'banyak pesanan yang belum ditandai selesai di sistem meskipun sudah dibayar', bukan menghakimi bahwa pesanan pasti belum sampai ke pelanggan.\n\n";
+
 
         $prompt .= "DURASI RATA-RATA (hanya dihitung kalau durasi > 0, dalam detik dan menit):\n";
         $prompt .= "- kasir    : rata_rata = ".$avgKasirSec." detik (~".$avgKasirMin." menit), tercepat = ".$minKasirSec." detik, terlambat = ".$maxKasirSec." detik.\n";

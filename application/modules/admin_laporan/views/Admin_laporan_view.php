@@ -78,7 +78,7 @@
         <button class="btn btn-sm btn-blue mr-1" id="btn-analisa">
           <i class="fe-activity"></i> Analisa Bisnis Robot Ausi
         </button>
-        <button class="btn btn-sm btn-outline-primary" id="btn-analisa-tim">
+        <button class="btn btn-sm btn-primary" id="btn-analisa-tim">
           <i class="fe-users"></i> Analisa Tim AUSI
         </button>
       </div>
