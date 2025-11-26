@@ -72,14 +72,17 @@
     <!-- Tombol Cetak di bawah, rapi & tidak mepet -->
         <!-- Tools: Analisa Bisnis -->
     <div class="d-flex align-items-center justify-content-between flex-wrap">
-      <div class="text-muted mb-2">Tools</div>
+      <div class="text-muted mb-2">Tools Robot Ausi</div>
       <div class="btn-wrap">
         <!-- Tombol analisa bisnis (Gemini) -->
         <button class="btn btn-sm btn-blue mr-1" id="btn-analisa">
-          <i class="fe-activity"></i> Analisa Bisnis Robot Ausi
+          <i class="fe-activity"></i> Analisa Bisnis
+        </button>
+         <button class="btn btn-sm btn-warning" id="btn-analisa-pengeluaran">
+          <i class="fe-pie-chart"></i> Analisa Pengeluaran
         </button>
         <button class="btn btn-sm btn-primary" id="btn-analisa-tim">
-          <i class="fe-users"></i> Analisa Tim AUSI
+          <i class="fe-users"></i> Analisa Tim
         </button>
       </div>
     </div>
@@ -674,6 +677,45 @@ function updateSummary(){
       });
     });
 
+        // ========== ANALISA PENGELUARAN ==========
+    $('#btn-analisa-pengeluaran').on('click', function(){
+      const $btn    = $(this);
+      const oldHtml = $btn.html();
+
+      $btn.prop('disabled', true).html(
+        '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>' +
+        'Menganalisis pengeluaran...'
+      );
+
+      $.ajax({
+        url: "<?= site_url('admin_laporan/analisa_pengeluaran') ?>",
+        type: "POST",
+        data: getParams(), // pakai filter yang sama: periode, metode, mode
+        dataType: "json"
+      }).done(function(res){
+        if (res && res.success) {
+          $('#modalAnalisaTitle').text(res.title || 'Analisa Pengeluaran AUSI');
+          $('#modalAnalisaBody').html(res.html || '-');
+          $('#modalAnalisa').modal('show');
+        } else {
+          const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa pengeluaran.';
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('Gagal', msg, 'error');
+          } else {
+            alert(msg);
+          }
+        }
+      }).fail(function(){
+        const msg = 'Terjadi kesalahan saat menghubungi server.';
+        if (typeof Swal !== 'undefined') {
+          Swal.fire('Error', msg, 'error');
+        } else {
+          alert(msg);
+        }
+      }).always(function(){
+        $btn.prop('disabled', false).html(oldHtml);
+      });
+    });
 
         // ========== ANALISA BISNIS (Gemini) ==========
     $('#btn-analisa').on('click', function(){

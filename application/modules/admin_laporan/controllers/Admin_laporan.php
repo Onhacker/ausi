@@ -1596,6 +1596,282 @@ public function analisa_tim()
         ->set_output(json_encode($out));
 }
 
+    /** ====== ANALISA LAPORAN PENGELUARAN (BERDASARKAN PERIODE & KATEGORI) ====== */
+    public function analisa_pengeluaran()
+    {
+        if ( ! $this->input->is_ajax_request()) {
+            show_404();
+        }
+
+        // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
+        $rateKey   = 'analisa_pengeluaran_hits';
+        $nowUnix   = time();
+        $window    = 60; // detik
+        $maxCalls  = 3;
+
+        $hits = $this->session->userdata($rateKey);
+        if ( ! is_array($hits)) {
+            $hits = [];
+        }
+
+        // buang hit yg sudah lewat dari window
+        $hits = array_filter($hits, function($ts) use ($nowUnix, $window){
+            return ($nowUnix - (int)$ts) < $window;
+        });
+
+        if (count($hits) >= $maxCalls) {
+            $this->session->set_userdata($rateKey, $hits);
+
+            return $this->output
+                ->set_content_type('application/json','utf-8')
+                ->set_output(json_encode([
+                    'success'      => false,
+                    'rate_limited' => true,
+                    'error'        => 'Hanya bisa menganalisis pengeluaran maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
+                ]));
+        }
+
+        // masih di bawah limit → tambah hit
+        $hits[] = $nowUnix;
+        $this->session->set_userdata($rateKey, $hits);
+
+        // ========== FILTER & LABEL PERIODE ==========
+        $f           = $this->_parse_filter();
+        $periodLabel = $this->_period_label($f);
+
+        // ========== INFO WAKTU (PERIODE MASIH BERJALAN / SUDAH SELESAI) ==========
+        $tz  = new DateTimeZone('Asia/Makassar');
+        $now = new DateTime('now', $tz);
+
+        try {
+            $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz)
+                ?: new DateTime($f['date_from'], $tz);
+        } catch (\Exception $e) {
+            $df = new DateTime('now', $tz);
+        }
+
+        try {
+            $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'], $tz)
+                ?: new DateTime($f['date_to'], $tz);
+        } catch (\Exception $e) {
+            $dt = new DateTime('now', $tz);
+        }
+
+        $infoWaktu  = "Informasi waktu server saat ini untuk konteks analisa pengeluaran:\n";
+        $infoWaktu .= "- Waktu sekarang: " . $now->format('d/m/Y H:i') . " WITA\n";
+        $infoWaktu .= "- Periode filter pengeluaran: " . $df->format('d/m/Y H:i') . " s.d " . $dt->format('d/m/Y H:i') . " WITA\n";
+
+        $periodeMasihBerjalan = false;
+
+        if ($now >= $df && $now <= $dt) {
+            $periodeMasihBerjalan = true;
+
+            if ($df->format('Y-m-d') === $dt->format('Y-m-d')) {
+                $infoWaktu .= "Catatan: Periode ini MASIH BERJALAN pada hari yang sama (data pengeluaran sementara, baru sampai sekitar jam "
+                            . $now->format('H:i') . ").\n";
+            } else {
+                $infoWaktu .= "Catatan: Periode ini MASIH BERJALAN (tanggal akhir belum lewat seluruhnya), jadi analisa pengeluaran masih sementara.\n";
+            }
+        } else {
+            if ($dt < $now) {
+                $infoWaktu .= "Periode ini SUDAH SELESAI (masa lalu), sehingga kamu boleh memberikan evaluasi pengeluaran yang lebih final.\n";
+            } else {
+                $infoWaktu .= "Periode filter berada di masa depan. Jika datanya nol, anggap saja belum ada pengeluaran di periode tersebut.\n";
+            }
+        }
+
+        // ========== ANGKA RINGKASAN: PEMASUKAN & PENGELUARAN ==========
+        $pos  = $this->lm->sum_pos($f)          ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+        $bil  = $this->lm->sum_billiard($f)     ?: ['count'=>0,'total'=>0,'by_method'=>[]];
+        $kp   = $this->lm->sum_kursi_pijat($f)  ?: ['count'=>0,'total'=>0];
+        $ps   = $this->lm->sum_ps($f)           ?: ['count'=>0,'total'=>0];
+        $peng = $this->lm->sum_pengeluaran($f)  ?: ['count'=>0,'total'=>0,'by_kategori'=>[]];
+
+        $posTotal   = (int)($pos['total'] ?? 0);
+        $bilTotal   = (int)($bil['total'] ?? 0);
+        $kpTotal    = (int)($kp['total']  ?? 0);
+        $psTotal    = (int)($ps['total']  ?? 0);
+        $pengTotal  = (int)($peng['total'] ?? 0);
+        $pengCount  = (int)($peng['count'] ?? 0);
+
+        $totalIn    = $posTotal + $bilTotal + $kpTotal + $psTotal;
+        $rasioPeng  = ($totalIn > 0) ? round(($pengTotal / $totalIn) * 100, 1) : null;
+
+        $byKategori = (array)($peng['by_kategori'] ?? []);
+
+        // ========== DETAIL PENGELUARAN (UNTUK CEK KATEGORI) ==========
+        $rowsPeng = $this->lm->fetch_pengeluaran($f);
+
+        // Sort dari nominal terbesar supaya yang dianalisa AI adalah yang paling berpengaruh
+        if (!empty($rowsPeng)) {
+            usort($rowsPeng, function($a, $b){
+                return ((int)$b->jumlah <=> (int)$a->jumlah);
+            });
+        }
+
+        // batasi maksimal 150 baris biar prompt tidak terlalu panjang
+        $rowsSample = array_slice($rowsPeng, 0, 150);
+
+        $detailList = "";
+        $i = 0;
+        foreach ($rowsSample as $r) {
+            $i++;
+            $tgl = substr((string)$r->tanggal, 0, 10);
+            $kat = (string)$r->kategori;
+            $met = (string)$r->metode_bayar;
+            $nom = (int)$r->jumlah;
+            $ket = trim((string)$r->keterangan);
+
+            // singkatkan keterangan
+            if (mb_strlen($ket) > 80) {
+                $ket = mb_substr($ket, 0, 80) . '...';
+            }
+            $ket = str_replace(["\r","\n"], ' ', $ket);
+
+            $detailList .= "- [{$i}] tgl={$tgl}, kategori={$kat}, metode={$met}, jumlah={$nom}, ket=\"{$ket}\"\n";
+        }
+
+        // ========== LABEL FILTER METODE & MODE (konteks) ==========
+        $metodeLabelMap = [
+            'all'      => 'semua metode pembayaran',
+            'cash'     => 'hanya pembayaran tunai (cash)',
+            'qris'     => 'hanya pembayaran via QRIS',
+            'transfer' => 'hanya pembayaran via transfer'
+        ];
+        $modeLabelMap = [
+            'all'      => 'semua mode penjualan (dine-in, walk-in, delivery)',
+            'walkin'   => 'hanya pesanan Walk-in / Takeaway',
+            'dinein'   => 'hanya pesanan Dine-in (makan di tempat)',
+            'delivery' => 'hanya pesanan Delivery'
+        ];
+
+        $metode = $f['metode'] ?? 'all';
+        $mode   = $f['mode']   ?? 'all';
+
+        $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
+        $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
+
+        // ========== SUSUN RINGKASAN PER KATEGORI ==========
+        $ringkasanKategori = "";
+        if (!empty($byKategori)) {
+            foreach ($byKategori as $kat => $nom) {
+                $nom = (int)$nom;
+                $pctPeng = ($pengTotal > 0) ? round($nom / $pengTotal * 100, 1) : 0;
+                $pctIn   = ($totalIn > 0)   ? round($nom / $totalIn   * 100, 1) : 0;
+                $katLabel = (string)$kat;
+                if ($katLabel === '') $katLabel = '(tanpa kategori)';
+                $ringkasanKategori .= "- {$katLabel}: total={$nom}, persen_dari_total_pengeluaran={$pctPeng}%, persen_dari_total_pemasukan={$pctIn}%\n";
+            }
+        } else {
+            $ringkasanKategori .= "- Tidak ada pemecahan pengeluaran per kategori untuk periode ini.\n";
+        }
+
+        // ========== SUSUN PROMPT UNTUK GEMINI ==========
+        $prompt  = "Kamu adalah konsultan keuangan/operasional untuk usaha AUSI Cafe & Billiard.\n";
+        $prompt .= "Fokus khusus analisa ini adalah PENGELUARAN (biaya) berdasarkan periode dan kategori, lalu dibandingkan dengan total pemasukan.\n\n";
+
+        $prompt .= "PERIODE DATA:\n";
+        $prompt .= "- Label periode: {$periodLabel}\n";
+        $prompt .= "- Filter metode pembayaran: {$metodeLabel}\n";
+        $prompt .= "- Filter mode penjualan POS cafe (untuk data pemasukan): {$modeLabel}\n\n";
+
+        $prompt .= $infoWaktu . "\n";
+
+        if ($periodeMasihBerjalan) {
+            $prompt .= "PERHATIAN: Periode masih BERJALAN, jadi analisa pengeluaran ini harus dianggap SEMENTARA. ";
+            $prompt .= "Gunakan frasa seperti 'sementara ini' atau 'berdasarkan data yang sudah tercatat', jangan seolah-olah buku sudah closing.\n\n";
+        }
+
+        $prompt .= "ANGKA RINGKASAN:\n";
+        $prompt .= "- Total pemasukan: total_pemasukan = {$totalIn} (gabungan Cafe + Billiard + Kursi pijat + PS, sesudah penyesuaian yang ada di sistem).\n";
+        $prompt .= "- Total pengeluaran: total_pengeluaran = {$pengTotal}, jumlah_transaksi_pengeluaran = {$pengCount}.\n";
+        if (!is_null($rasioPeng)) {
+            $prompt .= "- Rasio pengeluaran terhadap pemasukan: sekitar {$rasioPeng}%.\n";
+        } else {
+            $prompt .= "- Total pemasukan = 0 atau belum tercatat, jadi rasio pengeluaran terhadap pemasukan tidak bisa dihitung.\n";
+        }
+        $prompt .= "\n";
+
+        $prompt .= "RINGKASAN PENGELUARAN PER KATEGORI (NOMINAL DALAM RUPIAH TANPA TITIK PEMISAH):\n";
+        $prompt .= $ringkasanKategori . "\n";
+
+        $prompt .= "CONTOH TRANSAKSI PENGELUARAN (maksimal ".count($rowsSample)." baris, diurutkan dari nominal terbesar):\n";
+        if ($detailList === "") {
+            $prompt .= "- Tidak ada transaksi pengeluaran pada periode ini.\n\n";
+        } else {
+            $prompt .= $detailList . "\n";
+        }
+
+        $prompt .= "PETUNJUK UNTUK MENILAI KEWAJARAN:\n";
+        $prompt .= "- Secara umum untuk bisnis F&B kecil-menengah, total pengeluaran operasional (termasuk bahan baku, gaji, sewa, listrik, dll) ";
+        $prompt .= "yang mendekati atau melebihi 80% dari pemasukan patut diwaspadai (laba sangat tipis atau bahkan rugi).\n";
+        $prompt .= "- Jangan gunakan angka ini sebagai aturan baku, tapi sebagai patokan kasar untuk mengatakan 'wajar', 'perlu dipantau', atau 'tidak wajar'.\n\n";
+
+        $prompt .= "TUGASMU:\n";
+        $prompt .= "1. Buat RINGKASAN SINGKAT tentang posisi pengeluaran di periode ini: besar kecilnya dibanding pemasukan, dan apakah secara umum masih wajar.\n";
+        $prompt .= "2. Analisa PENGELUARAN PER KATEGORI:\n";
+        $prompt .= "   - Sebutkan kategori-kategori dengan porsi paling besar.\n";
+        $prompt .= "   - Beri label untuk setiap kategori utama: 'wajar', 'perlu dipantau', atau 'tidak wajar', berdasarkan persentase terhadap total pengeluaran dan pemasukan.\n";
+        $prompt .= "3. DETEKSI KEMUNGKINAN SALAH KATEGORI:\n";
+        $prompt .= "   - Perhatikan contoh transaksi (deskripsi/ket) vs kategori.\n";
+        $prompt .= "   - Jika menurutmu ada transaksi yang DESKRIPSINYA tidak cocok dengan kategorinya (misal keterangan jelas tentang 'beli bahan baku' tapi kategorinya 'Perbaikan' atau 'Listrik'), tuliskan beberapa contoh.\n";
+        $prompt .= "   - Untuk tiap contoh, tulis: nomor [i], kategori_sekarang, deskripsi_singkat, dan SARAN kategori yang lebih tepat.\n";
+        $prompt .= "   - Jangan memaksa; jika hanya kira-kira, jelaskan bahwa ini saran saja.\n";
+        $prompt .= "4. BERIKAN PENILAIAN KEWAJARAN GLOBAL:\n";
+        $prompt .= "   - Komentari apakah total pengeluaran sudah proporsional dengan pemasukan, atau terlalu besar.\n";
+        $prompt .= "   - Jelaskan risiko jika tren pengeluaran seperti ini berlangsung terus (misalnya arus kas ketat, sulit nabung untuk investasi, dll).\n";
+        $prompt .= "5. REKOMENDASI PRAKTIS:\n";
+        $prompt .= "   - Beri saran konkrit untuk: penghematan, pengaturan ulang kategori (chart of accounts sederhana), dan kebiasaan pencatatan yang lebih rapi.\n";
+        $prompt .= "   - Beri ide kontrol rutin: misalnya cek pengeluaran besar tiap minggu, batasi kategori 'lain-lain', dsb.\n\n";
+
+        $prompt .= "GAYA BAHASA:\n";
+        $prompt .= "- Pakai Bahasa Indonesia yang sopan tapi santai, seperti laporan ke pemilik usaha.\n";
+        $prompt .= "- Hindari kritik yang menjatuhkan; gunakan bahasa yang membangun.\n";
+        $prompt .= "- Jangan bahas topik di luar konteks bisnis (politik, SARA, dll).\n\n";
+
+        $prompt .= "FORMAT OUTPUT:\n";
+        $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
+        $prompt .= "- Gunakan <h4>, <p>, <ul><li>, dan <hr> bila perlu.\n";
+        $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Pengeluaran', 'Perbandingan dengan Pemasukan', 'Analisa per Kategori', 'Kemungkinan Salah Kategori', 'Rekomendasi Tindak Lanjut'.\n";
+
+        // ========== PANGGIL GEMINI ==========
+        $ai = $this->_call_gemini($prompt);
+
+        if ( ! $ai['success']) {
+            return $this->output
+                ->set_content_type('application/json','utf-8')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'error'   => $ai['error'] ?? 'Gagal memanggil AI untuk analisa pengeluaran.',
+                ]));
+        }
+
+        $html = (string)($ai['output'] ?? '');
+
+        // fallback kalau Gemini kirim plain text
+        if (strpos($html, '<') === false) {
+            $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+        }
+
+        $out = [
+            'success' => true,
+            'title'   => 'Analisa Pengeluaran AUSI',
+            'html'    => $html,
+            'filter'  => $f,
+            'summary' => [
+                'total_in'      => $totalIn,
+                'total_out'     => $pengTotal,
+                'rasio_out_in'  => $rasioPeng,
+                'by_kategori'   => $byKategori,
+                'peng_count'    => $pengCount,
+            ],
+            'sample_count' => count($rowsSample),
+        ];
+
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode($out));
+    }
 
 
     
