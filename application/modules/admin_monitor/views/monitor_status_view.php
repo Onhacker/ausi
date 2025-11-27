@@ -218,7 +218,7 @@
       <div class="card-body">
         <div class="text-muted text-uppercase mb-1">IP Monitor (TV)</div>
         <div id="tvIp" class="font-weight-medium">-</div>
-        <div id="tvLocation" class="small text-muted mt-1">Lokasi: -</div>
+        <!-- <div id="tvLocation" class="small text-muted mt-1">Lokasi: -</div> -->
       </div>
     </div>
   </div>
@@ -464,13 +464,13 @@
         }
 
         // Lokasi
-        if (locEl){
-          if (j.ip_location) {
-            locEl.textContent = 'Lokasi: ' + j.ip_location;
-          } else {
-            locEl.textContent = 'Lokasi: tidak diketahui';
-          }
-        }
+        // if (locEl){
+        //   if (j.ip_location) {
+        //     locEl.textContent = 'Lokasi: ' + j.ip_location;
+        //   } else {
+        //     locEl.textContent = 'Lokasi: tidak diketahui';
+        //   }
+        // }
 
         // Browser + OS
         if (browserEl){
@@ -527,7 +527,7 @@
         badge.textContent = 'Gangguan';
         if (subtitle)   subtitle.textContent   = 'Gagal memuat status monitor.';
         if (ipEl)       ipEl.textContent       = '-';
-        if (locEl)      locEl.textContent      = 'Lokasi: -';
+        // if (locEl)      locEl.textContent      = 'Lokasi: -';
         if (browserEl)  browserEl.textContent  = '-';
         if (lastSeenEl) lastSeenEl.textContent = '-';
 
