@@ -31,7 +31,6 @@
     <input type="date" id="filter-to"   class="form-control form-control-sm mb-2 mr-2" style="width:160px">
 
     <select id="filter-kategori" class="form-control form-control-sm mr-2 mb-2" style="width:180px">
-    <select id="filter-kategori" class="form-control form-control-sm mr-2 mb-2" style="width:180px">
       <option value="all" selected>Semua Kategori</option>
       <option value="Umum">Umum</option>
       <option value="Bahan Baku">Bahan Baku</option>
