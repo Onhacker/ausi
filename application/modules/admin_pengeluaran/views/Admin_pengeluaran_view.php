@@ -31,18 +31,21 @@
     <input type="date" id="filter-to"   class="form-control form-control-sm mb-2 mr-2" style="width:160px">
 
     <select id="filter-kategori" class="form-control form-control-sm mr-2 mb-2" style="width:180px">
+    <select id="filter-kategori" class="form-control form-control-sm mr-2 mb-2" style="width:180px">
       <option value="all" selected>Semua Kategori</option>
       <option value="Umum">Umum</option>
       <option value="Bahan Baku">Bahan Baku</option>
       <option value="Operasional">Operasional</option>
       <option value="Gaji">Gaji</option>
       <option value="Billiard">Billiard</option>
+      <option value="Tagihan Bulanan/Mingguan">Tagihan Bulanan/Mingguan</option>
       <option value="Lain-lain">Lain-lain</option>
       <option value="Investasi Peralatan">Investasi Peralatan</option>
       <option value="Prive Pemilik">Prive Pemilik</option>
       <option value="Pemasaran dan Promosi">Pemasaran dan Promosi</option>
       <option value="Perlengkapan Dapur">Perlengkapan Dapur</option>
     </select>
+
 
 
     <select id="filter-metode" class="form-control form-control-sm mb-2" style="width:140px">
@@ -211,12 +214,14 @@ function open_form(data){
     'Operasional',
     'Gaji',
     'Billiard',
+    'Tagihan Bulanan/Mingguan',
     'Investasi Peralatan',
     'Prive Pemilik',
     'Pemasaran dan Promosi',
     'Perlengkapan Dapur',
     'Lain-lain'
   ];
+
 
   const optsPay = ['cash','qris','transfer'];
 

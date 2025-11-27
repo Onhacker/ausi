@@ -1816,7 +1816,23 @@ public function analisa_tim()
             $prompt .= $detailList . "\n";
         }
 
+// ===== DAFTAR KATEGORI RESMI UNTUK PENC0C0KAN =====
+        $prompt .= "DAFTAR KATEGORI PENGELUARAN DI SISTEM AUSI:\n";
+        $prompt .= "- Umum\n";
+        $prompt .= "- Bahan Baku\n";
+        $prompt .= "- Operasional\n";
+        $prompt .= "- Gaji\n";
+        $prompt .= "- Billiard\n";
+        $prompt .= "- Tagihan Bulanan/Mingguan\n";
+        $prompt .= "- Investasi Peralatan\n";
+        $prompt .= "- Prive Pemilik\n";
+        $prompt .= "- Pemasaran dan Promosi\n";
+        $prompt .= "- Perlengkapan Dapur\n";
+        $prompt .= "- Lain-lain\n";
+        $prompt .= "Jika perlu menyarankan kategori yang lebih tepat untuk suatu transaksi, SELALU gunakan salah satu nama kategori di atas saja (jangan membuat kategori baru).\n\n";
+
         $prompt .= "PETUNJUK UNTUK MENILAI KEWAJARAN:\n";
+
         $prompt .= "- Secara umum untuk bisnis Cafe dan Billiard kecil-menengah, total pengeluaran operasional (termasuk bahan baku, gaji, sewa, listrik, dll) ";
         $prompt .= "yang mendekati atau melebihi 80% dari pemasukan patut diwaspadai (laba sangat tipis atau bahkan rugi).\n";
         $prompt .= "- Jangan gunakan angka ini sebagai aturan baku, tapi sebagai patokan kasar untuk mengatakan 'wajar', 'perlu dipantau', atau 'tidak wajar'.\n\n";
@@ -1828,9 +1844,11 @@ public function analisa_tim()
         $prompt .= "   - Beri label untuk setiap kategori utama: 'wajar', 'perlu dipantau', atau 'tidak wajar', berdasarkan persentase terhadap total pengeluaran dan pemasukan.\n";
         $prompt .= "3. DETEKSI KEMUNGKINAN SALAH KATEGORI:\n";
         $prompt .= "   - Perhatikan contoh transaksi (deskripsi/ket) vs kategori.\n";
-        $prompt .= "   - Jika menurutmu ada transaksi yang DESKRIPSINYA tidak cocok dengan kategorinya (misal keterangan jelas tentang 'beli bahan baku' tapi kategorinya 'Perbaikan' atau 'Listrik'), tuliskan beberapa contoh.\n";
+        $prompt .= "   - Jika menurutmu ada transaksi yang DESKRIPSINYA tidak cocok dengan kategorinya (misal keterangan jelas tentang 'beli bahan baku' tapi kategorinya bukan 'Bahan Baku'), tuliskan beberapa contoh.\n";
         $prompt .= "   - Untuk tiap contoh, tulis: nomor [i], kategori_sekarang, deskripsi_singkat, dan SARAN kategori yang lebih tepat.\n";
+        $prompt .= "   - Saat memberi SARAN kategori, WAJIB pilih dari daftar kategori resmi: Umum, Bahan Baku, Operasional, Gaji, Billiard, Tagihan Bulanan/Mingguan, Investasi Peralatan, Prive Pemilik, Pemasaran dan Promosi, Perlengkapan Dapur, atau Lain-lain (jangan membuat nama kategori baru).\n";
         $prompt .= "   - Jangan memaksa; jika hanya kira-kira, jelaskan bahwa ini saran saja.\n";
+
         $prompt .= "4. BERIKAN PENILAIAN KEWAJARAN GLOBAL:\n";
         $prompt .= "   - Komentari apakah total pengeluaran sudah proporsional dengan pemasukan, atau terlalu besar.\n";
         $prompt .= "   - Jelaskan risiko jika tren pengeluaran seperti ini berlangsung terus (misalnya arus kas ketat, sulit nabung untuk investasi, dll).\n";

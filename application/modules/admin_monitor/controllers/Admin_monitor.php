@@ -14,13 +14,12 @@ class Admin_monitor extends Admin_Controller
      * JSON untuk widget di dashboard:
      * status TV Billiard (online/offline + last_seen + idle_sec).
      */
-    public function status_json()
+   public function status_json()
 {
     $this->output
          ->set_content_type('application/json', 'utf-8')
          ->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-    // 60 detik: kalau >60 detik tidak ping, dianggap offline
     $rows = $this->mon->list_status('billiard', 60);
 
     $data = [
@@ -29,40 +28,31 @@ class Admin_monitor extends Admin_Controller
         'is_online'     => false,
         'idle_sec'      => null,
         'last_seen'     => null,
-        'first_seen'    => null,   // awal monitor ini pernah nyala
-        'session_start' => null,   // awal sesi nyala (setelah sempat offline)
+        'first_seen'    => null,
+        'session_start' => null,
         'nama'          => 'TV Billiard',
         'last_ip'       => null,
         'ua_raw'        => null,
         'ua_browser'    => null,
         'ua_platform'   => null,
         'ip_location'   => null,
+        'tv_brand'      => null,   // <<< TAMBAHAN
     ];
 
     if (!empty($rows)) {
-
-        // =============================
-        //  PILIH ROW UTAMA UNTUK WIDGET
-        //  - Prioritas: Smart TV dulu
-        //  - Kalau tidak ada Smart TV → pakai yang paling baru (rows[0])
-        // =============================
+        // --- pilih row utama (seperti punyamu) ---
         $r = null;
-
         foreach ($rows as $row) {
             $ua = $row->user_agent ?: '';
-            // UA TV-mu: "... Android 14; Smart TV ...; wv ..."
             if (stripos($ua, 'Smart TV') !== false) {
                 $r = $row;
                 break;
             }
         }
-
-        // Kalau belum ketemu Smart TV, fallback ke data paling baru
         if (!$r) {
             $r = $rows[0];
         }
 
-        // ---- isi payload dari $r (device terpilih) ----
         $data['has_data']      = true;
         $data['is_online']     = (bool)$r->is_online;
         $data['idle_sec']      = (int)$r->idle_sec;
@@ -70,19 +60,31 @@ class Admin_monitor extends Admin_Controller
         $data['first_seen']    = $r->first_seen ?: null;
         $data['session_start'] = $r->session_start ?: null;
 
-        // nama monitor (fallback ke TV Billiard)
         $data['nama']        = $r->nama ?: 'TV Billiard';
         $data['last_ip']     = $r->last_ip ?: null;
         $data['ua_raw']      = $r->user_agent ?: null;
         $data['ip_location'] = $r->ip_location ?: null;
 
-        // ====== parse user agent sederhana ======
         $ua = $r->user_agent ?: '';
 
-        // Browser
+        // ========== DETEKSI BRAND (MANUAL) ==========
+        $tvBrand = null;
+
+        // 1) Kalau mau benar-benar di-lock ke monitor_id tertentu:
+        //    (isi dengan monitor_id TV yang kamu kirim: mon-ktmoz95r3rc-1764258501279)
+        if ($r->monitor_id === 'mon-ktmoz95r3rc-1764258501279') {
+            $tvBrand = 'TCL';
+        }
+        // 2) Atau kalau mau sedikit generik untuk Smart TV Android:
+        elseif (stripos($ua, 'Smart TV') !== false && stripos($ua, 'Android') !== false) {
+            $tvBrand = 'TCL'; // karena di AUSI Smart TV-mu merk TCL
+        }
+
+        $data['tv_brand'] = $tvBrand;
+
+        // ===== Browser =====
         $browser = 'Tidak diketahui';
         if (stripos($ua, 'wv') !== false && stripos($ua, 'Android') !== false) {
-            // contoh UA TV-mu: "... Smart TV ...; wv) AppleWebKit/..."
             $browser = 'Android WebView';
         } elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
             $browser = 'Opera';
@@ -98,7 +100,7 @@ class Admin_monitor extends Admin_Controller
             $browser = 'Internet Explorer';
         }
 
-        // Platform / OS
+        // ===== Platform / OS =====
         $platform = null;
         if (stripos($ua, 'Smart TV') !== false && stripos($ua, 'Android') !== false) {
             $platform = 'Android TV';
@@ -120,6 +122,7 @@ class Admin_monitor extends Admin_Controller
 
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
 }
+
 
 
 

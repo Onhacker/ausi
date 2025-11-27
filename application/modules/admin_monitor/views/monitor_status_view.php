@@ -172,6 +172,13 @@
   color:#e5e7eb;
   font-size:.75rem;
 }
+.tv-ua-raw{
+  font-size:11px;
+  line-height:1.35;
+  color:rgba(226,232,240,0.85);
+  word-break:break-all;  /* biar kalau kepanjangan tetap patah */
+  white-space:normal;    /* boleh multi-baris */
+}
 
 </style>
 <div class="container-fluid">
@@ -224,13 +231,18 @@
         <hr class="my-2">
 
         <!-- BROWSER -->
-        <div>
-          <div class="text-muted text-uppercase small mb-1">Browser</div>
-          <div id="tvBrowser" class="font-weight-medium">-</div>
-          <div class="small text-muted mt-1">
-            Diambil dari user agent monitor (TV).
-          </div>
-        </div>
+        <!-- BROWSER -->
+<div>
+  <div class="text-muted text-uppercase small mb-1">Browser</div>
+  <div id="tvBrowser" class="font-weight-medium">-</div>
+  <div class="small text-muted mt-1">
+    Diambil dari user agent monitor (TV).
+  </div>
+
+  <div class="text-muted text-uppercase small mt-2">User agent</div>
+  <div id="tvUaRaw" class="tv-ua-raw">-</div>
+</div>
+
       </div>
     </div>
   </div>
@@ -289,6 +301,7 @@
   var locEl      = document.getElementById('tvLocation');
   var browserEl  = document.getElementById('tvBrowser');
   var lastSeenEl = document.getElementById('tvLastSeen');
+  var uaRawEl    = document.getElementById('tvUaRaw');
 
   // elemen tambahan untuk widget NYALA MONITOR
   var firstSeenEl       = document.getElementById('tvFirstSeen');
@@ -495,17 +508,30 @@
         //   browserEl.textContent = browserStr;
         // }
 
+              // ===== Browser + OS + Brand TV =====
+     // ===== Browser + OS + Brand TV =====
         if (browserEl){
-          var nice = (j.ua_browser || 'Tidak diketahui')
-                   + (j.ua_platform ? (' di ' + j.ua_platform) : '');
-          var raw  = j.ua_raw || '';
+          var base = '-';
 
-          browserEl.innerHTML =
-            '<div class="font-weight-semibold">'+ nice +'</div>'
-          + '<div class="small text-muted" style="word-break:break-all;">'
-          +   raw
-          + '</div>';
+          if (j.ua_browser || j.ua_platform){
+            base = (j.ua_browser || 'Tidak diketahui')
+                 + (j.ua_platform ? (' di ' + j.ua_platform) : '');
+          } else if (j.ua_raw){
+            base = j.ua_raw;
+          }
+
+          if (j.tv_brand){
+            browserEl.textContent = j.tv_brand + ' · ' + base;
+          } else {
+            browserEl.textContent = base;
+          }
         }
+
+
+// UA asli dari DB (tanpa tooltip)
+if (uaRawEl){
+  uaRawEl.textContent = j.ua_raw ? j.ua_raw : '-';
+}
 
 
         // ---- SIMPAN WAKTU TERAKHIR AKTIF ----
