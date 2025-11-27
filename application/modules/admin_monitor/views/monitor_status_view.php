@@ -156,6 +156,23 @@
   background-color:rgba(15,23,42,0.35);
   color:#e5e7eb;
 }
+/* Widget Nyala Monitor */
+.tv-widget-session{
+  border:0;
+  border-radius:.9rem;
+  background:linear-gradient(135deg,#0f172a,#1d4ed8);
+  color:#e5e7eb;
+  box-shadow:0 12px 30px rgba(15,23,42,0.5);
+}
+.tv-widget-session .card-body{
+  padding:1.25rem 1.5rem;
+}
+.tv-widget-session .badge-session{
+  background:rgba(15,23,42,0.92);
+  color:#e5e7eb;
+  font-size:.75rem;
+}
+
 </style>
 <div class="container-fluid">
  <!--  <div class="row">
@@ -207,7 +224,7 @@
   </div>
 
   <!-- KIRI BAWAH: BROWSER -->
-  <div class="col-md-6 mb-3">
+  <div class="col-md-6 col-xl-4 mb-3">
     <div class="card tv-card tv-card--browser" id="widgetTvBrowser">
       <div class="card-body">
         <div class="text-muted text-uppercase mb-1">Browser</div>
@@ -218,9 +235,35 @@
       </div>
     </div>
   </div>
+  <!-- WIDGET: NYALA MONITOR -->
+<div class="col-md-6 col-xl-4 mb-3">
+  <div class="card tv-widget tv-widget-session" id="widgetTvSession">
+    <div class="card-body py-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div>
+          <div class="text-uppercase small text-muted">Nyala Monitor</div>
+          <h5 class="mb-0" style="color: white">Riwayat &amp; Sesi Aktif</h5>
+        </div>
+        <span class="badge badge-pill badge-session" id="tvSessionBadge">Sesi aktif</span>
+      </div>
+
+      <div class="small text-muted mb-1">Pertama kali terdeteksi</div>
+      <div class="font-weight-medium mb-2" id="tvFirstSeen">-</div>
+
+      <hr class="my-2">
+
+      <div class="small text-muted mb-1">Sesi online saat ini</div>
+      <div class="font-weight-medium" id="tvSessionStart">-</div>
+      <div class="small text-muted mt-1">
+        Durasi sesi:
+        <span class="font-weight-semibold" id="tvSessionDuration">-</span>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- KANAN BAWAH: TERAKHIR AKTIF -->
-  <div class="col-md-6 mb-3">
+  <div class="col-md-6 col-xl-4 mb-3">
     <div class="card tv-card tv-card--last" id="widgetTvLast">
       <div class="card-body">
         <div class="text-muted text-uppercase mb-1">Terakhir Aktif</div>
@@ -247,22 +290,24 @@
   var browserEl  = document.getElementById('tvBrowser');
   var lastSeenEl = document.getElementById('tvLastSeen');
 
+  // elemen tambahan untuk widget NYALA MONITOR
+  var firstSeenEl       = document.getElementById('tvFirstSeen');
+  var sessionStartEl    = document.getElementById('tvSessionStart');
+  var sessionDurationEl = document.getElementById('tvSessionDuration');
+  var sessionBadgeEl    = document.getElementById('tvSessionBadge');
+
   if (!dot || !badge) return;
 
-  // ===== STATE UNTUK LIVE TIMER =====
-  var lastSeenDate = null;   // tanggal-waktu ping terakhir (Date object)
-  var baseIdleSec  = null;   // idle_sec dari server saat terakhir fetch
-  var lastSyncTs   = null;   // timestamp JS (Date.now) saat fetch terakhir
-  var liveTimer    = null;
-  var isOnline     = false;  // status online dari server
+  // ====== STATE UNTUK LIVE TIMER ======
+  var lastSeenDate     = null;
+  var sessionStartDate = null;
+  var firstSeenDate    = null;
+  var liveTimer        = null;
 
   // ====== FORMAT RELATIF: detik / menit / jam lalu ======
   function fmtRelative(sec){
     sec = parseInt(sec||0,10);
     if (sec < 0) sec = 0;
-
-    // Kalau sangat dekat dengan sekarang → "baru saja"
-    if (sec <= 5) return 'baru saja';
 
     if (sec < 60){
       return sec + ' detik lalu';
@@ -279,6 +324,24 @@
       return '±' + h + ' jam ' + sisaMenit + ' menit lalu';
     }
     return '±' + h + ' jam lalu';
+  }
+
+  // ====== FORMAT DURASI (untuk lama sesi) ======
+  function fmtDuration(sec){
+    sec = parseInt(sec||0,10);
+    if (sec < 0) sec = 0;
+
+    var d = Math.floor(sec/86400); sec %= 86400;
+    var h = Math.floor(sec/3600);  sec %= 3600;
+    var m = Math.floor(sec/60);
+    var s = sec % 60;
+
+    var parts = [];
+    if (d) parts.push(d + ' hari');
+    if (h) parts.push(h + ' jam');
+    if (m) parts.push(m + ' menit');
+    parts.push(s + ' detik');
+    return parts.join(' ');
   }
 
   // ====== FORMAT TANGGAL INDO + JAM ======
@@ -305,33 +368,61 @@
     if (!lastSeenEl){
       return;
     }
-
-    if (!lastSeenDate && baseIdleSec === null){
+    if (!lastSeenDate){
       lastSeenEl.textContent = '-';
       return;
     }
 
-    var effSec = null;
-    if (baseIdleSec !== null && lastSyncTs !== null){
-      var diffFromSync = Math.floor((Date.now() - lastSyncTs) / 1000);
-      effSec = baseIdleSec + diffFromSync;
-    }
+    var now    = new Date();
+    var diffMs = now - lastSeenDate;
+    var diffSec = Math.max(0, Math.floor(diffMs / 1000));
 
-    var indo = lastSeenDate ? formatTanggalIndo(lastSeenDate) : '-';
+    var rel  = fmtRelative(diffSec);
+    var indo = formatTanggalIndo(lastSeenDate);
 
-    if (isOnline){
-      // Kalau TV sedang online, fokus ke info bahwa dia aktif
-      // contoh: "Sedang online — ping terakhir Kamis, 27 November 2025 22.31.05"
-      lastSeenEl.textContent = 'Sedang online — ping terakhir ' + indo;
-    } else {
-      // Kalau offline, tunjukkan sudah berapa lama tidak aktif
-      var rel = effSec !== null ? fmtRelative(effSec) : '-';
-      if (indo && indo !== '-'){
-        lastSeenEl.textContent = 'Terakhir aktif ' + rel + ' — ' + indo;
+    // contoh: "5 detik lalu — Kamis, 27 November 2025 22.31.05"
+    lastSeenEl.textContent = rel + ' — ' + indo;
+  }
+
+  // ====== UPDATE LABEL NYALA MONITOR (FIRST & SESSION) SECARA LIVE ======
+  function updateSessionLabels(){
+    // Pertama kali terdeteksi
+    if (firstSeenEl){
+      if (firstSeenDate){
+        firstSeenEl.textContent = formatTanggalIndo(firstSeenDate);
       } else {
-        lastSeenEl.textContent = 'Terakhir aktif ' + rel;
+        firstSeenEl.textContent = '-';
       }
     }
+
+    // Sesi saat ini + durasi
+    if (sessionStartEl && sessionDurationEl){
+      if (sessionStartDate){
+        sessionStartEl.textContent = formatTanggalIndo(sessionStartDate);
+
+        var now    = new Date();
+        var diffMs = now - sessionStartDate;
+        var diffSec = Math.max(0, Math.floor(diffMs / 1000));
+
+        sessionDurationEl.textContent = fmtDuration(diffSec);
+
+        if (sessionBadgeEl){
+          sessionBadgeEl.textContent = 'Sesi aktif';
+        }
+      } else {
+        sessionStartEl.textContent    = '-';
+        sessionDurationEl.textContent = '-';
+        if (sessionBadgeEl){
+          sessionBadgeEl.textContent = 'Tidak aktif';
+        }
+      }
+    }
+  }
+
+  // ====== SATU TIMER UNTUK SEMUA LABEL LIVE ======
+  function tickLive(){
+    updateLastSeenLabel();
+    updateSessionLabels();
   }
 
   // ====== AMBIL DATA DARI SERVER ======
@@ -348,7 +439,7 @@
           titleEl.textContent = j.nama;
         }
 
-        isOnline = !!j.is_online;
+        var isOnline = !!j.is_online;
 
         dot.classList.remove('online','offline');
         if (isOnline){
@@ -393,53 +484,61 @@
           browserEl.textContent = browserStr;
         }
 
-        // Simpan baseIdleSec (dari server) + timestamp JS saat sync
-        if (typeof j.idle_sec !== 'undefined' && j.idle_sec !== null){
-          baseIdleSec = parseInt(j.idle_sec, 10);
-          if (isNaN(baseIdleSec)) baseIdleSec = null;
-        } else {
-          baseIdleSec = null;
-        }
-        lastSyncTs = Date.now();
-
-        // Simpan lastSeenDate (untuk tampilan tanggal lengkap)
+        // ---- SIMPAN WAKTU TERAKHIR AKTIF ----
         if (j.last_seen){
-          // asumsikan format "YYYY-MM-DD HH:MM:SS"
-          var iso = j.last_seen.replace(' ', 'T');
-          var d   = new Date(iso);
-          if (!isNaN(d.getTime())){
-            lastSeenDate = d;
-          } else {
-            lastSeenDate = null;
-          }
+          var isoLast = j.last_seen.replace(' ', 'T');
+          var dLast   = new Date(isoLast);
+          lastSeenDate = isNaN(dLast.getTime()) ? null : dLast;
         } else {
           lastSeenDate = null;
         }
 
+        // ---- FIRST SEEN ----
+        if (j.first_seen){
+          var isoFirst = j.first_seen.replace(' ', 'T');
+          var dFirst   = new Date(isoFirst);
+          firstSeenDate = isNaN(dFirst.getTime()) ? null : dFirst;
+        } else {
+          firstSeenDate = null;
+        }
+
+        // ---- SESSION START ----
+        if (j.session_start){
+          var isoSess = j.session_start.replace(' ', 'T');
+          var dSess   = new Date(isoSess);
+          sessionStartDate = isNaN(dSess.getTime()) ? null : dSess;
+        } else {
+          sessionStartDate = null;
+        }
+
         // update sekali sekarang
-        updateLastSeenLabel();
+        tickLive();
 
         // kalau interval belum jalan, start 1 detik sekali
         if (!liveTimer){
-          liveTimer = setInterval(updateLastSeenLabel, 1000);
+          liveTimer = setInterval(tickLive, 1000);
         }
       })
       .catch(function(){
-        isOnline = false;
-        baseIdleSec  = null;
-        lastSyncTs   = null;
-        lastSeenDate = null;
-
         dot.classList.remove('online');
         dot.classList.add('offline');
         badge.classList.remove('badge-online');
         badge.classList.add('badge-offline');
         badge.textContent = 'Gangguan';
-        if (subtitle)   subtitle.textContent = 'Gagal memuat status monitor.';
-        if (ipEl)       ipEl.textContent  = '-';
-        if (locEl)      locEl.textContent = 'Lokasi: -';
-        if (browserEl)  browserEl.textContent = '-';
+        if (subtitle)   subtitle.textContent   = 'Gagal memuat status monitor.';
+        if (ipEl)       ipEl.textContent       = '-';
+        if (locEl)      locEl.textContent      = 'Lokasi: -';
+        if (browserEl)  browserEl.textContent  = '-';
         if (lastSeenEl) lastSeenEl.textContent = '-';
+
+        if (firstSeenEl)       firstSeenEl.textContent       = '-';
+        if (sessionStartEl)    sessionStartEl.textContent    = '-';
+        if (sessionDurationEl) sessionDurationEl.textContent = '-';
+        if (sessionBadgeEl)    sessionBadgeEl.textContent    = 'Tidak aktif';
+
+        lastSeenDate     = null;
+        firstSeenDate    = null;
+        sessionStartDate = null;
       });
   }
 
@@ -449,5 +548,4 @@
   setInterval(refreshWidget, 30000);
 })();
 </script>
-
 

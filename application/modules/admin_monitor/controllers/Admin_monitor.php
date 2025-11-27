@@ -23,20 +23,22 @@ class Admin_monitor extends Admin_Controller
         // 60 detik: kalau >60 detik tidak ping, dianggap offline
         $rows = $this->mon->list_status('billiard', 60);
 
-        $data = [
-            'ok'          => true,
-            'has_data'    => false,
-            'is_online'   => false,
-            'idle_sec'    => null,
-            'last_seen'   => null,
-            'nama'        => 'TV Billiard',
-            'last_ip'     => null,
-            'ua_raw'      => null,
-            'ua_browser'  => null,
-            'ua_platform' => null,
-            'ip_location' => null,   // <<< TAMBAHAN
-            // 'ip_location' => null, // opsional, kalau nanti mau geolokasi
+       $data = [
+            'ok'            => true,
+            'has_data'      => false,
+            'is_online'     => false,
+            'idle_sec'      => null,
+            'last_seen'     => null,
+            'first_seen'    => null,   // <<< tambahkan
+            'session_start' => null,   // <<< tambahkan
+            'nama'          => 'TV Billiard',
+            'last_ip'       => null,
+            'ua_raw'        => null,
+            'ua_browser'    => null,
+            'ua_platform'   => null,
+            'ip_location'   => null,
         ];
+
 
         if (!empty($rows)) {
             // ambil record terbaru
@@ -50,6 +52,9 @@ class Admin_monitor extends Admin_Controller
             $data['last_ip']     = $r->last_ip ?: null;
             $data['ua_raw']      = $r->user_agent ?: null;
             $data['ip_location'] = $r->ip_location ?: null;
+            $data['first_seen']    = $r->first_seen ?: null;
+            $data['session_start'] = $r->session_start ?: null;
+
 
 
             // ====== parse user agent secara sederhana ======

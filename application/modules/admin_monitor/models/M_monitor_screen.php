@@ -5,40 +5,80 @@ class M_monitor_screen extends CI_Model
 {
     protected $table = 'monitor_screen';
 
+    /**
+     * Batas idle (detik) untuk menganggap monitor "offline"
+     * dan sesi baru saat ada ping lagi.
+     */
+    protected $session_idle_limit = 60;
+
+    /**
+     * Catat / perbarui status satu monitor.
+     *
+     * - first_seen    : kapan monitor pertama kali muncul.
+     * - session_start : kapan monitor mulai sesi online terakhir
+     *                   (setiap kali sebelumnya idle > session_idle_limit).
+     */
     public function touch($monitor_id, $tipe = 'billiard', $nama_default = null)
     {
         if (!$monitor_id) return;
 
-        $now = date('Y-m-d H:i:s');
-        $ip  = $this->input->ip_address();
-        $ua  = $this->input->user_agent();
+        $now     = date('Y-m-d H:i:s');
+        $nowUnix = time();
 
+        $ip = $this->input->ip_address();
+        $ua = $this->input->user_agent();
+
+        // Data lama kalau ada
         $row = $this->db
             ->get_where($this->table, ['monitor_id' => $monitor_id])
             ->row();
 
-        $ipLocation = null;
+        $firstSeen    = $now;
+        $sessionStart = $now;
+        $ipLocation   = null;
+
         if ($row) {
+            // ----- FIRST SEEN (pertama kali monitor kedeteksi) -----
+            $firstSeen = $row->first_seen ?: $now;
+
+            // ----- SESSION START (sesi online terakhir) -----
+            // Kalau belum ada (data lama), seed dari last_seen atau now.
+            $sessionStart = $row->session_start ?: ($row->last_seen ?: $now);
+
+            // Hitung idle detik sebelum ping baru ini
+            $prevTs   = $row->last_seen ? strtotime($row->last_seen) : null;
+            $idleSec  = $prevTs ? max(0, $nowUnix - $prevTs) : null;
+
+            // Kalau sebelumnya sudah lama tidak ping → anggap sesi baru
+            if ($idleSec !== null && $idleSec > $this->session_idle_limit) {
+                $sessionStart = $now;
+            }
+
             $ipLocation = $row->ip_location;
         }
 
+        // ----- LOKASI IP -----
         // Kalau IP berubah atau lokasi kosong → geolokasi ulang
         if ($ip && (!$ipLocation || ($row && $row->last_ip !== $ip))) {
             $ipLocation = $this->lookup_ip_location($ip);
         }
 
+        // Data yang selalu di-update
         $data = [
-            'last_seen'   => $now,
-            'last_ip'     => $ip,
-            'user_agent'  => $ua,
-            'tipe'        => $tipe,
-            'ip_location' => $ipLocation,
+            'last_seen'     => $now,
+            'last_ip'       => $ip,
+            'user_agent'    => $ua,
+            'tipe'          => $tipe,
+            'ip_location'   => $ipLocation,
+            'first_seen'    => $firstSeen,
+            'session_start' => $sessionStart,
         ];
 
         if ($row) {
             $this->db->where('monitor_id', $monitor_id)
                      ->update($this->table, $data);
         } else {
+            // record baru → set nama & monitor_id
             $data['monitor_id'] = $monitor_id;
             $data['nama']       = $nama_default ?: 'Monitor '.$tipe;
             $this->db->insert($this->table, $data);
