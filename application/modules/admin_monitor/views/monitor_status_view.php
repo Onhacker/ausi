@@ -303,6 +303,7 @@
   var sessionStartDate = null;
   var firstSeenDate    = null;
   var liveTimer        = null;
+  var isOnlineNow      = false; // <<< NEW: status online terbaru
 
   // ====== FORMAT RELATIF: detik / menit / jam lalu ======
   function fmtRelative(sec){
@@ -384,7 +385,7 @@
     lastSeenEl.textContent = rel + ' — ' + indo;
   }
 
-  // ====== UPDATE LABEL NYALA MONITOR (FIRST & SESSION) SECARA LIVE ======
+  // ====== UPDATE LABEL NYALA MONITOR (FIRST & SESSION) ======
   function updateSessionLabels(){
     // Pertama kali terdeteksi
     if (firstSeenEl){
@@ -400,14 +401,23 @@
       if (sessionStartDate){
         sessionStartEl.textContent = formatTanggalIndo(sessionStartDate);
 
-        var now    = new Date();
-        var diffMs = now - sessionStartDate;
+        // <<< PERUBAHAN PENTING DI SINI >>>
+        // Kalau ONLINE -> durasi = sekarang - session_start
+        // Kalau OFFLINE -> durasi = last_seen - session_start (beku)
+        var endTime;
+        if (isOnlineNow || !lastSeenDate){
+          endTime = new Date();
+        } else {
+          endTime = lastSeenDate;
+        }
+
+        var diffMs  = endTime - sessionStartDate;
         var diffSec = Math.max(0, Math.floor(diffMs / 1000));
 
         sessionDurationEl.textContent = fmtDuration(diffSec);
 
         if (sessionBadgeEl){
-          sessionBadgeEl.textContent = 'Sesi aktif';
+          sessionBadgeEl.textContent = isOnlineNow ? 'Sesi aktif' : 'Sesi berakhir';
         }
       } else {
         sessionStartEl.textContent    = '-';
@@ -440,6 +450,7 @@
         }
 
         var isOnline = !!j.is_online;
+        isOnlineNow  = isOnline; // <<< SIMPAN STATUS ONLINE GLOBAL
 
         dot.classList.remove('online','offline');
         if (isOnline){
@@ -463,7 +474,7 @@
           ipEl.textContent = j.last_ip ? j.last_ip : '-';
         }
 
-        // Lokasi
+        // Lokasi (kalau mau dipakai lagi, tinggal buka komentar)
         // if (locEl){
         //   if (j.ip_location) {
         //     locEl.textContent = 'Lokasi: ' + j.ip_location;
@@ -539,6 +550,7 @@
         lastSeenDate     = null;
         firstSeenDate    = null;
         sessionStartDate = null;
+        isOnlineNow      = false;
       });
   }
 
@@ -548,4 +560,5 @@
   setInterval(refreshWidget, 30000);
 })();
 </script>
+
 
