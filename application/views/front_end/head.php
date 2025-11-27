@@ -263,7 +263,14 @@ if (is_file($img_path)) {
           </li>
 
           <!-- MAKAN & ORDER -->
-          <li class="has-submenu <?= in_array($uri, ['scan','produk','produk/delivery','produk/walkin']) ? 'active-menu' : '' ?>">
+          <li class="has-submenu <?= in_array($uri, [
+                  'scan',
+                  'produk',
+                  'produk/delivery',
+                  'produk/walkin',
+                  'produk/riwayat_pesanan', // NEW
+                  'produk/reward'          // NEW
+                ]) ? 'active-menu' : '' ?>">
             <a href="javascript:void(0);">
               <i class="fas fa-utensils"></i> Makan &amp; Order
               <span class="menu-arrow"></span>
@@ -284,38 +291,68 @@ if (is_file($img_path)) {
                   🛍️ Bungkus (Walk-in)
                 </a>
               </li>
+
+              <!-- NEW: Riwayat Orderku -->
+              <li class="<?= ($uri === 'produk/riwayat_pesanan') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('produk/riwayat_pesanan'); ?>">
+                  🧾 Riwayat Orderku
+                </a>
+              </li>
+
+              <!-- NEW: Reward Mingguan -->
+              <li class="<?= ($uri === 'produk/reward') ? 'active-menu' : '' ?>">
+                <a href="<?= site_url('produk/reward'); ?>">
+                  🎁 Reward Mingguan
+                </a>
+              </li>
             </ul>
           </li>
 
+
           <!-- BILLIARD -->
-          <li class="has-submenu <?= in_array($uri, ['billiard','meja_billiard','billiard/daftar_booking','billiard/daftar_voucher']) ? 'active-menu' : '' ?>">
-            <a href="javascript:void(0);">
-              <i class="fe-calendar"></i> Billiard
-              <span class="menu-arrow"></span>
-            </a>
-            <ul class="submenu">
-              <li class="<?= ($uri === 'billiard') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('billiard'); ?>">
-                  🎱 Booking Billiard
-                </a>
-              </li>
-              <li class="<?= ($uri === 'meja_billiard') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('meja_billiard'); ?>">
-                  👀 Tarif Meja Billiard
-                </a>
-              </li>
-              <li class="<?= ($uri === 'billiard/daftar_booking') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('billiard/daftar_booking'); ?>">
-                  📋 List Bookingan
-                </a>
-              </li>
-              <li class="<?= ($uri === 'billiard/daftar_voucher') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('billiard/daftar_voucher'); ?>">
-                  🎁 Gratis Main
-                </a>
-              </li>
-            </ul>
-          </li>
+<li class="has-submenu <?= in_array($uri, [
+        'billiard',
+        'meja_billiard',
+        'billiard/daftar_booking',
+        'billiard/daftar_voucher',
+        'billiard/riwayat_booking' // NEW
+      ]) ? 'active-menu' : '' ?>">
+  <a href="javascript:void(0);">
+    <i class="fe-calendar"></i> Billiard
+    <span class="menu-arrow"></span>
+  </a>
+  <ul class="submenu">
+    <li class="<?= ($uri === 'billiard') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('billiard'); ?>">
+        🎱 Booking Billiard
+      </a>
+    </li>
+
+    <!-- NEW: Riwayat Bookingku -->
+    <li class="<?= ($uri === 'billiard/riwayat_booking') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('billiard/riwayat_booking'); ?>">
+        🕒 Riwayat Bookingku
+      </a>
+    </li>
+
+    <li class="<?= ($uri === 'meja_billiard') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('meja_billiard'); ?>">
+        👀 Tarif Meja Billiard
+      </a>
+    </li>
+    <li class="<?= ($uri === 'billiard/daftar_booking') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('billiard/daftar_booking'); ?>">
+        📋 List Bookingan
+      </a>
+    </li>
+    <li class="<?= ($uri === 'billiard/daftar_voucher') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('billiard/daftar_voucher'); ?>">
+        🎁 Gratis Main
+      </a>
+    </li>
+  </ul>
+</li>
+
 
           <!-- CAFE -->
           <li class="<?= in_array($uri, ['cafe','hal/jadwal']) ? 'active-menu' : '' ?>">
@@ -345,35 +382,50 @@ if (is_file($img_path)) {
             </a>
           </li>
 
-          <!-- INFO -->
-          <li class="has-submenu <?= in_array($uri, ['hal/pengumuman','hal/review','hal/privacy_policy','hal']) ? 'active-menu' : '' ?>">
-            <a href="javascript:void(0);">
-              <i class="fe-info"></i> Info
-              <span class="menu-arrow"></span>
-            </a>
-            <ul class="submenu">
-              <li class="<?= ($uri === 'hal/pengumuman') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('hal/pengumuman'); ?>">
-                  📣 Pengumuman
-                </a>
-              </li>
-              <li class="<?= ($uri === 'hal/review') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('hal/review'); ?>">
-                  ⭐ Google Review
-                </a>
-              </li>
-              <li class="<?= ($uri === 'hal/privacy_policy') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('hal/privacy_policy'); ?>">
-                  🔒 Kebijakan Privasi
-                </a>
-              </li>
-              <li class="<?= ($uri === 'hal') ? 'active-menu' : '' ?>">
-                <a href="<?= site_url('hal'); ?>">
-                  📜 S&amp;K
-                </a>
-              </li>
-            </ul>
-          </li>
+         <!-- INFO -->
+<li class="has-submenu <?= in_array($uri, [
+        'hal/pengumuman',
+        'hal/review',
+        'hal/privacy_policy',
+        'hal',
+        'review' // NEW
+      ]) ? 'active-menu' : '' ?>">
+  <a href="javascript:void(0);">
+    <i class="fe-info"></i> Info
+    <span class="menu-arrow"></span>
+  </a>
+  <ul class="submenu">
+    <li class="<?= ($uri === 'hal/pengumuman') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('hal/pengumuman'); ?>">
+        📣 Pengumuman
+      </a>
+    </li>
+    <li class="<?= ($uri === 'hal/review') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('hal/review'); ?>">
+        ⭐ Google Review
+      </a>
+    </li>
+
+    <!-- NEW: Ratings & Review (internal) -->
+    <li class="<?= ($uri === 'review') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('review'); ?>">
+        📝 Rating &amp; Review
+      </a>
+    </li>
+
+    <li class="<?= ($uri === 'hal/privacy_policy') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('hal/privacy_policy'); ?>">
+        🔒 Kebijakan Privasi
+      </a>
+    </li>
+    <li class="<?= ($uri === 'hal') ? 'active-menu' : '' ?>">
+      <a href="<?= site_url('hal'); ?>">
+        📜 S&amp;K
+      </a>
+    </li>
+  </ul>
+</li>
+
 
         </ul>
         <div class="clearfix"></div>
