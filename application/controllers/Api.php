@@ -132,6 +132,8 @@ class Api extends MX_Controller {
 
     // ====== Laporan ======
    $children = [];
+// mulai dengan array kosong
+$children = [];
 
     // menu "Laporan Keuangan" hanya utk admin & kasir
     if (in_array($this->session->userdata('admin_username'), ['admin','kasir'], true)) {
@@ -139,16 +141,25 @@ class Api extends MX_Controller {
             'label'   => 'Laporan Keuangan',
             'url'     => site_url('admin_laporan'),
             'icon'    => 'mdi mdi-file-chart',
-            'require' => ['Laporan','admin_laporan','user'],
+            'require' => ['Laporan', 'admin_laporan', 'user'],
         ];
     }
+
+    // menu "Monitor TV Billiard" -> TIDAK dibatasi username,
+    // nanti hak akses diatur via modul (require)
+    $children[] = [
+        'label'   => 'Status Monitor Billiard',
+        'url'     => site_url('admin_monitor'),
+        'icon'    => 'mdi mdi-monitor-cellphone', // boleh ganti icon sesuai selera
+        'require' => ['Status Monitor Billiard', 'admin_monitor', 'user'],
+    ];
 
     // menu ini selalu ada
     $children[] = [
         'label'   => 'Laporan Rating Produk',
         'url'     => site_url('admin_rating'),
         'icon'    => 'mdi mdi-star-outline',
-        'require' => ['Laporan Rating Produk','admin_rating','user'],
+        'require' => ['Laporan Rating Produk', 'admin_rating', 'user'],
     ];
 
     $MENU_DEF[] = [
@@ -329,6 +340,13 @@ public function get_menu_mobile()
             'url'     => site_url('admin_billiard'),
             'icon'    => 'mdi mdi-billiards',
             'require' => ['POS Billiard','admin_billiard','user'],
+        ],
+        [
+            'id'      => 'admin_monitor',
+            'label'   => 'Status Monitor Billiard',
+            'url'     => site_url('admin_monitor'),
+            'icon'    => 'mdi mdi-monitor-cellphone',
+            'require' => ['Status Monitor Billiard','admin_monitor','user'],
         ],
         [
             'id'      => 'admin_kursi_pijat',

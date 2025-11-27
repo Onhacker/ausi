@@ -238,25 +238,31 @@
 (function(){
   var ENDPOINT = "<?= site_url('admin_monitor/status_json'); ?>";
 
-  var dot       = document.getElementById('tvDot');
-  var badge     = document.getElementById('tvBadge');
-  var subtitle  = document.getElementById('tvSubtitle');
-  var titleEl   = document.getElementById('tvTitle');
-  var ipEl      = document.getElementById('tvIp');
-  var locEl     = document.getElementById('tvLocation');
-  var browserEl = document.getElementById('tvBrowser');
-  var lastSeenEl= document.getElementById('tvLastSeen');
+  var dot        = document.getElementById('tvDot');
+  var badge      = document.getElementById('tvBadge');
+  var subtitle   = document.getElementById('tvSubtitle');
+  var titleEl    = document.getElementById('tvTitle');
+  var ipEl       = document.getElementById('tvIp');
+  var locEl      = document.getElementById('tvLocation');
+  var browserEl  = document.getElementById('tvBrowser');
+  var lastSeenEl = document.getElementById('tvLastSeen');
 
   if (!dot || !badge) return;
 
-  // ====== STATE UNTUK LIVE TIMER ======
-  var lastSeenDate = null;
+  // ===== STATE UNTUK LIVE TIMER =====
+  var lastSeenDate = null;   // tanggal-waktu ping terakhir (Date object)
+  var baseIdleSec  = null;   // idle_sec dari server saat terakhir fetch
+  var lastSyncTs   = null;   // timestamp JS (Date.now) saat fetch terakhir
   var liveTimer    = null;
+  var isOnline     = false;  // status online dari server
 
   // ====== FORMAT RELATIF: detik / menit / jam lalu ======
   function fmtRelative(sec){
     sec = parseInt(sec||0,10);
     if (sec < 0) sec = 0;
+
+    // Kalau sangat dekat dengan sekarang → "baru saja"
+    if (sec <= 5) return 'baru saja';
 
     if (sec < 60){
       return sec + ' detik lalu';
@@ -299,20 +305,33 @@
     if (!lastSeenEl){
       return;
     }
-    if (!lastSeenDate){
+
+    if (!lastSeenDate && baseIdleSec === null){
       lastSeenEl.textContent = '-';
       return;
     }
 
-    var now    = new Date();
-    var diffMs = now - lastSeenDate;
-    var diffSec = Math.max(0, Math.floor(diffMs / 1000));
+    var effSec = null;
+    if (baseIdleSec !== null && lastSyncTs !== null){
+      var diffFromSync = Math.floor((Date.now() - lastSyncTs) / 1000);
+      effSec = baseIdleSec + diffFromSync;
+    }
 
-    var rel  = fmtRelative(diffSec);
-    var indo = formatTanggalIndo(lastSeenDate);
+    var indo = lastSeenDate ? formatTanggalIndo(lastSeenDate) : '-';
 
-    // contoh: "5 detik lalu — Kamis, 27 November 2025 22.31.05"
-    lastSeenEl.textContent = rel + ' — ' + indo;
+    if (isOnline){
+      // Kalau TV sedang online, fokus ke info bahwa dia aktif
+      // contoh: "Sedang online — ping terakhir Kamis, 27 November 2025 22.31.05"
+      lastSeenEl.textContent = 'Sedang online — ping terakhir ' + indo;
+    } else {
+      // Kalau offline, tunjukkan sudah berapa lama tidak aktif
+      var rel = effSec !== null ? fmtRelative(effSec) : '-';
+      if (indo && indo !== '-'){
+        lastSeenEl.textContent = 'Terakhir aktif ' + rel + ' — ' + indo;
+      } else {
+        lastSeenEl.textContent = 'Terakhir aktif ' + rel;
+      }
+    }
   }
 
   // ====== AMBIL DATA DARI SERVER ======
@@ -329,7 +348,7 @@
           titleEl.textContent = j.nama;
         }
 
-        var isOnline = !!j.is_online;
+        isOnline = !!j.is_online;
 
         dot.classList.remove('online','offline');
         if (isOnline){
@@ -374,7 +393,16 @@
           browserEl.textContent = browserStr;
         }
 
-        // Simpan lastSeenDate untuk live timer
+        // Simpan baseIdleSec (dari server) + timestamp JS saat sync
+        if (typeof j.idle_sec !== 'undefined' && j.idle_sec !== null){
+          baseIdleSec = parseInt(j.idle_sec, 10);
+          if (isNaN(baseIdleSec)) baseIdleSec = null;
+        } else {
+          baseIdleSec = null;
+        }
+        lastSyncTs = Date.now();
+
+        // Simpan lastSeenDate (untuk tampilan tanggal lengkap)
         if (j.last_seen){
           // asumsikan format "YYYY-MM-DD HH:MM:SS"
           var iso = j.last_seen.replace(' ', 'T');
@@ -397,17 +425,21 @@
         }
       })
       .catch(function(){
+        isOnline = false;
+        baseIdleSec  = null;
+        lastSyncTs   = null;
+        lastSeenDate = null;
+
         dot.classList.remove('online');
         dot.classList.add('offline');
         badge.classList.remove('badge-online');
         badge.classList.add('badge-offline');
         badge.textContent = 'Gangguan';
-        if (subtitle) subtitle.textContent = 'Gagal memuat status monitor.';
-        if (ipEl)      ipEl.textContent  = '-';
-        if (locEl)     locEl.textContent = 'Lokasi: -';
-        if (browserEl) browserEl.textContent = '-';
-        if (lastSeenEl)lastSeenEl.textContent = '-';
-        lastSeenDate = null;
+        if (subtitle)   subtitle.textContent = 'Gagal memuat status monitor.';
+        if (ipEl)       ipEl.textContent  = '-';
+        if (locEl)      locEl.textContent = 'Lokasi: -';
+        if (browserEl)  browserEl.textContent = '-';
+        if (lastSeenEl) lastSeenEl.textContent = '-';
       });
   }
 
@@ -417,4 +449,5 @@
   setInterval(refreshWidget, 30000);
 })();
 </script>
+
 

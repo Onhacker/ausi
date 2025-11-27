@@ -57,7 +57,9 @@ class Admin_monitor extends Admin_Controller
 
             // Browser
             $browser = 'Tidak diketahui';
-            if (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
+            if (stripos($ua, 'wv') !== false && stripos($ua, 'Android') !== false) {
+                $browser = 'Android WebView';
+            } elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
                 $browser = 'Opera';
             } elseif (stripos($ua, 'Edg/') !== false) {
                 $browser = 'Microsoft Edge';
@@ -73,7 +75,9 @@ class Admin_monitor extends Admin_Controller
 
             // Platform / OS
             $platform = null;
-            if (stripos($ua, 'Windows') !== false) {
+            if (stripos($ua, 'Smart TV') !== false && stripos($ua, 'Android') !== false) {
+                $platform = 'Android TV';
+            } elseif (stripos($ua, 'Windows') !== false) {
                 $platform = 'Windows';
             } elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) {
                 $platform = 'macOS';
@@ -87,6 +91,7 @@ class Admin_monitor extends Admin_Controller
 
             $data['ua_browser']  = $browser;
             $data['ua_platform'] = $platform;
+
         }
 
         echo json_encode($data, JSON_UNESCAPED_UNICODE);

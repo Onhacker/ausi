@@ -122,8 +122,10 @@ if (!function_exists('nav_class')) {
         'admin_permohonan','admin_profil/detail_profil','booking',
         'admin_dashboard/monitor','admin_pos','admin_user','hal/kontak',
         'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*',
-        'admin_voucher_cafe*','admin_voucher_kursi_pijat*','admin_ps*','admin_voucher_ps*'
+        'admin_voucher_cafe*','admin_voucher_kursi_pijat*','admin_ps*','admin_voucher_ps*',
+        'admin_monitor*', // NEW: Monitor TV Billiard
       ];
+
 
     ?>
     <div class="nav-item">
@@ -215,11 +217,13 @@ if (!function_exists('nav_class')) {
     user_can_mod(['admin_ps']) ||
     user_can_mod(['admin_voucher_ps']);
 
-    $showKeuLap =
-    user_can_mod(['admin_pengeluaran']) ||
-    user_can_mod(['admin_laporan']) ||
-    user_can_mod(['admin_laporan/index']) ||
-    user_can_mod(['admin_rating']); // <- tambahkan ini, pisahkan or-nya
+   $showKeuLap =
+    user_can_mod(['admin_pengeluaran'])      ||
+    user_can_mod(['admin_laporan'])         ||
+    user_can_mod(['admin_laporan/index'])   ||
+    user_can_mod(['admin_rating'])          ||
+    user_can_mod(['admin_monitor']);  // NEW: kalau punya akses admin_monitor, grup ini muncul
+
 
     $showMaster    =
     user_can_mod(['admin_produk']) ||
@@ -370,7 +374,11 @@ if (!function_exists('nav_class')) {
           <span>Laporan</span>
         </a>
       <?php endif; ?>
-
+      <?php if (user_can_mod(['admin_monitor'])): ?>
+        <a id="quick-monitor-link" href="<?= site_url('admin_monitor') ?>" class="menu-item">
+          <span class="emoji" aria-hidden="true">📺</span><span>Status Monitor Billiard</span>
+        </a>
+      <?php endif; ?>
     <?php if (user_can_mod(['admin_laporan/chart','dashboard'])): ?>
       <a id="quick-statistik-link" href="<?= site_url('admin_laporan/chart') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">📈</span><span>Statistik</span>
@@ -518,6 +526,7 @@ if (!function_exists('nav_class')) {
   admin_setting_web:   { a: document.getElementById("quick-setting-link") },
   admin_unit_lain:     { a: document.getElementById("quick-unit-lain-link") },
   admin_pengumuman:    { a: document.getElementById("quick-pengumuman-link") },
+  admin_monitor:           { a: document.getElementById("quick-monitor-link") },   // NEW: Monitor TV
   admin_kursi_pijat:         { a: document.getElementById("quick-kursi-pijat-link") },          // <-- NEW
   admin_voucher_kursi_pijat: { a: document.getElementById("quick-voucher-kursi-pijat-link") }, // <-- NEW
 };
