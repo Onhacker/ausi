@@ -191,12 +191,13 @@
    <h4 class="header-title"><?= $subtitle; ?></h4>
 <div class="row mt-2">
 
-  <!-- KIRI ATAS: STATUS MONITOR -->
+  <!-- KOLOM KIRI: STATUS + IP + BROWSER -->
   <div class="col-md-6 mb-3">
-    <div class="card tv-card tv-card--status" id="widgetTvStatus">
+    <div class="card tv-card tv-card--status" id="widgetTvLeft">
       <div class="card-body">
+        <!-- STATUS MONITOR -->
         <div class="text-muted text-uppercase mb-1">Status Monitor</div>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center mb-3">
           <div class="tv-dot-wrapper mr-3">
             <span class="tv-dot offline" id="tvDot"></span>
           </div>
@@ -205,77 +206,76 @@
             <span id="tvBadge" class="badge badge-pill badge-offline">Offline</span>
           </div>
         </div>
-        <div class="small text-muted mt-2" id="tvSubtitle">
+        <div class="small text-muted mb-3" id="tvSubtitle">
           Memeriksa status…
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- KANAN ATAS: IP MONITOR -->
-  <div class="col-md-6 mb-3">
-    <div class="card tv-card tv-card--ip" id="widgetTvIp">
-      <div class="card-body">
-        <div class="text-muted text-uppercase mb-1">IP Monitor (TV)</div>
-        <div id="tvIp" class="font-weight-medium">-</div>
-        <!-- <div id="tvLocation" class="small text-muted mt-1">Lokasi: -</div> -->
-      </div>
-    </div>
-  </div>
+        <hr class="my-2">
 
-  <!-- KIRI BAWAH: BROWSER -->
-  <div class="col-md-6 col-xl-4 mb-3">
-    <div class="card tv-card tv-card--browser" id="widgetTvBrowser">
-      <div class="card-body">
-        <div class="text-muted text-uppercase mb-1">Browser</div>
-        <div id="tvBrowser" class="font-weight-medium">-</div>
-        <div class="small text-muted mt-1">
-          Diambil dari user agent monitor (TV).
+        <!-- IP MONITOR -->
+        <div class="mb-3">
+          <div class="text-muted text-uppercase small mb-1">IP Monitor (TV)</div>
+          <div id="tvIp" class="font-weight-medium">-</div>
+          <!--
+          <div id="tvLocation" class="small text-muted mt-1">Lokasi: -</div>
+          -->
         </div>
-      </div>
-    </div>
-  </div>
-  <!-- WIDGET: NYALA MONITOR -->
-<div class="col-md-6 col-xl-4 mb-3">
-  <div class="card tv-widget tv-widget-session" id="widgetTvSession">
-    <div class="card-body py-3">
-      <div class="d-flex align-items-center justify-content-between mb-2">
+
+        <hr class="my-2">
+
+        <!-- BROWSER -->
         <div>
-          <div class="text-uppercase small text-muted">Nyala Monitor</div>
-          <h5 class="mb-0" style="color: white">Riwayat &amp; Sesi Aktif</h5>
-        </div>
-        <span class="badge badge-pill badge-session" id="tvSessionBadge">Sesi aktif</span>
-      </div>
-
-      <div class="small text-muted mb-1">Pertama kali terdeteksi</div>
-      <div class="font-weight-medium mb-2" id="tvFirstSeen">-</div>
-
-      <hr class="my-2">
-
-      <div class="small text-muted mb-1">Sesi online saat ini</div>
-      <div class="font-weight-medium" id="tvSessionStart">-</div>
-      <div class="small text-muted mt-1">
-        Durasi sesi:
-        <span class="font-weight-semibold" id="tvSessionDuration">-</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-  <!-- KANAN BAWAH: TERAKHIR AKTIF -->
-  <div class="col-md-6 col-xl-4 mb-3">
-    <div class="card tv-card tv-card--last" id="widgetTvLast">
-      <div class="card-body">
-        <div class="text-muted text-uppercase mb-1">Terakhir Aktif</div>
-        <div id="tvLastSeen" class="font-weight-medium">-</div>
-        <div class="small text-muted mt-1">
-          Data dari ping terakhir halaman <em>Live Billiard</em> di TV.
+          <div class="text-muted text-uppercase small mb-1">Browser</div>
+          <div id="tvBrowser" class="font-weight-medium">-</div>
+          <div class="small text-muted mt-1">
+            Diambil dari user agent monitor (TV).
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- KOLOM KANAN: NYALA MONITOR + TERAKHIR AKTIF -->
+  <div class="col-md-6 mb-3">
+    <div class="card tv-widget tv-widget-session" id="widgetTvRight">
+      <div class="card-body py-3">
+
+        <!-- NYALA MONITOR -->
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div>
+            <div class="text-uppercase small text-muted">Nyala Monitor</div>
+            <h5 class="mb-0" style="color: white">Riwayat &amp; Sesi Aktif</h5>
+          </div>
+          <span class="badge badge-pill badge-session" id="tvSessionBadge">Sesi aktif</span>
+        </div>
+
+        <div class="small text-muted mb-1">Pertama kali terdeteksi</div>
+        <div class="font-weight-medium mb-2" id="tvFirstSeen">-</div>
+
+        <div class="small text-muted mb-1">Sesi online saat ini</div>
+        <div class="font-weight-medium" id="tvSessionStart">-</div>
+        <div class="small text-muted mt-1 mb-2">
+          Durasi sesi:
+          <span class="font-weight-semibold" id="tvSessionDuration">-</span>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- TERAKHIR AKTIF -->
+        <div>
+          <div class="text-muted text-uppercase small mb-1">Terakhir Aktif</div>
+          <div id="tvLastSeen" class="font-weight-medium">-</div>
+          <div class="small text-muted mt-1">
+            Data dari ping terakhir halaman <em>Live Billiard</em> di TV.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </div>
-</div>
+
 </div>
 <script>
 (function(){

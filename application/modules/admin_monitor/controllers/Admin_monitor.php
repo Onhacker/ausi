@@ -15,92 +15,112 @@ class Admin_monitor extends Admin_Controller
      * status TV Billiard (online/offline + last_seen + idle_sec).
      */
     public function status_json()
-    {
-        $this->output
-             ->set_content_type('application/json', 'utf-8')
-             ->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+{
+    $this->output
+         ->set_content_type('application/json', 'utf-8')
+         ->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-        // 60 detik: kalau >60 detik tidak ping, dianggap offline
-        $rows = $this->mon->list_status('billiard', 60);
+    // 60 detik: kalau >60 detik tidak ping, dianggap offline
+    $rows = $this->mon->list_status('billiard', 60);
 
-       $data = [
-            'ok'            => true,
-            'has_data'      => false,
-            'is_online'     => false,
-            'idle_sec'      => null,
-            'last_seen'     => null,
-            'first_seen'    => null,   // <<< tambahkan
-            'session_start' => null,   // <<< tambahkan
-            'nama'          => 'TV Billiard',
-            'last_ip'       => null,
-            'ua_raw'        => null,
-            'ua_browser'    => null,
-            'ua_platform'   => null,
-            'ip_location'   => null,
-        ];
+    $data = [
+        'ok'            => true,
+        'has_data'      => false,
+        'is_online'     => false,
+        'idle_sec'      => null,
+        'last_seen'     => null,
+        'first_seen'    => null,   // awal monitor ini pernah nyala
+        'session_start' => null,   // awal sesi nyala (setelah sempat offline)
+        'nama'          => 'TV Billiard',
+        'last_ip'       => null,
+        'ua_raw'        => null,
+        'ua_browser'    => null,
+        'ua_platform'   => null,
+        'ip_location'   => null,
+    ];
 
+    if (!empty($rows)) {
 
-        if (!empty($rows)) {
-            // ambil record terbaru
-            $r = $rows[0];
+        // =============================
+        //  PILIH ROW UTAMA UNTUK WIDGET
+        //  - Prioritas: Smart TV dulu
+        //  - Kalau tidak ada Smart TV → pakai yang paling baru (rows[0])
+        // =============================
+        $r = null;
 
-            $data['has_data']  = true;
-            $data['is_online'] = (bool)$r->is_online;
-            $data['idle_sec']  = (int)$r->idle_sec;
-            $data['last_seen'] = $r->last_seen;
-            $data['nama']      = $r->nama ?: 'TV Billiard';
-            $data['last_ip']     = $r->last_ip ?: null;
-            $data['ua_raw']      = $r->user_agent ?: null;
-            $data['ip_location'] = $r->ip_location ?: null;
-            $data['first_seen']    = $r->first_seen ?: null;
-            $data['session_start'] = $r->session_start ?: null;
-
-
-
-            // ====== parse user agent secara sederhana ======
-            $ua = $r->user_agent ?: '';
-
-            // Browser
-            $browser = 'Tidak diketahui';
-            if (stripos($ua, 'wv') !== false && stripos($ua, 'Android') !== false) {
-                $browser = 'Android WebView';
-            } elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
-                $browser = 'Opera';
-            } elseif (stripos($ua, 'Edg/') !== false) {
-                $browser = 'Microsoft Edge';
-            } elseif (stripos($ua, 'Chrome') !== false && stripos($ua, 'Chromium') === false) {
-                $browser = 'Google Chrome';
-            } elseif (stripos($ua, 'Safari') !== false && stripos($ua, 'Chrome') === false) {
-                $browser = 'Safari';
-            } elseif (stripos($ua, 'Firefox') !== false) {
-                $browser = 'Mozilla Firefox';
-            } elseif (stripos($ua, 'MSIE') !== false || stripos($ua, 'Trident/') !== false) {
-                $browser = 'Internet Explorer';
+        foreach ($rows as $row) {
+            $ua = $row->user_agent ?: '';
+            // UA TV-mu: "... Android 14; Smart TV ...; wv ..."
+            if (stripos($ua, 'Smart TV') !== false) {
+                $r = $row;
+                break;
             }
-
-            // Platform / OS
-            $platform = null;
-            if (stripos($ua, 'Smart TV') !== false && stripos($ua, 'Android') !== false) {
-                $platform = 'Android TV';
-            } elseif (stripos($ua, 'Windows') !== false) {
-                $platform = 'Windows';
-            } elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) {
-                $platform = 'macOS';
-            } elseif (stripos($ua, 'Android') !== false) {
-                $platform = 'Android';
-            } elseif (stripos($ua, 'iPhone') !== false || stripos($ua, 'iPad') !== false) {
-                $platform = 'iOS';
-            } elseif (stripos($ua, 'Linux') !== false) {
-                $platform = 'Linux';
-            }
-
-            $data['ua_browser']  = $browser;
-            $data['ua_platform'] = $platform;
-
         }
 
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        // Kalau belum ketemu Smart TV, fallback ke data paling baru
+        if (!$r) {
+            $r = $rows[0];
+        }
+
+        // ---- isi payload dari $r (device terpilih) ----
+        $data['has_data']      = true;
+        $data['is_online']     = (bool)$r->is_online;
+        $data['idle_sec']      = (int)$r->idle_sec;
+        $data['last_seen']     = $r->last_seen;
+        $data['first_seen']    = $r->first_seen ?: null;
+        $data['session_start'] = $r->session_start ?: null;
+
+        // nama monitor (fallback ke TV Billiard)
+        $data['nama']        = $r->nama ?: 'TV Billiard';
+        $data['last_ip']     = $r->last_ip ?: null;
+        $data['ua_raw']      = $r->user_agent ?: null;
+        $data['ip_location'] = $r->ip_location ?: null;
+
+        // ====== parse user agent sederhana ======
+        $ua = $r->user_agent ?: '';
+
+        // Browser
+        $browser = 'Tidak diketahui';
+        if (stripos($ua, 'wv') !== false && stripos($ua, 'Android') !== false) {
+            // contoh UA TV-mu: "... Smart TV ...; wv) AppleWebKit/..."
+            $browser = 'Android WebView';
+        } elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
+            $browser = 'Opera';
+        } elseif (stripos($ua, 'Edg/') !== false) {
+            $browser = 'Microsoft Edge';
+        } elseif (stripos($ua, 'Chrome') !== false && stripos($ua, 'Chromium') === false) {
+            $browser = 'Google Chrome';
+        } elseif (stripos($ua, 'Safari') !== false && stripos($ua, 'Chrome') === false) {
+            $browser = 'Safari';
+        } elseif (stripos($ua, 'Firefox') !== false) {
+            $browser = 'Mozilla Firefox';
+        } elseif (stripos($ua, 'MSIE') !== false || stripos($ua, 'Trident/') !== false) {
+            $browser = 'Internet Explorer';
+        }
+
+        // Platform / OS
+        $platform = null;
+        if (stripos($ua, 'Smart TV') !== false && stripos($ua, 'Android') !== false) {
+            $platform = 'Android TV';
+        } elseif (stripos($ua, 'Windows') !== false) {
+            $platform = 'Windows';
+        } elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) {
+            $platform = 'macOS';
+        } elseif (stripos($ua, 'Android') !== false) {
+            $platform = 'Android';
+        } elseif (stripos($ua, 'iPhone') !== false || stripos($ua, 'iPad') !== false) {
+            $platform = 'iOS';
+        } elseif (stripos($ua, 'Linux') !== false) {
+            $platform = 'Linux';
+        }
+
+        $data['ua_browser']  = $browser;
+        $data['ua_platform'] = $platform;
     }
+
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+}
+
 
 
     // opsional: page tabel status monitor (yang sebelumnya kita bahas)
