@@ -484,16 +484,29 @@
         // }
 
         // Browser + OS
+        // if (browserEl){
+        //   var browserStr = '-';
+        //   if (j.ua_browser || j.ua_platform){
+        //     browserStr = (j.ua_browser || 'Tidak diketahui')
+        //                + (j.ua_platform ? (' di ' + j.ua_platform) : '');
+        //   } else if (j.ua_raw){
+        //     browserStr = j.ua_raw;
+        //   }
+        //   browserEl.textContent = browserStr;
+        // }
+
         if (browserEl){
-          var browserStr = '-';
-          if (j.ua_browser || j.ua_platform){
-            browserStr = (j.ua_browser || 'Tidak diketahui')
-                       + (j.ua_platform ? (' di ' + j.ua_platform) : '');
-          } else if (j.ua_raw){
-            browserStr = j.ua_raw;
-          }
-          browserEl.textContent = browserStr;
+          var nice = (j.ua_browser || 'Tidak diketahui')
+                   + (j.ua_platform ? (' di ' + j.ua_platform) : '');
+          var raw  = j.ua_raw || '';
+
+          browserEl.innerHTML =
+            '<div class="font-weight-semibold">'+ nice +'</div>'
+          + '<div class="small text-muted" style="word-break:break-all;">'
+          +   raw
+          + '</div>';
         }
+
 
         // ---- SIMPAN WAKTU TERAKHIR AKTIF ----
         if (j.last_seen){
