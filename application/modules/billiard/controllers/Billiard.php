@@ -360,6 +360,7 @@ public function daftar_booking(){
 
 // ====== LIVE MONITOR: View utama ======
 public function monitor(){
+  $this->output->set_header('X-Robots-Tag: noindex, nofollow', true);
   // anti-cache
   if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
   else {
@@ -382,15 +383,92 @@ public function monitor(){
 
 // ====== PING RINGAN (kecil & cepat) ======
 // ====== PING RINGAN (kecil & cepat) ======
+// public function monitor_ping(){
+//   // ===== ANTI-CACHE =====
+//   if (method_exists($this,'_nocache_headers')) {
+//     $this->_nocache_headers();
+//   } else {
+//     $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+//     $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+//     $this->output->set_header('Pragma: no-cache');
+//   }
+//   $this->output->set_content_type('application/json', 'utf-8');
+
+//   // ===== CATAT AKTIVITAS MONITOR (TV) =====
+//   // monitor_id dikirim dari JS (query string ?monitor_id=xxx)
+//   $monitor_id = $this->input->get('monitor_id', true);
+//   if (!empty($monitor_id)) {
+//     $this->load->model('M_monitor_screen', 'mon');
+//     // tipe = 'billiard', nama default bisa kamu ganti kalau mau
+//     $this->mon->touch($monitor_id, 'billiard', 'TV Billiard');
+//   }
+
+//   // ===== LOGIKA PING LAMA KAMU (TETAP) =====
+//   $tz  = new DateTimeZone(date_default_timezone_get());
+//   $now = new DateTime('now', $tz);
+
+//   $web      = $this->fm->web_me();
+//   $maxDays  = (int)($web->maks_hari_booking ?? 30);
+//   if ($maxDays < 0) $maxDays = 0;
+
+//   $today     = (clone $now)->setTime(0,0,0);
+//   $yesterday = (clone $today)->modify('-1 day')->format('Y-m-d');
+//   $upperDate = (clone $today)->modify('+'.$maxDays.' day')->format('Y-m-d');
+
+//   // Agregat ringan: total, max_id, dan versi
+//   $sql = "
+//    SELECT
+//      COUNT(*) AS total,
+//      MAX(id_pesanan) AS max_id,
+//      COALESCE(SUM(CRC32(CONCAT_WS('#',
+//        meja_id, tanggal, id_pesanan, status, LOWER(COALESCE(metode_bayar,'')), jam_mulai, jam_selesai
+//      ))), 0) AS ver
+//    FROM pesanan_billiard
+//    WHERE
+//      (status='terkonfirmasi' OR (status='verifikasi' AND LOWER(metode_bayar)='cash'))
+//      AND tanggal BETWEEN ? AND ?
+//      AND meja_id IN (1,2)  -- HANYA MEJA 1 & 2
+//   ";
+//   $row = $this->db->query($sql, [$yesterday, $upperDate])->row();
+
+//   $total  = (int)($row->total ?? 0);
+//   $max_id = (int)($row->max_id ?? 0);
+//   $verStr = (string)($row->ver ?? '0');
+
+//   $this->output->set_header('X-Ping-Total: '.$total);
+//   $this->output->set_header('X-Ping-MaxId: '.$max_id);
+//   $this->output->set_header('X-Ping-Ver: '.$verStr);
+
+//   echo json_encode([
+//     'success'   => true,
+//     'total'     => $total,
+//     'max_id'    => $max_id,
+//     'last_ts'   => $verStr,
+//     // opsional, kalau mau lihat di network:
+//     'monitor_id'=> $monitor_id,
+//   ], JSON_UNESCAPED_UNICODE);
+// }
 public function monitor_ping(){
-  if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
-  else {
+  // ===== ANTI-CACHE =====
+  if (method_exists($this,'_nocache_headers')) {
+    $this->_nocache_headers();
+  } else {
     $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
     $this->output->set_header('Pragma: no-cache');
   }
-  $this->output->set_content_type('application/json');
+  $this->output->set_content_type('application/json', 'utf-8');
 
+  // ===== CATAT AKTIVITAS MONITOR (TV) =====
+  // monitor_id dikirim dari JS (query string ?monitor_id=xxx)
+  $monitor_id = $this->input->get('monitor_id', true);
+  if (!empty($monitor_id)) {
+    $this->load->model('M_monitor_screen', 'mon');
+    // tipe = 'billiard', nama default bisa kamu ganti kalau mau
+    $this->mon->touch($monitor_id, 'billiard', 'TV Billiard');
+  }
+
+  // ===== LOGIKA PING LAMA KAMU (TETAP) =====
   $tz  = new DateTimeZone(date_default_timezone_get());
   $now = new DateTime('now', $tz);
 
@@ -427,10 +505,12 @@ public function monitor_ping(){
   $this->output->set_header('X-Ping-Ver: '.$verStr);
 
   echo json_encode([
-    'success' => true,
-    'total'   => $total,
-    'max_id'  => $max_id,
-    'last_ts' => $verStr,
+    'success'   => true,
+    'total'     => $total,
+    'max_id'    => $max_id,
+    'last_ts'   => $verStr,
+    // opsional, kalau mau lihat di network:
+    'monitor_id'=> $monitor_id,
   ], JSON_UNESCAPED_UNICODE);
 }
 

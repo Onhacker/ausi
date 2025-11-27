@@ -6,7 +6,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 
-  <meta name="robots" content="index, follow">
+ <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="googlebot" content="noindex, nofollow, nosnippet">
+
   <meta name="google" content="notranslate">
   <meta name="author" content="Onhacker.net">
 
@@ -118,15 +120,23 @@ body .live-clock{
   </div>
 
   <!-- Jam live WITA -->
-  <script>
+  <!-- Jam live WITA + identitas monitor -->
+<script>
+  // ===== JAM LIVE WITA =====
   (function(){
     var tz = 'Asia/Makassar';
     var timeEl = document.getElementById('lcTime');
     var dateEl = document.getElementById('lcDate');
     if(!timeEl || !dateEl) return;
 
-    var fmtTime = new Intl.DateTimeFormat('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:tz });
-    var fmtDate = new Intl.DateTimeFormat('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric', timeZone:tz });
+    var fmtTime = new Intl.DateTimeFormat('id-ID', {
+      hour:'2-digit', minute:'2-digit', second:'2-digit',
+      hour12:false, timeZone:tz
+    });
+    var fmtDate = new Intl.DateTimeFormat('id-ID', {
+      weekday:'long', day:'2-digit', month:'long', year:'numeric',
+      timeZone:tz
+    });
 
     function updateClock(){
       var now = new Date();
@@ -136,7 +146,32 @@ body .live-clock{
     updateClock();
     setInterval(updateClock, 1000);
   })();
-  </script>
+
+  // ===== IDENTITAS MONITOR (TV) + HELPER buildUrl =====
+  (function(){
+    let MONITOR_ID = localStorage.getItem('ausi_monitor_id');
+    if (!MONITOR_ID){
+      MONITOR_ID = 'mon-' + Math.random().toString(36).slice(2) + '-' + Date.now();
+      localStorage.setItem('ausi_monitor_id', MONITOR_ID);
+    }
+
+    function buildUrl(url){
+      try {
+        const u = new URL(url, window.location.origin);
+        u.searchParams.set('monitor_id', MONITOR_ID);
+        return u.toString();
+      } catch(e){
+        return url + (url.indexOf('?') === -1 ? '?' : '&')
+             + 'monitor_id=' + encodeURIComponent(MONITOR_ID);
+      }
+    }
+
+    // EXPOSE ke global, supaya script lain bisa pakai
+    window.MONITOR_ID = MONITOR_ID;
+    window.buildUrl   = buildUrl;
+  })();
+</script>
+
 
   <!-- SET CSS --clock-h sesuai tinggi jam -->
   <script>
@@ -537,11 +572,15 @@ html +=       '<div class="ct-meta" title="'+esc(namaFull)+'">'
     const BASE_INTERVAL = 10000, HIDDEN_INTERVAL = 20000;
     let errorStreak = 0, ticking = false;
 
-    async function safeFetch(url){
-      const r = await fetch(url, { cache:'no-store', credentials:'same-origin' });
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return r.json();
-    }
+        async function safeFetch(url){
+          const r = await fetch(buildUrl(url), {
+            cache:'no-store',
+            credentials:'same-origin'
+          });
+          if(!r.ok) throw new Error('HTTP '+r.status);
+          return r.json();
+        }
+
 
     let reloadAborter = null, reloading = false;
     async function reload_billiard_table(reason){
@@ -550,7 +589,12 @@ html +=       '<div class="ct-meta" title="'+esc(namaFull)+'">'
       reloading = true;
       try{
         setLive('ok');
-        const r = await fetch(EP_DATA, { headers:{'Accept':'application/json'}, cache:'no-store', signal: reloadAborter.signal });
+                const r = await fetch(buildUrl(EP_DATA), {
+          headers:{'Accept':'application/json'},
+          cache:'no-store',
+          signal: reloadAborter.signal
+        });
+
         if(!r.ok) throw new Error('HTTP '+r.status);
         const j = await r.json();
         if(!j || !j.ok) throw new Error('Respon tidak valid');
