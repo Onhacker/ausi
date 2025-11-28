@@ -2299,25 +2299,6 @@ public function analisa_produk()
  * - Bisa difilter mode (dinein/walkin/delivery) & metode bayar (cash/qris/transfer)
  * - Dipakai oleh analisa_transaksi() untuk menyusun prompt AI
  */
-public function analisa_transaksi()
-{
-    if ( ! $this->input->is_ajax_request()) {
-        show_404();
-    }
-
-    // pakai filter yg sama seperti laporan lain
-    $f = $this->_parse_filter();
-
-    $snapshot = $this->_get_transaksi_snapshot($f);
-
-    return $this->output
-        ->set_content_type('application/json','utf-8')
-        ->set_output(json_encode([
-            'success'  => true,
-            'filter'   => $f,
-            'snapshot' => $snapshot,
-        ]));
-}
 
 /** ====== ANALISA TRANSAKSI (PESANAN VS PESANAN_PAID) ====== */
 public function analisa_transaksi()
