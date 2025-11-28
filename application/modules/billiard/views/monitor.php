@@ -490,26 +490,34 @@ html +=       '<div class="ct-meta" title="'+esc(namaFull)+'">'
           pill.classList.remove('success','muted');
           item.classList.remove('soon','critical');
 
+          /* reset mode warna time-pill */
+          timePill.classList.remove('mode-lagi','mode-sisa','mode-selesai');
+
+
           if (start && now < start){
             // ===== Belum mulai (MENUNGGU) =====
             var ms = start - now;
             label.textContent = 'Menunggu ⌛';
-            caption.textContent = 'Mulai dalam';
-            timePill.setAttribute('title','Mulai dalam ' + fmtWords(ms));
+            caption.textContent = 'Lagi';
+            timePill.setAttribute('title','Lagi ' + fmtWords(ms));
+            timePill.classList.add('mode-lagi');   // << warna khusus "Lagi"
             updateCdElement(cdRoot, splitHMS(ms), true);
           }
-          else if (end && now <= end){
-            // ===== Sedang bermain (SISA WAKTU) =====
+
+         else if (end && now <= end){
+            // ===== Sedang bermain (SISA) =====
             var msLeft = end - now;
             label.textContent = 'Sedang bermain 🎱';
-            caption.textContent = 'Sisa Waktu';
-            timePill.setAttribute('title','Sisa waktu ' + fmtWords(msLeft) + ' lagi');
+            caption.textContent = 'Sisa';
+            timePill.setAttribute('title','Sisa ' + fmtWords(msLeft) + ' lagi');
             pill.classList.add('success');
+            timePill.classList.add('mode-sisa');   // << warna khusus "Sisa"
             updateCdElement(cdRoot, splitHMS(msLeft), true);
 
             if (msLeft > 0 && msLeft <= FIVE_MIN_MS){
               item.classList.add('soon');
               if (msLeft <= ONE_MIN_MS) item.classList.add('critical');
+            
               if (!item.dataset.beep5){
                 try{ playSound(); }catch(e){}
                 item.dataset.beep5 = '1';
@@ -524,11 +532,12 @@ html +=       '<div class="ct-meta" title="'+esc(namaFull)+'">'
             caption.textContent = 'Selesai';
             timePill.setAttribute('title','Sesi selesai');
             pill.classList.add('muted');
+            timePill.classList.add('mode-selesai');   // abu-abu
             delete item.dataset.beep5;
             updateCdElement(cdRoot, {h:0,m:0,s:0}, true);
 
             setTimeout(function(){
-              if (!item.dataset.removing){
+                          if (!item.dataset.removing){
                 item.dataset.removing = '1';
                 item.classList.add('vanish');
                 setTimeout(function(){ item.remove(); refreshCounters(); }, 300);
