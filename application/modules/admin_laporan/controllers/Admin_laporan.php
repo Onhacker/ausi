@@ -2293,6 +2293,490 @@ public function analisa_produk()
         ->set_content_type('application/json','utf-8')
         ->set_output(json_encode($out));
 }
+/**
+ * Snapshot transaksi dari tabel pesanan + pesanan_paid
+ * - Filter berdasarkan created_at (pesanan / pesanan_paid)
+ * - Bisa difilter mode (dinein/walkin/delivery) & metode bayar (cash/qris/transfer)
+ * - Dipakai oleh analisa_transaksi() untuk menyusun prompt AI
+ */
+private function _get_transaksi_snapshot(array $f): array
+{
+    $dateFrom = $f['date_from'] ?? date('Y-m-d 00:00:00');
+    $dateTo   = $f['date_to']   ?? date('Y-m-d 23:59:59');
+    $mode     = $f['mode']      ?? 'all';
+    $metode   = $f['metode']    ?? 'all';
+
+    /* ===== PESANAN (ORDER) ===== */
+    $whereP = "created_at >= ? AND created_at <= ?";
+    $bindP  = [$dateFrom, $dateTo];
+
+    if ($mode !== 'all') {
+        $whereP .= " AND mode = ?";
+        $bindP[] = $mode;
+    }
+    if ($metode !== 'all') {
+        // paid_method di pesanan: enum('cash','transfer','qris','')
+        $whereP .= " AND paid_method = ?";
+        $bindP[] = $metode;
+    }
+
+    // Ringkasan pesanan
+    $sqlSumP = "
+        SELECT
+          COUNT(*) AS total_order,
+          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS order_lunas,
+          SUM(CASE WHEN paid_at IS NULL     THEN 1 ELSE 0 END) AS order_belum_lunas,
+          SUM(IFNULL(grand_total,total)) AS total_tagihan
+        FROM pesanan
+        WHERE {$whereP}
+    ";
+    $sumP = $this->db->query($sqlSumP, $bindP)->row_array() ?: [];
+
+    // Per mode
+    $sqlByMode = "
+        SELECT
+          mode,
+          COUNT(*) AS total_order,
+          SUM(IFNULL(grand_total,total)) AS total_tagihan,
+          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS order_lunas
+        FROM pesanan
+        WHERE {$whereP}
+        GROUP BY mode
+    ";
+    $byMode = $this->db->query($sqlByMode, $bindP)->result_array();
+
+    // Per metode pembayaran di pesanan
+    $sqlByMethod = "
+        SELECT
+          COALESCE(paid_method,'') AS paid_method,
+          COUNT(*) AS total_order,
+          SUM(IFNULL(grand_total,total)) AS total_tagihan,
+          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS order_lunas
+        FROM pesanan
+        WHERE {$whereP}
+        GROUP BY COALESCE(paid_method,'')
+    ";
+    $byMethod = $this->db->query($sqlByMethod, $bindP)->result_array();
+
+    // Sample pesanan (max 100 baris)
+    $sqlOrders = "
+        SELECT
+          id,
+          nomor,
+          mode,
+          created_at,
+          paid_at,
+          paid_method,
+          IFNULL(grand_total,total) AS tagihan,
+          status_pesanan
+        FROM pesanan
+        WHERE {$whereP}
+        ORDER BY created_at DESC
+        LIMIT 100
+    ";
+    $orders = $this->db->query($sqlOrders, $bindP)->result();
+
+    /* ===== PESANAN_PAID (PEMBAYARAN) ===== */
+    $wherePaid = "created_at >= ? AND created_at <= ?";
+    $bindPaid  = [$dateFrom, $dateTo];
+
+    if ($metode !== 'all') {
+        // sesuaikan nama kolom kalau beda (metode_bayar / metode / paid_method, dll)
+        $wherePaid .= " AND metode_bayar = ?";
+        $bindPaid[] = $metode;
+    }
+
+    $sqlSumPaid = "
+        SELECT
+          COUNT(*) AS total_row_pembayaran,
+          COUNT(DISTINCT pesanan_id) AS total_order_terbayar,
+          SUM(jumlah) AS total_nominal_bayar
+        FROM pesanan_paid
+        WHERE {$wherePaid}
+    ";
+    $sumPaid = $this->db->query($sqlSumPaid, $bindPaid)->row_array() ?: [];
+
+    $sqlPaidByMethod = "
+        SELECT
+          COALESCE(metode_bayar,'') AS metode_bayar,
+          COUNT(*) AS row_count,
+          SUM(jumlah) AS total_bayar
+        FROM pesanan_paid
+        WHERE {$wherePaid}
+        GROUP BY COALESCE(metode_bayar,'')
+    ";
+    $paidByMethod = $this->db->query($sqlPaidByMethod, $bindPaid)->result_array();
+
+    $sqlPayments = "
+        SELECT
+          id,
+          pesanan_id,
+          created_at,
+          metode_bayar,
+          jumlah,
+          keterangan
+        FROM pesanan_paid
+        WHERE {$wherePaid}
+        ORDER BY created_at DESC
+        LIMIT 100
+    ";
+    $payments = $this->db->query($sqlPayments, $bindPaid)->result();
+
+    return [
+        'summary_pesanan' => [
+            'total_order'        => (int)($sumP['total_order']        ?? 0),
+            'order_lunas'        => (int)($sumP['order_lunas']        ?? 0),
+            'order_belum_lunas'  => (int)($sumP['order_belum_lunas']  ?? 0),
+            'total_tagihan'      => (int)($sumP['total_tagihan']      ?? 0),
+        ],
+        'summary_paid' => [
+            'total_row_pembayaran' => (int)($sumPaid['total_row_pembayaran'] ?? 0),
+            'total_order_terbayar' => (int)($sumPaid['total_order_terbayar'] ?? 0),
+            'total_nominal_bayar'  => (int)($sumPaid['total_nominal_bayar']  ?? 0),
+        ],
+        'by_mode'        => $byMode,
+        'by_method'      => $byMethod,
+        'paid_by_method' => $paidByMethod,
+        'orders'         => $orders,
+        'payments'       => $payments,
+    ];
+}
+/** ====== ANALISA TRANSAKSI (PESANAN VS PESANAN_PAID) ====== */
+public function analisa_transaksi()
+{
+    if ( ! $this->input->is_ajax_request()) {
+        show_404();
+    }
+
+    // ========== RATE LIMIT: MAX 3 KALI DALAM 1 MENIT PER SESSION ==========
+    $rateKey   = 'analisa_transaksi_hits';
+    $nowUnix   = time();
+    $window    = 60;
+    $maxCalls  = 3;
+
+    $hits = $this->session->userdata($rateKey);
+    if ( ! is_array($hits)) {
+        $hits = [];
+    }
+
+    $hits = array_filter($hits, function($ts) use ($nowUnix, $window){
+        return ($nowUnix - (int)$ts) < $window;
+    });
+
+    if (count($hits) >= $maxCalls) {
+        $this->session->set_userdata($rateKey, $hits);
+
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode([
+                'success'      => false,
+                'rate_limited' => true,
+                'error'        => 'Hanya bisa menganalisis transaksi maksimal 3 kali dalam 1 menit. Coba lagi beberapa saat lagi.',
+            ]));
+    }
+
+    $hits[] = $nowUnix;
+    $this->session->set_userdata($rateKey, $hits);
+
+    // ========== FILTER & LABEL PERIODE ==========
+    $f           = $this->_parse_filter();
+    $periodLabel = $this->_period_label($f);
+
+    $tz  = new DateTimeZone('Asia/Makassar');
+    $now = new DateTime('now', $tz);
+
+    try {
+        $df = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_from'], $tz)
+            ?: new DateTime($f['date_from'], $tz);
+    } catch (\Exception $e) {
+        $df = new DateTime('now', $tz);
+    }
+
+    try {
+        $dt = DateTime::createFromFormat('Y-m-d H:i:s', $f['date_to'], $tz)
+            ?: new DateTime($f['date_to'], $tz);
+    } catch (\Exception $e) {
+        $dt = new DateTime('now', $tz);
+    }
+
+    $infoWaktu  = "Informasi waktu server untuk konteks analisa transaksi:\n";
+    $infoWaktu .= "- Waktu sekarang: " . $now->format('d/m/Y H:i') . " WITA\n";
+    $infoWaktu .= "- Periode filter transaksi (berdasarkan created_at): " . $df->format('d/m/Y H:i') . " s.d " . $dt->format('d/m/Y H:i') . " WITA\n";
+
+    $periodeMasihBerjalan = false;
+    if ($now >= $df && $now <= $dt) {
+        $periodeMasihBerjalan = true;
+
+        if ($df->format('Y-m-d') === $dt->format('Y-m-d')) {
+            $infoWaktu .= "Catatan: Periode ini MASIH BERJALAN pada hari yang sama (data transaksi masih bertambah, baru sampai sekitar jam "
+                        . $now->format('H:i') . ").\n";
+        } else {
+            $infoWaktu .= "Catatan: Periode ini MASIH BERJALAN (tanggal akhir belum lewat seluruhnya), jadi analisa transaksi masih sementara.\n";
+        }
+    } else {
+        if ($dt < $now) {
+            $infoWaktu .= "Periode ini SUDAH SELESAI (masa lalu), kamu boleh memberikan evaluasi transaksi yang lebih final.\n";
+        } else {
+            $infoWaktu .= "Periode filter berada di masa depan. Jika datanya nol, anggap saja belum ada transaksi.\n";
+        }
+    }
+
+    // ========== SNAPSHOT TRANSAKSI ==========
+    $snap     = $this->_get_transaksi_snapshot($f);
+    $sumP     = $snap['summary_pesanan'] ?? [];
+    $sumPaid  = $snap['summary_paid']    ?? [];
+
+    $totalOrder       = (int)($sumP['total_order']       ?? 0);
+    $orderLunas       = (int)($sumP['order_lunas']       ?? 0);
+    $orderBelumLunas  = (int)($sumP['order_belum_lunas'] ?? max(0, $totalOrder - $orderLunas));
+    $totalTagihan     = (int)($sumP['total_tagihan']     ?? 0);
+
+    $totalRowBayar    = (int)($sumPaid['total_row_pembayaran'] ?? 0);
+    $orderTerbayar    = (int)($sumPaid['total_order_terbayar'] ?? 0);
+    $totalNominalBayar= (int)($sumPaid['total_nominal_bayar']  ?? 0);
+
+    $selisihBayar     = $totalNominalBayar - $totalTagihan; // + berarti lebih banyak bayar, - berarti masih kurang
+    $rasioBayar       = ($totalTagihan > 0)
+                        ? round(($totalNominalBayar / $totalTagihan) * 100, 1)
+                        : null;
+    $rasioOrderLunas  = ($totalOrder > 0)
+                        ? round(($orderLunas / $totalOrder) * 100, 1)
+                        : null;
+
+    // MODE & METODE LABEL
+    $metodeLabelMap = [
+        'all'      => 'semua metode pembayaran',
+        'cash'     => 'hanya pembayaran tunai (cash)',
+        'qris'     => 'hanya pembayaran via QRIS',
+        'transfer' => 'hanya pembayaran via transfer',
+    ];
+    $modeLabelMap = [
+        'all'      => 'semua mode pesanan (dine-in, walk-in, delivery)',
+        'walkin'   => 'hanya pesanan Walk-in / Takeaway',
+        'dinein'   => 'hanya pesanan Dine-in (makan di tempat)',
+        'delivery' => 'hanya pesanan Delivery',
+    ];
+
+    $metode = $f['metode'] ?? 'all';
+    $mode   = $f['mode']   ?? 'all';
+
+    $metodeLabel = $metodeLabelMap[$metode] ?? $metode;
+    $modeLabel   = $modeLabelMap[$mode]     ?? $mode;
+
+    // Rangkuman per mode
+    $listMode = "";
+    if (!empty($snap['by_mode'])) {
+        foreach ($snap['by_mode'] as $row) {
+            $m   = (string)($row['mode'] ?? '');
+            $lbl = $m;
+            if ($m === 'dinein')   $lbl = 'DINE-IN';
+            if ($m === 'walkin')   $lbl = 'WALK-IN/TAKEAWAY';
+            if ($m === 'delivery') $lbl = 'DELIVERY';
+            $to  = (int)($row['total_order']   ?? 0);
+            $ol  = (int)($row['order_lunas']   ?? 0);
+            $tt  = (int)($row['total_tagihan'] ?? 0);
+            $rp  = ($to > 0) ? round($ol / $to * 100, 1) : 0;
+
+            $listMode .= "- Mode {$lbl}: total_order={$to}, order_lunas={$ol} ({$rp}%), total_tagihan={$tt}\n";
+        }
+    } else {
+        $listMode .= "- Tidak ada pemecahan per mode untuk periode ini.\n";
+    }
+
+    // Rangkuman per metode bayar di pesanan
+    $listMetodePesanan = "";
+    if (!empty($snap['by_method'])) {
+        foreach ($snap['by_method'] as $row) {
+            $pm = trim((string)($row['paid_method'] ?? ''));
+            $lbl = $pm ?: '(kosong)';
+            if ($pm === 'cash')     $lbl = 'CASH (tunai)';
+            if ($pm === 'qris')     $lbl = 'QRIS';
+            if ($pm === 'transfer') $lbl = 'TRANSFER';
+
+            $to  = (int)($row['total_order']   ?? 0);
+            $ol  = (int)($row['order_lunas']   ?? 0);
+            $tt  = (int)($row['total_tagihan'] ?? 0);
+            $rp  = ($to > 0) ? round($ol / $to * 100, 1) : 0;
+
+            $listMetodePesanan .= "- Pesanan dengan {$lbl}: total_order={$to}, order_lunas={$ol} ({$rp}%), total_tagihan={$tt}\n";
+        }
+    } else {
+        $listMetodePesanan .= "- Tidak ada pemecahan per metode bayar di tabel pesanan.\n";
+    }
+
+    // Rangkuman per metode bayar di pesanan_paid
+    $listMetodePembayaran = "";
+    if (!empty($snap['paid_by_method'])) {
+        foreach ($snap['paid_by_method'] as $row) {
+            $pm = trim((string)($row['metode_bayar'] ?? ''));
+            $lbl = $pm ?: '(kosong)';
+            if ($pm === 'cash')     $lbl = 'CASH (tunai)';
+            if ($pm === 'qris')     $lbl = 'QRIS';
+            if ($pm === 'transfer') $lbl = 'TRANSFER';
+
+            $rc = (int)($row['row_count']   ?? 0);
+            $tb = (int)($row['total_bayar'] ?? 0);
+            $listMetodePembayaran .= "- Pembayaran {$lbl}: row_pembayaran={$rc}, total_bayar={$tb}\n";
+        }
+    } else {
+        $listMetodePembayaran .= "- Tidak ada data pemecahan metode bayar di tabel pesanan_paid untuk periode ini.\n";
+    }
+
+    // Sample pesanan
+    $listOrderSample = "";
+    if (!empty($snap['orders'])) {
+        $i = 0;
+        foreach ($snap['orders'] as $r) {
+            $i++;
+            $tgl  = substr((string)$r->created_at, 0, 16);
+            $paid = $r->paid_at ? substr((string)$r->paid_at, 0, 16) : '-';
+            $stat = (string)($r->status_pesanan ?? '');
+            if ($stat === '') $stat = '(tanpa status)';
+            $pm   = (string)($r->paid_method ?? '');
+            $tag  = (int)($r->tagihan ?? 0);
+
+            $listOrderSample .= "- [{$i}] id={$r->id}, nomor={$r->nomor}, mode={$r->mode}, tgl={$tgl}, status={$stat}, paid_at={$paid}, paid_method={$pm}, tagihan={$tag}\n";
+            if ($i >= 80) break;
+        }
+    } else {
+        $listOrderSample .= "- (Tidak ada pesanan pada periode ini)\n";
+    }
+
+    // Sample pembayaran
+    $listPaymentSample = "";
+    if (!empty($snap['payments'])) {
+        $i = 0;
+        foreach ($snap['payments'] as $r) {
+            $i++;
+            $tgl = substr((string)$r->created_at, 0, 16);
+            $ket = trim((string)$r->keterangan);
+            if (mb_strlen($ket) > 60) {
+                $ket = mb_substr($ket, 0, 60) . '...';
+            }
+            $ket = str_replace(["\r","\n"], ' ', $ket);
+
+            $listPaymentSample .= "- [{$i}] id={$r->id}, pesanan_id={$r->pesanan_id}, tgl={$tgl}, metode_bayar={$r->metode_bayar}, jumlah=".(int)$r->jumlah.", ket=\"{$ket}\"\n";
+            if ($i >= 80) break;
+        }
+    } else {
+        $listPaymentSample .= "- (Tidak ada pembayaran yang tercatat di pesanan_paid pada periode ini)\n";
+    }
+
+    // ========= SUSUN PROMPT UNTUK GEMINI =========
+    $prompt  = "Kamu adalah konsultan keuangan/operasional untuk AUSI Cafe & Billiard.\n";
+    $prompt .= "Fokus analisa ini adalah ARUS TRANSAKSI: dari pesanan (tabel pesanan) sampai pencatatan pembayaran (tabel pesanan_paid).\n\n";
+
+    $prompt .= "PERIODE DATA:\n";
+    $prompt .= "- Label periode: {$periodLabel}\n";
+    $prompt .= "- Filter metode pembayaran: {$metodeLabel}\n";
+    $prompt .= "- Filter mode pesanan: {$modeLabel}\n\n";
+
+    $prompt .= $infoWaktu . "\n";
+
+    if ($periodeMasihBerjalan) {
+        $prompt .= "PERHATIAN: Periode MASIH BERJALAN, jadi analisa transaksi harus dianggap SEMENTARA.\n";
+        $prompt .= "- Gunakan frasa seperti 'sementara ini' atau 'berdasarkan data yang sudah tercatat'.\n";
+        $prompt .= "- Jangan menulis seolah-olah closing harian sudah final.\n\n";
+    }
+
+    $prompt .= "RINGKASAN GLOBAL TRANSAKSI (ANGKA DALAM RUPIAH TANPA TITIK):\n";
+    $prompt .= "- total_order            = {$totalOrder}\n";
+    $prompt .= "- order_lunas (paid_at)  = {$orderLunas}\n";
+    $prompt .= "- order_belum_lunas      = {$orderBelumLunas}\n";
+    $prompt .= "- total_tagihan_pesanan  = {$totalTagihan}\n";
+    $prompt .= "- total_row_pembayaran   = {$totalRowBayar} (baris di pesanan_paid)\n";
+    $prompt .= "- total_order_terbayar   = {$orderTerbayar} (distinct pesanan_id di pesanan_paid)\n";
+    $prompt .= "- total_nominal_bayar    = {$totalNominalBayar}\n";
+    if (!is_null($rasioBayar)) {
+        $prompt .= "- rasio_bayar_vs_tagihan = {$rasioBayar}% (total_nominal_bayar / total_tagihan)\n";
+    } else {
+        $prompt .= "- rasio_bayar_vs_tagihan tidak bisa dihitung (total_tagihan = 0 atau belum ada data).\n";
+    }
+    if (!is_null($rasioOrderLunas)) {
+        $prompt .= "- rasio_order_lunas      = {$rasioOrderLunas}% dari total_order.\n";
+    }
+    $prompt .= "- selisih_total_bayar_minus_tagihan = {$selisihBayar} (positif = pembayaran lebih besar dari tagihan, negatif = masih kurang)\n\n";
+
+    $prompt .= "RINGKASAN PER MODE (dari pesanan):\n";
+    $prompt .= $listMode . "\n";
+
+    $prompt .= "RINGKASAN PER METODE BAYAR DI PESANAN (paid_method):\n";
+    $prompt .= $listMetodePesanan . "\n";
+
+    $prompt .= "RINGKASAN PER METODE BAYAR DI PESANAN_PAID (metode_bayar):\n";
+    $prompt .= $listMetodePembayaran . "\n";
+
+    $prompt .= "CONTOH PESANAN (maksimal 80 baris, paling baru di atas):\n";
+    $prompt .= $listOrderSample . "\n";
+
+    $prompt .= "CONTOH PEMBAYARAN DI PESANAN_PAID (maksimal 80 baris, paling baru di atas):\n";
+    $prompt .= $listPaymentSample . "\n";
+
+    $prompt .= "PENTING UNTUK INTERPRETASI:\n";
+    $prompt .= "- paid_at di pesanan menandakan transaksi dianggap lunas di kasir.\n";
+    $prompt .= "- pesanan_paid berisi detail pembayaran (bisa saja 1 pesanan punya beberapa baris pembayaran, misalnya DP lalu pelunasan).\n";
+    $prompt .= "- Jangan langsung menghakimi bahwa selisih negatif/positif pasti salah; bisa saja ada DP, pembulatan, atau voucher. Jelaskan sebagai 'perlu dicek' atau 'patut dipantau'.\n\n";
+
+    $prompt .= "TUGASMU:\n";
+    $prompt .= "1. Buat RINGKASAN SINGKAT kondisi transaksi pada periode ini: apakah arus dari pesanan ke pembayaran terlihat rapi atau masih banyak yang belum tercatat.\n";
+    $prompt .= "2. Analisa ketepatan pencatatan pembayaran:\n";
+    $prompt .= "   - Bandingkan total_tagihan vs total_nominal_bayar dan rasio_bayar_vs_tagihan.\n";
+    $prompt .= "   - Jika banyak order yang sudah lunas di pesanan tetapi belum muncul di pesanan_paid (atau sebaliknya), tulis sebagai area risiko.\n";
+    $prompt .= "3. Bahas pola per MODE (dine-in / walk-in / delivery) dan per METODE BAYAR (cash / QRIS / transfer):\n";
+    $prompt .= "   - Mode / metode mana yang paling banyak transaksinya.\n";
+    $prompt .= "   - Apakah ada indikasi mode tertentu sering belum lunas / belum tercatat pembayarannya.\n";
+    $prompt .= "4. Soroti POTENSI MASALAH:\n";
+    $prompt .= "   - Selisih besar antara total_tagihan dan total_nominal_bayar.\n";
+    $prompt .= "   - Kemungkinan pembayaran ganda, DP yang belum dilunasi, atau pesanan yang statusnya belum diupdate.\n";
+    $prompt .= "   - Jelaskan dengan bahasa hati-hati, misalnya 'perlu direview', 'patut dicek ulang', bukan langsung menuduh.\n";
+    $prompt .= "5. Berikan REKOMENDASI PRAKTIS untuk memperbaiki alur transaksi: SOP update status, pencocokan kasir vs pesanan_paid, checklist closing harian, dll.\n";
+    $prompt .= "6. Jika data masih sedikit atau campur aduk, jujur saja dan sarankan perbaikan pencatatan dulu.\n\n";
+
+    $prompt .= "GAYA BAHASA:\n";
+    $prompt .= "- Pakai Bahasa Indonesia yang sopan tapi santai, seolah-olah memberikan laporan ke pemilik usaha.\n";
+    $prompt .= "- Hindari istilah yang terlalu teknis; jelaskan dengan kalimat yang mudah dipahami.\n";
+    $prompt .= "- Jangan bahas hal di luar konteks (politik, SARA, dan sebagainya).\n\n";
+
+    // Identitas Robot AUSI
+    $prompt .= "IDENTITAS ASISTEN:\n";
+    $prompt .= "- Di bagian PALING AWAL output, tulis satu kalimat perkenalan TANPA tanda kutip:\n";
+    $prompt .= "  Halo, saya Robot AUSI, asisten analisa otomatis di AUSI Cafe & Billiard.\n";
+    $prompt .= "- Setelah kalimat ini, lanjutkan dengan judul atau bagian 'Ringkasan Transaksi' dan seterusnya.\n\n";
+
+    $prompt .= "FORMAT OUTPUT:\n";
+    $prompt .= "- Tulis dalam HTML sederhana (tanpa <html> atau <body>).\n";
+    $prompt .= "- Gunakan <h4>, <p>, <ul><li>, dan <hr> bila perlu.\n";
+    $prompt .= "- Buat bagian-bagian seperti: 'Ringkasan Transaksi', 'Kesehatan Pencatatan Pembayaran', 'Pola Per Mode & Metode Bayar', 'Potensi Masalah & Risiko', 'Rekomendasi Tindak Lanjut'.\n";
+
+    // PANGGIL GEMINI
+    $ai = $this->_call_gemini($prompt);
+
+    if ( ! $ai['success']) {
+        return $this->output
+            ->set_content_type('application/json','utf-8')
+            ->set_output(json_encode([
+                'success' => false,
+                'error'   => $ai['error'] ?? 'Gagal memanggil AI untuk analisa transaksi.',
+            ]));
+    }
+
+    $html = (string)($ai['output'] ?? '');
+    if (strpos($html, '<') === false) {
+        $html = nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+    }
+
+    $out = [
+        'success' => true,
+        'title'   => 'Analisa Transaksi AUSI',
+        'html'    => $html,
+        'filter'  => $f,
+        'snapshot'=> $snap,
+    ];
+
+    return $this->output
+        ->set_content_type('application/json','utf-8')
+        ->set_output(json_encode($out));
+}
 
     
 }

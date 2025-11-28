@@ -78,6 +78,9 @@
         <button class="btn btn-sm btn-blue mr-1" id="btn-analisa">
           <i class="fe-activity"></i> Analisa Bisnis
         </button>
+        <button class="btn btn-sm btn-secondary" id="btn-analisa-transaksi">
+          <i class="fe-layers"></i> Analisa Transaksi
+        </button>
          <button class="btn btn-sm btn-warning" id="btn-analisa-pengeluaran">
           <i class="fe-pie-chart"></i> Analisa Pengeluaran
         </button>
@@ -639,6 +642,47 @@ function updateSummary(){
     $('#btn-print-kursi').on('click', function(){
       window.open("<?= site_url('admin_laporan/print_kursi_pijat') ?>?" + qs(getParams()), '_blank');
     });
+
+        // ========== ANALISA TRANSAKSI (pesanan + pesanan_paid) ==========
+    $('#btn-analisa-transaksi').on('click', function(){
+      const $btn    = $(this);
+      const oldHtml = $btn.html();
+
+      $btn.prop('disabled', true).html(
+        '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>' +
+        'Menganalisis transaksi...'
+      );
+
+      $.ajax({
+        url: "<?= site_url('admin_laporan/analisa_transaksi') ?>",
+        type: "POST",
+        data: getParams(),   // kirim filter yang sama (periode, metode, mode)
+        dataType: "json"
+      }).done(function(res){
+        if (res && res.success) {
+          $('#modalAnalisaTitle').text(res.title || 'Analisa Transaksi AUSI');
+          $('#modalAnalisaBody').html(res.html || '-');
+          $('#modalAnalisa').modal('show');
+        } else {
+          const msg = (res && res.error) ? res.error : 'Gagal mendapatkan analisa transaksi.';
+          if (typeof Swal !== 'undefined') {
+            Swal.fire('Gagal', msg, 'error');
+          } else {
+            alert(msg);
+          }
+        }
+      }).fail(function(){
+        const msg = 'Terjadi kesalahan saat menghubungi server.';
+        if (typeof Swal !== 'undefined') {
+          Swal.fire('Error', msg, 'error');
+        } else {
+          alert(msg);
+        }
+      }).always(function(){
+        $btn.prop('disabled', false).html(oldHtml);
+      });
+    });
+
 
         // ========== ANALISA PRODUK (Portofolio Menu) ==========
     $('#btn-analisa-produk').on('click', function(){
