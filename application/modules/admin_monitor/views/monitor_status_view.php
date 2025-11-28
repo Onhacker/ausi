@@ -275,7 +275,7 @@
 
         <!-- TERAKHIR AKTIF -->
         <div>
-          <div class="text-muted text-uppercase small mb-1">Deteksi live Terakhir Aktif</div>
+          <div class="text-muted text-uppercase small mb-1">Detektor live Terakhir Aktif</div>
           <div id="tvLastSeen" class="font-weight-medium">-</div>
           <div class="small text-muted mt-1">
             Data dari ping terakhir halaman <em>Live Billiard</em> di TV.
