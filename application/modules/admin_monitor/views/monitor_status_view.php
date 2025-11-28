@@ -369,7 +369,7 @@
         <!-- TERAKHIR AKTIF -->
         <!-- DETEKTOR LIVE (ANIMASI) -->
         <div class="mt-3">
-          <div class="text-muted text-uppercase small mb-2">Detektor Live</div>
+          <div class="text-muted text-uppercase small mb-2">Detektor Live Robot Ausi</div>
           <div class="tv-detector">
             <div id="tvDetectorIcon" class="tv-detector-icon"></div>
             <div>
@@ -503,22 +503,23 @@ function updateDetectorDisplay(){
 
   var label, info;
 
-  if (diffSec <= 60){
-    label = 'Ping sangat baru';
-    info  = 'Terakhir terdeteksi kurang dari 1 menit lalu.';
-    // warna default (hijau)
-  } else if (diffSec <= 300){ // <= 5 menit
-    label = 'Aktif beberapa menit lalu';
-    info  = 'Terakhir terdeteksi kurang dari 5 menit lalu.';
-  } else if (diffSec <= 1800){ // <= 30 menit
-    label = 'Tidak terlalu lama';
-    info  = 'Terakhir terdeteksi kurang dari 30 menit lalu.';
-    detectorIcon.classList.add('warn'); // kuning
-  } else {
-    label = 'Sudah cukup lama tidak aktif';
-    info  = 'Terakhir terdeteksi lebih dari 30 menit lalu.';
-    detectorIcon.classList.add('bad'); // merah
-  }
+ if (diffSec <= 60){
+  label = 'Deteksi normal';
+  info  = 'Ping dari TV diterima dalam rentang kurang dari 1 menit.';
+  // warna default (hijau)
+} else if (diffSec <= 300){ // <= 5 menit
+  label = 'Deteksi responsif';
+  info  = 'Ping terakhir dari TV masih dalam beberapa menit terakhir (≤ 5 menit).';
+} else if (diffSec <= 1800){ // <= 30 menit
+  label = 'Ping mulai jarang';
+  info  = 'Ping terakhir dari TV lebih dari 5 menit yang lalu, tetapi masih dalam 30 menit terakhir.';
+  detectorIcon.classList.add('warn'); // kuning
+} else {
+  label = 'Tidak ada ping cukup lama';
+  info  = 'Ping dari TV tidak diterima lebih dari 30 menit. TV mungkin mati, koneksi terputus, atau browser ditutup.';
+  detectorIcon.classList.add('bad'); // merah
+}
+
 
   lastStatusEl.textContent     = label;
   lastStatusInfoEl.textContent = info;
