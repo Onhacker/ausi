@@ -2299,148 +2299,26 @@ public function analisa_produk()
  * - Bisa difilter mode (dinein/walkin/delivery) & metode bayar (cash/qris/transfer)
  * - Dipakai oleh analisa_transaksi() untuk menyusun prompt AI
  */
-private function _get_transaksi_snapshot(array $f): array
+public function analisa_transaksi()
 {
-    $dateFrom = $f['date_from'] ?? date('Y-m-d 00:00:00');
-    $dateTo   = $f['date_to']   ?? date('Y-m-d 23:59:59');
-    $mode     = $f['mode']      ?? 'all';
-    $metode   = $f['metode']    ?? 'all';
-
-    /* ===== PESANAN (ORDER) ===== */
-    $whereP = "created_at >= ? AND created_at <= ?";
-    $bindP  = [$dateFrom, $dateTo];
-
-    if ($mode !== 'all') {
-        $whereP .= " AND mode = ?";
-        $bindP[] = $mode;
-    }
-    if ($metode !== 'all') {
-        // paid_method di pesanan: enum('cash','transfer','qris','')
-        $whereP .= " AND paid_method = ?";
-        $bindP[] = $metode;
+    if ( ! $this->input->is_ajax_request()) {
+        show_404();
     }
 
-    // Ringkasan pesanan
-    $sqlSumP = "
-        SELECT
-          COUNT(*) AS total_order,
-          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS order_lunas,
-          SUM(CASE WHEN paid_at IS NULL     THEN 1 ELSE 0 END) AS order_belum_lunas,
-          SUM(IFNULL(grand_total,total)) AS total_tagihan
-        FROM pesanan
-        WHERE {$whereP}
-    ";
-    $sumP = $this->db->query($sqlSumP, $bindP)->row_array() ?: [];
+    // pakai filter yg sama seperti laporan lain
+    $f = $this->_parse_filter();
 
-    // Per mode
-    $sqlByMode = "
-        SELECT
-          mode,
-          COUNT(*) AS total_order,
-          SUM(IFNULL(grand_total,total)) AS total_tagihan,
-          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS order_lunas
-        FROM pesanan
-        WHERE {$whereP}
-        GROUP BY mode
-    ";
-    $byMode = $this->db->query($sqlByMode, $bindP)->result_array();
+    $snapshot = $this->_get_transaksi_snapshot($f);
 
-    // Per metode pembayaran di pesanan
-    $sqlByMethod = "
-        SELECT
-          COALESCE(paid_method,'') AS paid_method,
-          COUNT(*) AS total_order,
-          SUM(IFNULL(grand_total,total)) AS total_tagihan,
-          SUM(CASE WHEN paid_at IS NOT NULL THEN 1 ELSE 0 END) AS order_lunas
-        FROM pesanan
-        WHERE {$whereP}
-        GROUP BY COALESCE(paid_method,'')
-    ";
-    $byMethod = $this->db->query($sqlByMethod, $bindP)->result_array();
-
-    // Sample pesanan (max 100 baris)
-    $sqlOrders = "
-        SELECT
-          id,
-          nomor,
-          mode,
-          created_at,
-          paid_at,
-          paid_method,
-          IFNULL(grand_total,total) AS tagihan,
-          status_pesanan
-        FROM pesanan
-        WHERE {$whereP}
-        ORDER BY created_at DESC
-        LIMIT 100
-    ";
-    $orders = $this->db->query($sqlOrders, $bindP)->result();
-
-    /* ===== PESANAN_PAID (PEMBAYARAN) ===== */
-    $wherePaid = "created_at >= ? AND created_at <= ?";
-    $bindPaid  = [$dateFrom, $dateTo];
-
-    if ($metode !== 'all') {
-        // sesuaikan nama kolom kalau beda (metode_bayar / metode / paid_method, dll)
-        $wherePaid .= " AND metode_bayar = ?";
-        $bindPaid[] = $metode;
-    }
-
-    $sqlSumPaid = "
-        SELECT
-          COUNT(*) AS total_row_pembayaran,
-          COUNT(DISTINCT pesanan_id) AS total_order_terbayar,
-          SUM(jumlah) AS total_nominal_bayar
-        FROM pesanan_paid
-        WHERE {$wherePaid}
-    ";
-    $sumPaid = $this->db->query($sqlSumPaid, $bindPaid)->row_array() ?: [];
-
-    $sqlPaidByMethod = "
-        SELECT
-          COALESCE(metode_bayar,'') AS metode_bayar,
-          COUNT(*) AS row_count,
-          SUM(jumlah) AS total_bayar
-        FROM pesanan_paid
-        WHERE {$wherePaid}
-        GROUP BY COALESCE(metode_bayar,'')
-    ";
-    $paidByMethod = $this->db->query($sqlPaidByMethod, $bindPaid)->result_array();
-
-    $sqlPayments = "
-        SELECT
-          id,
-          pesanan_id,
-          created_at,
-          metode_bayar,
-          jumlah,
-          keterangan
-        FROM pesanan_paid
-        WHERE {$wherePaid}
-        ORDER BY created_at DESC
-        LIMIT 100
-    ";
-    $payments = $this->db->query($sqlPayments, $bindPaid)->result();
-
-    return [
-        'summary_pesanan' => [
-            'total_order'        => (int)($sumP['total_order']        ?? 0),
-            'order_lunas'        => (int)($sumP['order_lunas']        ?? 0),
-            'order_belum_lunas'  => (int)($sumP['order_belum_lunas']  ?? 0),
-            'total_tagihan'      => (int)($sumP['total_tagihan']      ?? 0),
-        ],
-        'summary_paid' => [
-            'total_row_pembayaran' => (int)($sumPaid['total_row_pembayaran'] ?? 0),
-            'total_order_terbayar' => (int)($sumPaid['total_order_terbayar'] ?? 0),
-            'total_nominal_bayar'  => (int)($sumPaid['total_nominal_bayar']  ?? 0),
-        ],
-        'by_mode'        => $byMode,
-        'by_method'      => $byMethod,
-        'paid_by_method' => $paidByMethod,
-        'orders'         => $orders,
-        'payments'       => $payments,
-    ];
+    return $this->output
+        ->set_content_type('application/json','utf-8')
+        ->set_output(json_encode([
+            'success'  => true,
+            'filter'   => $f,
+            'snapshot' => $snapshot,
+        ]));
 }
+
 /** ====== ANALISA TRANSAKSI (PESANAN VS PESANAN_PAID) ====== */
 public function analisa_transaksi()
 {
