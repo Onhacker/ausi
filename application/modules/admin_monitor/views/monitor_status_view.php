@@ -267,7 +267,7 @@
         <div class="small text-muted mb-1">Sesi online saat ini</div>
         <div class="font-weight-medium" id="tvSessionStart">-</div>
         <div class="font-weight-medium mt-1 mb-2">
-          Durasi sesi menyala:
+          Menyala selama:
           <span class="font-weight-semibold" id="tvSessionDuration">-</span>
         </div>
 
