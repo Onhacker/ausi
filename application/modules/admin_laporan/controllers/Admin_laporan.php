@@ -2301,11 +2301,33 @@ public function analisa_produk()
  */
 private function _get_transaksi_snapshot(array $f): array
 {
-    // ====== FILTER DASAR ======
-    $dateFrom = !empty($f['date_from']) ? $f['date_from'] : date('Y-m-d 00:00:00');
-    $dateTo   = !empty($f['date_to'])   ? $f['date_to']   : date('Y-m-d 23:59:59');
-    $mode     = $f['mode']   ?? 'all';  // dinein / walkin / delivery / all
-    $metode   = $f['metode'] ?? 'all';  // cash / transfer / qris / all
+    // ====== NORMALISASI TANGGAL ======
+    $rawFrom = isset($f['date_from']) ? trim((string)$f['date_from']) : '';
+    $rawTo   = isset($f['date_to'])   ? trim((string)$f['date_to'])   : '';
+
+    if ($rawFrom !== '') {
+        // jika hanya YYYY-MM-DD
+        if (strlen($rawFrom) === 10) {
+            $dateFrom = $rawFrom . ' 00:00:00';
+        } else {
+            $dateFrom = $rawFrom;
+        }
+    } else {
+        $dateFrom = date('Y-m-d 00:00:00');
+    }
+
+    if ($rawTo !== '') {
+        if (strlen($rawTo) === 10) {
+            $dateTo = $rawTo . ' 23:59:59';
+        } else {
+            $dateTo = $rawTo;
+        }
+    } else {
+        $dateTo = date('Y-m-d 23:59:59');
+    }
+
+    $mode   = $f['mode']   ?? 'all';  // dinein / walkin / delivery / all
+    $metode = $f['metode'] ?? 'all';  // cash / transfer / qris / all
 
     // =========================================
     // 1) RINGKASAN PESANAN (TABLE: pesanan)
@@ -2333,7 +2355,17 @@ private function _get_transaksi_snapshot(array $f): array
           SUM(IFNULL(grand_total, total)) AS total_tagihan,
           SUM(
             CASE 
-              WHEN status = 'paid' OR tutup_transaksi = 1 
+              WHEN status = 'paid' 
+                   OR tutup_transaksi = 1 
+                   OR paid_at IS NOT NULL
+              THEN 1 ELSE 0
+            END
+          ) AS order_lunas,
+          SUM(
+            CASE 
+              WHEN status = 'paid' 
+                   OR tutup_transaksi = 1 
+                   OR paid_at IS NOT NULL
               THEN IFNULL(grand_total, total) 
               ELSE 0 
             END
@@ -2350,29 +2382,52 @@ private function _get_transaksi_snapshot(array $f): array
     ";
     $orderSummary = $this->db->query($sqlOrderSummary, $bindOrder)->row_array() ?: [];
 
+    $totalPesanan      = (int)($orderSummary['total_pesanan']       ?? 0);
+    $totalTagihan      = (int)($orderSummary['total_tagihan']       ?? 0);
+    $orderLunas        = (int)($orderSummary['order_lunas']         ?? 0);
+    $totalTagihanLunas = (int)($orderSummary['total_tagihan_lunas'] ?? 0);
+    $totalTagihanBatal = (int)($orderSummary['total_tagihan_batal'] ?? 0);
+    $orderBelumLunas   = max(0, $totalPesanan - $orderLunas);
+
     // Breakdown pesanan per mode
     $sqlOrderByMode = "
         SELECT
           mode,
-          COUNT(*) AS total_pesanan,
-          SUM(IFNULL(grand_total, total)) AS total_tagihan
+          COUNT(*) AS total_order,
+          SUM(IFNULL(grand_total, total)) AS total_tagihan,
+          SUM(
+            CASE 
+              WHEN status = 'paid' 
+                   OR tutup_transaksi = 1 
+                   OR paid_at IS NOT NULL
+              THEN 1 ELSE 0
+            END
+          ) AS order_lunas
         FROM pesanan
         WHERE {$whereOrder}
         GROUP BY mode
     ";
-    $orderByMode = $this->db->query($sqlOrderByMode, $bindOrder)->result_array();
+    $byMode = $this->db->query($sqlOrderByMode, $bindOrder)->result_array();
 
     // Breakdown pesanan per metode bayar (dari pesanan.paid_method)
     $sqlOrderByMethod = "
         SELECT
           COALESCE(paid_method, '') AS paid_method,
-          COUNT(*) AS total_pesanan,
-          SUM(IFNULL(grand_total, total)) AS total_tagihan
+          COUNT(*) AS total_order,
+          SUM(IFNULL(grand_total, total)) AS total_tagihan,
+          SUM(
+            CASE 
+              WHEN status = 'paid' 
+                   OR tutup_transaksi = 1 
+                   OR paid_at IS NOT NULL
+              THEN 1 ELSE 0
+            END
+          ) AS order_lunas
         FROM pesanan
         WHERE {$whereOrder}
         GROUP BY COALESCE(paid_method, '')
     ";
-    $orderByMethod = $this->db->query($sqlOrderByMethod, $bindOrder)->result_array();
+    $byMethod = $this->db->query($sqlOrderByMethod, $bindOrder)->result_array();
 
     // Sample data pesanan (buat dicek di modal)
     $sqlOrdersSample = "
@@ -2381,6 +2436,7 @@ private function _get_transaksi_snapshot(array $f): array
           nomor,
           mode,
           status,
+          status_pesanan,
           tutup_transaksi,
           paid_method,
           paid_at,
@@ -2389,7 +2445,7 @@ private function _get_transaksi_snapshot(array $f): array
         FROM pesanan
         WHERE {$whereOrder}
         ORDER BY created_at DESC, id DESC
-        LIMIT 50
+        LIMIT 80
     ";
     $ordersSample = $this->db->query($sqlOrdersSample, $bindOrder)->result();
 
@@ -2398,8 +2454,7 @@ private function _get_transaksi_snapshot(array $f): array
     //    Join ke pesanan via src_id
     // =========================================
 
-    // Di sini basis filter tetap pakai pesanan.created_at
-    // supaya konsisten: "pesanan yang dibuat pada periode ini".
+    // Basis filter tetap pesanan.created_at supaya konsisten
     $wherePaid = "p.created_at >= ? AND p.created_at <= ?";
     $bindPaid  = [$dateFrom, $dateTo];
 
@@ -2409,7 +2464,6 @@ private function _get_transaksi_snapshot(array $f): array
     }
 
     if ($metode !== 'all') {
-        // kolom metode bayar di pesanan_paid: paid_method (varchar)
         $wherePaid .= " AND pp.paid_method = ?";
         $bindPaid[] = $metode;
     }
@@ -2425,6 +2479,9 @@ private function _get_transaksi_snapshot(array $f): array
     ";
     $sumPaid = $this->db->query($sqlSumPaid, $bindPaid)->row_array() ?: [];
 
+    $totalRowPembayaran = (int)($sumPaid['total_row_pembayaran'] ?? 0);
+    $totalBayar         = (int)($sumPaid['total_bayar']           ?? 0);
+
     // Berapa pesanan unik yang punya pembayaran?
     $sqlOrderPaid = "
         SELECT
@@ -2433,12 +2490,13 @@ private function _get_transaksi_snapshot(array $f): array
         JOIN pesanan p ON p.id = pp.src_id
         WHERE {$wherePaid}
     ";
-    $rowOrderPaid = $this->db->query($sqlOrderPaid, $bindPaid)->row_array() ?: [];
+    $rowOrderPaid  = $this->db->query($sqlOrderPaid, $bindPaid)->row_array() ?: [];
+    $orderTerbayar = (int)($rowOrderPaid['order_terbayar'] ?? 0);
 
     // Breakdown pembayaran per metode bayar (dari pesanan_paid.paid_method)
     $sqlPaidByMethod = "
         SELECT
-          COALESCE(pp.paid_method, '') AS paid_method,
+          COALESCE(pp.paid_method, '') AS metode_bayar,
           COUNT(*) AS row_count,
           SUM(pp.grand_total) AS total_bayar
         FROM pesanan_paid pp
@@ -2452,58 +2510,66 @@ private function _get_transaksi_snapshot(array $f): array
     $sqlPaymentsSample = "
         SELECT
           pp.id,
-          pp.src_id,
+          pp.src_id AS pesanan_id,
           pp.nomor,
-          p.mode,
-          pp.status,
-          pp.paid_method,
-          pp.grand_total,
+          pp.paid_method AS metode_bayar,
+          pp.grand_total AS jumlah,
+          COALESCE(pp.catatan, p.catatan, '') AS keterangan,
           pp.paid_at,
           pp.created_at
         FROM pesanan_paid pp
         JOIN pesanan p ON p.id = pp.src_id
         WHERE {$wherePaid}
         ORDER BY pp.created_at DESC, pp.id DESC
-        LIMIT 50
+        LIMIT 80
     ";
     $paymentsSample = $this->db->query($sqlPaymentsSample, $bindPaid)->result();
 
     // =========================================
-    // 3) HITUNGAN AKHIR & SELISIH
+    // 3) SUSUN SNAPSHOT
     // =========================================
-    $totalPesanan      = (int)($orderSummary['total_pesanan'] ?? 0);
-    $totalTagihan      = (int)($orderSummary['total_tagihan'] ?? 0);
-    $totalTagihanLunas = (int)($orderSummary['total_tagihan_lunas'] ?? 0);
-    $totalTagihanBatal = (int)($orderSummary['total_tagihan_batal'] ?? 0);
 
-    $totalBayar    = (int)($sumPaid['total_bayar'] ?? 0);
-    $orderTerbayar = (int)($rowOrderPaid['order_terbayar'] ?? 0);
+    $summaryPesanan = [
+        'total_order'         => $totalPesanan,
+        'order_lunas'         => $orderLunas,
+        'order_belum_lunas'   => $orderBelumLunas,
+        'total_tagihan'       => $totalTagihan,
+        'total_tagihan_lunas' => $totalTagihanLunas,
+        'total_tagihan_batal' => $totalTagihanBatal,
+    ];
 
-    $orderBelumLunas        = max(0, $totalPesanan - $orderTerbayar);
-    $selisihTagihanVsBayar  = $totalTagihan - $totalBayar;
+    $summaryPaid = [
+        'total_row_pembayaran' => $totalRowPembayaran,
+        'total_order_terbayar' => $orderTerbayar,
+        'total_nominal_bayar'  => $totalBayar,
+    ];
+
+    $summaryGlobal = [
+        'total_pesanan'            => $totalPesanan,
+        'total_tagihan'            => $totalTagihan,
+        'total_tagihan_lunas_flag' => $totalTagihanLunas,
+        'total_tagihan_batal'      => $totalTagihanBatal,
+        'total_bayar'              => $totalBayar,
+        'order_terbayar'           => $orderTerbayar,
+        'order_belum_lunas'        => $orderBelumLunas,
+        'selisih_tagihan_vs_bayar' => ($totalTagihan - $totalBayar),
+        'total_row_pembayaran'     => $totalRowPembayaran,
+    ];
 
     return [
-        'periode' => [
+        'periode'        => [
             'date_from' => $dateFrom,
             'date_to'   => $dateTo,
-            // Catatan: basis filter di sini pesanan.created_at
             'basis'     => 'pesanan.created_at',
         ],
-        'summary_global' => [
-            'total_pesanan'             => $totalPesanan,
-            'total_tagihan'             => $totalTagihan,
-            'total_tagihan_lunas_flag'  => $totalTagihanLunas,
-            'total_tagihan_batal'       => $totalTagihanBatal,
-            'total_bayar'               => $totalBayar,
-            'order_terbayar'            => $orderTerbayar,
-            'order_belum_lunas'         => $orderBelumLunas,
-            'selisih_tagihan_vs_bayar'  => $selisihTagihanVsBayar,
-        ],
-        'summary_pesanan_by_mode'    => $orderByMode,
-        'summary_pesanan_by_method'  => $orderByMethod,
-        'summary_bayar_by_method'    => $paidByMethod,
-        'orders_sample'              => $ordersSample,
-        'payments_sample'            => $paymentsSample,
+        'summary_global' => $summaryGlobal,
+        'summary_pesanan'=> $summaryPesanan,
+        'summary_paid'   => $summaryPaid,
+        'by_mode'        => $byMode,
+        'by_method'      => $byMethod,
+        'paid_by_method' => $paidByMethod,
+        'orders'         => $ordersSample,
+        'payments'       => $paymentsSample,
     ];
 }
 
