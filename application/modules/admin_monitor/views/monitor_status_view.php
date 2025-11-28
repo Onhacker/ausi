@@ -179,6 +179,99 @@
   word-break:break-all;  /* biar kalau kepanjangan tetap patah */
   white-space:normal;    /* boleh multi-baris */
 }
+/* ===== DETEKTOR LIVE (PING ANIMASI) ===== */
+.tv-detector{
+  display:flex;
+  align-items:center;
+}
+
+.tv-detector-icon{
+  position:relative;
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  margin-right:.75rem;
+  background:rgba(34,197,94,0.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* titik di tengah */
+.tv-detector-icon::before{
+  content:'';
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:#22c55e;
+  box-shadow:0 0 0 0 rgba(34,197,94,0.7);
+  animation: tvPingDot 1.6s infinite;
+}
+
+/* ring luar */
+.tv-detector-icon::after{
+  content:'';
+  position:absolute;
+  width:100%;
+  height:100%;
+  border-radius:999px;
+  border:1px solid rgba(34,197,94,0.45);
+  animation: tvPingRing 1.6s infinite;
+}
+
+/* VARIAN WARNA: warning & lama */
+.tv-detector-icon.warn{
+  background:rgba(234,179,8,0.12); /* kuning */
+}
+.tv-detector-icon.warn::before{
+  background:#eab308;
+  box-shadow:0 0 0 0 rgba(234,179,8,0.7);
+}
+.tv-detector-icon.warn::after{
+  border-color:rgba(234,179,8,0.45);
+}
+
+.tv-detector-icon.bad{
+  background:rgba(248,113,113,0.12); /* merah */
+}
+.tv-detector-icon.bad::before{
+  background:#f97373;
+  box-shadow:0 0 0 0 rgba(248,113,113,0.7);
+}
+.tv-detector-icon.bad::after{
+  border-color:rgba(248,113,113,0.45);
+}
+
+/* ANIMASI */
+@keyframes tvPingDot{
+  0%{
+    transform:scale(1);
+    box-shadow:0 0 0 0 rgba(34,197,94,0.7);
+  }
+  70%{
+    transform:scale(1.25);
+    box-shadow:0 0 0 14px rgba(34,197,94,0);
+  }
+  100%{
+    transform:scale(1);
+    box-shadow:0 0 0 0 rgba(34,197,94,0);
+  }
+}
+
+@keyframes tvPingRing{
+  0%{
+    transform:scale(0.65);
+    opacity:1;
+  }
+  70%{
+    transform:scale(1);
+    opacity:0;
+  }
+  100%{
+    transform:scale(1);
+    opacity:0;
+  }
+}
 
 </style>
 <div class="container-fluid">
@@ -274,13 +367,20 @@
         <hr class="my-3">
 
         <!-- TERAKHIR AKTIF -->
-        <div>
-          <div class="text-muted text-uppercase small mb-1">Detektor live Terakhir Aktif</div>
-          <div id="tvLastSeen" class="font-weight-medium">-</div>
-          <div class="small text-muted mt-1">
-            Deteksi Robot Ausi dari ping terakhir halaman <em>Live Billiard</em> di TV.
+        <!-- DETEKTOR LIVE (ANIMASI) -->
+        <div class="mt-3">
+          <div class="text-muted text-uppercase small mb-2">Detektor Live</div>
+          <div class="tv-detector">
+            <div id="tvDetectorIcon" class="tv-detector-icon"></div>
+            <div>
+              <div id="tvLastStatus" class="font-weight-medium">Memeriksa…</div>
+              <div id="tvLastStatusDetail" class="small text-muted mt-1">
+                Deteksi Robot Ausi dari ping terakhir halaman <em>Live Billiard</em> di TV.
+              </div>
+            </div>
           </div>
         </div>
+
 
       </div>
     </div>
@@ -302,6 +402,11 @@
   var browserEl  = document.getElementById('tvBrowser');
   var lastSeenEl = document.getElementById('tvLastSeen');
   var uaRawEl    = document.getElementById('tvUaRaw');
+
+  // elemen DETEKTOR LIVE (animasi)
+  var detectorIcon     = document.getElementById('tvDetectorIcon');
+  var lastStatusEl     = document.getElementById('tvLastStatus');
+  var lastStatusInfoEl = document.getElementById('tvLastStatusDetail');
 
   // elemen tambahan untuk widget NYALA MONITOR
   var firstSeenEl       = document.getElementById('tvFirstSeen');
@@ -378,25 +483,47 @@
   }
 
   // ====== UPDATE LABEL TERAKHIR AKTIF SECARA LIVE ======
-  function updateLastSeenLabel(){
-    if (!lastSeenEl){
-      return;
-    }
-    if (!lastSeenDate){
-      lastSeenEl.textContent = '-';
-      return;
-    }
-
-    var now    = new Date();
-    var diffMs = now - lastSeenDate;
-    var diffSec = Math.max(0, Math.floor(diffMs / 1000));
-
-    var rel  = fmtRelative(diffSec);
-    var indo = formatTanggalIndo(lastSeenDate);
-
-    // contoh: "5 detik lalu — Kamis, 27 November 2025 22.31.05"
-    lastSeenEl.textContent = rel + ' — ' + indo;
+  // ====== UPDATE DETEKTOR LIVE (ANIMASI + LABEL KATEGORI) ======
+function updateDetectorDisplay(){
+  if (!detectorIcon || !lastStatusEl || !lastStatusInfoEl){
+    return;
   }
+
+  detectorIcon.classList.remove('warn','bad');
+
+  // belum ada data ping
+  if (!lastSeenDate){
+    lastStatusEl.textContent     = 'Belum ada data';
+    lastStatusInfoEl.textContent = 'Robot Ausi belum pernah menerima ping dari halaman Live Billiard di TV.';
+    return;
+  }
+
+  var now     = new Date();
+  var diffSec = Math.max(0, Math.floor((now - lastSeenDate) / 1000));
+
+  var label, info;
+
+  if (diffSec <= 60){
+    label = 'Ping sangat baru';
+    info  = 'Terakhir terdeteksi kurang dari 1 menit lalu.';
+    // warna default (hijau)
+  } else if (diffSec <= 300){ // <= 5 menit
+    label = 'Aktif beberapa menit lalu';
+    info  = 'Terakhir terdeteksi kurang dari 5 menit lalu.';
+  } else if (diffSec <= 1800){ // <= 30 menit
+    label = 'Tidak terlalu lama';
+    info  = 'Terakhir terdeteksi kurang dari 30 menit lalu.';
+    detectorIcon.classList.add('warn'); // kuning
+  } else {
+    label = 'Sudah cukup lama tidak aktif';
+    info  = 'Terakhir terdeteksi lebih dari 30 menit lalu.';
+    detectorIcon.classList.add('bad'); // merah
+  }
+
+  lastStatusEl.textContent     = label;
+  lastStatusInfoEl.textContent = info;
+}
+
 
   // ====== UPDATE LABEL NYALA MONITOR (FIRST & SESSION) ======
   function updateSessionLabels(){
@@ -444,7 +571,8 @@
 
   // ====== SATU TIMER UNTUK SEMUA LABEL LIVE ======
   function tickLive(){
-    updateLastSeenLabel();
+    // updateLastSeenLabel();
+     updateDetectorDisplay();
     updateSessionLabels();
   }
 
@@ -579,7 +707,17 @@ if (uaRawEl){
         if (ipEl)       ipEl.textContent       = '-';
         // if (locEl)      locEl.textContent      = 'Lokasi: -';
         if (browserEl)  browserEl.textContent  = '-';
-        if (lastSeenEl) lastSeenEl.textContent = '-';
+
+        // detektor live saat error
+        if (detectorIcon){
+          detectorIcon.classList.remove('warn','bad');
+        }
+        if (lastStatusEl){
+          lastStatusEl.textContent = 'Gangguan';
+        }
+        if (lastStatusInfoEl){
+          lastStatusInfoEl.textContent = 'Gagal memuat status detektor live.';
+        }
 
         if (firstSeenEl)       firstSeenEl.textContent       = '-';
         if (sessionStartEl)    sessionStartEl.textContent    = '-';
@@ -591,6 +729,7 @@ if (uaRawEl){
         sessionStartDate = null;
         isOnlineNow      = false;
       });
+
   }
 
   // pertama kali
