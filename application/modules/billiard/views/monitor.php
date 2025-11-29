@@ -52,7 +52,8 @@
 
   <!-- ========== CSS VENDOR ========== -->
   <link href="<?= base_url('assets/admin/css/bootstrap.min.css'); ?>" rel="stylesheet" />
-  <link href="<?= base_url('assets/min/monitor.min.css'); ?>" rel="stylesheet" />
+  <link href="<?= base_url('assets/min/monitor.min.css?v=' . filemtime(FCPATH . 'assets/min/monitor.min.css')); ?>" rel="stylesheet" />
+
 
   <!-- ========== CSS KUSTOM UTAMA ========== -->
 
