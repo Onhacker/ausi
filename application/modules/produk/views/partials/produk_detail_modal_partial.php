@@ -106,9 +106,9 @@ function _rv_mask_name($name){
       <div class="col-4">
         <div class="meta-line mb-0">
           <?php if ($stok > 0): ?>
-            <span class="chip" title="Stok tersedia"><span class="dot on"></span> Instock</span>
+            <span class="chip" title="Stok tersedia"><span class="dot on"></span> Tersedia</span>
           <?php else: ?>
-            <span class="chip" title="Stok habis"><span class="dot off"></span> Sold Out</span>
+            <span class="chip" title="Stok habis"><span class="dot off"></span> Habis</span>
           <?php endif; ?>
         </div>
       </div>
@@ -131,7 +131,7 @@ function _rv_mask_name($name){
       <!-- CTA Add to Cart -->
       <div class="col-4 text-right">
         <button type="button" class="btn btn-danger w-100" id="btn-add-cart-modal" data-id="<?= (int)$product->id; ?>" <?= $stok <= 0 ? 'disabled' : ''; ?>>
-          <span class="icon-default mr-1"><i class="mdi mdi-cart"></i></span>
+          <span class="icon-default mr-1"><i class="mdi mdi-cart"></i> Order</span>
           <span class="spinner-border spinner-border-sm mr-1 d-none" role="status" aria-hidden="true"></span>
           <span class="btn-text d-none d-sm-inline">Tambah ke Keranjang</span>
         </button>

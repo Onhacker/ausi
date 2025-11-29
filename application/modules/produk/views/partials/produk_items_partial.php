@@ -54,22 +54,61 @@
         /* samakan basis gaya ribbon kamu */
 .corner-ribbon.trend { 
   /* ambil style yang dulu kamu taruh di .corner-ribbon.hot */
-  background: #ff7a00; /* oranye = 'ngetren' */
+  background: #3F51B5; /* oranye = 'ngetren' */
   color:#fff;
 }
 .corner-ribbon.bestseller {
-  background: #ffb300; /* emas = 'terlaris' */
+  background: #F44336; /* emas = 'terlaris' */
   color:#fff;
 }
 </style>
 
 
-  <?php
+<!--   <?php
     // ==== PARAM DISPLAY ====
     $BESTSELLER_MIN = 10;   // batas lifetime "Terlaris"
     $TRENDING_MIN   = 3.0;  // batas skor "Hot" (terlaris_score)
     $NEW_DAYS       = 3;    // hari dianggap "Terbaru"
     $nowTs          = time();
+  ?> -->
+<?php
+    // ==== PARAM DISPLAY ====
+    $BESTSELLER_MIN = 20;   // batas lifetime "Terlaris"
+    $TRENDING_MIN   = 3.0;  // batas skor "Hot" (terlaris_score)
+    $NEW_DAYS       = 3;    // hari dianggap "Terbaru"
+    $nowTs          = time();
+
+    // ==== HITUNG RANKING TERLARIS (BERDASARKAN terlaris DESC) ====
+    $bestsellerRanks = [];
+    $bestsellerList  = [];
+
+    if (!empty($products)) {
+      foreach ($products as $pp) {
+        $basisLarisTmp = (int)($pp->terlaris ?? 0);
+        if ($basisLarisTmp >= $BESTSELLER_MIN) {
+          $bestsellerList[] = [
+            'id'       => (int)$pp->id,
+            'terlaris' => $basisLarisTmp,
+          ];
+        }
+      }
+
+      if (!empty($bestsellerList)) {
+        // urutkan: paling banyak terjual = rank #1
+        usort($bestsellerList, function($a, $b){
+          if ($a['terlaris'] === $b['terlaris']) {
+            // kalau sama banyak, pakai id sebagai tie-breaker (optional)
+            return $a['id'] <=> $b['id'];
+          }
+          return $b['terlaris'] <=> $a['terlaris']; // desc
+        });
+
+        $rank = 1;
+        foreach ($bestsellerList as $row) {
+          $bestsellerRanks[$row['id']] = $rank++;
+        }
+      }
+    }
   ?>
 
   <?php foreach ($products as $p):
@@ -86,21 +125,29 @@
     $isTrending   = ($trendingScore >= $TRENDING_MIN);
 
     // --- "Terbaru" ---
+        // --- "Terbaru" ---
     $createdAt = !empty($p->created_at) ? strtotime($p->created_at) : null;
     $isNew     = $createdAt ? (($nowTs - $createdAt) <= ($NEW_DAYS * 86400)) : false;
 
     // --- tentukan ribbon ---
-    // --- tentukan ribbon ---
-$ribbon = null;
-if (!$soldout) {
-  if ($isBestseller) {
-    $ribbon = ['class'=>'bestseller', 'text'=>'Terlaris'];
-  } elseif ($isTrending) {
-    $ribbon = ['class'=>'trend', 'text'=>'Ngetren']; // <— dulu 'hot' / 'Hot'
-  } elseif ($isNew) {
-    $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
-  }
-}
+    $ribbon = null;
+    // ambil ranking terlaris untuk produk ini (kalau ada)
+    $myRank = $bestsellerRanks[(int)$p->id] ?? null;
+
+    if (!$soldout) {
+      if ($isBestseller && $myRank !== null) {
+        // tampilkan Terlaris #1, #2, dst
+        $ribbon = [
+          'class' => 'bestseller',
+          'text'  => 'Terlaris ' . $myRank,
+        ];
+      } elseif ($isTrending) {
+        $ribbon = ['class'=>'trend', 'text'=>'Ngetren']; // dulu 'hot'
+      } elseif ($isNew) {
+        $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
+      }
+    }
+
 
 
     // --- rating ---
@@ -154,12 +201,12 @@ if (!$soldout) {
                 <?php for ($i=0; $i<5; $i++): ?><i class="mdi mdi-star-outline empty"></i><?php endfor; ?>
               <?php endif; ?>
             </div>
-            <a class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i> Komen</a>
+            <a class="rate-link"><i class="mdi mdi-fountain-pen-tip"></i> review</a>
           </div>
 
           <div class="sold-label">
             <?= $rating !== null ? number_format($rating,1,',','.') : '0.0' ?>/5
-            <?= $ratingCount ? ' · '.$ratingCount.' komen' : '' ?>
+            <?= $ratingCount ? ' · '.$ratingCount.' review' : '' ?>
             <?php if ($basisLaris > 0): ?> · <?= number_format($basisLaris,0,',','.'); ?> terjual<?php endif; ?>
           </div>
 
