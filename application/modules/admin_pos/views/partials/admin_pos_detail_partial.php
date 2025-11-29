@@ -563,6 +563,10 @@ $pm_label    = 'Lihat Order';
 
           $('#btnAssignKurirHeader').remove();
           $('#modalAssignKurir').modal('hide');
+          // 🔥 TAMBAHKAN INI:
+          if (typeof reload_table === 'function') {
+            reload_table('assign-courier');   // atau 'user', bebas label reason-nya
+          }
         } else {
           alert(res && res.msg ? res.msg : 'Gagal menugaskan kurir.');
         }
