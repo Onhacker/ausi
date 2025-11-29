@@ -886,11 +886,11 @@ body::-webkit-scrollbar {
     }
 }
 .time-pill.mode-lagi {
-    background: #000;
+    background: #000 !important;
 }
 .time-pill.mode-sisa {
-    background: #006057;
+    background: #006057 !important;
 }
 .time-pill.mode-selesai {
-    background: #374151;
+    background: #374151 !important;
 }
