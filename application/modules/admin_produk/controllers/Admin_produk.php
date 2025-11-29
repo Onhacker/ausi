@@ -31,6 +31,113 @@ class Admin_produk extends Admin_Controller {
         $this->render($data);
     }
 
+        /**
+     * Helper: toggle semua produk di 1 kategori (berdasarkan nama kategori).
+     * - Kalau ada yang is_active=1 -> set semua jadi 0 (nonaktif)
+     * - Kalau semua 0 -> set semua jadi 1 (aktif)
+     * Return JSON: success, pesan, aktif (0/1)
+     */
+    private function _toggle_kategori_produk($namaKategori)
+    {
+        $namaLower = strtolower(trim($namaKategori));
+
+        // Cari kategori_produk berdasarkan nama (case-insensitive)
+        $rowKat = $this->db->select('id, nama')
+            ->from('kategori_produk')
+            ->where('LOWER(nama)', $namaLower)
+            ->get()->row();
+
+        if ( ! $rowKat){
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'title'   => 'Kategori tidak ditemukan',
+                    'pesan'   => 'Kategori "'.$namaKategori.'" belum ada di master kategori_produk.'
+                ]));
+            return null;
+        }
+
+        $katId = (int)$rowKat->id;
+
+        // cek apakah ada produk aktif di kategori ini
+        $hasActive = $this->db
+            ->where('kategori_id', $katId)
+            ->where('is_active', 1)
+            ->count_all_results('produk') > 0;
+
+        // kalau sekarang masih ada yang aktif -> matikan semua
+        // kalau tidak ada yang aktif -> hidupkan semua
+        $newActive = $hasActive ? 0 : 1;
+
+        $this->db->where('kategori_id', $katId)
+                 ->update('produk', ['is_active' => $newActive]);
+
+        // bersihkan cache publik
+        $this->purge_public_caches();
+
+        $label = ucfirst($namaLower);
+        $msg   = $newActive
+            ? "Semua produk $label diaktifkan."
+            : "Semua produk $label dinonaktifkan.";
+
+        $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => true,
+                'title'   => 'Berhasil',
+                'pesan'   => $msg,
+                'aktif'   => $newActive
+            ]));
+
+        return $newActive;
+    }
+
+    // Toggle khusus MINUMAN
+    public function toggle_minuman()
+    {
+        $this->_toggle_kategori_produk('Minuman');
+    }
+
+    // Toggle khusus MAKANAN
+    public function toggle_makanan()
+    {
+        $this->_toggle_kategori_produk('Makanan');
+    }
+
+    /**
+     * Dipakai di awal load untuk mengetahui:
+     * - apakah ada produk Minuman yang aktif?
+     * - apakah ada produk Makanan yang aktif?
+     */
+    public function get_toggle_states()
+    {
+        $result = [
+            'success' => true,
+            'minuman' => null,
+            'makanan' => null,
+        ];
+
+        foreach (['minuman','makanan'] as $namaLower) {
+            $rowKat = $this->db->select('id')
+                ->from('kategori_produk')
+                ->where('LOWER(nama)', $namaLower)
+                ->get()->row();
+
+            if ($rowKat){
+                $katId = (int)$rowKat->id;
+                $hasActive = $this->db
+                    ->where('kategori_id', $katId)
+                    ->where('is_active', 1)
+                    ->count_all_results('produk') > 0;
+
+                $result[$namaLower] = $hasActive ? 1 : 0;
+            }
+        }
+
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode($result));
+    }
+
+
     public function get_dataa(){
         $list = $this->dm->get_data();
         $data = [];

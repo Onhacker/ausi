@@ -58,7 +58,7 @@ window.loadSubkategori = function(kategoriId, selectedId){
    Document Ready
 ========================================== */
 $(document).ready(function(){
-
+   initToggleKategoriButtons();
   // Summernote Deskripsi (guard)
   if ($('#deskripsi').length){
     $('#deskripsi').summernote({
@@ -510,6 +510,82 @@ function setRupiahValue($el, numberLike){
 $(document).on('input', '.rupiah', function(){
   var digits = extractDigits(this.value);
   this.value = formatRupiahString(digits);
+});
+/* ==========================================
+   Toggle aktif/nonaktif kategori Minuman & Makanan
+========================================== */
+
+// set tampilan tombol sesuai status
+function setToggleButtonState(jenis, isActive){
+  var $btn = (jenis === 'minuman') ? $('#btn-toggle-minuman') : $('#btn-toggle-makanan');
+  if (!$btn.length) return;
+
+  var $txt = $btn.find('.btn-text');
+  var teksOn  = (jenis === 'minuman') ? 'Nonaktifkan Minuman' : 'Nonaktifkan Makanan';
+  var teksOff = (jenis === 'minuman') ? 'Aktifkan Minuman'   : 'Aktifkan Makanan';
+
+  if (isActive){
+    $btn.removeClass('btn-outline-success').addClass('btn-outline-danger');
+    $txt.text(teksOn);
+    $btn.data('aktif', 1);
+  } else {
+    $btn.removeClass('btn-outline-danger').addClass('btn-outline-success');
+    $txt.text(teksOff);
+    $btn.data('aktif', 0);
+  }
+}
+
+// ambil status awal dari server
+function initToggleKategoriButtons(){
+  $.getJSON("<?= site_url('admin_produk/get_toggle_states'); ?>")
+    .done(function(r){
+      if (!r || !r.success) return;
+
+      if (typeof r.minuman !== 'undefined' && r.minuman !== null){
+        setToggleButtonState('minuman', r.minuman == 1);
+      }
+      if (typeof r.makanan !== 'undefined' && r.makanan !== null){
+        setToggleButtonState('makanan', r.makanan == 1);
+      }
+    });
+}
+
+// kirim perintah toggle ke server
+function doToggleKategori(jenis){
+  var url = (jenis === 'minuman')
+    ? "<?= site_url('admin_produk/toggle_minuman'); ?>"
+    : "<?= site_url('admin_produk/toggle_makanan'); ?>";
+
+  loader();
+  $.ajax({
+    url: url,
+    type: 'POST',
+    dataType: 'json'
+  }).done(function(r){
+    close_loader();
+    if (!r || !r.success){
+      if (window.Swal) Swal.fire(r.title||'Gagal', r.pesan||'Terjadi kesalahan', 'error');
+      return;
+    }
+
+    if (typeof r.aktif !== 'undefined'){
+      setToggleButtonState(jenis, r.aktif == 1);
+    }
+
+    if (window.Swal) Swal.fire(r.title||'Berhasil', r.pesan||'Status diperbarui', 'success');
+    reload_table();
+  }).fail(function(){
+    close_loader();
+    if (window.Swal) Swal.fire('Gagal','Koneksi bermasalah','error');
+  });
+}
+
+// binding click tombol (pakai delegation biar aman)
+$(document).on('click', '#btn-toggle-minuman', function(){
+  doToggleKategori('minuman');
+});
+$(document).on('click', '#btn-toggle-makanan', function(){
+  doToggleKategori('makanan');
 });
 
 </script>
