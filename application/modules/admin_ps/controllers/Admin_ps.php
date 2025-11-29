@@ -276,6 +276,7 @@ class Admin_ps extends Admin_Controller {
             'selesai'       => $selesaiDt,
             'status'        => $p['status'],
             'catatan'       => $p['catatan'] ?? null,
+            'created_at'    => $mulaiDt,  // atau date('Y-m-d H:i:s') lagi
         ];
         $ok = $this->db->insert('ps_transaksi',$ins);
 
