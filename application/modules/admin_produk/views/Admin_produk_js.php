@@ -551,7 +551,39 @@ function initToggleKategoriButtons(){
 }
 
 // kirim perintah toggle ke server
+// KONFIRMASI + TOGGLE KATEGORI
 function doToggleKategori(jenis){
+  var labelKategori = (jenis === 'minuman') ? 'Minuman' : 'Makanan';
+  var $btn          = (jenis === 'minuman') ? $('#btn-toggle-minuman') : $('#btn-toggle-makanan');
+
+  // status sekarang (1 = lagi AKTIF di menu)
+  var isAktif = ($btn.data('aktif') == 1);
+
+  var teksAksi = isAktif
+    ? 'menonaktifkan sementara semua produk kategori ' + labelKategori + ' di menu?'
+    : 'mengaktifkan kembali semua produk kategori ' + labelKategori + ' di menu?';
+
+  // fallback kalau Swal belum ada
+  if (!window.Swal){
+    if (!confirm('Yakin ingin ' + teksAksi)) return;
+    return ajaxToggleKategori(jenis);
+  }
+
+  Swal.fire({
+    title: 'Yakin?',
+    text: 'Anda akan ' + teksAksi,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, lanjut',
+    cancelButtonText: 'Tidak'
+  }).then(function(res){
+    if (!res.isConfirmed) return;
+    ajaxToggleKategori(jenis);
+  });
+}
+
+// BAGIAN AJAX ASLINYA DIPISAH KE SINI
+function ajaxToggleKategori(jenis){
   var url = (jenis === 'minuman')
     ? "<?= site_url('admin_produk/toggle_minuman'); ?>"
     : "<?= site_url('admin_produk/toggle_makanan'); ?>";
@@ -568,6 +600,7 @@ function doToggleKategori(jenis){
       return;
     }
 
+    // update tampilan tombol (teks & warna) kalau pakai setToggleButtonState
     if (typeof r.aktif !== 'undefined'){
       setToggleButtonState(jenis, r.aktif == 1);
     }
@@ -579,6 +612,7 @@ function doToggleKategori(jenis){
     if (window.Swal) Swal.fire('Gagal','Koneksi bermasalah','error');
   });
 }
+
 
 // binding click tombol (pakai delegation biar aman)
 $(document).on('click', '#btn-toggle-minuman', function(){
