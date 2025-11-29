@@ -225,19 +225,23 @@ class Admin_kursi_pijat extends Admin_Controller {
         $this->form_validation->set_error_delimiters('<br> ',' ');
 
         if($this->form_validation->run() !== TRUE){
-            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>validation_errors()]); return;
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>validation_errors()]);
+            return;
         }
 
-        $set      = $this->_get_setting();
-        $dur      = (int)$p['durasi_menit']; // sudah menit (sesi*unit)
-        $unit     = (int)$set->durasi_unit;
-        $sesi     = (int)max(1, ceil($dur / $unit));
-        $harga    = (int)$set->harga_satuan;
-        $total    = $sesi * $harga;
-        $mulaiDt  = date('Y-m-d H:i:s');
+        $set   = $this->_get_setting();
+        $dur   = (int)$p['durasi_menit'];          // menit (sesi*unit)
+        $unit  = (int)$set->durasi_unit;
+        $sesi  = (int)max(1, ceil($dur / $unit));
+        $harga = (int)$set->harga_satuan;
+        $total = $sesi * $harga;
+
+        // waktu aplikasi (WITA, kalau timezone sudah di-set global)
+        $nowApp   = date('Y-m-d H:i:s');
+        $mulaiDt  = $nowApp;
         $selesaiDt= date('Y-m-d H:i:s', strtotime($mulaiDt.' +'.$dur.' minutes'));
 
-        $hpNorm   = $this->_normalize_hp($p['no_hp'] ?? '');
+        $hpNorm = $this->_normalize_hp($p['no_hp'] ?? '');
 
         $ins = [
             'nama'          => $p['nama'],
@@ -250,7 +254,12 @@ class Admin_kursi_pijat extends Admin_Controller {
             'selesai'       => $selesaiDt,
             'status'        => $p['status'],
             'catatan'       => $p['catatan'] ?? null,
+
+            // pakai waktu aplikasi, bukan waktu server MySQL
+            'created_at'    => $nowApp,
+            'updated_at'    => $nowApp,
         ];
+
         $ok = $this->db->insert('kursi_pijat_transaksi',$ins);
 
         if ($ok) {
@@ -263,6 +272,7 @@ class Admin_kursi_pijat extends Admin_Controller {
             echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Data gagal disimpan"]);
         }
     }
+
 
     /** Update */
     public function update(){
@@ -278,25 +288,30 @@ class Admin_kursi_pijat extends Admin_Controller {
         $this->form_validation->set_error_delimiters('<br> ',' ');
 
         if($this->form_validation->run() !== TRUE){
-            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>validation_errors()]); return;
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>validation_errors()]);
+            return;
         }
 
         $row = $this->db->get_where('kursi_pijat_transaksi',['id_transaksi'=>$id])->row();
         if(!$row){
-            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Data tidak ditemukan"]); return;
+            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Data tidak ditemukan"]);
+            return;
         }
 
-        $set      = $this->_get_setting();
-        $dur      = (int)$p['durasi_menit'];
-        $unit     = (int)$set->durasi_unit;
-        $sesi     = (int)max(1, ceil($dur / $unit));
-        $harga    = (int)$set->harga_satuan;
-        $total    = $sesi * $harga;
+        $set   = $this->_get_setting();
+        $dur   = (int)$p['durasi_menit'];
+        $unit  = (int)$set->durasi_unit;
+        $sesi  = (int)max(1, ceil($dur / $unit));
+        $harga = (int)$set->harga_satuan;
+        $total = $sesi * $harga;
 
-        $mulaiDt   = $row->mulai ?: null;
-        $selesaiDt = $mulaiDt ? date('Y-m-d H:i:s', strtotime($mulaiDt.' +'.$dur.' minutes')) : null;
+        $mulaiDt   = $row->mulai ?: null; // tetap pakai yg lama
+        $selesaiDt = $mulaiDt
+            ? date('Y-m-d H:i:s', strtotime($mulaiDt.' +'.$dur.' minutes'))
+            : null;
 
-        $hpNorm    = $this->_normalize_hp($p['no_hp'] ?? '');
+        $hpNorm = $this->_normalize_hp($p['no_hp'] ?? '');
+        $nowApp = date('Y-m-d H:i:s'); // waktu update (WITA)
 
         $upd = [
             'nama'          => $p['nama'],
@@ -308,15 +323,18 @@ class Admin_kursi_pijat extends Admin_Controller {
             'selesai'       => $selesaiDt,
             'status'        => $p['status'],
             'catatan'       => $p['catatan'] ?? null,
+            'updated_at'    => $nowApp,  // override waktu server
         ];
+
         $ok = $this->db->update('kursi_pijat_transaksi',$upd, ['id_transaksi'=>$id]);
 
-        // NOTE: supaya simple, di sini kita tidak koreksi poin voucher lama.
-        // Kalau mau strict, bisa dibuat sinkronisasi khusus.
-
-        echo json_encode($ok ? ["success"=>true,"title"=>"Berhasil","pesan"=>"Data berhasil diupdate"]
-                             : ["success"=>false,"title"=>"Gagal","pesan"=>"Data gagal diupdate"]);
+        echo json_encode(
+            $ok
+            ? ["success"=>true,"title"=>"Berhasil","pesan"=>"Data berhasil diupdate"]
+            : ["success"=>false,"title"=>"Gagal","pesan"=>"Data gagal diupdate"]
+        );
     }
+
 
     /** Set Lunas (Bayar) */
     public function set_lunas(){
