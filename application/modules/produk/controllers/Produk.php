@@ -1473,21 +1473,56 @@ public function reward_cron()
     $winner_random = null;
 
     if ($winner_top) {
-        // seed berdasarkan tahun+miggu (mis: 202546)
-        $weekSeed = (int)$now->format('oW');
 
-        // pemenang acak yang KONSISTEN 1 minggu
-        $winner_random = $this->db
+        // Ambil semua peserta minggu ini, selain juara Top
+        $candidates = $this->db
             ->select('id, customer_name, customer_phone, points, expired_at')
             ->from('voucher_cafe')
+            ->where('expired_at', $targetExpired)
             ->where('points >', 0)
-            ->where('expired_at', $targetExpired)   // <<< SAMA-SAMA MINGGU INI
             ->where('id !=', $winner_top->id)
-            ->order_by("RAND({$weekSeed})", '', false)
-            ->limit(1)
+            ->order_by('id', 'ASC') // biar urutan deterministik
             ->get()
-            ->row();
+            ->result();
+
+        if (!empty($candidates)) {
+
+            // Seed berdasarkan tahun+miggu (mis: 202546) -> konsisten 1 minggu
+            $weekSeed = (int)$now->format('oW');
+            mt_srand($weekSeed);
+
+            // Hitung total poin semua kandidat
+            $totalPoints = 0;
+            foreach ($candidates as $c) {
+                $p = (int)$c->points;
+                if ($p > 0) {
+                    $totalPoints += $p;
+                }
+            }
+
+            if ($totalPoints > 0) {
+                // Ambil angka acak 1..totalPoints
+                $rand    = mt_rand(1, $totalPoints);
+                $running = 0;
+
+                foreach ($candidates as $c) {
+                    $p = (int)$c->points;
+                    if ($p <= 0) continue;
+
+                    $running += $p;
+                    if ($rand <= $running) {
+                        $winner_random = $c;
+                        break;
+                    }
+                }
+            } else {
+                // Fallback kalau entah kenapa semua points <= 0 (harusnya nggak kejadian)
+                $idx = mt_rand(0, count($candidates) - 1);
+                $winner_random = $candidates[$idx];
+            }
+        }
     }
+
 
 
     // ======= AUTO BUAT VOUCHER MINGGUAN (HANYA DARI CRON) =======
