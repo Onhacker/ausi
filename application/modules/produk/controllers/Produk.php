@@ -1442,7 +1442,7 @@ public function reward_cron()
     // waktu sekarang WITA
     $now = new DateTime('now', new DateTimeZone('Asia/Makassar'));
     $dow = (int)$now->format('w'); // 0 = Minggu
-
+    $targetExpired = $now->format('Y-m-d');
     // jam 08:00 hari ini
     $todayAnnouncement = (clone $now)->setTime(8, 0, 0);
     $isSunday          = ($dow === 0);
@@ -1456,10 +1456,14 @@ public function reward_cron()
     // ======= CARI PEMENANG =======
 
     // peraih poin tertinggi
+    // ======= CARI PEMENANG =======
+
+// peraih poin tertinggi HANYA untuk minggu yang expired hari ini
     $winner_top = $this->db
-        ->select('id, customer_name, customer_phone, points')
+        ->select('id, customer_name, customer_phone, points, expired_at')
         ->from('voucher_cafe')
         ->where('points >', 0)
+        ->where('expired_at', $targetExpired)   // <<< FILTER MINGGU INI
         ->order_by('points', 'DESC')
         ->order_by('last_paid_at', 'DESC')
         ->limit(1)
@@ -1474,15 +1478,17 @@ public function reward_cron()
 
         // pemenang acak yang KONSISTEN 1 minggu
         $winner_random = $this->db
-            ->select('id, customer_name, customer_phone, points')
+            ->select('id, customer_name, customer_phone, points, expired_at')
             ->from('voucher_cafe')
             ->where('points >', 0)
+            ->where('expired_at', $targetExpired)   // <<< SAMA-SAMA MINGGU INI
             ->where('id !=', $winner_top->id)
             ->order_by("RAND({$weekSeed})", '', false)
             ->limit(1)
             ->get()
             ->row();
     }
+
 
     // ======= AUTO BUAT VOUCHER MINGGUAN (HANYA DARI CRON) =======
     $this->_create_weekly_voucher_if_needed($winner_top, 'top', $now);
