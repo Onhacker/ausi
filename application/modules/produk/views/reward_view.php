@@ -270,11 +270,20 @@ if (!function_exists('mask_name')) {
 
                     <div class="reward-note">
                       Pemenang acak ditentukan oleh <strong>Robot Ausi</strong> menggunakan
-                      generator angka acak terkomputerisasi dari seluruh pelanggan yang memiliki
-                      <strong>poin &gt; 0</strong> pada pekan tersebut (kecuali peraih poin tertinggi),
-                      sepenuhnya <strong>tanpa campur tangan manusia</strong>.
+                      sistem undian terkomputerisasi berbasis poin. Setiap pelanggan yang memiliki
+                      <strong>poin &gt; 0</strong> pada pekan tersebut (kecuali peraih poin tertinggi)
+                      otomatis mendapat “tiket undian” sesuai jumlah poin yang dimiliki:
+                      semakin besar poin, semakin besar peluang terpilih, namun semua tetap
+                      memiliki kesempatan menang. Proses ini berjalan otomatis
+                      <strong>tanpa campur tangan manusia</strong>.
                       Pemenang berhak atas <strong>voucher order senilai Rp&nbsp;50.000*</strong>.
                     </div>
+                    <p class="reward-example" style="font-size:0.85rem; opacity:.8;">
+                      Contoh: jika Pelanggan A memiliki 30 poin dan Pelanggan B memiliki 10 poin,
+                      maka peluang A terpilih sebagai pemenang acak kira-kira 3× lebih besar daripada B.
+                    </p>
+
+
 
                   </div>
                 </div>
