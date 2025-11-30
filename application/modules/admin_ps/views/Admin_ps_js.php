@@ -148,7 +148,7 @@ $(document).ready(function(){
       { data: 'no',  orderable: false, searchable: false },
       { data: 'nama' },
       { data: 'no_hp', className:'text-nowrap' },
-      { data: 'tanggal', className:'text-nowrap' },
+      // { data: 'tanggal', className:'text-nowrap' },
 
       // >>> kolom baru
       { data: 'mulai_selesai', className:'text-nowrap' },

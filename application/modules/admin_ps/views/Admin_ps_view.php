@@ -50,7 +50,7 @@
                 <th width="5%">No.</th>
                 <th>Nama</th>
                 <th>No. HP</th>
-                <th>Tanggal</th>
+                <!-- <th>Tanggal</th> -->
                 <th>Mulai - Selesai</th>
                 <th>Durasi</th>
                 <th>Sesi</th>
