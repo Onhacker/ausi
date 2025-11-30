@@ -41,23 +41,25 @@
           <div class="table-responsive">
             <table id="datable_1" class="table table-sm table-striped table-bordered w-100">
               <thead>
-                <tr>
-                  <th class="text-center" width="5%">
-                    <div class="checkbox checkbox-primary checkbox-single">
-                      <input id="check-all" type="checkbox"><label></label>
-                    </div>
-                  </th>
-                  <th width="5%">No.</th>
-                  <th>Nama</th>
-                  <th>No. HP</th>
-                  <th>Tanggal</th>
-                  <th>Durasi</th>
-                  <th>Sesi</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th width="12%">Aksi</th>
-                </tr>
-              </thead>
+              <tr>
+                <th class="text-center" width="5%">
+                  <div class="checkbox checkbox-primary checkbox-single">
+                    <input id="check-all" type="checkbox"><label></label>
+                  </div>
+                </th>
+                <th width="5%">No.</th>
+                <th>Nama</th>
+                <th>No. HP</th>
+                <th>Tanggal</th>
+                <th>Mulai - Selesai</th>
+                <th>Durasi</th>
+                <th>Sesi</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th width="12%">Aksi</th>
+              </tr>
+            </thead>
+
             </table>
           </div>
 

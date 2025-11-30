@@ -6,17 +6,29 @@ class M_admin_ps extends CI_Model {
     private $table         = 'ps_transaksi ps';
     // cek | no | nama | no_hp | tanggal | durasi | sesi | total | status
     private $column_order  = [
-        null,
-        null,
+        null,              // 0: cek
+        null,              // 1: no
+        'ps.nama',         // 2: nama
+        'ps.no_hp',        // 3: no_hp
+        'ps.created_at',   // 4: tanggal
+        'ps.mulai',        // 5: mulai - selesai (kalau di-sort dari kolom ini)
+        'ps.durasi_menit', // 6: durasi
+        'ps.sesi',         // 7: sesi
+        'ps.total_harga',  // 8: total
+        'ps.status',       // 9: status
+        // 10: aksi (nggak ada di array, fallback ke default order)
+    ];
+
+    private $column_search = [
         'ps.nama',
         'ps.no_hp',
+        'ps.status',
+        'ps.catatan',
         'ps.created_at',
-        'ps.durasi_menit',
-        'ps.sesi',
-        'ps.total_harga',
-        'ps.status'
+        'ps.mulai',
+        'ps.selesai',
     ];
-    private $column_search = ['ps.nama','ps.no_hp','ps.status','ps.catatan','ps.created_at'];
+
     private $order         = ['ps.created_at' => 'DESC'];
 
     public function __construct(){ parent::__construct(); }

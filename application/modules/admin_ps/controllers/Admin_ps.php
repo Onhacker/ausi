@@ -172,6 +172,16 @@ class Admin_ps extends Admin_Controller {
 
             $hpRaw   = isset($r->no_hp) ? (string)$r->no_hp : '';
             $hpShow  = $hpRaw !== '' ? $hpRaw : '-';
+            // RANGE MULAI - SELESAI
+            $mulai_raw   = isset($r->mulai)   ? (string)$r->mulai   : '';
+            $selesai_raw = isset($r->selesai) ? (string)$r->selesai : '';
+
+            $mulai_fmt   = ($mulai_raw   !== '' ? date('d-m-Y H:i', strtotime($mulai_raw))   : '-');
+            $selesai_fmt = ($selesai_raw !== '' ? date('d-m-Y H:i', strtotime($selesai_raw)) : '-');
+
+            $rentang_waktu = ($mulai_fmt === '-' && $selesai_fmt === '-')
+                ? '-'
+                : $mulai_fmt.' - '.$selesai_fmt;
 
             $row = [
                 'cek'      => '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id_transaksi.'"><label></label></div>',
@@ -179,6 +189,8 @@ class Admin_ps extends Admin_Controller {
                 'nama'     => htmlspecialchars($r->nama, ENT_QUOTES, 'UTF-8'),
                 'no_hp'    => htmlspecialchars($hpShow, ENT_QUOTES, 'UTF-8'),
                 'tanggal'  => htmlspecialchars($tgl_fmt, ENT_QUOTES, 'UTF-8'),
+                'mulai_selesai' => htmlspecialchars($rentang_waktu, ENT_QUOTES, 'UTF-8'),
+
                 'durasi'   => (int)$r->durasi_menit.' menit',
                 'sesi'     => (int)$r->sesi.'x',
                 'total'    => $this->_rupiah($r->total_harga),

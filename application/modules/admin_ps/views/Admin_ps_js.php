@@ -149,12 +149,17 @@ $(document).ready(function(){
       { data: 'nama' },
       { data: 'no_hp', className:'text-nowrap' },
       { data: 'tanggal', className:'text-nowrap' },
+
+      // >>> kolom baru
+      { data: 'mulai_selesai', className:'text-nowrap' },
+
       { data: 'durasi', className:'text-nowrap' },
       { data: 'sesi', className:'text-nowrap' },
       { data: 'total', className:'text-nowrap' },
       { data: 'status', orderable:false, searchable:false },
       { data: 'aksi', orderable:false, searchable:false, className:'text-center' },
     ],
+
     order: [[4,'desc']],
     rowCallback: function(row, data, displayIndex) {
       const info = this.api().page.info();
