@@ -354,9 +354,9 @@
           <span class="badge badge-pill badge-session" id="tvSessionBadge">Sesi aktif</span>
         </div>
 
-        <div class="small text-muted mb-1">Pertama kali terdeteksi</div>
+       <!--  <div class="small text-muted mb-1">Pertama kali terdeteksi</div>
         <div class="font-weight-medium mb-2" id="tvFirstSeen">-</div>
-
+ -->
         <div class="small text-muted mb-1">Sesi online saat ini</div>
         <div class="font-weight-medium" id="tvSessionStart">-</div>
         <div class="font-weight-medium mt-1 mb-2">
