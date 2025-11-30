@@ -181,7 +181,7 @@ class Admin_ps extends Admin_Controller {
 
             $rentang_waktu = ($mulai_fmt === '-' && $selesai_fmt === '-')
                 ? '-'
-                : $mulai_fmt.' s/d '.$selesai_fmt;
+                : $mulai_fmt.' sampai '.$selesai_fmt;
 
             $row = [
                 'cek'      => '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id_transaksi.'"><label></label></div>',
