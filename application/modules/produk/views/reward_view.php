@@ -278,7 +278,7 @@ if (!function_exists('mask_name')) {
                       <strong>tanpa campur tangan manusia</strong>.
                       Pemenang berhak atas <strong>voucher order senilai Rp&nbsp;50.000*</strong>.
                     </div>
-                    <p class="reward-example" style="font-size:0.85rem; opacity:.8;">
+                    <p class="reward-note" style="font-size:0.85rem; opacity:.8;">
                       Contoh: jika Pelanggan A memiliki 30 poin dan Pelanggan B memiliki 10 poin,
                       maka peluang A terpilih sebagai pemenang acak kira-kira 3× lebih besar daripada B.
                     </p>
