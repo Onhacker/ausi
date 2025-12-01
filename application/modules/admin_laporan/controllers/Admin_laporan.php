@@ -2354,22 +2354,20 @@ private function _get_transaksi_snapshot(array $f): array
           COUNT(*) AS total_pesanan,
           SUM(IFNULL(grand_total, total)) AS total_tagihan,
           SUM(
-            CASE 
-              WHEN status = 'paid' 
-                   OR tutup_transaksi = 1 
-                   OR paid_at IS NOT NULL
-              THEN 1 ELSE 0
-            END
-          ) AS order_lunas,
+                  CASE 
+                    WHEN status = 'paid'
+                    THEN 1 ELSE 0
+                  END
+                ) AS order_lunas
+            ,
           SUM(
-            CASE 
-              WHEN status = 'paid' 
-                   OR tutup_transaksi = 1 
-                   OR paid_at IS NOT NULL
-              THEN IFNULL(grand_total, total) 
-              ELSE 0 
-            END
-          ) AS total_tagihan_lunas,
+                  CASE 
+                    WHEN status = 'paid'
+                    THEN IFNULL(grand_total, total) 
+                    ELSE 0 
+                  END
+                ) AS total_tagihan_lunas,
+
           SUM(
             CASE 
               WHEN status = 'canceled' 
@@ -2396,13 +2394,12 @@ private function _get_transaksi_snapshot(array $f): array
           COUNT(*) AS total_order,
           SUM(IFNULL(grand_total, total)) AS total_tagihan,
           SUM(
-            CASE 
-              WHEN status = 'paid' 
-                   OR tutup_transaksi = 1 
-                   OR paid_at IS NOT NULL
-              THEN 1 ELSE 0
-            END
-          ) AS order_lunas
+  CASE 
+    WHEN status = 'paid'
+    THEN 1 ELSE 0
+  END
+) AS order_lunas
+
         FROM pesanan
         WHERE {$whereOrder}
         GROUP BY mode
@@ -2416,13 +2413,12 @@ private function _get_transaksi_snapshot(array $f): array
           COUNT(*) AS total_order,
           SUM(IFNULL(grand_total, total)) AS total_tagihan,
           SUM(
-            CASE 
-              WHEN status = 'paid' 
-                   OR tutup_transaksi = 1 
-                   OR paid_at IS NOT NULL
-              THEN 1 ELSE 0
-            END
-          ) AS order_lunas
+  CASE 
+    WHEN status = 'paid'
+    THEN 1 ELSE 0
+  END
+) AS order_lunas
+
         FROM pesanan
         WHERE {$whereOrder}
         GROUP BY COALESCE(paid_method, '')
@@ -2432,7 +2428,7 @@ private function _get_transaksi_snapshot(array $f): array
     // Sample data pesanan (buat dicek di modal)
     // Sample data pesanan (buat dicek di modal)
     // tambahkan lunas_flag biar AI paham mana yang dianggap lunas oleh sistem
-    $sqlOrdersSample = "
+       $sqlOrdersSample = "
         SELECT
           id,
           nomor,
@@ -2446,8 +2442,6 @@ private function _get_transaksi_snapshot(array $f): array
           IFNULL(grand_total, total) AS tagihan,
           CASE
             WHEN status = 'paid'
-                 OR tutup_transaksi = 1
-                 OR paid_at IS NOT NULL
             THEN 1 ELSE 0
           END AS lunas_flag
         FROM pesanan
@@ -2455,6 +2449,7 @@ private function _get_transaksi_snapshot(array $f): array
         ORDER BY created_at DESC, id DESC
         LIMIT 80
     ";
+
 
     $ordersSample = $this->db->query($sqlOrdersSample, $bindOrder)->result();
 
