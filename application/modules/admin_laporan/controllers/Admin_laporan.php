@@ -2430,6 +2430,8 @@ private function _get_transaksi_snapshot(array $f): array
     $byMethod = $this->db->query($sqlOrderByMethod, $bindOrder)->result_array();
 
     // Sample data pesanan (buat dicek di modal)
+    // Sample data pesanan (buat dicek di modal)
+    // tambahkan lunas_flag biar AI paham mana yang dianggap lunas oleh sistem
     $sqlOrdersSample = "
         SELECT
           id,
@@ -2441,12 +2443,19 @@ private function _get_transaksi_snapshot(array $f): array
           paid_method,
           paid_at,
           created_at,
-          IFNULL(grand_total, total) AS tagihan
+          IFNULL(grand_total, total) AS tagihan,
+          CASE
+            WHEN status = 'paid'
+                 OR tutup_transaksi = 1
+                 OR paid_at IS NOT NULL
+            THEN 1 ELSE 0
+          END AS lunas_flag
         FROM pesanan
         WHERE {$whereOrder}
         ORDER BY created_at DESC, id DESC
         LIMIT 80
     ";
+
     $ordersSample = $this->db->query($sqlOrdersSample, $bindOrder)->result();
 
     // =========================================
@@ -2755,24 +2764,37 @@ public function analisa_transaksi()
     }
 
     // Sample pesanan
-    $listOrderSample = "";
-    if (!empty($snap['orders'])) {
-        $i = 0;
-        foreach ($snap['orders'] as $r) {
-            $i++;
-            $tgl  = substr((string)$r->created_at, 0, 16);
-            $paid = $r->paid_at ? substr((string)$r->paid_at, 0, 16) : '-';
-            $stat = (string)($r->status_pesanan ?? '');
-            if ($stat === '') $stat = '(tanpa status)';
-            $pm   = (string)($r->paid_method ?? '');
-            $tag  = (int)($r->tagihan ?? 0);
+    // Sample pesanan
+        $listOrderSample = "";
+        if (!empty($snap['orders'])) {
+            $i = 0;
+            foreach ($snap['orders'] as $r) {
+                $i++;
+                $tgl   = substr((string)$r->created_at, 0, 16);
+                $paid  = $r->paid_at ? substr((string)$r->paid_at, 0, 16) : '-';
 
-            $listOrderSample .= "- [{$i}] id={$r->id}, nomor={$r->nomor}, mode={$r->mode}, tgl={$tgl}, status={$stat}, paid_at={$paid}, paid_method={$pm}, tagihan={$tag}\n";
-            if ($i >= 80) break;
+                // status di DB & status_pesanan
+                $statusDb   = (string)($r->status ?? '');
+                $statusView = (string)($r->status_pesanan ?? '');
+                if ($statusView === '') $statusView = '(tanpa status_pesanan)';
+
+                $pm        = (string)($r->paid_method ?? '');
+                $tag       = (int)($r->tagihan ?? 0);
+                $tutup     = (int)($r->tutup_transaksi ?? 0);
+                $lunasFlag = (int)($r->lunas_flag ?? 0);
+
+                $listOrderSample .= "- [{$i}] "
+                    . "id={$r->id}, nomor={$r->nomor}, mode={$r->mode}, tgl={$tgl}, "
+                    . "status_db={$statusDb}, status_pesanan={$statusView}, "
+                    . "tutup_transaksi={$tutup}, lunas_flag={$lunasFlag}, "
+                    . "paid_at={$paid}, paid_method={$pm}, tagihan={$tag}\n";
+
+                if ($i >= 80) break;
+            }
+        } else {
+            $listOrderSample .= "- (Tidak ada pesanan pada periode ini)\n";
         }
-    } else {
-        $listOrderSample .= "- (Tidak ada pesanan pada periode ini)\n";
-    }
+
 
     // Sample pembayaran
     $listPaymentSample = "";
@@ -2846,8 +2868,16 @@ public function analisa_transaksi()
 
     $prompt .= "PENTING UNTUK INTERPRETASI:\n";
     $prompt .= "- paid_at di pesanan menandakan transaksi dianggap lunas di kasir.\n";
+    $prompt .= "- Selain paid_at, sistem juga punya kolom lunas_flag (0 atau 1):\n";
+    $prompt .= "  * lunas_flag = 1 berarti menurut sistem pesanan ini sudah dianggap lunas.\n";
+    $prompt .= "  * lunas_flag = 0 berarti BELUM lunas atau dibatalkan.\n";
+    $prompt .= "- status di pesanan bisa berisi nilai seperti: new, paid, canceled, dll.\n";
+    $prompt .= "- Jika status_db = 'canceled' ATAU status_pesanan mengandung kata 'batal' / 'cancel', anggap pesanan tersebut DIBATALKAN, bukan lunas.\n";
+    $prompt .= "- Untuk pesanan yang dibatalkan, jangan menulis seolah-olah itu 'dianggap lunas' atau 'seharusnya ada pembayaran di pesanan_paid'. Boleh disebut sebagai pesanan yang sudah dibatalkan saja.\n";
+    $prompt .= "- Jangan pernah menyebut suatu pesanan 'dianggap lunas' kalau lunas_flag = 0.\n";
     $prompt .= "- pesanan_paid berisi detail pembayaran (bisa saja 1 pesanan punya beberapa baris pembayaran, misalnya DP lalu pelunasan).\n";
     $prompt .= "- Jangan langsung menghakimi bahwa selisih negatif/positif pasti salah; bisa saja ada DP, pembulatan, atau voucher. Jelaskan sebagai 'perlu dicek' atau 'patut dipantau'.\n\n";
+
 
     $prompt .= "TUGASMU:\n";
     $prompt .= "1. Buat RINGKASAN SINGKAT kondisi transaksi pada periode ini: apakah arus dari pesanan ke pembayaran terlihat rapi atau masih banyak yang belum tercatat.\n";
