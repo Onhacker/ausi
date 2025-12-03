@@ -7,8 +7,7 @@
 /** @var array    $sumPen */
 /** @var array    $sumKP */
 /** @var array    $sumPS */
-/** @var int      $laba */          // (POS + BIL + KP + PS + MANUAL - PENGELUARAN)
-/** @var int      $manualInput */   // penyesuaian manual 1–7
+/** @var int      $laba */          // (POS + BIL + KP + PS - PENGELUARAN)
 /** @var callable $idr */
 ?>
 <table width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -36,26 +35,15 @@
           <td align="right"><?= $idr($sumPS['total'] ?? 0) ?></td>
         </tr>
 
-        <?php $hasManual = (int)($manualInput ?? 0) > 0; ?>
-        <?php if ($hasManual): ?>
-        <tr>
-          <td>Input Tgl 1–7 (Manual, tgl 05)</td>
-          <td align="right">+<?= $idr($manualInput) ?></td>
-        </tr>
-        <?php endif; ?>
-
         <?php
-          // TOTAL PEMASUKAN = semua omzet unit (Cafe + Billiard + KP + PS [+ manual jika ada])
+          // TOTAL PEMASUKAN = semua omzet unit (Cafe + Billiard + KP + PS)
           $totalIn = (int)($sumPos['total'] ?? 0)
                    + (int)($sumBil['total'] ?? 0)
                    + (int)($sumKP['total'] ?? 0)
                    + (int)($sumPS['total'] ?? 0);
-          if ($hasManual) {
-            $totalIn += (int)$manualInput;
-          }
         ?>
         <tr style="background-color:#f9fafb">
-          <td><b>Total Pemasukan<?= $hasManual ? ' (termasuk Input Tgl 1–7)' : '' ?></b></td>
+          <td><b>Total Pemasukan</b></td>
           <td align="right"><b><?= $idr($totalIn) ?></b></td>
         </tr>
 
@@ -121,11 +109,8 @@ $hasBil = !empty($sumBil['by_method']);
 <div style="margin-top:6px;color:#666;font-size:10pt;">
   <em>Catatan:</em>
   <ul style="margin:6px 0 0 18px; padding:0;">
-    <li><b>Total Pemasukan</b> = Cafe + Billiard + Kursi Pijat + PS<?= $hasManual ? ' + Input Tgl 1–7 (Manual)' : '' ?>.</li>
+    <li><b>Total Pemasukan</b> = Cafe + Billiard + Kursi Pijat + PS.</li>
     <li><b>LABA BERSIH</b> = Total Pemasukan − Pengeluaran.</li>
-    <?php if ($hasManual): ?>
-      <li><b>Input Tgl 1–7 (Manual)</b> adalah penyesuaian sementara sebesar <?= $idr($manualInput) ?> pada tanggal <b>05</b>, akan dihapus setelah data asli 1–7 masuk ke sistem.</li>
-    <?php endif; ?>
     <li>Ongkir Delivery sudah termasuk dalam Omzet Cafe (POS). Laporan Kurir bersifat informasi (subset) dan tidak menambah laba bersih.</li>
   </ul>
 </div>

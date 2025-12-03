@@ -284,46 +284,12 @@ public function print_laba(){
     $sumKP  = $this->lm->sum_kursi_pijat($f);
     $sumPS  = $this->lm->sum_ps($f);
 
-    // ===== PENYESUAIAN MANUAL: Transaksi 1–7 tidak tercatat (hardcode sementara) =====
-    $manualInput  = 0;
-    $manualNominal= 38377000; // Rp 38.377.000
-
-    $start = $f['date_from'] ?? $f['start'] ?? null;
-    $end   = $f['date_to']   ?? $f['end']   ?? null;
-
-    $yy = null; $mm = null;
-    if (!empty($start)) {
-        $yy = substr($start, 0, 4);
-        $mm = substr($start, 5, 2);
-    } elseif (!empty($f['bulan']) && !empty($f['tahun'])) {
-        $yy = (string)$f['tahun'];
-        $mm = str_pad((int)$f['bulan'], 2, '0', STR_PAD_LEFT);
-    } elseif (!empty($f['tanggal'])) {
-        $yy = substr($f['tanggal'], 0, 4);
-        $mm = substr($f['tanggal'], 5, 2);
-    } else {
-        $yy = date('Y');
-        $mm = date('m');
-    }
-
-    $d5 = $yy . '-' . $mm . '-05';
-    $includeManual = false;
-    if ($start && $end) {
-        $s = substr($start, 0, 10);
-        $e = substr($end,   0, 10);
-        $includeManual = ($d5 >= $s && $d5 <= $e);
-    } else {
-        $includeManual = true;
-    }
-    if ($includeManual) { $manualInput = $manualNominal; }
-
     // ===== LABA FINAL =====
-    // Laba final: Cafe + Billiard + Kursi Pijat + PS + Manual − Pengeluaran
+    // Laba final: Cafe + Billiard + Kursi Pijat + PS − Pengeluaran
     $laba = (int)($sumPos['total'] ?? 0)
           + (int)($sumBil['total'] ?? 0)
           + (int)($sumKP['total']  ?? 0)
           + (int)($sumPS['total']  ?? 0)
-          + (int)$manualInput
           - (int)($sumPen['total'] ?? 0);
 
     $data = [
@@ -334,7 +300,7 @@ public function print_laba(){
         'sumPen'       => $sumPen,
         'sumKP'        => $sumKP,
         'sumPS'        => $sumPS,
-        'manualInput'  => $manualInput,
+        // 'manualInput' dihapus, tidak dipakai lagi
         'laba'         => $laba,
         'f'            => $f,
         'idr'          => function($x){ return $this->_idr($x); },
@@ -348,7 +314,6 @@ public function print_laba(){
     $html = $this->load->view('admin_laporan/pdf_laba', $data, true);
     $this->_pdf($data['title'], $html, $filename);
 }
-
 
 
 
