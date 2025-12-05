@@ -76,26 +76,25 @@
 
 
 
-      <table id="datable_1" class="table table-striped table-bordered w-100">
-        <thead>
-          <tr>
-            <th class="text-center" width="5%">
-              <div class="checkbox checkbox-primary checkbox-single">
-                <input id="check-all" type="checkbox"><label></label>
-              </div>
-            </th>
-            <th width="5%">No.</th>
-            <th>Produk</th>
-            <th>Kategori</th>
-            
-            <th>SKU</th>
-            <th width="12%">Harga</th>
-            <th width="8%">Stok</th>
-            <th width="10%">Aktif</th>
-            <th width="12%">Aksi</th>
-          </tr>
-        </thead>
-      </table>
+     <table id="datable_1" class="table table-striped table-bordered w-100">
+          <thead>
+            <tr>
+              <th class="text-center" width="5%">
+                <div class="checkbox checkbox-primary checkbox-single">
+                  <input id="check-all" type="checkbox"><label></label>
+                </div>
+              </th>
+              <th width="5%">No.</th>
+              <th>Produk</th>
+              <th>Kategori</th>
+              <th width="12%">Harga</th>
+              <th width="5%">Stok</th>
+              <th width="5%">Aktif</th>
+              <th width="18%">Aksi</th>
+            </tr>
+          </thead>
+        </table>
+
 
     </div></div>
   </div></div>

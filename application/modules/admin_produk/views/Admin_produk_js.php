@@ -147,13 +147,13 @@ $(document).ready(function(){
         {data:"no",  orderable:false},
         {data:"produk"},
         {data:"kategori"},
-        // {data:"sub_kategori"},   // pastikan controller mengirim field ini
-        {data:"sku"},
+        // {data:"sub_kategori"},   // kalau mau dipakai lagi
         {data:"harga"},
         {data:"stok"},
         {data:"aktif", orderable:false},
         {data:"aksi", orderable:false}
       ],
+
       order: [],
       rowCallback:function(row, data, iDisplayIndex){
         var info = this.fnPagingInfo();
@@ -621,5 +621,93 @@ $(document).on('click', '#btn-toggle-minuman', function(){
 $(document).on('click', '#btn-toggle-makanan', function(){
   doToggleKategori('makanan');
 });
+/* ==========================================
+   Kosongkan stok & Readykan stok (per produk)
+========================================== */
+
+function kosongkanStok(id){
+  if (!id) return;
+
+  // fallback tanpa Swal
+  if (!window.Swal){
+    if (!confirm('Kosongkan stok produk ini (jadi 0)?')) return;
+    return ajaxKosongkanStok(id);
+  }
+
+  Swal.fire({
+    title: 'Kosongkan stok?',
+    text: 'Stok produk ini akan diubah menjadi 0.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, kosongkan',
+    cancelButtonText: 'Batal'
+  }).then(function(res){
+    if (!res.isConfirmed) return;
+    ajaxKosongkanStok(id);
+  });
+}
+
+function ajaxKosongkanStok(id){
+  loader();
+  $.ajax({
+    url: "<?= site_url('admin_produk/kosongkan_stok'); ?>",
+    type: "POST",
+    dataType: "json",
+    data: { id: id }
+  }).done(function(r){
+    close_loader();
+    if (!r || !r.success){
+      if (window.Swal) Swal.fire(r.title||'Gagal', r.pesan||'Tidak bisa mengosongkan stok', 'error');
+      return;
+    }
+    if (window.Swal) Swal.fire(r.title||'Berhasil', r.pesan||'Stok dikosongkan', 'success');
+    reload_table();
+  }).fail(function(){
+    close_loader();
+    if (window.Swal) Swal.fire('Gagal','Koneksi bermasalah','error');
+  });
+}
+
+function readykanStok(id){
+  if (!id) return;
+
+  if (!window.Swal){
+    if (!confirm('Readykan stok produk ini menjadi 100?')) return;
+    return ajaxReadykanStok(id);
+  }
+
+  Swal.fire({
+    title: 'Readykan stok?',
+    text: 'Stok produk ini akan diubah menjadi 100.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, readykan',
+    cancelButtonText: 'Batal'
+  }).then(function(res){
+    if (!res.isConfirmed) return;
+    ajaxReadykanStok(id);
+  });
+}
+
+function ajaxReadykanStok(id){
+  loader();
+  $.ajax({
+    url: "<?= site_url('admin_produk/readykan_stok'); ?>",
+    type: "POST",
+    dataType: "json",
+    data: { id: id }
+  }).done(function(r){
+    close_loader();
+    if (!r || !r.success){
+      if (window.Swal) Swal.fire(r.title||'Gagal', r.pesan||'Tidak bisa readykan stok', 'error');
+      return;
+    }
+    if (window.Swal) Swal.fire(r.title||'Berhasil', r.pesan||'Stok diubah menjadi 100', 'success');
+    reload_table();
+  }).fail(function(){
+    close_loader();
+    if (window.Swal) Swal.fire('Gagal','Koneksi bermasalah','error');
+  });
+}
 
 </script>

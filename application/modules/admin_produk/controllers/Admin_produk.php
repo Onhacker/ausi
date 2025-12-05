@@ -138,41 +138,72 @@ class Admin_produk extends Admin_Controller {
     }
 
 
-    public function get_dataa(){
-        $list = $this->dm->get_data();
-        $data = [];
-        foreach($list as $r){
-            $row = [];
-            $row['cek']      = '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id.'"><label></label></div>';
-            $row['no']       = '';
-            $thumb = !empty($r->gambar) ? '<img src="'.htmlspecialchars(base_url($r->gambar),ENT_QUOTES,'UTF-8').'" class="rounded mr-2" style="width:40px;height:40px;object-fit:cover">' : '<div class="bg-light" style="width:40px;height:40px;border-radius:6px"></div>';
-            $unit = isset($r->satuan) ? $r->satuan : '';
-            $row['produk']   = '<div class="d-flex align-items-center gap-2">'.$thumb.'<div><div class="fw-semibold">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div><div class="text-muted small">'.htmlspecialchars($unit,ENT_QUOTES,'UTF-8').'</div></div></div>';
-            // $row['kategori'] = htmlspecialchars(isset($r->kategori_nama)?$r->kategori_nama:'—', ENT_QUOTES, 'UTF-8');
-            $row['sku']      = '<code>'.htmlspecialchars($r->sku, ENT_QUOTES, 'UTF-8').'</code>';
-            $row['harga']    = 'Rp '.number_format((float)$r->harga,0,',','.');
-            $row['stok']     = (int)$r->stok;
-            $row['aktif']    = $r->is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Nonaktif</span>';
-            $btnEdit         = '<button type="button" class="btn btn-sm btn-warning" onclick="edit('.(int)$r->id.')"><i class="fe-edit"></i> Edit</button>';
-            $row['aksi']     = $btnEdit;
-            $row['kategori'] = htmlspecialchars(
-                (isset($r->kategori_nama)?$r->kategori_nama:'—') . 
-                (isset($r->sub_nama) && $r->sub_nama ? ' › '.$r->sub_nama : ''),
-                ENT_QUOTES, 'UTF-8'
-            );
-            $row['sub_kategori'] = htmlspecialchars(isset($r->sub_nama)?$r->sub_nama:'—', ENT_QUOTES, 'UTF-8');
+   public function get_dataa(){
+    $list = $this->dm->get_data();
+    $data = [];
+    foreach($list as $r){
+        $row = [];
+        $row['cek']      = '<div class="checkbox checkbox-primary checkbox-single"><input type="checkbox" class="data-check" value="'.(int)$r->id.'"><label></label></div>';
+        $row['no']       = '';
+
+        $thumb = !empty($r->gambar)
+            ? '<img src="'.htmlspecialchars(base_url($r->gambar),ENT_QUOTES,'UTF-8').'" class="rounded mr-2" style="width:40px;height:40px;object-fit:cover">'
+            : '<div class="bg-light" style="width:40px;height:40px;border-radius:6px"></div>';
+
+        $unit = isset($r->satuan) ? $r->satuan : '';
+
+        $row['produk']   = '<div class="d-flex align-items-center gap-2">'.$thumb.
+                           '<div><div class="fw-semibold">'.htmlspecialchars($r->nama,ENT_QUOTES,'UTF-8').'</div>'.
+                           '<div class="text-muted small">'.htmlspecialchars($unit,ENT_QUOTES,'UTF-8').'</div></div></div>';
+
+        // SKU DIHILANGKAN DARI OUTPUT
+        // $row['sku']      = '<code>'.htmlspecialchars($r->sku, ENT_QUOTES, 'UTF-8').'</code>';
+
+        $row['harga']    = 'Rp '.number_format((float)$r->harga,0,',','.');
+        $row['stok']     = (int)$r->stok;
+        $row['aktif']    = $r->is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Nonaktif</span>';
+
+       // tombol edit
+            $btnEdit = '<button type="button" class="btn btn-sm btn-warning" onclick="edit('.(int)$r->id.')">
+                          <i class="fe-edit"></i> Edit
+                        </button>';
+
+            // tombol stok (bergantian)
+            if ((int)$r->stok > 0){
+                // stok ada → tampil “Kosongkan Stok”
+                $btnStok = '<button type="button" class="btn btn-sm btn-danger ml-1" onclick="kosongkanStok('.(int)$r->id.')">
+                              <i class="fe-slash"></i> Kosongkan Stok
+                            </button>';
+            } else {
+                // stok 0 → tampil “Readykan Stok”
+                $btnStok = '<button type="button" class="btn btn-sm btn-success ml-1" onclick="readykanStok('.(int)$r->id.')">
+                              <i class="fe-check-circle"></i> Readykan Stok
+                            </button>';
+            }
+
+            // dibungkus supaya berdampingan
+            $row['aksi'] = '<div class="d-inline-flex align-items-center">'.$btnEdit.$btnStok.'</div>';
 
 
-            $data[] = $row;
-        }
-        $out = [
-            "draw" => (int)$this->input->post('draw'),
-            "recordsTotal" => $this->dm->count_all(),
-            "recordsFiltered" => $this->dm->count_filtered(),
-            "data" => $data,
-        ];
-        $this->output->set_content_type('application/json')->set_output(json_encode($out));
+        $row['kategori'] = htmlspecialchars(
+            (isset($r->kategori_nama)?$r->kategori_nama:'—') .
+            (isset($r->sub_nama) && $r->sub_nama ? ' › '.$r->sub_nama : ''),
+            ENT_QUOTES, 'UTF-8'
+        );
+
+        $row['sub_kategori'] = htmlspecialchars(isset($r->sub_nama)?$r->sub_nama:'—', ENT_QUOTES, 'UTF-8');
+
+        $data[] = $row;
     }
+
+    $out = [
+        "draw"            => (int)$this->input->post('draw'),
+        "recordsTotal"    => $this->dm->count_all(),
+        "recordsFiltered" => $this->dm->count_filtered(),
+        "data"            => $data,
+    ];
+    $this->output->set_content_type('application/json')->set_output(json_encode($out));
+}
 
     public function get_one($id){
         $id  = (int)$id;
@@ -283,6 +314,82 @@ class Admin_produk extends Admin_Controller {
 
         echo json_encode(["success"=>$ok,"title"=>$ok?"Berhasil":"Gagal","pesan"=>$ok?"Data disimpan":"Gagal simpan"]);
     }
+
+public function kosongkan_stok()
+{
+    if ( ! $this->input->is_ajax_request()) {
+        show_404();
+    }
+
+    $id = (int) $this->input->post('id');
+    if ( ! $id) {
+        return $this->_json_error('ID tidak valid');
+    }
+
+    $dataUpdate = [
+        'stok'       => 0,
+        'updated_at' => date('Y-m-d H:i:s'),
+    ];
+
+    $ok = $this->db->where('id', $id)->update('produk', $dataUpdate);
+
+    if ( ! $ok) {
+        return $this->_json_error('Gagal mengosongkan stok');
+    }
+
+    $this->_json_ok('Stok produk dikosongkan');
+}
+
+public function readykan_stok()
+{
+    if ( ! $this->input->is_ajax_request()) {
+        show_404();
+    }
+
+    $id = (int) $this->input->post('id');
+    if ( ! $id) {
+        return $this->_json_error('ID tidak valid');
+    }
+
+    $dataUpdate = [
+        'stok'       => 100,
+        'updated_at' => date('Y-m-d H:i:s'),
+    ];
+
+    $ok = $this->db->where('id', $id)->update('produk', $dataUpdate);
+
+    if ( ! $ok) {
+        return $this->_json_error('Gagal mengubah stok menjadi 100');
+    }
+
+    $this->_json_ok('Stok produk diubah menjadi 100');
+}
+
+private function _json_ok($pesan = 'OK', $extra = [])
+{
+    $out = array_merge([
+        'success' => true,
+        'title'   => 'Berhasil',
+        'pesan'   => $pesan,
+    ], $extra);
+
+    return $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode($out));
+}
+
+private function _json_error($pesan = 'Terjadi kesalahan', $extra = [])
+{
+    $out = array_merge([
+        'success' => false,
+        'title'   => 'Gagal',
+        'pesan'   => $pesan,
+    ], $extra);
+
+    return $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode($out));
+}
 
   
 // ===== UTIL: Kompres ke target ukuran (±500KB) =====
