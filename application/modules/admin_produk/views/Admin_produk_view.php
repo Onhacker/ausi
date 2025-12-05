@@ -44,7 +44,7 @@
       <span class="btn-text">Aktifkan Makanan</span>
     </button>
     <!-- ⬆️ SAMPAI SINI -->
-<?php if ($this->session->userdata("admin_usernam") == "admin") {?>
+<?php if ($this->session->userdata("admin_username") == "admin") {?>
 
     <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
       <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
