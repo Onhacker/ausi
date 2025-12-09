@@ -61,7 +61,7 @@ class Admin_pengeluaran extends Admin_Controller {
 
                 $ket = trim((string)($r->keterangan ?? ''));
                 if ($ket !== '') {
-                    $ket = '<div class="text-dark font-italic small">'.htmlspecialchars($ket,ENT_QUOTES,'UTF-8').'</div>';
+                    $ket = '<div class="text-dark font-italic small">'.nl2br(htmlspecialchars($ket,ENT_QUOTES,'UTF-8')).'</div>';
                 }
 
                 $row = [];
