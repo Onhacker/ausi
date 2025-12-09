@@ -52,7 +52,7 @@ class Admin_pengeluaran extends Admin_Controller {
 
             $list = $this->dm->get_data();
             $data = [];
-
+            $isAdmin = ($this->session->userdata('admin_username') === 'admin');
             foreach ($list as $r){
                 $jumlah    = (int)$r->jumlah;
                 $jumlah_html = 'Rp '.number_format($jumlah,0,',','.');
