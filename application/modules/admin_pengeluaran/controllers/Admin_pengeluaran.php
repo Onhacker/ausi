@@ -60,9 +60,28 @@ class Admin_pengeluaran extends Admin_Controller {
                 $created   = $r->created_at ? date('d-m-Y H:i', strtotime($r->created_at)) : '-';
 
                 $ket = trim((string)($r->keterangan ?? ''));
-                if ($ket !== '') {
-                    $ket = '<div class="text-dark font-italic small">'.nl2br(htmlspecialchars($ket,ENT_QUOTES,'UTF-8')).'</div>';
+               if ($ket !== '') {
+                    // pecah berdasarkan enter / baris baru
+                    $lines = preg_split("/\r\n|\r|\n/", $ket);
+
+                    $items = [];
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if ($line === '') continue; // skip baris kosong
+
+                        $items[] = '<li>'.htmlspecialchars($line, ENT_QUOTES, 'UTF-8').'</li>';
+                    }
+
+                    if (!empty($items)) {
+                        // list bernomor
+                        $ket = '<ol class="text-dark font-italic small mb-0 pl-3">'
+                             . implode('', $items)
+                             . '</ol>';
+                    } else {
+                        $ket = '';
+                    }
                 }
+
 
                 $row = [];
                 $row['id']        = (int)$r->id;

@@ -72,7 +72,7 @@
           <th>Jumlah</th>
           <th>Metode</th>
           <th>Dibuat</th>
-          <th width="14%">Aksi</th>
+          <th width="10%">Aksi</th>
         </tr>
       </thead>
     </table>
