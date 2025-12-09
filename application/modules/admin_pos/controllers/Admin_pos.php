@@ -478,7 +478,7 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
                                    . 'Kurir: ' . htmlspecialchars($courier_name, ENT_QUOTES, 'UTF-8')
                                    . '</div>';
                 } else {
-                    $kurirInfoHtml = '<div class="small text-danger mt-1">'
+                    $kurirInfoHtml = '<div class="small text-danger mt-1 kurir-belum">'
                                    . '<i class="mdi mdi-account-alert-outline mr-1"></i>'
                                    . 'Kurir belum ditugaskan'
                                    . '</div>';

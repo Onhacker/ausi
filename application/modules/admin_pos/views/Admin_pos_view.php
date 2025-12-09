@@ -130,6 +130,14 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
   align-items: center;
   justify-content: center;
 }
+@keyframes kurirBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.1; }
+}
+
+.kurir-belum {
+  animation: kurirBlink 1s linear infinite;
+}
 
   </style>
  
