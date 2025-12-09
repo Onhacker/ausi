@@ -75,11 +75,24 @@ class Admin_pengeluaran extends Admin_Controller {
                 $row['dibuat']    = htmlspecialchars(($r->created_by ?: '-').' · '.$created,ENT_QUOTES,'UTF-8');
 
                 $id = (int)$r->id;
-                $actionsHtml  = '<div class="btn-group btn-group-sm" role="group">';
-                $actionsHtml .= '<button type="button" class="btn btn-info" onclick="show_detail('.$id.')"><i class="fe-eye"></i></button>';
-                $actionsHtml .= '<button type="button" class="btn btn-primary ml-1" onclick="edit_one('.$id.')"><i class="fe-edit"></i></button>';
-                $actionsHtml .= '<button type="button" class="btn btn-danger ml-1" onclick="hapus_one('.$id.')"><i class="fe-trash-2"></i></button>';
+               $actionsHtml  = '<div class="btn-group btn-group-sm" role="group">';
+                // tombol detail selalu ada
+                $actionsHtml .= '<button type="button" class="btn btn-info" onclick="show_detail('.$id.')">
+                                    <i class="fe-eye"></i>
+                                 </button>';
+
+                // tombol edit + hapus hanya untuk admin
+                if ($isAdmin) {
+                    $actionsHtml .= '<button type="button" class="btn btn-primary ml-1" onclick="edit_one('.$id.')">
+                                        <i class="fe-edit"></i>
+                                     </button>';
+                    $actionsHtml .= '<button type="button" class="btn btn-danger ml-1" onclick="hapus_one('.$id.')">
+                                        <i class="fe-trash-2"></i>
+                                     </button>';
+                }
+
                 $actionsHtml .= '</div>';
+
                 $row['aksi'] = $actionsHtml;
 
                 $data[] = $row;
