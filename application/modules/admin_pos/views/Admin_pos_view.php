@@ -136,14 +136,15 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 }
 
 .kurir-belum {
-  display: inline-flex;
+  display: flex;          /* atau boleh 'block' kalau mau lebih simpel */
   align-items: center;
   font-size: 11px;
   font-weight: 600;
   padding: 2px 10px;
   border-radius: 999px;
   background: #fff5f5;
-  color: #c53030; /* merah tapi masih enak dilihat */
+  color: #c53030;
+  margin-top: 4px;        /* kasih jarak kecil dari badge 'Antar/Kirim' */
 }
 
 .kurir-belum-dot {
