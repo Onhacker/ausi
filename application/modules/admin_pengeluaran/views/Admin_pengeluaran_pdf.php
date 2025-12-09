@@ -66,24 +66,36 @@ $web = $this->om->web_me();
                     <?= htmlspecialchars($r->kategori, ENT_QUOTES, 'UTF-8'); ?>
                 </td>
                <td width="35%" align="left" style="padding:2px;">
-                    <?php
+                   <?php
                     // ambil keterangan mentah
-                    $ket = (string)($r->keterangan ?? '');
+                    $ketRaw = (string)($r->keterangan ?? '');
+                    $ketRaw = trim($ketRaw);
 
-                    // trim kiri-kanan dulu
-                    $ket = trim($ket);
-
-                    if ($ket === '') {
-                        $ket = '-';
+                    if ($ketRaw === '') {
+                        echo '-';
                     } else {
-                        // ubah semua newline jadi spasi
-                        $ket = str_replace(["\r\n","\r","\n"], ' ', $ket);
-                        // jadikan semua whitespace berurutan (spasi, tab, dsb) jadi 1 spasi
-                        $ket = preg_replace('/\s+/', ' ', $ket);
-                    }
+                        // pecah per baris (enter)
+                        $lines = preg_split("/\r\n|\r|\n/", $ketRaw);
 
-                    echo htmlspecialchars($ket, ENT_QUOTES, 'UTF-8');
+                        $items = [];
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+                            if ($line === '') continue; // skip baris kosong
+
+                            $items[] = '<li>'.htmlspecialchars($line, ENT_QUOTES, 'UTF-8').'</li>';
+                        }
+
+                        if (!empty($items)) {
+                            // list bernomor di dalam sel
+                            echo '<ol style="margin:0;padding-left:15px;font-size:9px;">'
+                               . implode('', $items)
+                               . '</ol>';
+                        } else {
+                            echo '-';
+                        }
+                    }
                     ?>
+
                 </td>
 
 
@@ -106,17 +118,16 @@ $web = $this->om->web_me();
 <br>
 
 <?php
-// Rincian total per kategori (pakai list bernomor)
+// Rincian total per kategori
 $kat = '';
 if (!empty($sum['by_kategori'])){
-    $kat .= '<ol style="margin:4px 0;padding-left:18px;">';
+    $kat .= '<ul style="margin:4px 0;padding-left:15px">';
     foreach($sum['by_kategori'] as $k => $v){
         $kat .= '<li>'.htmlspecialchars($k, ENT_QUOTES, 'UTF-8').': '.$idr($v).'</li>';
     }
-    $kat .= '</ol>';
+    $kat .= '</ul>';
 }
 ?>
-
 
 <table cellspacing="0" cellpadding="3" border="0" width="100%">
     <tr>
