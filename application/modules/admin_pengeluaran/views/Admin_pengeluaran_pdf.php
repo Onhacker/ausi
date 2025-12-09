@@ -106,16 +106,17 @@ $web = $this->om->web_me();
 <br>
 
 <?php
-// Rincian total per kategori
+// Rincian total per kategori (pakai list bernomor)
 $kat = '';
 if (!empty($sum['by_kategori'])){
-    $kat .= '<ul style="margin:4px 0;padding-left:15px">';
+    $kat .= '<ol style="margin:4px 0;padding-left:18px;">';
     foreach($sum['by_kategori'] as $k => $v){
         $kat .= '<li>'.htmlspecialchars($k, ENT_QUOTES, 'UTF-8').': '.$idr($v).'</li>';
     }
-    $kat .= '</ul>';
+    $kat .= '</ol>';
 }
 ?>
+
 
 <table cellspacing="0" cellpadding="3" border="0" width="100%">
     <tr>
