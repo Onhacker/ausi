@@ -16,7 +16,39 @@
   <td width="7%" align="center"><?= $i++ ?></td>
   <td width="16%" align="center"><?= htmlspecialchars(date('d-m-Y H:i', strtotime($r->tanggal)), ENT_QUOTES, 'UTF-8') ?></td>
   <td width="14%"><?= htmlspecialchars($r->kategori, ENT_QUOTES, 'UTF-8') ?></td>
-  <td width="35%"><?= htmlspecialchars($r->nomor_ket, ENT_QUOTES, 'UTF-8') ?></td>
+  <td width="35%">
+  <?php
+  // ambil keterangan mentah dari field nomor_ket
+  $ketRaw = isset($r->nomor_ket) ? (string)$r->nomor_ket : '';
+  $ketRaw = trim($ketRaw);
+
+  if ($ketRaw === '') {
+      echo '-';
+  } else {
+      // pecah per baris (enter)
+      $lines = preg_split("/\r\n|\r|\n/", $ketRaw);
+
+      $items = [];
+      foreach ($lines as $line) {
+          $line = trim($line);
+          if ($line === '') continue; // lewati baris kosong
+
+          $items[] = '<li>'.htmlspecialchars($line, ENT_QUOTES, 'UTF-8').'</li>';
+      }
+
+      if (!empty($items)) {
+          // tampilkan sebagai list bernomor
+          echo '<ol style="margin:0;padding-left:15px;font-size:9px;">'
+             . implode('', $items)
+             . '</ol>';
+      } else {
+          // fallback kalau ga ada baris valid
+          echo '-';
+      }
+  }
+  ?>
+</td>
+
   <td width="12%"><?= htmlspecialchars($r->metode_bayar, ENT_QUOTES, 'UTF-8') ?></td>
   <td width="16%" align="right"><?= $idr($r->jumlah) ?></td>
 </tr>
