@@ -74,9 +74,9 @@ class Admin_pengeluaran extends Admin_Controller {
 
                     if (!empty($items)) {
                         // list bernomor
-                        $ket = '<ol class="text-dark small mb-0 pl-3">'
+                        $ket = '<ol class="text-dark small mb-0 pl-3"><strong>'
                              . implode('', $items)
-                             . '</ol>';
+                             . '</strong></ol>';
                     } else {
                         $ket = '';
                     }
