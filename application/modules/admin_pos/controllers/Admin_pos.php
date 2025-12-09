@@ -469,21 +469,24 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
 
             // === Info kurir (hanya untuk delivery) ===
             $kurirInfoHtml = '';
-            if ($mode_raw === 'delivery') {
+           if ($mode_raw === 'delivery') {
                 $courier_id   = (int)($r->courier_id ?? 0);
                 $courier_name = trim((string)($r->courier_name ?? ''));
+
                 if ($courier_id > 0 && $courier_name !== '') {
                     $kurirInfoHtml = '<div class="small text-success mt-1">'
                                    . '<i class="mdi mdi-account-check-outline mr-1"></i>'
                                    . 'Kurir: ' . htmlspecialchars($courier_name, ENT_QUOTES, 'UTF-8')
                                    . '</div>';
                 } else {
-                    $kurirInfoHtml = '<div class="small text-danger mt-1 kurir-belum">'
-                                   . '<i class="mdi mdi-account-alert-outline mr-1"></i>'
-                                   . 'Kurir belum ditugaskan'
-                                   . '</div>';
+                    $kurirInfoHtml = '
+                    <div class="kurir-belum mt-1">
+                        <span class="kurir-belum-dot"></span>
+                        <span>Kurir belum ditugaskan</span>
+                    </div>';
                 }
             }
+
 
             // Meja + nama
             $meja   = $r->meja_nama ?: ($r->meja_kode ?: '—');

@@ -136,7 +136,38 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 }
 
 .kurir-belum {
-  animation: kurirBlink 1s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff5f5;
+  color: #c53030; /* merah tapi masih enak dilihat */
+}
+
+.kurir-belum-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: #e53e3e;
+  position: relative;
+}
+
+.kurir-belum-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid rgba(229, 62, 62, 0.6);
+  animation: kurirPing 1.2s ease-out infinite;
+}
+
+@keyframes kurirPing {
+  0%   { transform: scale(0.6); opacity: 1; }
+  70%  { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
   </style>
