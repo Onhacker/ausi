@@ -124,7 +124,7 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
     border-radius:999px;
   }
 
-  /* ===== Detail Pelanggan (label–value table) ===== */
+  /* ===== Detail dalam bentuk table label–value ===== */
   .cust-box{
     margin-top:.55rem;
     border:1px solid #e5e7eb;
@@ -180,28 +180,37 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
     <div class="order-main">
       <h3 class="order-title">Order #<?= esc($nomor) ?></h3>
 
-      <!-- META RINGKAS: cuma Mode + (opsional) Meja, biar tidak dobel dengan box pelanggan -->
-      <p class="order-meta">
-        Mode: <b><?= esc($modeLabel) ?></b>
-        <?php if ($showMeja): ?>
-          <span class="mx-1">•</span> Meja: <b><?= esc($meja) ?></b>
-        <?php endif; ?>
-      </p>
-
-      <?php if ($catatan !== ''): ?>
-        <p class="order-meta" style="margin-top:.25rem;">
-          <span class="text-danger" style="font-weight:700">Catatan:</span>
-          <?= nl2br(esc($catatan)) ?>
-        </p>
-      <?php endif; ?>
-
-      <div class="order-badges">
-        <span class="pill mode <?= ($modeRaw==='dinein'||$modeRaw==='dine-in') ? 'dine' : ($modeRaw==='delivery' ? 'delivery' : 'walkin') ?>">
-          <?= esc($modeLabel) ?>
-        </span>
-        <span class="pill"><?= esc($label) ?></span>
+      <!-- RINGKASAN ORDER DALAM BENTUK TABEL -->
+      <div class="cust-box" style="margin-top:.35rem;">
+        <table class="id-table">
+          <tr>
+            <th>Mode</th>
+            <td><?= esc($modeLabel) ?></td>
+          </tr>
+          <?php if ($showMeja): ?>
+            <tr>
+              <th>Meja</th>
+              <td><?= esc($meja) ?></td>
+            </tr>
+          <?php endif; ?>
+          <tr>
+            <th>Filter Item</th>
+            <td><?= esc($label) ?></td>
+          </tr>
+          <?php if ($catatan !== ''): ?>
+            <tr>
+              <th>Catatan</th>
+              <td>
+                <span class="text-danger" style="font-weight:700;">
+                  <?= nl2br(esc($catatan)) ?>
+                </span>
+              </td>
+            </tr>
+          <?php endif; ?>
+        </table>
       </div>
 
+      <!-- DETAIL PELANGGAN (OPSIONAL) JUGA DALAM TABEL -->
       <?php if ($nama !== '' || $phoneRaw !== '' || $isDelivery || $paidRaw !== ''): ?>
         <div class="cust-box">
           <table class="id-table">

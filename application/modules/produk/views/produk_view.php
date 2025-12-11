@@ -402,6 +402,14 @@ if ($ident && property_exists($ident, 'op_mon_open')) {
         <small class="menu-label">Andalang</small>
       </div>
     </div>
+    <div class="quickmenu-item" data-tipe="paket">
+      <div class="qcard">
+        <div class="menu-circle">
+          <span class="emoji-icon" data-anim="all">🎁</span>
+        </div>
+        <small class="menu-label">Hemat</small>
+      </div>
+    </div>
 
 
 

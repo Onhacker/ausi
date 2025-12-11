@@ -218,6 +218,7 @@ class Admin_produk extends Admin_Controller {
         $this->form_validation->set_rules('nama','Nama','trim|required|min_length[2]|max_length[150]');
         $this->form_validation->set_rules('sub_kategori_id','Sub Kategori','integer');
         $this->form_validation->set_rules('recomended','Andalan','in_list[0,1]');
+                $this->form_validation->set_rules('tipe','Tipe Produk','in_list[single,paket]');
 
         $this->form_validation->set_rules('kata_kunci','Kata Kunci Pencarian','trim|required|min_length[2]|max_length[150]');
         $this->form_validation->set_rules('harga','Harga','required|numeric');
@@ -242,6 +243,8 @@ class Admin_produk extends Admin_Controller {
         $gambar      = $this->input->post('gambar', true);
         $is_active   = (int) !!$this->input->post('is_active');
         $recomended = (int) !!$this->input->post('recomended');
+        $tipe = $this->input->post('tipe', true);
+        if ($tipe !== 'paket') { $tipe = 'single'; }
         // Upload gambar (opsional)
         // Upload gambar (opsional)
         if (!empty($_FILES['gambar_file']['name'])) {
@@ -307,12 +310,22 @@ class Admin_produk extends Admin_Controller {
             'deskripsi'=>$deskripsi,
             'gambar'=>$gambar,
             'is_active'=>$is_active,
-            'recomended'      => $recomended
+            'recomended'      => $recomended,
+            'tipe'            => $tipe,   // ⬅️ INI BARU
         ]);
 
-        if ($ok){ $this->purge_public_caches(); }
+        if ($ok){
+            $paketId = (int)$this->db->insert_id();
+            $this->_save_paket_items($paketId);   // simpan isi paket kalau tipe=paket
+            $this->purge_public_caches();
+        }
 
-        echo json_encode(["success"=>$ok,"title"=>$ok?"Berhasil":"Gagal","pesan"=>$ok?"Data disimpan":"Gagal simpan"]);
+        echo json_encode([
+            "success"=>$ok,
+            "title"  =>$ok?"Berhasil":"Gagal",
+            "pesan"  =>$ok?"Data disimpan":"Gagal simpan"
+        ]);
+
     }
 
 public function kosongkan_stok()
@@ -546,6 +559,7 @@ private function _clear_product_list_cache()
         $this->form_validation->set_rules('hpp','HPP','numeric');
         $this->form_validation->set_rules('stok','Stok','integer');
         $this->form_validation->set_rules('satuan','Satuan','max_length[20]');
+                $this->form_validation->set_rules('tipe','Tipe Produk','in_list[single,paket]');
 
         if ($this->form_validation->run() !== TRUE){
             echo json_encode(["success"=>false,"title"=>"Validasi Gagal","pesan"=>validation_errors()]); return;
@@ -566,6 +580,8 @@ private function _clear_product_list_cache()
         $deskripsi   = $this->input->post('deskripsi', false);
         $gambar      = $this->input->post('gambar', true);
         $is_active   = (int) !!$this->input->post('is_active');
+                $tipe = $this->input->post('tipe', true);
+        if ($tipe !== 'paket') { $tipe = 'single'; }
 
         // Upload baru jika ada
         // Upload baru jika ada
@@ -631,16 +647,24 @@ private function _clear_product_list_cache()
             'satuan'=>$satuan,
             'deskripsi'=>$deskripsi,
             'gambar'=>$gambar,
-            'is_active'=>$is_active
+            'is_active'=>$is_active,
+            'tipe'            => $tipe,
         ];
         if ($needSlug){ $upd['link_seo'] = $this->dm->generate_unique_slug($nama, $id); }
 
-        $ok = $this->db->where('id',$id)->update('produk', $upd);
+               $ok = $this->db->where('id',$id)->update('produk', $upd);
 
-        if ($ok){ $this->purge_public_caches(); }
-         
+            if ($ok){
+                $this->_save_paket_items($id);   // simpan ulang isi paket
+                $this->purge_public_caches();
+            }
 
-        echo json_encode(["success"=>$ok,"title"=>$ok?"Berhasil":"Gagal","pesan"=>$ok?"Data diupdate":"Gagal update"]);
+            echo json_encode([
+                "success"=>$ok,
+                "title"  =>$ok?"Berhasil":"Gagal",
+                "pesan"  =>$ok?"Data diupdate":"Gagal update"
+            ]);
+
     }
 
 
@@ -726,6 +750,79 @@ public function set_andalan(){
             "pesan"   => $ok ? "Produk ditandai sebagai andalan." : "Gagal memperbarui data."
         ]));
 }
+
+    /**
+     * Simpan ulang isi paket ke tabel produk_paket_item
+     * - Selalu hapus isi lama terlebih dahulu
+     * - Kalau tipe != 'paket', langsung selesai (tidak insert apapun)
+     */
+    private function _save_paket_items($paketId)
+    {
+        $paketId = (int)$paketId;
+        if ($paketId <= 0) return;
+
+        $tipe = $this->input->post('tipe', true);
+        if ($tipe !== 'paket') {
+            // bukan paket -> hapus isi lama (jika ada) dan selesai
+            $this->db->where('paket_id', $paketId)->delete('produk_paket_item');
+            return;
+        }
+
+        // hapus isi lama dulu
+        $this->db->where('paket_id', $paketId)->delete('produk_paket_item');
+
+        $produkIds = $this->input->post('paket_produk_id');
+        $qtys      = $this->input->post('paket_qty');
+
+        if (!is_array($produkIds) || !is_array($qtys)) return;
+
+        $batch = [];
+        foreach ($produkIds as $i => $pid) {
+            $pid = (int)$pid;
+            $qty = isset($qtys[$i]) ? (int)$qtys[$i] : 0;
+            if ($pid <= 0 || $qty <= 0) continue;
+
+            $batch[] = [
+                'paket_id'  => $paketId,
+                'produk_id' => $pid,
+                'qty'       => $qty,
+            ];
+        }
+
+        if (!empty($batch)) {
+            $this->db->insert_batch('produk_paket_item', $batch);
+        }
+    }
+
+    /**
+     * Ambil isi paket (dipakai saat EDIT di modal)
+     * GET admin_produk/get_paket_items/{id}
+     */
+    public function get_paket_items($id)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'pesan'   => 'ID paket tidak valid'
+                ]));
+        }
+
+        $rows = $this->db->select('ppi.produk_id, ppi.qty, p.nama, p.harga, p.satuan')
+            ->from('produk_paket_item ppi')
+            ->join('produk p', 'p.id = ppi.produk_id', 'left')
+            ->where('ppi.paket_id', $id)
+            ->get()->result();
+
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => true,
+                'data'    => $rows
+            ]));
+    }
+
+
 
 
 }

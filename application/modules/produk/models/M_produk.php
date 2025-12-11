@@ -186,7 +186,12 @@ if (!$isRec && !empty($filters['sub_kategori'])){
     if (!empty($filters['sold_out'])){
         $this->db->where('p.stok', 0);
     }
-
+ if (!$isRec && !empty($filters['tipe'])) {
+        $t = (string)$filters['tipe'];
+        if ($this->db->field_exists('tipe', 'produk')) {
+            $this->db->where('p.tipe', $t);
+        }
+    }
     // 🔥 Trending window (tambahkan di base_filters juga!)
     // if (!empty($filters['trending'])) {
     //     $min  = isset($filters['trend_min'])  ? (float)$filters['trend_min']  : 1.0;
@@ -269,6 +274,12 @@ if (!$isRec && !empty($filters['sub_kategori'])){
     // ===== Sold out =====
     if (!empty($filters['sold_out'])){
         $this->db->where('p.stok', 0);
+    }
+ if (!$isRec && !empty($filters['tipe'])) {
+        $t = (string)$filters['tipe'];
+        if ($this->db->field_exists('tipe', 'produk')) {
+            $this->db->where('p.tipe', $t);
+        }
     }
 
     // // ===== Trending window (opsional, aktif jika filters['trending']) =====

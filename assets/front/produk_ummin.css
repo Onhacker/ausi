@@ -546,6 +546,12 @@
 .corner-ribbon.success {
     background: #16a34a;
 }
+/* Pita miring khusus Paket Hemat */
+.corner-ribbon.paket {
+  background: #ff9800;   /* oranye */
+  /*color:#fff;*/
+}
+
 .star-meter {
     display: flex;
     align-items: center;
@@ -778,5 +784,26 @@
         right: 0.6rem;
         bottom: 8.5rem;
         max-width: calc(100% - 1.2rem);
+    }
+}
+/* === QUICKMENU: 5 item per baris, full width, tanpa kepotong === */
+.quickmenu-scroll {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;          /* sedikit lebih rapat supaya muat */
+    overflow: visible !important;    /* jangan dipotong kiri/kanan */
+}
+
+/* Setiap item isi 1 cell penuh */
+.quickmenu-item {
+    flex: none !important;
+    width: 100% !important;
+}
+
+/* Di layar kecil, kecilkan lingkaran supaya 5 ikon tetap muat rapi */
+@media (max-width: 575.98px) {
+    .menu-circle {
+        width: 60px;
+        height: 60px;
     }
 }

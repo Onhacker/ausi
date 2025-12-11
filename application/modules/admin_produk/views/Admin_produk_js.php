@@ -1,8 +1,49 @@
+  <?php
+        // daftar produk yang boleh jadi isi paket (hanya produk biasa & aktif)
+        $produk_opsi = $this->db
+          ->select('id,nama')
+          ->from('produk')
+          ->where('is_active', 1)
+          ->where('tipe', 'single')
+          ->order_by('nama','asc')
+          ->get()->result();
+      ?>
 <script>
 /* =======================
    Global vars & helpers
 ======================= */
 var table, save_method = 'add';
+// Template 1 baris isi paket (dipakai tambah & edit)
+var paketRowTemplate = `
+<tr>
+  <td>
+    <select name="paket_produk_id[]" class="form-control form-control-sm">
+      <option value="">— Pilih Produk —</option>
+      <?php foreach ($produk_opsi as $p): ?>
+        <option value="<?= (int)$p->id; ?>"><?= htmlspecialchars($p->nama, ENT_QUOTES, 'UTF-8'); ?></option>
+      <?php endforeach; ?>
+    </select>
+  </td>
+  <td>
+    <input type="number" name="paket_qty[]" class="form-control form-control-sm" min="1" value="1">
+  </td>
+  <td class="text-center">
+    <button type="button" class="btn btn-xs btn-outline-danger btn-del-paket-item">
+      <i class="fe-x"></i>
+    </button>
+  </td>
+</tr>`;
+function toggleIsiPaket(){
+  var tipe = $('#tipe').val();
+  var $grp = $('#group-isi-paket');
+  if (!$grp.length) return;
+
+  if (tipe === 'paket'){
+    $grp.slideDown(120);
+  } else {
+    $grp.slideUp(120);
+  }
+}
 
 function loader(){
   if (window.Swal) {
@@ -73,6 +114,22 @@ $(document).ready(function(){
       ]
     });
   }
+
+ $(document).on('change', '#tipe', function(){
+    toggleIsiPaket();
+  });
+
+  // tambahkan item paket
+  $(document).on('click', '#btn-add-paket-item', function(){
+    var $tbody = $('#tbl-isi-paket tbody');
+    if (!$tbody.length) return;
+    $tbody.append($(paketRowTemplate));
+  });
+
+  // hapus baris item
+  $(document).on('click', '.btn-del-paket-item', function(){
+    $(this).closest('tr').remove();
+  });
 
   // Preview image + label file + kosongkan path (guard)
   if ($('#gambar_file').length){
@@ -194,6 +251,9 @@ function add(){
   $('#id').val('');
   $('#sku').val('').attr('placeholder','(auto)');
   $('#is_active').prop('checked', true);
+    $('#tipe').val('single');      // default produk biasa
+  $('#tbl-isi-paket tbody').empty();
+  toggleIsiPaket();
 
   if ($('#deskripsi').length) $('#deskripsi').summernote('code','');
 
@@ -254,6 +314,26 @@ function edit(id){
       $('#nama').val(d.nama);
       $('#kata_kunci').val(d.kata_kunci);
       $('#sku').val(d.sku);
+            // set tipe produk
+      var tipe = d.tipe || 'single';
+      $('#tipe').val(tipe);
+      $('#tbl-isi-paket tbody').empty();
+      toggleIsiPaket();
+
+      // kalau paket, load isi paket
+      if (tipe === 'paket'){
+        $.getJSON("<?= site_url('admin_produk/get_paket_items/'); ?>"+d.id)
+          .done(function(res){
+            if (!res || !res.success || !res.data) return;
+            var $tbody = $('#tbl-isi-paket tbody');
+            res.data.forEach(function(it){
+              var $row = $(paketRowTemplate);
+              $row.find('select[name="paket_produk_id[]"]').val(it.produk_id);
+              $row.find('input[name="paket_qty[]"]').val(it.qty);
+              $tbody.append($row);
+            });
+          });
+      }
 
 // ⬇️ GANTI 2 baris ini:
 // $('#harga').val(d.harga);

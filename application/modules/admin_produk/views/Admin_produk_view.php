@@ -108,6 +108,8 @@
           <button type="button" class="close" onclick="close_modal()" aria-hidden="true">×</button>
         </div>
         <div class="modal-body">
+        
+
           <form id="form_app" method="post">
             <input type="hidden" name="id" id="id">
             <div class="row">
@@ -136,6 +138,20 @@
                   <label class="text-primary">Nama Produk</label>
                   <input type="text" class="form-control" name="nama" id="nama" autocomplete="off" required>
                 </div>
+
+                <!-- ⬇️ TAMBAHKAN INI -->
+                <div class="form-group mb-2">
+                  <label class="text-primary">Tipe Produk</label>
+                  <select name="tipe" id="tipe" class="form-control">
+                    <option value="single">Produk biasa</option>
+                    <option value="paket">Paket (isi beberapa produk)</option>
+                  </select>
+                  <small class="text-muted">
+                    Pilih <strong>Paket</strong> jika produk ini berisi beberapa item (misal: Nasi + Es Teh).
+                  </small>
+                </div>
+                <!-- ⬆️ SAMPAI SINI -->
+
                 <div class="form-group mb-2">
                   <label class="text-primary">Kata Kunci Pencarian</label>
                   <input type="text" class="form-control" name="kata_kunci" id="kata_kunci" autocomplete="off" required>
@@ -180,12 +196,38 @@
                     <img id="preview" src="" alt="" style="display:none;width:80px;height:80px;object-fit:cover;border-radius:6px">
                   </div>
                 </div>
-                <div class="form-group mb-2">
+                               <div class="form-group mb-2">
                   <label class="text-primary">Deskripsi</label>
                   <textarea name="deskripsi" id="deskripsi" class="form-control"></textarea>
                   <small class="text-muted">Deskripsi mendukung format (bold, list, gambar, dll.).</small>
                 </div>
+
+                <!-- ⬇️ BLOK ISI PAKET -->
+                <div class="form-group mb-2" id="group-isi-paket" style="display:none;">
+                  <label class="text-primary">Isi Paket</label>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-1" id="tbl-isi-paket">
+                      <thead>
+                        <tr>
+                          <th style="width:55%;">Produk</th>
+                          <th style="width:25%;">Qty</th>
+                          <th style="width:20%;">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                  <button type="button" class="btn btn-xs btn-outline-primary" id="btn-add-paket-item">
+                    <i class="fe-plus"></i> Tambah Item
+                  </button>
+                  <small class="text-muted d-block mt-1">
+                    Isi dengan produk biasa (bukan paket). Masing-masing akan otomatis masuk ke Kitchen/Bar sesuai pengaturan produk aslinya.
+                  </small>
+                </div>
+                <!-- ⬆️ BLOK ISI PAKET -->
+
                 <div class="form-group mb-0 mt-2">
+
                   <div class="checkbox checkbox-warning">
                     <input id="recomended" type="checkbox" name="recomended" value="1">
                     <label for="recomended">Jadikan Andalan</label>

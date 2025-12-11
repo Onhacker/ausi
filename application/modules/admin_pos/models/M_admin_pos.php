@@ -94,10 +94,52 @@ class M_admin_pos extends CI_Model {
     } elseif ($this->status_filter !== 'all' && is_array($this->status_filter)){
         $this->db->where_in('o.status', $this->status_filter);
     }
-    if ($this->item_category_filter !== null){
-        $cat = (int)$this->item_category_filter;
-        $this->db->where("EXISTS (SELECT 1 FROM pesanan_item pi WHERE pi.pesanan_id = o.id AND pi.id_kategori = {$cat})", null, false);
+    // if ($this->item_category_filter !== null){
+    //     $cat = (int)$this->item_category_filter;
+    //     $this->db->where("EXISTS (SELECT 1 FROM pesanan_item pi WHERE pi.pesanan_id = o.id AND pi.id_kategori = {$cat})", null, false);
+    // }
+
+ if ($this->item_category_filter !== null){
+    $cat = (int)$this->item_category_filter;
+
+    // kalau ada tabel paket → support paket
+    if ($this->db->table_exists('produk_paket_item')) {
+        $sql = "
+            EXISTS (
+                SELECT 1
+                FROM pesanan_item pi
+                LEFT JOIN produk p
+                       ON p.id = pi.produk_id
+                LEFT JOIN produk_paket_item pkt
+                       ON pkt.paket_id = p.id
+                LEFT JOIN produk c
+                       ON c.id = pkt.produk_id
+                WHERE pi.pesanan_id = o.id
+                  AND (
+                        -- item biasa
+                        pi.id_kategori = {$cat}
+                        OR (pi.id_kategori IS NULL AND p.kategori_id = {$cat})
+                        -- anak paket
+                        OR c.kategori_id = {$cat}
+                      )
+            )
+        ";
+    } else {
+        // fallback lama (tanpa paket)
+        $sql = "
+            EXISTS (
+                SELECT 1
+                FROM pesanan_item pi
+                WHERE pi.pesanan_id = o.id
+                  AND pi.id_kategori = {$cat}
+            )
+        ";
     }
+
+    $this->db->where($sql, null, false);
+}
+
+
 
     /* >>>> TAMBAHAN: batasi ke jendela operasional hari-ini dari tabel identitas <<<< */
     $this->_apply_today_window();
@@ -217,25 +259,69 @@ class M_admin_pos extends CI_Model {
         return ['order'=>$order,'items'=>$items,'total'=>$total];
     }
 
-    public function get_order_with_items_by_cat($id, $cat_id = null){
-        $order = $this->db->get_where('pesanan', ['id' => (int)$id])->row();
-        if (!$order) return null;
+    // public function get_order_with_items_by_cat($id, $cat_id = null){
+    //     $order = $this->db->get_where('pesanan', ['id' => (int)$id])->row();
+    //     if (!$order) return null;
 
+    //     $this->db->select('pi.*, p.gambar, p.link_seo as slug')
+    //              ->from('pesanan_item pi')
+    //              ->join('produk p','p.id=pi.produk_id','left')
+    //              ->where('pi.pesanan_id', (int)$id)
+    //              ->order_by('pi.id','ASC');
+
+    //     if ($cat_id === 1 || $cat_id === 2){
+    //         $this->db->where('pi.id_kategori', (int)$cat_id);
+    //     }
+
+    //     $items = $this->db->get()->result();
+    //     $total = 0; foreach($items as $it){ $total += (int)$it->subtotal; }
+
+    //     return ['order'=>$order,'items'=>$items,'total'=>$total];
+    // }
+
+    public function get_order_with_items_by_cat($id, $cat_id = null){
+    $order = $this->db->get_where('pesanan', ['id' => (int)$id])->row();
+    if (!$order) return null;
+
+    // Kalau bukan kitchen/bar, fallback ke cara lama (kalau nanti mau dipakai)
+    if (!($cat_id === 1 || $cat_id === 2)) {
         $this->db->select('pi.*, p.gambar, p.link_seo as slug')
                  ->from('pesanan_item pi')
                  ->join('produk p','p.id=pi.produk_id','left')
                  ->where('pi.pesanan_id', (int)$id)
                  ->order_by('pi.id','ASC');
-
-        if ($cat_id === 1 || $cat_id === 2){
-            $this->db->where('pi.id_kategori', (int)$cat_id);
-        }
-
         $items = $this->db->get()->result();
         $total = 0; foreach($items as $it){ $total += (int)$it->subtotal; }
-
         return ['order'=>$order,'items'=>$items,'total'=>$total];
     }
+
+    // === KITCHEN / BAR: pakai compact_items_for_orders (support paket) ===
+    $map = $this->compact_items_for_orders([(int)$id], (int)$cat_id);
+    $rows = $map[(int)$id] ?? [];
+
+    $items = [];
+    foreach ($rows as $r) {
+        // Bentuk mirip pesanan_item supaya view nggak kaget
+        $obj = (object)[
+            'produk_id' => null,
+            'nama'      => $r->nama,
+            'qty'       => $r->qty,
+            'harga'     => 0,
+            'subtotal'  => 0,
+            'gambar'    => null,
+            'slug'      => null,
+        ];
+        $items[] = $obj;
+    }
+
+    // untuk kitchen/bar total harga biasanya nggak dipakai, kasih 0 saja
+    return [
+        'order' => $order,
+        'items' => $items,
+        'total' => 0,
+    ];
+}
+
 
     public function search_products($q='', $limit=30){
         $this->db->select('id,nama,harga,stok');
@@ -638,7 +724,9 @@ public function delete_one(int $id): array
     return [
         'id'       => $id,
         'ok'       => ($res['ok_count'] === 1 && empty($res['errors'])),
-        'paid'     => in_array($id, $res['paid_ids'], true),
+        // 'paid'     => in_array($id, $res['paid_ids'], true),
+        'paid' => in_array($id, $res['deleted_paid_ids'], true),
+
         'notfound' => in_array($id, $res['notfound_ids'], true),
         'errors'   => $res['errors'],
     ];
@@ -996,11 +1084,59 @@ public function compact_items_for_order(int $order_id, ?int $cat_id = null): arr
     return $rows;
 }
 /** Ringkas item utk banyak order sekaligus → [order_id => [{nama, qty}, ...]] */
+// public function compact_items_for_orders(array $order_ids, ?int $cat_id = null): array
+// {
+//     $order_ids = array_values(array_unique(array_filter(array_map('intval',$order_ids))));
+//     if (!$order_ids) return [];
+
+//     $this->db->from('pesanan_item pi')
+//              ->join('produk p', 'p.id = pi.produk_id', 'left')
+//              ->select('pi.pesanan_id')
+//              ->select('COALESCE(pi.nama, p.nama) AS nama', false)
+//              ->select('SUM(pi.qty) AS qty', false)
+//              ->where_in('pi.pesanan_id', $order_ids);
+
+//     if ($cat_id === 1 || $cat_id === 2) {
+//         // pakai pi.id_kategori jika ada; fallback p.kategori_id bila null
+//         $this->db->group_start()
+//                  ->where('pi.id_kategori', (int)$cat_id)
+//                  ->or_group_start()
+//                     ->where('pi.id_kategori', null)
+//                     ->where('p.kategori_id', (int)$cat_id)
+//                  ->group_end()
+//                  ->group_end();
+//     }
+
+//     $this->db->group_by(['pi.pesanan_id','COALESCE(pi.nama, p.nama)'], false)
+//              ->order_by('pi.pesanan_id','ASC')
+//              ->order_by('COALESCE(pi.nama, p.nama)','ASC', false);
+
+//     $rows = $this->db->get()->result();
+
+//     $out = [];
+//     foreach ($rows as $r) {
+//         $out[(int)$r->pesanan_id][] = (object)[
+//             'nama' => (string)($r->nama ?? '-'),
+//             'qty'  => (int)$r->qty
+//         ];
+//     }
+//     return $out;
+// }
+
+
+/**
+ * Ringkas item utk banyak order → [order_id => [{nama, qty}, ...]]
+ * - Support produk single & paket
+ * - $cat_id = 1 (kitchen) / 2 (bar) → hanya item kategori tsb
+ */
 public function compact_items_for_orders(array $order_ids, ?int $cat_id = null): array
 {
     $order_ids = array_values(array_unique(array_filter(array_map('intval',$order_ids))));
     if (!$order_ids) return [];
 
+    $out = [];
+
+    /* ========= 1) ITEM BIASA (BUKAN PAKET) ========= */
     $this->db->from('pesanan_item pi')
              ->join('produk p', 'p.id = pi.produk_id', 'left')
              ->select('pi.pesanan_id')
@@ -1009,30 +1145,105 @@ public function compact_items_for_orders(array $order_ids, ?int $cat_id = null):
              ->where_in('pi.pesanan_id', $order_ids);
 
     if ($cat_id === 1 || $cat_id === 2) {
-        // pakai pi.id_kategori jika ada; fallback p.kategori_id bila null
+        $cat = (int)$cat_id;
+        // pakai pi.id_kategori jika ada; fallback p.kategori_id
         $this->db->group_start()
-                 ->where('pi.id_kategori', (int)$cat_id)
+                 ->where('pi.id_kategori', $cat)
                  ->or_group_start()
                     ->where('pi.id_kategori', null)
-                    ->where('p.kategori_id', (int)$cat_id)
+                    ->where('p.kategori_id', $cat)
                  ->group_end()
                  ->group_end();
+    }
+
+    // ⛔ JANGAN hitung produk yang bertipe PAKET di sini
+    if ($this->db->table_exists('produk_paket_item')) {
+        $this->db->where("
+            NOT EXISTS (
+                SELECT 1 FROM produk_paket_item pkt
+                WHERE pkt.paket_id = pi.produk_id
+            )
+        ", null, false);
     }
 
     $this->db->group_by(['pi.pesanan_id','COALESCE(pi.nama, p.nama)'], false)
              ->order_by('pi.pesanan_id','ASC')
              ->order_by('COALESCE(pi.nama, p.nama)','ASC', false);
 
-    $rows = $this->db->get()->result();
+    $q1 = $this->db->get();
+    if ($q1 !== false) {
+        foreach ($q1->result() as $r) {
+            $oid  = (int)$r->pesanan_id;
+            $name = (string)($r->nama ?? '-');
+            $qty  = (int)($r->qty ?? 0);
+            if ($qty <= 0) continue;
 
-    $out = [];
-    foreach ($rows as $r) {
-        $out[(int)$r->pesanan_id][] = (object)[
-            'nama' => (string)($r->nama ?? '-'),
-            'qty'  => (int)$r->qty
-        ];
+            if (!isset($out[$oid])) {
+                $out[$oid] = [];
+            }
+            if (!isset($out[$oid][$name])) {
+                $out[$oid][$name] = 0;
+            }
+            $out[$oid][$name] += $qty;
+        }
+    } else {
+        $err = $this->db->error();
+        log_message('error', 'compact_items_for_orders SINGLE error: '.$err['code'].' - '.$err['message']);
     }
-    return $out;
+
+    /* ========= 2) ITEM ANAK DARI PAKET ========= */
+    if ($this->db->table_exists('produk_paket_item')) {
+        $this->db->from('pesanan_item pi')
+                 ->join('produk_paket_item pkt', 'pkt.paket_id = pi.produk_id', 'inner')
+                 ->join('produk c', 'c.id = pkt.produk_id', 'left')
+                 ->select('pi.pesanan_id')
+                 ->select('c.nama AS nama', false)
+                 ->select('SUM(pi.qty * pkt.qty) AS qty', false)
+                 ->where_in('pi.pesanan_id', $order_ids);
+
+        if ($cat_id === 1 || $cat_id === 2) {
+            $this->db->where('c.kategori_id', (int)$cat_id);
+        }
+
+        $this->db->group_by(['pi.pesanan_id', 'c.id', 'c.nama']);
+
+        $q2 = $this->db->get();
+        if ($q2 !== false) {
+            foreach ($q2->result() as $r) {
+                $oid  = (int)$r->pesanan_id;
+                $name = (string)($r->nama ?? '-');
+                $qty  = (int)($r->qty ?? 0);
+                if ($qty <= 0) continue;
+
+                if (!isset($out[$oid])) {
+                    $out[$oid] = [];
+                }
+                if (!isset($out[$oid][$name])) {
+                    $out[$oid][$name] = 0;
+                }
+                $out[$oid][$name] += $qty;
+            }
+        } else {
+            $err = $this->db->error();
+            log_message('error', 'compact_items_for_orders PAKET error: '.$err['code'].' - '.$err['message']);
+        }
+    }
+
+    /* ========= 3) KONVERSI KE FORMAT ASLI ========= */
+    $final = [];
+    foreach ($out as $oid => $map) {
+        $oid = (int)$oid;
+        ksort($map, SORT_NATURAL | SORT_FLAG_CASE);
+        $final[$oid] = [];
+        foreach ($map as $name => $qty) {
+            $final[$oid][] = (object)[
+                'nama' => (string)$name,
+                'qty'  => (int)$qty
+            ];
+        }
+    }
+
+    return $final;
 }
 
 

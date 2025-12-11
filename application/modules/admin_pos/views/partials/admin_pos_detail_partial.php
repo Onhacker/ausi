@@ -146,6 +146,34 @@ $pm_label    = 'Lihat Order';
     padding:4px;
   }
 
+  /* Box + table untuk detail (rapi) */
+  .info-box{
+    border:1px solid #e5e7eb;
+    background:#fff;
+    border-radius:10px;
+    padding:.5rem .75rem;
+    margin-bottom:.75rem;
+  }
+  .info-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0 4px;
+  }
+  .info-table th{
+    width:120px;
+    font-size:.82rem;
+    font-weight:600;
+    color:#6b7280;
+    padding:.15rem .25rem;
+    white-space:nowrap;
+    vertical-align:top;
+  }
+  .info-table td{
+    font-size:.9rem;
+    padding:.15rem .25rem;
+    color:#111827;
+  }
+
   /* ===== Modal Assign Kurir ===== */
   #modalAssignKurir { z-index: 1062; }
   .modal-backdrop.backdrop-assign-kurir { background: rgba(22,163,74,.25); }
@@ -268,7 +296,7 @@ $pm_label    = 'Lihat Order';
     </div>
   </div>
 
-  <!-- DETAIL PELANGGAN -->
+  <!-- DETAIL PELANGGAN (PAKAI TABLE) -->
   <?php 
     $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan !== '' || (!$has_phone && $pm_raw !== ''));
     if ($show_detail):
@@ -276,95 +304,116 @@ $pm_label    = 'Lihat Order';
     <div class="mb-3">
       <div class="section-title">Detail Pelanggan</div>
       <div class="row">
+        <!-- Kolom kiri -->
         <div class="col-md-6">
-          <?php if ($customer_name !== ''): ?>
-            <div class="kv mb-1">
-              <div class="k">Nama</div>
-              <div class="v"><?= htmlspecialchars($customer_name, ENT_QUOTES, 'UTF-8'); ?></div>
-            </div>
-          <?php endif; ?>
-
-          <?php if ($has_phone): ?>
-            <div class="kv mb-1 align-items-center">
-              <div class="k">HP</div>
-              <div class="v d-flex align-items-center">
-                <a class="mr-2" href="tel:<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
-                  <?= htmlspecialchars($customer_phone, ENT_QUOTES, 'UTF-8'); ?>
-                </a>
-              </div>
-            </div>
-          <?php endif; ?>
-
-          <div class="kv mb-1 align-items-center">
-            <div class="k">Pembayaran</div>
-            <div class="v d-flex align-items-center flex-wrap" style="gap:6px;">
-              <a class="btn btn-xs btn-outline-primary"
-                 href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
-                <i class="fe-credit-card"></i>
-                <?= htmlspecialchars($pm_label, ENT_QUOTES, 'UTF-8'); ?>
-              </a>
-
-              <?php if ($is_paid_like): ?>
-                <span class="badge badge-success">Sudah Lunas</span>
+          <div class="info-box">
+            <table class="info-table">
+              <?php if ($customer_name !== ''): ?>
+                <tr>
+                  <th>Nama</th>
+                  <td><?= htmlspecialchars($customer_name, ENT_QUOTES, 'UTF-8'); ?></td>
+                </tr>
               <?php endif; ?>
-            </div>
+
+              <?php if ($has_phone): ?>
+                <tr>
+                  <th>HP</th>
+                  <td>
+                    <a href="tel:<?= htmlspecialchars($phone_plain, ENT_QUOTES,'UTF-8'); ?>">
+                      <?= htmlspecialchars($customer_phone, ENT_QUOTES, 'UTF-8'); ?>
+                    </a>
+                  </td>
+                </tr>
+              <?php endif; ?>
+
+              <tr>
+                <th>Pembayaran</th>
+                <td>
+                  <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
+                    <a class="btn btn-xs btn-outline-primary"
+                       href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                      <i class="fe-credit-card"></i>
+                      <?= htmlspecialchars($pm_label, ENT_QUOTES, 'UTF-8'); ?>
+                    </a>
+
+                    <?php if ($is_paid_like): ?>
+                      <span class="badge badge-success">Sudah Lunas</span>
+                    <?php endif; ?>
+                  </div>
+                </td>
+              </tr>
+            </table>
           </div>
         </div>
 
+        <!-- Kolom kanan -->
         <div class="col-md-6">
           <?php if ($is_delivery): ?>
-            <div class="kv mb-1">
-              <div class="k">Alamat Kirim</div>
-              <div class="v" style="font-weight:500;">
-                <?= nl2br(htmlspecialchars($alamat_kirim !== '' ? $alamat_kirim : '-', ENT_QUOTES, 'UTF-8')); ?>
-              </div>
-            </div>
+            <div class="info-box mb-2">
+              <table class="info-table">
+                <tr>
+                  <th>Alamat Kirim</th>
+                  <td style="font-weight:500;">
+                    <?= nl2br(htmlspecialchars($alamat_kirim !== '' ? $alamat_kirim : '-', ENT_QUOTES, 'UTF-8')); ?>
+                  </td>
+                </tr>
 
-            <?php if ($has_coord || $distance_km !== null): ?>
-              <div class="kv mb-1">
-                <div class="k">Lokasi</div>
-                <div class="v">
+                <?php if ($has_coord || $distance_km !== null): ?>
                   <?php if ($distance_km !== null): ?>
-                    <div class="mb-1">
-                      Jarak estimasi:
-                      <strong><?= number_format($distance_km, 1, ',', '.'); ?> km</strong>
-                      <small class="text-muted">
-                        (± <?= number_format($distance_m, 0, ',', '.'); ?> m)
-                      </small>
-                    </div>
+                    <tr>
+                      <th>Jarak</th>
+                      <td>
+                        <div>
+                          Jarak estimasi:
+                          <strong><?= number_format($distance_km, 1, ',', '.'); ?> km</strong>
+                          <small class="text-muted">
+                            (± <?= number_format($distance_m, 0, ',', '.'); ?> m)
+                          </small>
+                        </div>
+                      </td>
+                    </tr>
                   <?php endif; ?>
 
                   <?php if ($has_coord && $maps_url): ?>
-                    <div class="mb-1 small">
-                      Koordinat:
-                      <a href="<?= htmlspecialchars($maps_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
-                        <?= htmlspecialchars($dest_lat . ', ' . $dest_lng, ENT_QUOTES, 'UTF-8'); ?>
-                        <i class="fe-external-link"></i>
-                      </a>
-                    </div>
-
-                    <?php if ($maps_qr_url): ?>
-                      <div class="mt-1">
-                        <div class="small text-muted mb-1">
-                          Scan QR untuk buka Google Maps:
+                    <tr>
+                      <th>Lokasi</th>
+                      <td>
+                        <div class="mb-1 small">
+                          Koordinat:
+                          <a href="<?= htmlspecialchars($maps_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                            <?= htmlspecialchars($dest_lat . ', ' . $dest_lng, ENT_QUOTES, 'UTF-8'); ?>
+                            <i class="fe-external-link"></i>
+                          </a>
                         </div>
-                        <img
-                          src="<?= htmlspecialchars($maps_qr_url, ENT_QUOTES, 'UTF-8'); ?>"
-                          alt="QR Google Maps"
-                          class="qr-maps-img"
-                        >
-                      </div>
-                    <?php endif; ?>
+
+                        <?php if ($maps_qr_url): ?>
+                          <div class="mt-1">
+                            <div class="small text-muted mb-1">
+                              Scan QR untuk buka Google Maps:
+                            </div>
+                            <img
+                              src="<?= htmlspecialchars($maps_qr_url, ENT_QUOTES, 'UTF-8'); ?>"
+                              alt="QR Google Maps"
+                              class="qr-maps-img"
+                            >
+                          </div>
+                        <?php endif; ?>
+                      </td>
+                    </tr>
                   <?php endif; ?>
-                </div>
-              </div>
-            <?php endif; ?>
+                <?php endif; ?>
+              </table>
+            </div>
           <?php endif; ?>
 
           <?php if ($catatan !== ''): ?>
-            <div class="kv mb-0">
-              <div class="k">Catatan</div>
-              <div class="v"><?= nl2br(htmlspecialchars($catatan, ENT_QUOTES, 'UTF-8')); ?></div>
+            <div class="info-box mb-0">
+              <table class="info-table">
+                <tr>
+                  <th>Catatan</th>
+                  <td><?= nl2br(htmlspecialchars($catatan, ENT_QUOTES, 'UTF-8')); ?></td>
+                </tr>
+              </table>
             </div>
           <?php endif; ?>
         </div>

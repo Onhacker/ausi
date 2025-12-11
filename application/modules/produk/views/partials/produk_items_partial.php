@@ -58,7 +58,7 @@
   color:#fff;
 }
 .corner-ribbon.bestseller {
-  background: #F44336; /* emas = 'terlaris' */
+  background: #009688; /* emas = 'terlaris' */
   color:#fff;
 }
 </style>
@@ -123,7 +123,7 @@
     $trendingScore= (float)($p->terlaris_score ?? 0.0);      // skor trending (decay)
     $isBestseller = ($basisLaris >= $BESTSELLER_MIN);
     $isTrending   = ($trendingScore >= $TRENDING_MIN);
-
+    $isPaket = isset($p->tipe) && $p->tipe === 'paket';
     // --- "Terbaru" ---
         // --- "Terbaru" ---
     $createdAt = !empty($p->created_at) ? strtotime($p->created_at) : null;
@@ -134,15 +134,20 @@
     // ambil ranking terlaris untuk produk ini (kalau ada)
     $myRank = $bestsellerRanks[(int)$p->id] ?? null;
 
-    if (!$soldout) {
-      if ($isBestseller && $myRank !== null) {
-        // tampilkan Terlaris #1, #2, dst
+   if (!$soldout) {
+      if ($isPaket) {
+        // ⬅️ PRODUK PAKET: pakai pita Paket Hemat, abaikan Terlaris/Ngetren/Terbaru
+        $ribbon = [
+          'class' => 'paket',
+          'text'  => 'Hemat',
+        ];
+      } elseif ($isBestseller && $myRank !== null) {
         $ribbon = [
           'class' => 'bestseller',
           'text'  => 'Terlaris ' . $myRank,
         ];
       } elseif ($isTrending) {
-        $ribbon = ['class'=>'trend', 'text'=>'Ngetren']; // dulu 'hot'
+        $ribbon = ['class'=>'trend', 'text'=>'Ngetren'];
       } elseif ($isNew) {
         $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
       }

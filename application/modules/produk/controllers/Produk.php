@@ -515,7 +515,7 @@ public function list_ajax(){
     $sort_in  = strtolower((string)($this->input->get('sort', true) ?: 'random'));
     $page     = max(1, (int)($this->input->get('page') ?: 1));
     $per_page = max(1, min(50, (int)($this->input->get('per_page') ?: 12)));
-
+    $tipe = trim($this->input->get('tipe', true) ?? '');
     // recommended (?rec=1 atau ?recommended=1)
     $rec_get = $this->input->get('recommended', true);
     $rec_alt = $this->input->get('rec', true);
@@ -585,6 +585,7 @@ public function list_ajax(){
         'trending'     => $trend_flag ? 1 : 0,
         'trend_days'   => $trend_days,
         'trend_min'    => $trend_min,
+        'tipe'         => $tipe,  
     ];
 
     /* ==========================================================
@@ -604,6 +605,7 @@ public function list_ajax(){
         'days'     => $trend_days,
         'min'      => $trend_min,
         'seed'     => $seed,
+        'tipe'     => $tipe,
     ];
     $cacheKey = 'prod_list_' . md5(json_encode($cacheKeyData));
 
@@ -658,6 +660,8 @@ public function list_ajax(){
         'trend'           => $trend_flag,
         'trend_days'      => $trend_days,
         'trend_min'       => $trend_min,
+                'tipe'            => $tipe,
+
     ];
 
         $json = json_encode($response);

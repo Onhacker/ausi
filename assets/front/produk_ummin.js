@@ -85,6 +85,11 @@
   if(!$("#trend_min").length){
     $("<input>",{type:"hidden",id:"trend_min",name:"trend_min",value:""}).appendTo("#filter-form");
   }
+    // ⬇️ Tambahan: filter tipe (paket / dll)
+  if(!$("#tipe").length){
+    $("<input>",{type:"hidden",id:"tipe",name:"tipe",value:""}).appendTo("#filter-form");
+  }
+
 
 
   let $subWrap=$("#subcat-wrap");
@@ -247,7 +252,7 @@
     const trend=$("#trend").val()||"";
     const trend_days=$("#trend_days").val()||"";
     const trend_min=$("#trend_min").val()||"";
-
+     const tipe=$("#tipe").val()||"";
     // seed utk random
     const url=new URL(window.location.href);
     let seed=url.searchParams.get("seed");
@@ -256,7 +261,7 @@
       url.searchParams.set("seed",seed);
       history.replaceState({},"",url.toString());
     }
-    return{q,kategori,sub_kategori,sort,page,per_page,seed,recommended,trend,trend_days,trend_min};
+    return{q,kategori,sub_kategori,sort,page,per_page,seed,recommended,trend,trend_days,trend_min,tipe};
   }
 
 
@@ -303,7 +308,8 @@
         if(params.trend){ url.searchParams.set("trend", params.trend); } else { url.searchParams.delete("trend"); }
         if(params.trend_days){ url.searchParams.set("trend_days", params.trend_days); } else { url.searchParams.delete("trend_days"); }
         if(params.trend_min){ url.searchParams.set("trend_min", params.trend_min); } else { url.searchParams.delete("trend_min"); }
-
+         if(params.tipe){ url.searchParams.set("tipe", params.tipe); }
+        else{ url.searchParams.delete("tipe"); }
         history.pushState(params, "", url.toString());
       }
 
@@ -432,22 +438,36 @@
   }
 
 
-  function markActiveKategori(){
-    const rec = ($("#recommended").val() === "1");
-    const val = String($("#kategori").val() || "");
+ function markActiveKategori(){
+  const rec      = ($("#recommended").val() === "1");
+  const kategori = String($("#kategori").val() || "");
+  const tipe     = String($("#tipe").val() || "");
 
-    const $all = $("#quickmenu .quickmenu-item").not('[data-action="cart"]');
-    $all.removeClass("active");
+  const $items = $("#quickmenu .quickmenu-item").not('[data-action="cart"]');
+  $items.removeClass("active");
 
-    if (rec) {
-      $('#quickmenu .quickmenu-item[data-recommended="1"]').addClass("active");
-      return;
-    }
-
-    $('#quickmenu .quickmenu-item[data-kategori]').filter(function(){
-      return String(this.getAttribute('data-kategori')) === val;
-    }).addClass("active");
+  // 1) Kalau Andalang / Recommended
+  if (rec) {
+    $('#quickmenu .quickmenu-item[data-recommended="1"]').addClass("active");
+    return;
   }
+
+  // 2) Kalau filter tipe (misal: Paket Hemat)
+  if (tipe !== "") {
+    $('#quickmenu .quickmenu-item[data-tipe="'+tipe+'"]').addClass("active");
+    return;
+  }
+
+  // 3) Kalau kategori biasa
+  $('#quickmenu .quickmenu-item[data-kategori]').filter(function(){
+    return String(this.getAttribute('data-kategori')) === kategori;
+  }).addClass("active");
+
+  // 4) Fallback: kalau kategori kosong & belum ada yang aktif → pilih "Semua"
+  if (!kategori && !$("#quickmenu .quickmenu-item.active").length) {
+    $('#quickmenu .quickmenu-item[data-kategori=""]').addClass("active");
+  }
+}
 
 
   function hideSubcats(){
@@ -518,7 +538,7 @@
     $("#trend").val("");
     $("#trend_days").val("");
     $("#trend_min").val("");
-
+     $("#tipe").val("");
     setSortLabel("random");
     markActiveKategori();
 
@@ -562,49 +582,68 @@
 
   /* === Quickmenu click: dukung Recomended === */
   $("#quickmenu").on("click",".quickmenu-item",function(e){
-    if($(this).data("action")==="cart")return;
-    e.preventDefault();
+  if ($(this).data("action")==="cart") return;
+  e.preventDefault();
 
-    const isRecBtn = ($(this).data("recommended")==="1" || $(this).data("recommended")==1) ||
-                     ($(this).find('.menu-label').text().trim().toLowerCase()==='recomended');
+  const $item   = $(this);
+  const isRec   = $item.data("recommended")==="1" || $item.data("recommended")==1;
+  const tipeBtn = ($item.data("tipe") || "").toString();
 
-    // === Quickmenu click: dukung Recommended (Andalang) TANPA trending ===
-    if (isRecBtn){
-      setRec(true);
-
-      if (($("#sort").val() || "") === "trending") {
-        $("#sort").val("random");
-      }
-
-      $("#trend").val("");
-      $("#trend_days").val("");
-      $("#trend_min").val("");
-
-      setSortLabel($("#sort").val() || "random");
-      markActiveKategori();
-      hideSubcats();
-
-      const url = new URL(window.location.href);
-      url.searchParams.delete("trend");
-      url.searchParams.delete("trend_days");
-      url.searchParams.delete("trend_min");
-      history.replaceState({}, "", url.toString());
-
-      loadProducts(1);
-      scrollToGrid();
-      return;
-    }
-
-    // kategori biasa → matikan rec
-    setRec(false);
-    const kat=String($(this).data("kategori")||"");
-    $("#kategori").val(kat);
+  // === Andalang / Recommended ===
+  if (isRec){
+    setRec(true);
+    $("#tipe").val("");            // jangan pakai tipe saat recommended
+    $("#kategori").val("");
     $("#sub_kategori").val("");
+
+    $("#trend").val("");
+    $("#trend_days").val("");
+    $("#trend_min").val("");
+
+    setSortLabel($("#sort").val() || "random");
+    hideSubcats();
+    markActiveKategori();
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("trend");
+    url.searchParams.delete("trend_days");
+    url.searchParams.delete("trend_min");
+    url.searchParams.delete("tipe");
+    url.searchParams.delete("kategori");
+    url.searchParams.delete("sub");
+    history.replaceState({}, "", url.toString());
+
+    loadProducts(1);
+    scrollToGrid();
+    return;
+  }
+
+  // === Paket Hemat (punya data-tipe) ===
+  if (tipeBtn !== "") {
+    setRec(false);
+    $("#tipe").val(tipeBtn);   // biasanya "paket"
+    $("#kategori").val("");
+    $("#sub_kategori").val("");
+    hideSubcats();
     markActiveKategori();
     loadProducts(1);
-    if(kat){fetchAndRenderSubcats(kat);}else{hideSubcats();}
     scrollToGrid();
-  });
+    return;
+  }
+
+  // === Kategori biasa ===
+  setRec(false);
+  $("#tipe").val("");          // reset tipe kalau pilih kategori
+  const kat = String($item.data("kategori") || "");
+  $("#kategori").val(kat);
+  $("#sub_kategori").val("");
+  markActiveKategori();
+  loadProducts(1);
+  if (kat){ fetchAndRenderSubcats(kat); } else { hideSubcats(); }
+  scrollToGrid();
+});
+
+
 
   $(document).on("click",".subcat-badge",function(e){
     e.preventDefault();
@@ -719,6 +758,11 @@
     if(url.searchParams.has("trend"))      $("#trend").val(url.searchParams.get("trend"));
     if(url.searchParams.has("trend_days")) $("#trend_days").val(url.searchParams.get("trend_days"));
     if(url.searchParams.has("trend_min"))  $("#trend_min").val(url.searchParams.get("trend_min"));
+        if(url.searchParams.has("tipe")) $("#tipe").val(url.searchParams.get("tipe"));
+            if($("#tipe").val()==="paket"){
+      $("#kategori").val("");
+      $("#recommended").val("0");
+    }
 
     if(url.searchParams.get("rec")==="1" || url.searchParams.get("recommended")==="1"){
       setRec(true);
@@ -729,12 +773,15 @@
     setSortLabel($("#sort").val()||"random");
     markActiveKategori();
 
-    const katInit=$("#kategori").val();
-    if(isRecOn()){
+       const katInit  = $("#kategori").val();
+    const tipeInit = $("#tipe").val();
+
+    if (isRecOn() || tipeInit === "paket") {
       hideSubcats();
     }else{
       if(katInit){fetchAndRenderSubcats(katInit);}else{hideSubcats();}
     }
+
 
     const firstPage=parseInt(url.searchParams.get("page")||"1",10);
     __lastPage = firstPage || 1;
@@ -789,7 +836,7 @@
     $("#trend").val(s.trend||"");
     $("#trend_days").val(s.trend_days||"");
     $("#trend_min").val(s.trend_min||"");
-
+    $("#tipe").val(s.tipe || "");
     setSortLabel($("#sort").val());
     markActiveKategori();
 
