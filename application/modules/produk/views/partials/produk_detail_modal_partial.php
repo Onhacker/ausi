@@ -62,7 +62,54 @@ function _rv_mask_name($name){
 ?>
   <link href="<?= base_url('assets/front/produk_detail_modal_partial.min.css'); ?>" rel="stylesheet" />
 
+<style type="text/css">
+  /* ===== KOMPOSISI / DESKRIPSI DI MODAL PRODUK ===== */
+.desc-title{
+    margin-top: 1rem;
+    margin-bottom: .25rem;
+    font-size: .78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #6b7280; /* abu-abu halus */
+}
 
+.desc-box{
+    padding: .75rem .9rem;
+    background: #f9fafb;
+    border-radius: .75rem;
+    border: 1px dashed #e5e7eb;
+    font-size: .9rem;
+    line-height: 1.5;
+    color: #111827;
+    max-height: 190px;          /* biar ga kepanjangan turun ke bawah */
+    overflow-y: auto;           /* scroll kalau isi panjang */
+    word-break: break-word;     /* teks panjang ga nembus keluar */
+}
+
+/* Rapikan elemen HTML di dalam deskripsi */
+.desc-box p{
+    margin-bottom: .4rem;
+}
+.desc-box p:last-child{
+    margin-bottom: 0;
+}
+.desc-box ul,
+.desc-box ol{
+    margin: 0 0 .4rem;
+    padding-left: 1.2rem;
+}
+.desc-box li{
+    margin-bottom: .15rem;
+}
+
+/* Kalau isinya plain text (tanpa <p>), tetap enak dibaca */
+.desc-box{
+    white-space: normal;
+}
+
+
+</style>
 <div class="row modal-product align-items-start" style="row-gap: var(--gap); column-gap: var(--gap);">
   <div class="col-md-5 mb-1 mb-md-0">
     <div class="img-wrap">
