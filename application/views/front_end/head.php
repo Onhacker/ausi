@@ -489,7 +489,7 @@ window.addEventListener('load', function(){
 </script>
 
 <!-- WRAPPER HALAMAN / AREA SCROLL -->
-<div class="wrapper curved" style="--curve-h: 330px;" id="app-scroll">
+<div class="wrapper curved" style="--curve-h: 350px;" id="app-scroll">
 
   <!-- PRELOADER LAMA: menggunakan animate.css -->
   <div id="preloader">
