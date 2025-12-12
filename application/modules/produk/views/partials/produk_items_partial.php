@@ -63,19 +63,11 @@
 }
 </style>
 
-
-<!--   <?php
-    // ==== PARAM DISPLAY ====
-    $BESTSELLER_MIN = 10;   // batas lifetime "Terlaris"
-    $TRENDING_MIN   = 3.0;  // batas skor "Hot" (terlaris_score)
-    $NEW_DAYS       = 3;    // hari dianggap "Terbaru"
-    $nowTs          = time();
-  ?> -->
 <?php
     // ==== PARAM DISPLAY ====
-    $BESTSELLER_MIN = 20;   // batas lifetime "Terlaris"
-    $TRENDING_MIN   = 20.0;  // batas skor "Hot" (terlaris_score)
-    $NEW_DAYS       = 3;    // hari dianggap "Terbaru"
+    $BESTSELLER_MIN = 40;   // batas lifetime "Terlaris"
+    $TRENDING_MIN   = 3.5;  // batas skor "Hot" (terlaris_score)
+    $NEW_DAYS       = 7;    // hari dianggap "Terbaru"
     $nowTs          = time();
 
     // ==== HITUNG RANKING TERLARIS (BERDASARKAN terlaris DESC) ====
