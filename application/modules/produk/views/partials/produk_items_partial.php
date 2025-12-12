@@ -54,7 +54,7 @@
         /* samakan basis gaya ribbon kamu */
 .corner-ribbon.trend { 
   /* ambil style yang dulu kamu taruh di .corner-ribbon.hot */
-  background: #3F51B5; /* oranye = 'ngetren' */
+  background: #795548; /* oranye = 'ngetren' */
   color:#fff;
 }
 .corner-ribbon.bestseller {
@@ -74,7 +74,7 @@
 <?php
     // ==== PARAM DISPLAY ====
     $BESTSELLER_MIN = 20;   // batas lifetime "Terlaris"
-    $TRENDING_MIN   = 3.0;  // batas skor "Hot" (terlaris_score)
+    $TRENDING_MIN   = 20.0;  // batas skor "Hot" (terlaris_score)
     $NEW_DAYS       = 3;    // hari dianggap "Terbaru"
     $nowTs          = time();
 
@@ -139,7 +139,7 @@
         // ⬅️ PRODUK PAKET: pakai pita Paket Hemat, abaikan Terlaris/Ngetren/Terbaru
         $ribbon = [
           'class' => 'paket',
-          'text'  => 'Hemat',
+          'text'  => 'PKT Hemat',
         ];
       } elseif ($isBestseller && $myRank !== null) {
         $ribbon = [
@@ -147,7 +147,7 @@
           'text'  => 'Terlaris ' . $myRank,
         ];
       } elseif ($isTrending) {
-        $ribbon = ['class'=>'trend', 'text'=>'Ngetren'];
+        $ribbon = ['class'=>'trend', 'text'=>'Trending'];
       } elseif ($isNew) {
         $ribbon = ['class'=>'success', 'text'=>'Terbaru'];
       }

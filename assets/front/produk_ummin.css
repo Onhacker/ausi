@@ -544,12 +544,12 @@
     background: #ab0808;
 }
 .corner-ribbon.success {
-    background: #16a34a;
+    background: #2196F3;
 }
 /* Pita miring khusus Paket Hemat */
 .corner-ribbon.paket {
-  background: #ff9800;   /* oranye */
-  /*color:#fff;*/
+  background: #E91E63;   /* oranye */
+  /*color:#000 !important;*/
 }
 
 .star-meter {
