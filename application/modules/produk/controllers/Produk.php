@@ -215,7 +215,8 @@ private function _end_customer_flow_and_go_receipt($order_id){
     : 0.00;
 
     $this->db->where('id', $id)->update('produk', ['rating_avg'=>$avg]);
-
+    // echo $this->db->last_query();
+    
     if ($this->db->trans_status() === false) {
         $this->db->trans_rollback();
         return $this->_json(['success'=>false,'pesan'=>'Gagal menyimpan rating'], 500);
