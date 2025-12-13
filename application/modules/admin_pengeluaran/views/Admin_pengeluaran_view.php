@@ -38,11 +38,13 @@
       <option value="Gaji">Gaji</option>
       <option value="Billiard">Billiard</option>
       <option value="Tagihan Bulanan/Mingguan">Tagihan Bulanan/Mingguan</option>
-      <option value="Lain-lain">Lain-lain</option>
+      
       <option value="Investasi Peralatan">Investasi Peralatan</option>
       <option value="Prive Pemilik">Prive Pemilik</option>
       <option value="Pemasaran dan Promosi">Pemasaran dan Promosi</option>
       <option value="Perlengkapan Dapur">Perlengkapan Dapur</option>
+      <option value="Lain-lain">Lain-lain</option>
+      <option value="Refund">Refund</option>
     </select>
 
 
@@ -218,6 +220,7 @@ function open_form(data){
     'Prive Pemilik',
     'Pemasaran dan Promosi',
     'Perlengkapan Dapur',
+    'Refund',
     'Lain-lain'
   ];
 
