@@ -14,7 +14,7 @@ class Publik extends Onhacker_Controller {
 
 	function error(){
         $data['title'] = "Halaman Tidak Ditemukan - ".$this->fm->web_me()->nama_website;
-        $this->load->view(onhacker_view("Error_view"),$data); 
+        $this->load->view("stp/Error_view",$data); 
     }
 
     function imunisasi($id) {
