@@ -124,6 +124,7 @@ if (!function_exists('nav_class')) {
         'admin_setting_web*','admin_unit_tujuan*','admin_unit_lain*','Admin_pengumuman*',
         'admin_voucher_cafe*','admin_voucher_kursi_pijat*','admin_ps*','admin_voucher_ps*',
         'admin_monitor*', // NEW: Monitor TV Billiard
+        'admin_voucher_billiard*', // <-- ADD INI
       ];
 
 
@@ -208,7 +209,12 @@ if (!function_exists('nav_class')) {
     user_can_mod(['admin_meja']) ||
     user_can_mod(['admin_poin']); // <- biar grup Caffe muncul kalau cuma punya akses poin
 
-    $showBilliard  = user_can_mod(['admin_billiard']) || user_can_mod(['admin_riwayat_billiard']) || user_can_mod(['admin_meja_billiard']);
+    $showBilliard  =
+    user_can_mod(['admin_billiard']) ||
+    user_can_mod(['admin_riwayat_billiard']) ||
+    user_can_mod(['admin_meja_billiard']) ||
+    user_can_mod(['admin_voucher_billiard']); // <-- ADD INI
+
     $showPijat     =
     user_can_mod(['admin_kursi_pijat']) ||
     user_can_mod(['admin_voucher_kursi_pijat']);
@@ -291,6 +297,11 @@ if (!function_exists('nav_class')) {
     <?php if (user_can_mod(['admin_billiard'])): ?>
       <a id="quick-billiard-link" href="<?= site_url('admin_billiard') ?>" class="menu-item">
         <span class="emoji" aria-hidden="true">🎱</span><span>POS Billiard</span>
+      </a>
+    <?php endif; ?>
+    <?php if (user_can_mod(['admin_voucher_billiard'])): ?>
+      <a id="quick-voucher-billiard-link" href="<?= site_url('admin_voucher_billiard') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">🎟️</span><span>Voucher Billiard</span>
       </a>
     <?php endif; ?>
 
@@ -529,6 +540,8 @@ if (!function_exists('nav_class')) {
   admin_monitor:           { a: document.getElementById("quick-monitor-link") },   // NEW: Monitor TV
   admin_kursi_pijat:         { a: document.getElementById("quick-kursi-pijat-link") },          // <-- NEW
   admin_voucher_kursi_pijat: { a: document.getElementById("quick-voucher-kursi-pijat-link") }, // <-- NEW
+  admin_voucher_billiard: { a: document.getElementById("quick-voucher-billiard-link") }, // <-- ADD
+
 };
 
 

@@ -102,6 +102,8 @@
                 id="<?= $id ?>"
                 value="<?= (int)$m->id_meja ?>"
                 form="frm"
+                data-kategori="<?= html_escape(strtolower($m->kategori ?? 'reguler')) ?>"
+
                 data-open="<?= $open ?>"
                 data-close="<?= $close ?>"
 
@@ -259,9 +261,20 @@
               </div>
 
               <div class="col-md-4 mb-3">
-                <label class="form-label" for="voucher">Voucher Main Gratis</label>
-                <input type="text" name="voucher" id="voucher" class="form-control">
+                <label class="form-label" for="voucher">Voucher / Kode Promo</label>
+                <input
+                  type="text"
+                  name="voucher"
+                  id="voucher"
+                  class="form-control"
+                  placeholder="Contoh: AUSI10 / FREE2JAM"
+                  autocomplete="off"
+                >
+                <small class="help-hint">
+                  Bisa berupa <b>FREE_MAIN</b> (khusus meja <b>REGULER</b>) atau diskon <b>NOMINAL/PERSEN</b> (semua meja).
+                </small>
               </div>
+
 
               <div class="col-12 text-center">
                 <button class="btn btn-blue px-4" id="btnSubmit" type="submit">
@@ -299,6 +312,7 @@
 <script src="<?php echo base_url('assets/admin') ?>/js/app.min.js"></script>
 <script src="<?php echo base_url('assets/admin') ?>/js/sw.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/admin/js/jquery.easyui.min.js"></script>
+<script>window.__VOUCHER_PREVIEW_URL = "<?= site_url('billiard/preview_voucher') ?>";</script>
 <?php $this->load->view("front_end/footer.php") ?>
 <!-- ====== RADIO MEJA: tampilkan hint jam & tarif (versi window-aware) ====== -->
 <script>
@@ -1177,6 +1191,8 @@ async function doPost(){
   }
 }
 
+
+
 // pas user ngetik / blur / ganti jam, kita rapikan & kasih message custom
 document.addEventListener('DOMContentLoaded', function(){
   const jamMulai = document.getElementById('jam_mulai');
@@ -1195,6 +1211,33 @@ document.addEventListener('DOMContentLoaded', function(){
     normalizeJamMulai(); // pastikan sudah bersih dulu
   });
 });
+// set dari PHP:
+// 
+const VOUCHER_PREVIEW_URL = window.__VOUCHER_PREVIEW_URL || '';
+
+function sanitizeVoucherCode(s){
+  return String(s || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9\-_]/g, '')
+    .slice(0, 32);
+}
+function fmtRp(n){
+  const x = parseInt(n, 10) || 0;
+  return 'Rp ' + x.toLocaleString('id-ID');
+}
+async function previewVoucher(payload){
+  if (!VOUCHER_PREVIEW_URL) throw new Error('VOUCHER_PREVIEW_URL belum di-set');
+  const fd = new FormData();
+  Object.keys(payload).forEach(k => fd.append(k, payload[k] ?? ''));
+  const res = await fetch(VOUCHER_PREVIEW_URL, {
+    method: 'POST',
+    body: fd,
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  });
+  return await res.json();
+}
+
+
 
   frm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1286,7 +1329,9 @@ document.addEventListener('DOMContentLoaded', function(){
   const tglLabel   = (document.getElementById('tanggal_view')||{}).value || tanggalIso.value || '—';
   const durVal     = (durasi.value || '1');
   const jamLabel   = (jamMulai.value || '00:00') + ' / Durasi: ' + durVal + ' jam';
-  const voucherCode = (voucherInp && voucherInp.value.trim()) ? voucherInp.value.trim().toUpperCase() : '';
+  // const voucherCode = (voucherInp && voucherInp.value.trim()) ? voucherInp.value.trim().toUpperCase() : '';
+  const voucherCode = sanitizeVoucherCode(voucherInp && voucherInp.value ? voucherInp.value.trim() : '');
+
   const durInt = parseInt(durVal,10);
 let labelTxt = '—', subtotal = 0;
 
@@ -1304,12 +1349,163 @@ if (bandObj){
   }
 }
 
-const estimasi = voucherCode
-  ? 'Rp 0 (kalau kode valid)'
-  : (subtotal > 0
-      ? `Rp ${subtotal.toLocaleString('id-ID')} (${labelTxt})`
-      : '— (pilih jam agar masuk window)');
+// const payMethodRaw =
+//   (frm.querySelector('[name="metode_bayar"]')?.value ||
+//    frm.querySelector('[name="payment_method"]')?.value ||
+//    frm.querySelector('[name="pay_method"]')?.value || '').toLowerCase().trim();
 
+// const isNonCash = (payMethodRaw && payMethodRaw !== 'cash'); // transfer/qris/dll
+
+// let voucherPreview = null;
+// let estimasi = (subtotal > 0)
+//   ? `${fmtRp(subtotal)} (${labelTxt})`
+//   : '— (pilih jam agar masuk window)';
+
+// // === jika ada voucher: precheck ke server supaya tahu jenisnya ===
+// if (voucherCode) {
+//   try {
+//     voucherPreview = await previewVoucher({
+//       voucher: voucherCode,
+//       no_hp: noHpVal,
+//       tanggal: tanggalIso.value,
+//       meja_id: sel,
+//       jam_mulai: jamMulai.value,
+//       durasi_jam: durInt,
+//       subtotal: subtotal,
+//       metode_bayar: payMethodRaw
+//     });
+
+//     if (!voucherPreview || !voucherPreview.success) {
+//       const msg = (voucherPreview && voucherPreview.pesan) ? voucherPreview.pesan : 'Voucher tidak valid.';
+//       if (window.Swal) {
+//         await Swal.fire({ title: 'Voucher Invalid', html: msg, icon: 'error' });
+//       } else {
+//         alert(msg);
+//       }
+//       setLoading(false);
+//       __isSubmitting = false;
+//       return;
+//     }
+//   } catch (err) {
+//     if (window.Swal) {
+//       await Swal.fire({
+//         title: 'Gagal cek voucher',
+//         text: 'Tidak bisa verifikasi voucher. Coba lagi ya.',
+//         icon: 'error'
+//       });
+//     } else {
+//       alert('Gagal cek voucher.');
+//     }
+//     setLoading(false);
+//     __isSubmitting = false;
+//     return;
+//   }
+
+
+const payMethodRaw =
+  (frm.querySelector('[name="metode_bayar"]')?.value ||
+   frm.querySelector('[name="payment_method"]')?.value ||
+   frm.querySelector('[name="pay_method"]')?.value || '').toLowerCase().trim();
+
+const isNonCash = (payMethodRaw && payMethodRaw !== 'cash');
+
+let voucherPreview = null;
+let estimasi = (subtotal > 0)
+  ? `${fmtRp(subtotal)} (${labelTxt})`
+  : '— (pilih jam agar masuk window)';
+
+// === jika ada voucher: precheck ke server supaya tahu jenisnya ===
+if (voucherCode) {
+  try {
+    const mejaId = sel ? String(sel.value || '') : '';
+    const mejaKategori = (sel?.dataset?.kategori || '').toLowerCase().trim();
+
+    voucherPreview = await previewVoucher({
+      voucher: voucherCode,
+      no_hp: noHpVal,
+      tanggal: tanggalIso.value,
+      meja_id: mejaId,                // ✅ FIX: bukan element
+      jam_mulai: (jamMulai.value || ''),
+      durasi_jam: durInt,
+      subtotal: String(subtotal || 0),
+      metode_bayar: payMethodRaw
+    });
+
+    if (!voucherPreview || !voucherPreview.success) {
+      const msg = (voucherPreview && voucherPreview.pesan)
+        ? voucherPreview.pesan
+        : 'Voucher tidak valid.';
+      if (window.Swal) await Swal.fire({ title: 'Voucher Invalid', html: msg, icon: 'error' });
+      else alert(msg);
+
+      setLoading(false);
+      __isSubmitting = false;
+      return;
+    }
+
+    const v = voucherPreview.data || {};
+    const jenis = String(v.jenis || '').toUpperCase();
+
+    // ✅ FREE_MAIN: hanya REGULER (double safety, walau server juga cek)
+    if (jenis === 'FREE_MAIN' && mejaKategori && mejaKategori !== 'reguler') {
+      if (window.Swal) {
+        await Swal.fire({
+          title: 'Voucher Tidak Berlaku',
+          text: 'Voucher FREE_MAIN hanya bisa dipakai di meja REGULER.',
+          icon: 'warning'
+        });
+      } else {
+        alert('Voucher FREE_MAIN hanya bisa dipakai di meja REGULER.');
+      }
+      setLoading(false);
+      __isSubmitting = false;
+      return;
+    }
+
+    if (jenis === 'FREE_MAIN') {
+      estimasi = 'Rp 0 (FREE_MAIN valid)';
+    } else {
+      // NOMINAL / PERSEN
+      const after = parseInt(v.subtotal_after ?? v.grand_total ?? subtotal, 10) || 0;
+      const disc  = parseInt(v.discount ?? 0, 10) || 0;
+
+      estimasi = isNonCash
+        ? `${fmtRp(after)} (setelah diskon ${fmtRp(disc)}) + kode unik (transfer/QRIS)`
+        : `${fmtRp(after)} (setelah diskon ${fmtRp(disc)})`;
+    }
+
+  } catch (err) {
+    if (window.Swal) {
+      await Swal.fire({
+        title: 'Gagal cek voucher',
+        text: 'Tidak bisa verifikasi voucher. Coba lagi ya.',
+        icon: 'error'
+      });
+    } else {
+      alert('Gagal cek voucher.');
+    }
+    setLoading(false);
+    __isSubmitting = false;
+    return;
+  }
+}
+
+// ✅ kalau tidak ada voucher, biarkan estimasi default (subtotal)
+if (voucherCode && voucherPreview && voucherPreview.success) {
+  const v = voucherPreview.data || {};
+  const jenis = String(v.jenis || '').toUpperCase();
+
+  if (jenis === 'FREE_MAIN') {
+    estimasi = 'Rp 0 (FREE_MAIN valid)';
+  } else {
+    const after = parseInt(v.subtotal_after ?? v.grand_total ?? subtotal, 10) || 0;
+    const disc  = parseInt(v.discount ?? 0, 10) || 0;
+
+    estimasi = isNonCash
+      ? `${fmtRp(after)} (setelah diskon ${fmtRp(disc)}) + kode unik (transfer/QRIS)`
+      : `${fmtRp(after)} (setelah diskon ${fmtRp(disc)})`;
+  }
+}
 
 
   const html = `
@@ -1319,7 +1515,15 @@ const estimasi = voucherCode
       <p><b>${htmlEscape(mejaName)}</b></p>
       <p><b>Tanggal</b>: ${htmlEscape(tglLabel)}</p>
       ${voucherCode ? `<p><b>Voucher</b>: <span class="badge badge-success">${htmlEscape(voucherCode)}</span></p>` : ''}
-      ${voucherCode ? `<p><b>Durasi voucher</b>: Mengikuti promo voucher kamu (akan dikunci otomatis waktu submit)</p>` : ''}
+
+${(voucherCode && voucherPreview && voucherPreview.success && String(voucherPreview.data?.jenis||'').toUpperCase()==='FREE_MAIN')
+  ? `<p><b>Durasi voucher</b>: <b>${parseInt(voucherPreview.data?.jam_voucher||1,10)} jam</b> (durasi akan dikunci otomatis)</p>`
+  : ''}
+
+${(voucherCode && voucherPreview && voucherPreview.success && ['NOMINAL','PERSEN'].includes(String(voucherPreview.data?.jenis||'').toUpperCase()))
+  ? `<p><b>Diskon</b>: <b>${fmtRp(voucherPreview.data?.discount||0)}</b></p>`
+  : ''}
+
       <p><b>Estimasi bayar</b>: <span style="font-weight:800">${estimasi}</span></p>
     </div>
   `;
@@ -1509,4 +1713,13 @@ function slotDayCrossOK(r, startHM, hours, dateObj){
     endHM: fromMin((s + durMin) % (24*60))
   };
 }
+
+// document.addEventListener('DOMContentLoaded', function(){
+//   const v = document.getElementById('voucher');
+//   if (!v) return;
+//   v.addEventListener('input', function(){
+//     this.value = sanitizeVoucherCode(this.value);
+//   });
+// });
+
 </script>

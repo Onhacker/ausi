@@ -101,19 +101,21 @@ class Api extends MX_Controller {
         'label'   => 'Voucher',
         'icon'    => 'mdi mdi-ticket-percent',
         'children'=> [
-            
-            [
-                'label'   => 'Cek Poin Cafe',
-                'url'     => site_url('admin_poin'),
-                'icon'    => 'mdi mdi-star-circle',
-                'require' => ['Cek Poin Cafe','admin_poin','user'],
-            ],
             [
                 'label'   => 'Voucher Cafe',
                 'url'     => site_url('admin_voucher_cafe'),
                 'icon'    => 'mdi mdi-coffee-outline',
                 'require' => ['Voucher Cafe','admin_voucher_cafe','user'],
             ],
+            [
+                'label'   => 'Voucher Billiard',
+                'url'     => site_url('admin_voucher_billiard'),
+                'icon'    => 'mdi mdi-billiards',
+                'require' => ['Voucher Billiard','admin_voucher_billiard','user'],
+            ],
+
+            
+            
             [
                 'label'   => 'Voucher Kursi Pijat',
                 'url'     => site_url('admin_voucher_kursi_pijat'),
@@ -125,6 +127,12 @@ class Api extends MX_Controller {
                 'url'     => site_url('admin_voucher_ps'),
                 'icon'    => 'mdi mdi-playstation',
                 'require' => ['Voucher PS','admin_voucher_ps','user'],
+            ],
+            [
+                'label'   => 'Cek Poin Cafe',
+                'url'     => site_url('admin_poin'),
+                'icon'    => 'mdi mdi-star-circle',
+                'require' => ['Cek Poin Cafe','admin_poin','user'],
             ],
 
         ],
@@ -403,13 +411,7 @@ public function get_menu_mobile()
         ],
 
         // ===== Voucher (BARU) =====
-        [
-            'id'      => 'admin_poin',
-            'label'   => 'Cek Poin',
-            'url'     => site_url('admin_poin'),
-            'icon'    => 'mdi mdi-star-circle',
-            'require' => ['Cek Poin','admin_poin','user'],
-        ],
+        
 
 
         [
@@ -420,6 +422,21 @@ public function get_menu_mobile()
             'require' => ['Voucher Cafe','admin_voucher_cafe','user'],
         ],
 
+        [
+            'id'      => 'admin_voucher_billiard',
+            'label'   => 'Voucher Billiard',
+            'url'     => site_url('admin_voucher_billiard'),
+            'icon'    => 'mdi mdi-billiards',
+            'require' => ['Voucher Billiard','admin_voucher_billiard','user'],
+        ],
+
+        [
+            'id'      => 'admin_poin',
+            'label'   => 'Cek Poin',
+            'url'     => site_url('admin_poin'),
+            'icon'    => 'mdi mdi-star-circle',
+            'require' => ['Cek Poin','admin_poin','user'],
+        ],
         [
             'id'      => 'admin_voucher_kursi_pijat',
             'label'   => 'Voucher Kursi Pijat',

@@ -2,11 +2,24 @@
 
 <?php
   // ===== PHP helpers yg sdh ada di file kamu =====
-  $subtotal_now = (int)($booking->subtotal ?? 0);
-$kode_unik    = (int)($booking->kode_unik ?? 0);
+$subtotal_before = (int)($booking->subtotal ?? 0);
+$kode_unik       = (int)($booking->kode_unik ?? 0);
 
-// selalu hitung dari subtotal + kode unik
-$grand_total  = $subtotal_now + $kode_unik;
+// ✅ pakai grand_total dari DB (sudah termasuk diskon voucher jika ada)
+$grand_total = isset($booking->grand_total)
+  ? (int)$booking->grand_total
+  : ($subtotal_before + $kode_unik);
+
+// hitung subtotal sesudah diskon (grand_total - kode_unik)
+$subtotal_after = max(0, $grand_total - $kode_unik);
+
+// estimasi diskon voucher (kalau ada)
+$discount_voucher = max(0, $subtotal_before - $subtotal_after);
+
+// flag
+$st_raw   = strtolower((string)($booking->status ?? ''));
+$is_free  = ($st_raw === 'free' || $grand_total <= 0);
+$is_voucher = ($discount_voucher > 0 || $is_free);
 
   $st_raw   = strtolower((string)($booking->status ?? ''));
   $is_draft = ($st_raw === 'draft');
@@ -19,6 +32,8 @@ $grand_total  = $subtotal_now + $kode_unik;
     'selesai'       => ['Selesai', 'success', 'mdi-check-circle-outline'],
     'canceled'      => ['Dibatalkan', 'danger','mdi-close-circle-outline'],
     'batal'         => ['Dibatalkan', 'danger','mdi-close-circle-outline'],
+    'free' => ['Booking Gratis', 'success', 'mdi-gift-outline'],
+
   ];
   [$status_text, $status_variant, $status_icon] = $status_map[$st_raw] ?? ['-', 'secondary','mdi-information-outline'];
 
@@ -37,10 +52,13 @@ $grand_total  = $subtotal_now + $kode_unik;
 
   // tombol pay muncul bila status draft & ada token (untuk kasir maupun non-session)
   $allow_statuses = ['draft'];
-  $show_pay_buttons = isset($booking)
+$show_pay_buttons =
+  isset($booking)
   && !empty($booking->access_token)
   && isset($booking->status)
-  && in_array(strtolower((string)$booking->status), $allow_statuses, true);
+  && in_array(strtolower((string)$booking->status), $allow_statuses, true)
+  && $grand_total > 0        // ✅ kalau total 0 (voucher full), jangan tampilkan bayar
+  && !$is_free;
 
   [$pay_text, $pay_icon] = $pay_map[$pay_raw] ?? ['-', 'mdi-credit-card-outline'];
 
@@ -62,7 +80,8 @@ $grand_total  = $subtotal_now + $kode_unik;
   $tarif_per_jam = (int)($booking->harga_per_jam ?? $meja->harga_per_jam ?? 0);
 
   // untuk tombol batal
-  $hide_cancel = in_array($st_raw, ['terkonfirmasi','verifikasi'], true);
+  $hide_cancel = in_array($st_raw, ['terkonfirmasi','verifikasi','free'], true);
+
 
   // tombol pay?
 
@@ -100,6 +119,12 @@ $grand_total  = $subtotal_now + $kode_unik;
       Pembayaran kamu sudah diterima.
       Tunjukkan <b>kode booking</b> ke kasir saat datang ya 🙌
     </div>
+    <?php elseif ($st_raw === 'free'): ?>
+  <div class="alert alert-success mb-3">
+    <strong>Booking Gratis!</strong>
+    Voucher kamu berhasil dipakai. Tunjukkan <b>kode booking</b> ke kasir saat datang ya 🙌
+  </div>
+
   <?php elseif ($st_raw === 'draft'): ?>
     <div class="alert alert-warning mb-3">
       <strong>Menunggu Pembayaran.</strong>
@@ -304,31 +329,39 @@ $grand_total  = $subtotal_now + $kode_unik;
                     <td>Rp <?= number_format($tarif_per_jam,0,',','.') ?></td>
                   </tr>
 
-                  <tr>
-                    <th>Subtotal</th>
-                    <td>Rp <?= number_format($subtotal_now,0,',','.') ?></td>
-                  </tr>
+                 <tr>
+                  <th>Subtotal</th>
+                  <td>Rp <?= number_format($subtotal_before,0,',','.') ?></td>
+                </tr>
 
-                  <?php if ($kode_unik > 0): ?>
-                  <tr>
-                    <th>Kode Unik</th>
-                    <td>+ Rp <?= number_format($kode_unik,0,',','.') ?></td>
-                  </tr>
-                  <?php endif; ?>
+                <?php if ($discount_voucher > 0): ?>
+                <tr>
+                  <th>Diskon Voucher</th>
+                  <td class="text-success">- Rp <?= number_format($discount_voucher,0,',','.') ?></td>
+                </tr>
+                <?php endif; ?>
 
-                  <tr class="table-success">
-                    <th>Total Bayar</th>
-                    <td>
-                      <strong>Rp <?= number_format($grand_total,0,',','.') ?></strong>
-                      <?php if ($st_raw === 'terkonfirmasi'): ?>
-                        <span class="badge badge-success ml-1">lunas</span>
-                      <?php elseif ($st_raw === 'draft'): ?>
-                        <span class="badge badge-warning ml-1">belum bayar</span>
-                      <?php else: ?>
-                        <span class="badge badge-secondary ml-1"><?= html_escape($st_raw) ?></span>
-                      <?php endif; ?>
-                    </td>
-                  </tr>
+                <?php if ($kode_unik > 0): ?>
+                <tr>
+                  <th>Kode Unik</th>
+                  <td>+ Rp <?= number_format($kode_unik,0,',','.') ?></td>
+                </tr>
+                <?php endif; ?>
+
+                <tr class="table-success">
+                  <th>Total Bayar</th>
+                  <td>
+                    <strong>Rp <?= number_format($grand_total,0,',','.') ?></strong>
+                    <?php if ($st_raw === 'terkonfirmasi' || $st_raw === 'free'): ?>
+                      <span class="badge badge-success ml-1">lunas</span>
+                    <?php elseif ($st_raw === 'draft'): ?>
+                      <span class="badge badge-warning ml-1">belum bayar</span>
+                    <?php else: ?>
+                      <span class="badge badge-secondary ml-1"><?= html_escape($st_raw) ?></span>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+
 
                   <tr>
                     <th>Status</th>
@@ -340,18 +373,24 @@ $grand_total  = $subtotal_now + $kode_unik;
                     </td>
                   </tr>
 
-                 <?php if (in_array($st_raw, ['verifikasi','terkonfirmasi'], true)): ?>
-
-                  <tr>
-                    <th>Metode Pembayaran</th>
-                    <td>
+                <?php if (in_array($st_raw, ['verifikasi','terkonfirmasi','free'], true)): ?>
+                <tr>
+                  <th>Metode Pembayaran</th>
+                  <td>
+                    <?php if ($is_voucher): ?>
+                      <span class="badge badge-light border text-dark">
+                        <i class="mdi mdi-ticket-percent-outline"></i> Voucher
+                      </span>
+                    <?php else: ?>
                       <span class="badge badge-light border text-dark">
                         <i class="mdi <?= $pay_icon ?>"></i>
                         <?= html_escape($pay_text) ?>
                       </span>
-                    </td>
-                  </tr>
-                  <?php endif; ?>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+                <?php endif; ?>
+
 
                 </tbody>
               </table>
@@ -488,6 +527,8 @@ $grand_total  = $subtotal_now + $kode_unik;
 <?php $this->load->view("front_end/footer.php"); ?>
 
 <script>
+  const HAS_VOUCHER = <?= ($is_voucher ? 'true' : 'false') ?>;
+
 // ================== COPY KODE BOOKING (klik badge) ==================
 (function(){
   const b = document.getElementById('kodeBooking');
@@ -802,12 +843,15 @@ $grand_total  = $subtotal_now + $kode_unik;
     const subtotalEl=document.getElementById('subtotalLive'); // kita bakal buat fallback?
     const kodeUnikElVal = <?= (int)$kode_unik ?>;
     const calcSubtotal = price*d;
-    const calcGrand    = price*d + kodeUnikElVal;
+const calcGrand    = price*d + kodeUnikElVal;
 
-    // Kalau kamu mau live update di tabel tiket juga, kita bisa update innerText Total Bayar:
-    // (opsional, aman kalau kolomnya ada)
-    const valEl = document.querySelector('.totalBayarVal');
-if (valEl) { valEl.textContent = 'Rp '+rpStr(calcGrand); }
+const valEl = document.querySelector('.totalBayarVal');
+
+// ✅ kalau voucher aktif, jangan ubah "Total Bayar" live (biar tidak misleading)
+// cukup tampilkan estimasi di infoHitung aja
+if (!HAS_VOUCHER && valEl) {
+  valEl.textContent = 'Rp ' + rpStr(calcGrand);
+}
 
   }
 

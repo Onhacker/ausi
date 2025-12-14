@@ -168,6 +168,26 @@ function show_detail(id){
     })
     .fail(function(){ close_loader(); Swal.fire("Error","Gagal mengambil detail","error"); });
 }
+$(document).on('click', '.btn-apply-voucher', function(){
+  const id = parseInt($(this).data('id')||0, 10);
+  const code = String($(this).closest('.card-body').find('.dv-voucher-code').val()||'')
+                .trim().toUpperCase();
+
+  if (!id) return;
+  if (!code){ Swal.fire('Validasi','Kode voucher wajib diisi.','warning'); return; }
+
+  loader();
+  $.post("<?= site_url('admin_billiard/apply_voucher') ?>", { id:id, voucher:code })
+    .done(function(resp){
+      close_loader();
+      let r=resp; if (typeof resp==='string'){ try{ r=JSON.parse(resp);}catch(e){} }
+      if (!r || r.success!==true){ Swal.fire(r?.title||'Gagal', r?.pesan||'Voucher ditolak.', 'error'); return; }
+      Swal.fire(r.title||'Berhasil', r.pesan||'Voucher diterapkan.', 'success');
+      reload_billiard_table('user');
+      show_detail(id); // refresh modal biar angka ikut update
+    })
+    .fail(function(){ close_loader(); Swal.fire('Error','Koneksi bermasalah / error 500','error'); });
+});
 
 function mark_paid_one(el){
   const id   = parseInt($(el).data('id')||0,10);

@@ -125,6 +125,26 @@ class Admin_billiard extends Admin_Controller {
                     case 'free':             $badge='primary'; $label='free'; break;
                 }
                 $status_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</span>';
+                // ===== Status bayar (tetap seperti semula)
+                $sraw = strtolower((string)$r->status);
+                $badge = 'secondary'; 
+                $label = $sraw;
+                switch ($sraw){
+                  case 'draft':            $badge='warning'; $label='menunggu pembayaran'; break;
+                  case 'menunggu_bayar':   $badge='warning'; $label='menunggu pembayaran'; break;
+                  case 'verifikasi':       $badge='info';    $label='menunggu verifikasi'; break;
+                  case 'terkonfirmasi':    $badge='success'; $label='lunas'; break;
+                  case 'batal':            $badge='dark';    $label='batal'; break;
+                  case 'free':             $badge='primary'; $label='free'; break;
+                }
+                $status_html = '<span class="badge badge-pill badge-'.$badge.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</span>';
+
+                // ===== TAMBAHAN: tampilkan voucher di bawah status (jika ada)
+                $vc = trim((string)($r->voucher_code ?? ''));
+                if ($vc !== '') {
+                  $vcEsc = htmlspecialchars($vc, ENT_QUOTES, 'UTF-8');
+                  $status_html .= '<div class="mt-1"><span class="badge badge-info">Voucher: '.$vcEsc.'</span></div>';
+                }
 
             // ===== Metode
                 $metode_html = htmlspecialchars($r->metode_bayar ?: '-', ENT_QUOTES, 'UTF-8');
@@ -211,37 +231,342 @@ class Admin_billiard extends Admin_Controller {
     }
 }
 
-    /** Detail sederhana (HTML partial via JSON) */
-    public function detail($id=null){
-        $id = (int)$id;
-        $row = $this->dm->get_order($id);
-        if (!$row){
-            echo json_encode(["success"=>false,"title"=>"Gagal","pesan"=>"Data tidak ditemukan"]); return;
-        }
+public function detail($id=null){
+    $id = (int)$id;
+    $row = $this->dm->get_order($id);
 
-        $html = '<div class="table-responsive"><table class="table table-sm table-striped mb-0">';
-        $add = function($k,$v) use (&$html){
-            $html .= '<tr><th style="width:180px">'.$k.'</th><td>'.$v.'</td></tr>';
-        };
-        $add('Kode Booking', htmlspecialchars($row->kode_booking,ENT_QUOTES,'UTF-8'));
-        $add('Nama', htmlspecialchars($row->nama,ENT_QUOTES,'UTF-8'));
-        $add('No. HP', htmlspecialchars($row->no_hp,ENT_QUOTES,'UTF-8'));
-        $add('Meja', htmlspecialchars($row->nama_meja ?: ('Meja #'.$row->meja_id),ENT_QUOTES,'UTF-8'));
-        $add('Tanggal', date('d-m-Y', strtotime($row->tanggal)));
-        $add('Jam', htmlspecialchars(($row->jam_mulai.' - '.$row->jam_selesai),ENT_QUOTES,'UTF-8'));
-        $add('Durasi', (int)$row->durasi_jam.' jam');
-        $add('Harga/Jam', 'Rp '.number_format((int)$row->harga_per_jam,0,',','.'));
-        $add('Subtotal', 'Rp '.number_format((int)$row->subtotal,0,',','.'));
-        if ((int)$row->kode_unik > 0) $add('Kode Unik', number_format((int)$row->kode_unik,0,',','.'));
-        $add('Grand Total', '<b>Rp '.number_format((int)$row->grand_total,0,',','.').'</b>');
-        $add('Metode Bayar', htmlspecialchars($row->metode_bayar ?: '-',ENT_QUOTES,'UTF-8'));
-        $add('Status', htmlspecialchars($row->status,ENT_QUOTES,'UTF-8'));
-        $add('Dibuat', htmlspecialchars($row->created_at,ENT_QUOTES,'UTF-8'));
-        if (!empty($row->updated_at)) $add('Diperbarui', htmlspecialchars($row->updated_at,ENT_QUOTES,'UTF-8'));
-        $html .= '</table></div>';
-
-        echo json_encode(["success"=>true, "html"=>$html, "title"=>'Detail #'.$row->kode_booking]);
+    if (!$row){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                "success"=>false,
+                "title"=>"Gagal",
+                "pesan"=>"Data tidak ditemukan"
+            ]));
     }
+
+    $esc = fn($s)=>htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    $rp  = fn($n)=>'Rp '.number_format((int)$n,0,',','.');
+
+    // ===== voucher fields (aman walau kolom belum ada) =====
+    $voucher_code   = isset($row->voucher_code) ? trim((string)$row->voucher_code) : '';
+    $voucher_jenis  = isset($row->voucher_jenis) ? trim((string)$row->voucher_jenis) : '';
+    $voucher_disc   = isset($row->voucher_discount) ? (int)$row->voucher_discount : 0;
+    $after_disc     = isset($row->subtotal_after_disc) ? (int)$row->subtotal_after_disc : null;
+
+    // ===== RULE UI: disable kalau voucher sudah terpasang =====
+    $hasVoucher  = ($voucher_code !== '');
+    $disAttr     = $hasVoucher ? ' disabled' : '';
+    $btnClass    = $hasVoucher ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-primary';
+    $hintVoucher = $hasVoucher
+        ? '<small class="text-muted d-block mt-2">Voucher sudah terpasang, tidak bisa diganti dari modal ini.</small>'
+        : '<small class="text-muted d-block mt-2">Masukkan voucher lalu klik Terapkan. Validasi dilakukan oleh sistem.</small>';
+
+    /* =========================
+     * TABLE DETAIL
+     * ========================= */
+    $html = '<div class="table-responsive"><table class="table table-sm table-striped mb-0">';
+    $add = function($k,$v) use (&$html){
+        $html .= '<tr><th style="width:180px">'.$k.'</th><td>'.$v.'</td></tr>';
+    };
+
+    $add('Kode Booking', $esc($row->kode_booking ?: '-'));
+    $add('Nama', $esc($row->nama ?: '-'));
+    $add('No. HP', $esc($row->no_hp ?: '-'));
+    $add('Meja', $esc($row->nama_meja ?: ('Meja #'.$row->meja_id)));
+
+    $tgl = !empty($row->tanggal) ? date('d-m-Y', strtotime($row->tanggal)) : '-';
+    $add('Tanggal', $esc($tgl));
+    $add('Jam', $esc(($row->jam_mulai.' - '.$row->jam_selesai)));
+    $add('Durasi', (int)$row->durasi_jam.' jam');
+    $add('Harga/Jam', $rp($row->harga_per_jam));
+    $add('Subtotal', $rp($row->subtotal));
+
+    if ((int)$row->kode_unik > 0){
+        $add('Kode Unik', number_format((int)$row->kode_unik,0,',','.'));
+    }
+
+    // ===== tampilkan info voucher jika ada =====
+    if ($hasVoucher) {
+        $add('Voucher', '<span class="badge badge-info">'.$esc($voucher_code).'</span>');
+        if ($voucher_jenis !== '') $add('Jenis Voucher', $esc($voucher_jenis));
+        if ($voucher_disc > 0)     $add('Potongan', '<span class="text-success"><b>'.$rp($voucher_disc).'</b></span>');
+        if ($after_disc !== null)  $add('Subtotal Setelah Diskon', '<b>'.$rp($after_disc).'</b>');
+    }
+
+    $add('Grand Total', '<b>'.$rp($row->grand_total).'</b>');
+    $add('Metode Bayar', $esc($row->metode_bayar ?: '-'));
+    $add('Status', $esc($row->status ?: '-'));
+    $add('Dibuat', $esc($row->created_at ?: '-'));
+    if (!empty($row->updated_at)) $add('Diperbarui', $esc($row->updated_at));
+
+    $html .= '</table></div>';
+
+    /* =========================
+     * FORM VOUCHER (SELALU TAMPIL, DISABLE JIKA SUDAH ADA)
+     * ========================= */
+    $html .= '<div class="mt-3">';
+    $html .= '  <div class="card"><div class="card-body py-3">';
+    $html .= '    <div class="d-flex justify-content-between align-items-center mb-2">';
+    $html .= '      <div><b>Voucher</b><div class="text-muted small">NOMINAL / PERSEN</div></div>';
+    $html .= '      '.($hasVoucher
+                    ? '<span class="badge badge-info">Terpasang: '.$esc($voucher_code).'</span>'
+                    : '<span class="badge badge-secondary">Belum ada</span>').'
+               </div>';
+
+    $html .= '    <div class="form-inline">';
+    $html .= '      <input type="text"
+                        class="form-control form-control-sm mr-2 dv-voucher-code"
+                        placeholder="Masukkan kode voucher"
+                        style="width:220px;text-transform:uppercase"
+                        value="'.$esc($voucher_code).'"'.$disAttr.'>';
+    $html .= '      <button type="button"
+                        class="'.$btnClass.' btn-apply-voucher"
+                        data-id="'.$id.'"'.$disAttr.'>Terapkan</button>';
+    $html .= '    </div>';
+    $html .=        $hintVoucher;
+    $html .= '  </div></div>';
+    $html .= '</div>';
+
+    return $this->output->set_content_type('application/json')
+        ->set_output(json_encode([
+            "success"=>true,
+            "title"=>'Detail #'.$row->kode_booking,
+            "html"=>$html
+        ]));
+}
+
+public function apply_voucher(){
+  $id = (int)$this->input->post('id', true);
+  $codeRaw = strtoupper(trim((string)$this->input->post('voucher', true)));
+  $voucher_code = preg_replace('/[^A-Z0-9\-_]/', '', $codeRaw);
+
+  if ($id < 1 || $voucher_code === ''){
+    return $this->_out_json(["success"=>false,"title"=>"Validasi","pesan"=>"ID / kode voucher tidak valid."]);
+  }
+
+  // matikan db_debug agar error query tidak fatal-500
+  $oldDebug = $this->db->db_debug;
+  $this->db->db_debug = false;
+
+  $this->db->trans_begin();
+
+  // lock booking
+  $qRow = $this->db->query("SELECT * FROM pesanan_billiard WHERE id_pesanan=? LIMIT 1 FOR UPDATE", [$id]);
+  if (!$qRow){
+    $err = $this->db->error();
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"DB Error","pesan"=>"Query booking gagal: ".$err['message']]);
+  }
+
+  $row = $qRow->row();
+  if (!$row){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Tidak ditemukan","pesan"=>"Booking tidak ditemukan."]);
+  }
+
+  $st = strtolower((string)$row->status);
+  if (in_array($st, ['batal','terkonfirmasi','free'], true)){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Ditolak","pesan"=>"Voucher tidak bisa diterapkan pada status ini."]);
+  }
+
+  // jangan overwrite voucher yang sudah terpasang
+  if ($this->db->field_exists('voucher_code','pesanan_billiard')){
+    $existing = trim((string)($row->voucher_code ?? ''));
+    if ($existing !== ''){
+      $this->db->trans_rollback();
+      $this->db->db_debug = $oldDebug;
+      return $this->_out_json(["success"=>false,"title"=>"Ditolak","pesan"=>"Booking ini sudah memakai voucher: {$existing}."]);
+    }
+  }
+
+  $no_hp = (string)($row->no_hp ?? '');
+  $hp_norm62 = $this->_hp62($no_hp);
+  if ($hp_norm62 === ''){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Validasi","pesan"=>"No HP booking kosong / tidak valid."]);
+  }
+
+  // lock voucher
+  $qV = $this->db->query(
+    "SELECT * FROM voucher_billiard
+     WHERE kode_voucher = ?
+       AND status = 'baru'
+       AND is_claimed = 0
+       AND no_hp_norm = ?
+     LIMIT 1 FOR UPDATE",
+    [$voucher_code, $hp_norm62]
+  );
+
+  if (!$qV){
+    $err = $this->db->error();
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"DB Error","pesan"=>"Query voucher gagal: ".$err['message']]);
+  }
+
+  $v = $qV->row();
+  if (!$v){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Voucher Invalid","pesan"=>"Kode voucher tidak ditemukan / sudah dipakai / bukan milik nomor ini."]);
+  }
+
+  // validasi periode berdasarkan tanggal booking
+  $tanggal  = (string)($row->tanggal ?? '');
+  $vMulai   = (string)($v->tgl_mulai ?? '');
+  $vSelesai = (string)($v->tgl_selesai ?? '');
+  if ($vMulai !== '' && $tanggal < $vMulai){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Voucher Belum Berlaku","pesan"=>"Voucher berlaku mulai {$vMulai}."]);
+  }
+  if ($vSelesai !== '' && $tanggal > $vSelesai){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Voucher Expired","pesan"=>"Voucher berlaku sampai {$vSelesai}."]);
+  }
+
+  $jenis = strtoupper((string)($v->jenis ?? ''));
+  if (!in_array($jenis, ['NOMINAL','PERSEN'], true)){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Voucher Tidak Didukung","pesan"=>"Voucher {$jenis} hanya bisa dipakai saat booking dibuat."]);
+  }
+
+  // subtotal base
+  $subtotal = (int)($row->subtotal ?? 0);
+  if ($subtotal <= 0){
+    $subtotal = ((int)($row->harga_per_jam ?? 0)) * ((int)($row->durasi_jam ?? 0));
+  }
+  if ($subtotal <= 0){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Error","pesan"=>"Subtotal 0, tidak bisa hitung diskon."]);
+  }
+
+  // minimal subtotal
+  $minSub = (int)($v->minimal_subtotal ?? 0);
+  if ($minSub > 0 && $subtotal < $minSub){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json([
+      "success"=>false,"title"=>"Minimal Belanja Belum Cukup",
+      "pesan"=>"Minimal subtotal Rp ".number_format($minSub,0,',','.')."."
+    ]);
+  }
+
+  // hitung diskon
+  $discount = 0;
+  if ($jenis === 'NOMINAL'){
+    $nom = (int)($v->nilai ?? 0);
+    if ($nom < 1){
+      $this->db->trans_rollback();
+      $this->db->db_debug = $oldDebug;
+      return $this->_out_json(["success"=>false,"title"=>"Voucher Invalid","pesan"=>"Nilai voucher tidak valid."]);
+    }
+    $discount = min($subtotal, $nom);
+  } else {
+    $pct = (int)($v->nilai ?? 0);
+    if ($pct < 1 || $pct > 100){
+      $this->db->trans_rollback();
+      $this->db->db_debug = $oldDebug;
+      return $this->_out_json(["success"=>false,"title"=>"Voucher Invalid","pesan"=>"Persen voucher harus 1-100."]);
+    }
+    $discount = (int) floor(($subtotal * $pct) / 100);
+    $maxP = (int)($v->max_potongan ?? 0);
+    if ($maxP > 0) $discount = min($discount, $maxP);
+    $discount = min($discount, $subtotal);
+  }
+
+  if ($discount < 1){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Voucher Tidak Efektif","pesan"=>"Diskon voucher menghasilkan 0."]);
+  }
+
+  $after = max(0, $subtotal - $discount);
+
+  $kode_unik = (int)($row->kode_unik ?? 0);
+  if ($after <= 0){
+    $kode_unik = 0;
+    $grand = 0;
+    $newStatus = 'free';
+  } else {
+    $grand = $after + $kode_unik;
+    $newStatus = (string)$row->status;
+  }
+
+  $upd = [
+    'grand_total' => $grand,
+    'updated_at'  => date('Y-m-d H:i:s'),
+  ];
+  if ($after <= 0){
+    $upd['status']    = $newStatus;
+    $upd['kode_unik'] = 0;
+  }
+
+  if ($this->db->field_exists('voucher_code','pesanan_billiard'))        $upd['voucher_code'] = $voucher_code;
+  if ($this->db->field_exists('voucher_jenis','pesanan_billiard'))       $upd['voucher_jenis'] = $jenis;
+  if ($this->db->field_exists('voucher_discount','pesanan_billiard'))    $upd['voucher_discount'] = $discount;
+  if ($this->db->field_exists('subtotal_after_disc','pesanan_billiard')) $upd['subtotal_after_disc'] = $after;
+
+  $okU = $this->db->where('id_pesanan', $id)->update('pesanan_billiard', $upd);
+  if (!$okU){
+    $err = $this->db->error();
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"DB Error","pesan"=>"Update booking gagal: ".$err['message']]);
+  }
+
+  $note = 'Dipakai untuk booking ID '.$id.' (diskon Rp '.number_format($discount,0,',','.').')';
+  $okV = $this->db->where('id_voucher', (int)$v->id_voucher)->update('voucher_billiard', [
+    'status'     => 'accept',
+    'is_claimed' => 1,
+    'claimed_at' => date('Y-m-d H:i:s'),
+    'notes'      => $note,
+  ]);
+  if (!$okV){
+    $err = $this->db->error();
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"DB Error","pesan"=>"Update voucher gagal: ".$err['message']]);
+  }
+
+  if ($this->db->trans_status() === FALSE){
+    $this->db->trans_rollback();
+    $this->db->db_debug = $oldDebug;
+    return $this->_out_json(["success"=>false,"title"=>"Gagal","pesan"=>"Transaksi gagal."]);
+  }
+
+  $this->db->trans_commit();
+  $this->db->db_debug = $oldDebug;
+
+  return $this->_out_json([
+    "success"=>true,
+    "title"=>"Voucher Diterapkan",
+    "pesan"=>"Diskon Rp ".number_format($discount,0,',','.')." berhasil diterapkan.",
+  ]);
+}
+
+private function _out_json(array $arr){
+  return $this->output
+    ->set_content_type('application/json')
+    ->set_output(json_encode($arr));
+}
+
+private function _hp62(string $hp): string {
+  $hp = preg_replace('/\D+/', '', $hp);
+  if ($hp === '') return '';
+  if (strpos($hp, '62') === 0) return $hp;
+  if (strpos($hp, '0') === 0)  return '62'.substr($hp, 1);
+  // fallback: anggap sudah benar
+  return $hp;
+}
 
     /** Tandai KONFIRM (paid) */
     public function mark_paid(){
@@ -439,10 +764,11 @@ private function _pretty_hp(string $hp): string {
     $res = $this->dm->bulk_mark_canceled($ids);
 
     $msgs = [];
-    if (!empty($res['ok_count']))     $msgs[] = $res['ok_count']." booking dibatalkan.";
-    if (!empty($res['paid_deleted'])) $msgs[] = "Snapshot paid dihapus: ".$res['paid_deleted']." baris.";
-    if (!empty($res['notfound_ids'])) $msgs[] = "Tidak ditemukan: #".implode(', #', $res['notfound_ids']);
-    if (!empty($res['errors']))       $msgs[] = "Error: #".implode(', #', $res['errors']);
+    if (!empty($res['ok_count']))          $msgs[] = $res['ok_count']." booking dibatalkan.";
+    if (!empty($res['paid_deleted']))      $msgs[] = "Snapshot paid dihapus: ".$res['paid_deleted']." baris.";
+    if (!empty($res['voucher_unclaimed'])) $msgs[] = "Voucher dibalikin: ".$res['voucher_unclaimed']." item.";
+    if (!empty($res['notfound_ids']))      $msgs[] = "Tidak ditemukan: #".implode(', #', $res['notfound_ids']);
+    if (!empty($res['errors']))            $msgs[] = "Error: #".implode(', #', $res['errors']);
 
     $ok = !empty($res['ok_count']) && empty($res['errors']);
     if ($ok) $this->purge_public_caches();
@@ -453,6 +779,7 @@ private function _pretty_hp(string $hp): string {
         "pesan"=> $msgs ? implode(' ', $msgs) : 'Tidak ada yang diproses.'
     ]);
 }
+
 
 
     /** Hapus */

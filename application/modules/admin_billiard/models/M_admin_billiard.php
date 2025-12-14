@@ -47,27 +47,41 @@ class M_admin_billiard extends CI_Model {
         }
     }
 
-    private function _base_q(){
-    $this->db->from($this->table);
-    $this->db->select('
-        pb.id_pesanan, pb.kode_booking, pb.access_token,
-        pb.status, pb.nama, pb.no_hp,
-        pb.meja_id, pb.nama_meja,
-        pb.tanggal, pb.jam_mulai, pb.jam_selesai, pb.durasi_jam,
-        pb.harga_per_jam, pb.subtotal, pb.kode_unik, pb.grand_total,
-        pb.metode_bayar, pb.created_at, pb.updated_at, pb.edit_count
-    ');
+ private function _base_q(){
+  $this->db->from($this->table);
 
-    // ===== tambahkan ini untuk batasi 2 hari terakhir =====
-    // $this->db->where('pb.tanggal >=', date('Y-m-d', strtotime('-2 days')));
-    // $this->db->where('pb.tanggal <=', date('Y-m-d'));
+  // base select
+  $select = '
+    pb.id_pesanan, pb.kode_booking, pb.access_token,
+    pb.status, pb.nama, pb.no_hp,
+    pb.meja_id, pb.nama_meja,
+    pb.tanggal, pb.jam_mulai, pb.jam_selesai, pb.durasi_jam,
+    pb.harga_per_jam, pb.subtotal, pb.kode_unik, pb.grand_total,
+    pb.metode_bayar, pb.created_at, pb.updated_at, pb.edit_count
+  ';
 
-    // ===== filter status (seperti semula) =====
-    if ($this->status_filter === null){
-        $this->db->where('pb.status <>', 'terkonfirmasi');
-    } elseif ($this->status_filter !== 'all' && is_array($this->status_filter)){
-        $this->db->where_in('pb.status', $this->status_filter);
-    }
+  // optional voucher columns (biar nggak error kalau kolom belum ada)
+  if ($this->db->field_exists('voucher_code', 'pesanan_billiard')) {
+    $select .= ', pb.voucher_code';
+  }
+  if ($this->db->field_exists('voucher_jenis', 'pesanan_billiard')) {
+    $select .= ', pb.voucher_jenis';
+  }
+  if ($this->db->field_exists('voucher_discount', 'pesanan_billiard')) {
+    $select .= ', pb.voucher_discount';
+  }
+  if ($this->db->field_exists('subtotal_after_disc', 'pesanan_billiard')) {
+    $select .= ', pb.subtotal_after_disc';
+  }
+
+  $this->db->select($select, false);
+
+  // filter status
+  if ($this->status_filter === null){
+    $this->db->where('pb.status <>', 'terkonfirmasi');
+  } elseif ($this->status_filter !== 'all' && is_array($this->status_filter)){
+    $this->db->where_in('pb.status', $this->status_filter);
+  }
 }
 
 
@@ -241,20 +255,28 @@ class M_admin_billiard extends CI_Model {
 
 
 
-    public function bulk_mark_canceled(array $ids){
+   public function bulk_mark_canceled(array $ids){
     $ids = array_values(array_unique(array_map('intval', $ids)));
-    if (!$ids) return ["ok_count"=>0, "paid_deleted"=>0, "notfound_ids"=>[], "errors"=>[]];
+    if (!$ids) return ["ok_count"=>0, "paid_deleted"=>0, "voucher_unclaimed"=>0, "notfound_ids"=>[], "errors"=>[]];
 
     $ok_count = 0;
     $paid_deleted = 0;
+    $voucher_unclaimed = 0;
     $notfound = [];
     $errors = [];
 
     $now = date('Y-m-d H:i:s');
 
+    $hasVoucherCol = $this->db->field_exists('voucher_code', 'pesanan_billiard');
+
     $this->db->trans_begin();
     foreach ($ids as $id){
-        $row = $this->db->select('id_pesanan')->from('pesanan_billiard')->where('id_pesanan',$id)->get()->row();
+
+        // ambil row + status + voucher_code (jika ada)
+        $this->db->select('id_pesanan,status');
+        if ($hasVoucherCol) $this->db->select('voucher_code');
+        $row = $this->db->from('pesanan_billiard')->where('id_pesanan',$id)->get()->row();
+
         if (!$row){
             // kalau ada orphan di billiard_paid, bereskan sekalian
             $this->db->delete($this->table_paid, ['id_pesanan'=>$id]);
@@ -263,6 +285,10 @@ class M_admin_billiard extends CI_Model {
             continue;
         }
 
+        $prevStatus = strtolower((string)($row->status ?? ''));
+        $voucherCode = $hasVoucherCol ? strtoupper(trim((string)($row->voucher_code ?? ''))) : '';
+
+        // update status -> batal
         $ok = $this->db->where('id_pesanan', $id)->update('pesanan_billiard', [
             'status'     => 'batal',
             'updated_at' => $now,
@@ -271,24 +297,49 @@ class M_admin_billiard extends CI_Model {
 
         $ok_count++;
 
-        // apapun status sebelumnya, begitu dibatalkan → hapus snapshot paid
+        // hapus snapshot paid
         $this->db->delete($this->table_paid, ['id_pesanan'=>$id]);
         $paid_deleted += (int)$this->db->affected_rows();
+
+        // ====== UNCLAIM VOUCHER (AMAN) ======
+        // Rule aman:
+        // - hanya jika sebelumnya BELUM terkonfirmasi
+        // - dan booking memang punya voucher_code
+        if ($voucherCode !== '' && $prevStatus !== 'terkonfirmasi') {
+            // balikin voucher jadi bisa dipakai lagi
+            $this->db->set('status', 'baru');
+            $this->db->set('is_claimed', 0);
+            $this->db->set('claimed_at', null);
+            $this->db->set('notes', "CONCAT(IFNULL(notes,''),' | UNCLAIM karena booking #{$id} dibatalkan {$now}')", false);
+            $this->db->where('kode_voucher', $voucherCode);
+            $this->db->where('is_claimed', 1);
+            $this->db->update('voucher_billiard');
+
+            $voucher_unclaimed += (int)$this->db->affected_rows();
+        }
     }
 
     if ($this->db->trans_status() === FALSE){
         $this->db->trans_rollback();
-        return ["ok_count"=>0, "paid_deleted"=>0, "notfound_ids"=>$notfound, "errors"=>['tx_rollback']];
+        return [
+            "ok_count"=>0,
+            "paid_deleted"=>0,
+            "voucher_unclaimed"=>0,
+            "notfound_ids"=>$notfound,
+            "errors"=>['tx_rollback']
+        ];
     }
 
     $this->db->trans_commit();
     return [
-        "ok_count"      => $ok_count,
-        "paid_deleted"  => $paid_deleted,
-        "notfound_ids"  => $notfound,
-        "errors"        => $errors,
+        "ok_count"         => $ok_count,
+        "paid_deleted"     => $paid_deleted,
+        "voucher_unclaimed"=> $voucher_unclaimed,
+        "notfound_ids"     => $notfound,
+        "errors"           => $errors,
     ];
 }
+
 
 
     public function bulk_delete(array $ids){
