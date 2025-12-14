@@ -344,7 +344,6 @@ public function apply_voucher(){
     return $this->_out_json(["success"=>false,"title"=>"Validasi","pesan"=>"ID / kode voucher tidak valid."]);
   }
 
-  // matikan db_debug agar error query tidak fatal-500
   $oldDebug = $this->db->db_debug;
   $this->db->db_debug = false;
 
@@ -367,10 +366,16 @@ public function apply_voucher(){
   }
 
   $st = strtolower((string)$row->status);
-  if (in_array($st, ['batal','terkonfirmasi','free'], true)){
+
+  // hanya tolak jika benar-benar tidak logis
+  if (in_array($st, ['batal','free'], true)){
     $this->db->trans_rollback();
     $this->db->db_debug = $oldDebug;
-    return $this->_out_json(["success"=>false,"title"=>"Ditolak","pesan"=>"Voucher tidak bisa diterapkan pada status ini."]);
+    return $this->_out_json([
+      "success"=>false,
+      "title"=>"Ditolak",
+      "pesan"=>"Voucher tidak bisa diterapkan pada booking dengan status ini."
+    ]);
   }
 
   // jangan overwrite voucher yang sudah terpasang
@@ -383,6 +388,7 @@ public function apply_voucher(){
     }
   }
 
+  // normalisasi HP
   $no_hp = (string)($row->no_hp ?? '');
   $hp_norm62 = $this->_hp62($no_hp);
   if ($hp_norm62 === ''){
@@ -435,7 +441,11 @@ public function apply_voucher(){
   if (!in_array($jenis, ['NOMINAL','PERSEN'], true)){
     $this->db->trans_rollback();
     $this->db->db_debug = $oldDebug;
-    return $this->_out_json(["success"=>false,"title"=>"Voucher Tidak Didukung","pesan"=>"Voucher {$jenis} hanya bisa dipakai saat booking dibuat."]);
+    return $this->_out_json([
+      "success"=>false,
+      "title"=>"Voucher Tidak Didukung",
+      "pesan"=>"Voucher {$jenis} hanya bisa dipakai saat booking dibuat."
+    ]);
   }
 
   // subtotal base
@@ -470,7 +480,7 @@ public function apply_voucher(){
       return $this->_out_json(["success"=>false,"title"=>"Voucher Invalid","pesan"=>"Nilai voucher tidak valid."]);
     }
     $discount = min($subtotal, $nom);
-  } else {
+  } else { // PERSEN
     $pct = (int)($v->nilai ?? 0);
     if ($pct < 1 || $pct > 100){
       $this->db->trans_rollback();
@@ -491,7 +501,12 @@ public function apply_voucher(){
 
   $after = max(0, $subtotal - $discount);
 
+  // === grand total & kode unik
   $kode_unik = (int)($row->kode_unik ?? 0);
+
+  // kalau sudah lunas, kode_unik biasanya tidak relevan → nolkan
+  if ($st === 'terkonfirmasi') $kode_unik = 0;
+
   if ($after <= 0){
     $kode_unik = 0;
     $grand = 0;
@@ -505,9 +520,14 @@ public function apply_voucher(){
     'grand_total' => $grand,
     'updated_at'  => date('Y-m-d H:i:s'),
   ];
+
   if ($after <= 0){
     $upd['status']    = $newStatus;
     $upd['kode_unik'] = 0;
+  }
+
+  if ($st === 'terkonfirmasi'){
+    $upd['kode_unik'] = 0; // pastikan tersimpan nol
   }
 
   if ($this->db->field_exists('voucher_code','pesanan_billiard'))        $upd['voucher_code'] = $voucher_code;
@@ -523,6 +543,18 @@ public function apply_voucher(){
     return $this->_out_json(["success"=>false,"title"=>"DB Error","pesan"=>"Update booking gagal: ".$err['message']]);
   }
 
+  // kalau sudah lunas → update snapshot billiard_paid juga (biar laporan sama)
+  if ($st === 'terkonfirmasi'){
+    $this->db->where('id_pesanan', $id)->update('billiard_paid', [
+      'subtotal'    => $subtotal,
+      'kode_unik'   => 0,
+      'grand_total' => $grand,
+      'paid_at'     => date('Y-m-d H:i:s'),
+    ]);
+    // kalau tabel/kolom tidak ada → db_debug=false jadi tidak fatal
+  }
+
+  // klaim voucher
   $note = 'Dipakai untuk booking ID '.$id.' (diskon Rp '.number_format($discount,0,',','.').')';
   $okV = $this->db->where('id_voucher', (int)$v->id_voucher)->update('voucher_billiard', [
     'status'     => 'accept',
@@ -550,8 +582,11 @@ public function apply_voucher(){
     "success"=>true,
     "title"=>"Voucher Diterapkan",
     "pesan"=>"Diskon Rp ".number_format($discount,0,',','.')." berhasil diterapkan.",
+    "grand_total"=>$grand,
+    "after"=>$after
   ]);
 }
+
 
 private function _out_json(array $arr){
   return $this->output
