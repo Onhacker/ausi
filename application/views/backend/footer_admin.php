@@ -759,7 +759,7 @@ if (!function_exists('nav_class')) {
   .fab-gmail{
     position: fixed;
     right: 18px;
-    bottom: 100px;
+    bottom: 75px;
     z-index: 9999;
     border-radius: 999px;
     box-shadow: 0 14px 35px rgba(0,0,0,.22);
