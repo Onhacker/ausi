@@ -1869,6 +1869,42 @@ public function list_meja(){
         ->set_output(json_encode(['success'=>true,'data'=>$out]));
 }
 
+private function _indo_date($datetime, bool $with_day = false): string
+{
+    if (!$datetime) return '';
+
+    try {
+        $dt = ($datetime instanceof DateTime) ? $datetime : new DateTime((string)$datetime);
+    } catch (Throwable $e) {
+        return (string)$datetime;
+    }
+
+    $bulan = [1=>'Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    $hari  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+    $d = (int)$dt->format('j');
+    $m = (int)$dt->format('n');
+    $y = (int)$dt->format('Y');
+
+    $str = $d.' '.$bulan[$m].' '.$y;
+    if ($with_day) $str = $hari[(int)$dt->format('w')].', '.$str;
+
+    return $str;
+}
+
+private function _indo_datetime($datetime, bool $with_day = false): string
+{
+    if (!$datetime) return '';
+    try {
+        $dt = ($datetime instanceof DateTime) ? $datetime : new DateTime((string)$datetime);
+    } catch (Throwable $e) {
+        return (string)$datetime;
+    }
+
+    return $this->_indo_date($dt, $with_day).' '.$dt->format('H:i');
+}
+
+
 public function gmail_inbox()
 {
     $uname = strtolower((string)$this->session->userdata('admin_username'));
@@ -1900,7 +1936,7 @@ public function gmail_inbox()
           "snippet" => (string)$r->snippet,
           "status" => (string)($r->status ?? 'baru'),
           // "received_at" => (string)($r->received_at ?? $r->created_at ?? '')
-          "received_at" => date_time_view($r->received_at ?? $r->created_at ?? '', true)
+          "received_at" => $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true)
 
         ];
       }, $rows)
@@ -1956,7 +1992,8 @@ public function gmail_detail($id)
     $html = '
       <div class="mb-2"><b>Dari:</b> '.html_escape($row->from_email).'</div>
       <div class="mb-2"><b>Subjek:</b> '.html_escape($row->subject).'</div>
-      <div class="mb-2"><b>Tanggal:</b> '.html_escape($row->received_at ?? $row->created_at ?? '').'</div>
+     <div class="mb-2"><b>Tanggal:</b> '.html_escape($this->_indo_datetime($row->received_at ?? $row->created_at ?? '', true)).'</div>
+
       <div class="mb-2"><b>Status:</b> '.html_escape($row->status).'</div>
       <hr>
       <div class="mb-2"><b>Snippet:</b><br>'.nl2br(html_escape($row->snippet)).'</div>
