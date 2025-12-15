@@ -1899,7 +1899,9 @@ public function gmail_inbox()
           "subject" => (string)$r->subject,
           "snippet" => (string)$r->snippet,
           "status" => (string)($r->status ?? 'baru'),
-          "received_at" => (string)($r->received_at ?? $r->created_at ?? '')
+          // "received_at" => (string)($r->received_at ?? $r->created_at ?? '')
+          "received_at" => tgl_indo($r->received_at ?? $r->created_at ?? '', true)
+
         ];
       }, $rows)
     ]);
