@@ -2040,6 +2040,42 @@ private function _gmail_sync(int $limit = 20): array
     }
 }
 
+public function gmail_connect()
+{
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if ($uname !== 'admin'){ show_error('Forbidden', 403); }
+
+    $client = Gmail_oauth::client();
+    $client->setAccessType('offline');     // wajib agar dapat refresh_token
+    $client->setPrompt('consent');         // paksa keluar refresh_token (kalau sebelumnya tidak dapat)
+    $client->setRedirectUri(site_url('admin_pos/gmail_oauth_cb'));
+
+    redirect($client->createAuthUrl());
+}
+
+public function gmail_oauth_cb()
+{
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if ($uname !== 'admin'){ show_error('Forbidden', 403); }
+
+    $code = $this->input->get('code', true);
+    if (!$code) show_error('Code OAuth tidak ada', 400);
+
+    $client = Gmail_oauth::client();
+    $client->setRedirectUri(site_url('admin_pos/gmail_oauth_cb'));
+
+    $token = $client->fetchAccessTokenWithAuthCode($code);
+    if (isset($token['error'])) {
+        show_error('OAuth error: '.$token['error'], 500);
+    }
+
+    // simpan token ke settings id=1
+    $this->db->where('id', 1)->update('settings', [
+        'gmail_token' => json_encode($token),
+    ]);
+
+    redirect(site_url('admin_pos/gmail_inbox?sync=1')); // atau ke halaman UI kamu
+}
 
 
 }
