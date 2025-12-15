@@ -1229,15 +1229,15 @@ $(document).on('click', '#gmail-clear', function(){
 
     $.get(URL_DETAIL + id, function(html){
       $('#gmail-detail-body').html(html);
+      document.getElementById('gmail-detail-subtitle').textContent = 'Email berhasil dimuat';
+document.getElementById('gmail-detail-badge').textContent = 'OK';
 
   // ✅ update badge langsung (backend juga sudah update)
   markAsSeenInList(parseInt(id,10));
 })
     .fail(function(xhr){
       $('#gmail-detail-body').html('<div class="text-danger">Gagal memuat detail.</div>');
-      document.getElementById('gmail-detail-subtitle').textContent = 'Email berhasil dimuat';
-document.getElementById('gmail-detail-badge').textContent = 'OK';
-
+      
       console.error(xhr?.responseText);
     });
   };
