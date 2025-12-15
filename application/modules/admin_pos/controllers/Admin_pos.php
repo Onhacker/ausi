@@ -1881,15 +1881,10 @@ public function gmail_inbox()
     $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
     $q     = trim((string)$this->input->get('q'));
 
+    $syncInfo = null;
     if ($sync){
-          try {
-            $this->_gmail_sync($limit);
-          } catch (\Throwable $e){
-            log_message('error', 'GMAIL_SYNC_ERR: '.$e->getMessage()."\n".$e->getTraceAsString());
-            echo json_encode(["success"=>false,"pesan"=>$e->getMessage()]);
-            return;
-          }
-        }
+     $syncInfo = $this->_gmail_sync($limit);
+ }
 
 
     $this->db->from('gmail_inbox');
@@ -1906,6 +1901,7 @@ public function gmail_inbox()
 
     echo json_encode([
       "success"=>true,
+       "sync"=>$syncInfo,
       "data"=>array_map(function($r){
         return [
           "id" => (int)$r->id,
@@ -1942,61 +1938,95 @@ public function gmail_detail($id)
     ';
     echo $html;
 }
-private function _gmail_sync(int $limit = 20): void
+private function _gmail_sync(int $limit = 20): array
 {
-  $row = $this->db->get_where('settings',['id'=>1])->row();
-  $tok = $row ? json_decode((string)$row->gmail_token, true) : null;
-  if (!$tok) return;
+    $row = $this->db->get_where('settings',['id'=>1])->row();
+    $tok = $row ? json_decode((string)$row->gmail_token, true) : null;
 
-  $client = Gmail_oauth::client();
-  $client->setAccessToken($tok);
-
-  if ($client->isAccessTokenExpired()) {
-    $refresh = $client->getRefreshToken();
-    if ($refresh) {
-      $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
-      // merge refresh_token kalau tidak ikut balik
-      if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
-      $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
-      $client->setAccessToken($newTok);
-    }
-  }
-
-  $svc = new \Google\Service\Gmail($client);
-
-  $list = $svc->users_messages->listUsersMessages('me', [
-    'maxResults' => $limit,
-    // 'q' => 'newer_than:7d', // opsional filter
-  ]);
-
-  $msgs = $list->getMessages() ?: [];
-  foreach ($msgs as $m){
-    $msg = $svc->users_messages->get('me', $m->getId(), ['format'=>'metadata']);
-
-    $headers = $msg->getPayload()->getHeaders();
-    $from = $subject = $date = '';
-    foreach ($headers as $h){
-      if ($h->getName()==='From') $from = $h->getValue();
-      if ($h->getName()==='Subject') $subject = $h->getValue();
-      if ($h->getName()==='Date') $date = $h->getValue();
+    if (!$tok || empty($tok['access_token'])) {
+        return ['ok'=>false,'msg'=>'Token Gmail belum tersimpan di settings.gmail_token (id=1).'];
     }
 
-    // insert ignore by gmail_id (buat unique index)
-    $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$msg->getId()])->row();
-    if ($exists) continue;
+    $client = Gmail_oauth::client();
+    $client->setAccessToken($tok);
 
-    $this->db->insert('gmail_inbox', [
-      'gmail_id'     => $msg->getId(),
-      'from_email'   => $from,
-      'subject'      => $subject,
-      'snippet'      => $msg->getSnippet(),
-      'raw'          => json_encode($msg),
-      'status'       => 'baru',
-      'received_at'  => date('Y-m-d H:i:s'),
-      'created_at'   => date('Y-m-d H:i:s'),
-    ]);
-  }
+    // refresh bila expired
+    if ($client->isAccessTokenExpired()) {
+        $refresh = $tok['refresh_token'] ?? $client->getRefreshToken();
+        if (!$refresh) {
+            return ['ok'=>false,'msg'=>'Access token expired tapi refresh_token tidak ada. Reconnect OAuth (access_type=offline + prompt=consent).'];
+        }
+
+        $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
+        if (isset($newTok['error'])) {
+            return ['ok'=>false,'msg'=>'Refresh token gagal: '.$newTok['error']];
+        }
+
+        if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
+        $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
+        $client->setAccessToken($newTok);
+    }
+
+    try {
+        $svc = new \Google\Service\Gmail($client);
+
+        // ✅ untuk memastikan akun yang terhubung
+        $profile = $svc->users->getProfile('me');
+        $emailMe = $profile->getEmailAddress();
+
+        // ✅ biasanya user maunya INBOX
+        $list = $svc->users_messages->listUsersMessages('me', [
+            'maxResults' => $limit,
+            'labelIds'   => ['INBOX'],
+            'q'          => 'newer_than:365d', // coba longgar dulu
+            // 'includeSpamTrash' => true, // opsional
+        ]);
+
+        $msgs = $list->getMessages() ?: [];
+        $fetched = count($msgs);
+        $inserted = 0;
+
+        foreach ($msgs as $m) {
+            $msg = $svc->users_messages->get('me', $m->getId(), ['format'=>'metadata']);
+
+            $headers = $msg->getPayload()->getHeaders();
+            $from = $subject = $date = '';
+            foreach ($headers as $h){
+                if ($h->getName()==='From')    $from = $h->getValue();
+                if ($h->getName()==='Subject') $subject = $h->getValue();
+                if ($h->getName()==='Date')    $date = $h->getValue();
+            }
+
+            $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$msg->getId()])->row();
+            if ($exists) continue;
+
+            $this->db->insert('gmail_inbox', [
+                'gmail_id'    => $msg->getId(),
+                'from_email'  => $from,
+                'subject'     => $subject,
+                'snippet'     => $msg->getSnippet(),
+                'raw'         => json_encode($msg),
+                'status'      => 'baru',
+                'received_at' => date('Y-m-d H:i:s'),
+                'created_at'  => date('Y-m-d H:i:s'),
+            ]);
+            $inserted++;
+        }
+
+        return [
+            'ok'       => true,
+            'me'       => $emailMe,
+            'fetched'  => $fetched,
+            'inserted' => $inserted,
+        ];
+
+    } catch (\Google\Service\Exception $e) {
+        return ['ok'=>false,'msg'=>'Gmail API error: '.$e->getMessage()];
+    } catch (\Throwable $e) {
+        return ['ok'=>false,'msg'=>'Server error: '.$e->getMessage()];
+    }
 }
+
 
 
 }
