@@ -838,7 +838,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
           <span class="badge badge-pill badge-light border" id="gmail-count">0 email</span>
           <small class="text-muted" id="gmail-hint">Klik item untuk detail.</small>
         </div>
-        <button type="button" class="btn btn-danger waves-effect" data-dismiss="modal">Tutup Detail</button>
+        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
       </div>
     </div>
   </div>
@@ -948,7 +948,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
           <span class="badge badge-pill badge-light border" id="gmail-detail-badge">—</span>
           <small class="text-muted" id="gmail-detail-hint">Klik tab Email/Text/RAW untuk melihat isi.</small>
         </div>
-        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-danger waves-effect" data-dismiss="modal">Tutup Detail</button>
       </div>
 
     </div>
