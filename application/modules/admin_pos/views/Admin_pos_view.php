@@ -484,7 +484,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
     </div>
   </div>
 
-  <style type="text/css">
+<style type="text/css">
     /* ===== GMAIL MODAL THEME ===== */
 .gmail-modal{
   border: 0;
