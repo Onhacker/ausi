@@ -1871,6 +1871,36 @@ public function list_meja(){
 
 public function gmail_inbox()
 {
+  $this->output->set_content_type('application/json');
+
+  try {
+    $sync  = ((int)$this->input->get('sync') === 1);
+    $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
+
+    if ($sync){
+      $this->_gmail_sync($limit); // <- ini yang sekarang bikin 500
+    }
+
+    $rows = $this->db->order_by('received_at','DESC')
+                     ->limit($limit)
+                     ->get('gmail_inbox')->result();
+
+    echo json_encode(["success"=>true,"data"=>$rows]);
+  }
+  catch (Throwable $e){
+    log_message('error', 'GMAIL_SYNC_ERR: '.$e->getMessage()."\n".$e->getTraceAsString());
+    echo json_encode([
+      "success"=>false,
+      "title"=>"Sync Gmail gagal",
+      "pesan"=>$e->getMessage(),
+      "code"=>500
+    ]);
+  }
+}
+
+
+public function gmail_inbox()
+{
     // batasi akses: kitchen/bar tidak perlu
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     if (in_array($uname, ['kitchen','bar'], true)){
