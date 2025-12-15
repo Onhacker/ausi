@@ -1871,36 +1871,6 @@ public function list_meja(){
 
 public function gmail_inbox()
 {
-  $this->output->set_content_type('application/json');
-
-  try {
-    $sync  = ((int)$this->input->get('sync') === 1);
-    $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
-
-    if ($sync){
-      $this->_gmail_sync($limit); // <- ini yang sekarang bikin 500
-    }
-
-    $rows = $this->db->order_by('received_at','DESC')
-                     ->limit($limit)
-                     ->get('gmail_inbox')->result();
-
-    echo json_encode(["success"=>true,"data"=>$rows]);
-  }
-  catch (Throwable $e){
-    log_message('error', 'GMAIL_SYNC_ERR: '.$e->getMessage()."\n".$e->getTraceAsString());
-    echo json_encode([
-      "success"=>false,
-      "title"=>"Sync Gmail gagal",
-      "pesan"=>$e->getMessage(),
-      "code"=>500
-    ]);
-  }
-}
-
-
-public function gmail_inbox()
-{
     // batasi akses: kitchen/bar tidak perlu
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     if (in_array($uname, ['kitchen','bar'], true)){
@@ -1967,41 +1937,29 @@ public function gmail_detail($id)
 }
 private function _gmail_sync(int $limit = 20): void
 {
-    $this->load->library('Gmail_oauth');
-
-  // token harus sudah ada
   $row = $this->db->get_where('settings',['id'=>1])->row();
   $tok = $row ? json_decode((string)$row->gmail_token, true) : null;
-  if (!$tok) throw new Exception("Token Gmail belum ada. Jalankan OAuth connect dulu.");
+  if (!$tok) return;
 
-  // pastikan ext curl ada
-  if (!function_exists('curl_version')) throw new Exception("PHP ext-curl belum aktif.");
-
-  // load Google Client
-  $client = Gmail_oauth::client(); // pastikan library Gmail_oauth sudah dibuat & diload
+  $client = Gmail_oauth::client();
   $client->setAccessToken($tok);
 
-  // refresh token bila expired
   if ($client->isAccessTokenExpired()) {
     $refresh = $client->getRefreshToken();
-    if (!$refresh && isset($tok['refresh_token'])) $refresh = $tok['refresh_token'];
-
-    if (!$refresh) {
-      throw new Exception("refresh_token kosong. Ulangi OAuth dengan prompt=consent + accessType=offline.");
+    if ($refresh) {
+      $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
+      // merge refresh_token kalau tidak ikut balik
+      if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
+      $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
+      $client->setAccessToken($newTok);
     }
-
-    $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
-    if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
-
-    $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
-    $client->setAccessToken($newTok);
   }
 
   $svc = new \Google\Service\Gmail($client);
 
   $list = $svc->users_messages->listUsersMessages('me', [
     'maxResults' => $limit,
-    // 'q' => 'newer_than:7d', // opsional
+    // 'q' => 'newer_than:7d', // opsional filter
   ]);
 
   $msgs = $list->getMessages() ?: [];
@@ -2009,33 +1967,26 @@ private function _gmail_sync(int $limit = 20): void
     $msg = $svc->users_messages->get('me', $m->getId(), ['format'=>'metadata']);
 
     $headers = $msg->getPayload()->getHeaders();
-    $from = $subject = $dateHdr = '';
+    $from = $subject = $date = '';
     foreach ($headers as $h){
       if ($h->getName()==='From') $from = $h->getValue();
       if ($h->getName()==='Subject') $subject = $h->getValue();
-      if ($h->getName()==='Date') $dateHdr = $h->getValue();
+      if ($h->getName()==='Date') $date = $h->getValue();
     }
 
-    $gmailId = $msg->getId();
-    if (!$gmailId) continue;
-
-    // skip kalau sudah ada
-    $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$gmailId])->row();
+    // insert ignore by gmail_id (buat unique index)
+    $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$msg->getId()])->row();
     if ($exists) continue;
 
-    // internalDate (ms) -> datetime
-    $internalMs = (int)($msg->getInternalDate() ?: 0);
-    $receivedAt = $internalMs ? date('Y-m-d H:i:s', (int)($internalMs/1000)) : date('Y-m-d H:i:s');
-
     $this->db->insert('gmail_inbox', [
-      'gmail_id'    => $gmailId,
-      'from_email'  => $from,
-      'subject'     => $subject,
-      'snippet'     => $msg->getSnippet(),
-      'raw'         => json_encode($msg),
-      'status'      => 'baru',
-      'received_at' => $receivedAt,
-      'created_at'  => date('Y-m-d H:i:s'),
+      'gmail_id'     => $msg->getId(),
+      'from_email'   => $from,
+      'subject'      => $subject,
+      'snippet'      => $msg->getSnippet(),
+      'raw'          => json_encode($msg),
+      'status'       => 'baru',
+      'received_at'  => date('Y-m-d H:i:s'),
+      'created_at'   => date('Y-m-d H:i:s'),
     ]);
   }
 }
