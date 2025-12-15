@@ -1034,6 +1034,14 @@ function showToast(text, icon = 'success', opts = {}){
 
 
 
+<!-- GMAIL AREA -->
+<?php
+  $uname = strtolower((string)$this->session->userdata('admin_username'));
+  $isKB  = in_array($uname, ['kitchen','bar'], true);
+?>
+<?php if (!$isKB): ?>
+
+
 <!-- ===== MODAL: INBOX GMAIL (PRETTY) ===== -->
 <div id="gmail-inbox-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -1187,12 +1195,9 @@ function showToast(text, icon = 'success', opts = {}){
     .fab-gmail{ padding: 12px; }
   }
 </style>
-<?php
-  $uname = strtolower((string)$this->session->userdata('admin_username'));
-  $isKB  = in_array($uname, ['kitchen','bar'], true);
-?>
 
-<?php if (!$isKB): ?>
+
+
   <button type="button"
           onclick="openGmailInbox()"
           class="btn btn-danger btn-sm waves-effect waves-light fab-gmail"
@@ -1200,7 +1205,6 @@ function showToast(text, icon = 'success', opts = {}){
     <i class="mdi mdi-gmail"></i>
     <span class="fab-text">Cek transaksi QRIS</span>
   </button>
-<?php endif; ?>
 
 <script>
 window.GMAIL_CFG = {
@@ -1238,3 +1242,7 @@ window.openGmailInbox = async function(){
   }
 };
 </script>
+
+<?php endif; ?>
+
+<!-- END OF GMAIL AREA -->
