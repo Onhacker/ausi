@@ -1030,5 +1030,211 @@ function showToast(text, icon = 'success', opts = {}){
 }
 
 
+</script>
 
+
+
+<!-- ===== MODAL: INBOX GMAIL (PRETTY) ===== -->
+<div id="gmail-inbox-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content gmail-modal">
+      <div class="modal-header gmail-modal__header">
+        <div class="d-flex align-items-center" style="gap:.6rem;">
+          <div class="gmail-icon">
+            <i class="mdi mdi-email-outline"></i>
+          </div>
+          <div>
+            <div class="gmail-title">Inbox Gmail</div>
+            <div class="gmail-subtitle" id="gmail-subtitle">Tarik email terbaru & cari cepat</div>
+          </div>
+        </div>
+
+        <button type="button" class="close text-white" data-dismiss="modal" aria-hidden="true">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Toolbar -->
+        <div class="gmail-toolbar">
+          <div class="gmail-search">
+            <i class="mdi mdi-magnify"></i>
+            <input type="search" id="gmail-q" class="form-control" placeholder="Cari subject / from / snippet…">
+            <button type="button" class="btn btn-light btn-sm gmail-clear" id="gmail-clear" title="Bersihkan">
+              <i class="mdi mdi-close"></i>
+            </button>
+          </div>
+
+         <!--  <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
+            <i class="fe-refresh-ccw mr-1"></i> Refresh
+          </button> -->
+          <button type="button" class="btn btn-danger btn-sm gmail-sync" id="gmail-sync-btn">
+            <i class="fe-refresh-ccw mr-1"></i><span class="btn-text"> Cek Email</span>
+          </button>
+
+        </div>
+
+        <!-- Loading (shimmer) -->
+        <div id="gmail-loading" class="gmail-loading" style="display:none">
+          <div class="gmail-skel">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w60"></div>
+              <div class="skel-line w90"></div>
+              <div class="skel-line w40"></div>
+            </div>
+          </div>
+          <div class="gmail-skel">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w50"></div>
+              <div class="skel-line w80"></div>
+              <div class="skel-line w35"></div>
+            </div>
+          </div>
+          <div class="gmail-skel">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w70"></div>
+              <div class="skel-line w95"></div>
+              <div class="skel-line w45"></div>
+            </div>
+          </div>
+          <div class="gmail-loading-text">
+            <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+            Memuat email…
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="gmail-empty" class="gmail-empty" style="display:none">
+          <div class="gmail-empty__icon">
+            <i class="mdi mdi-inbox-arrow-down-outline"></i>
+          </div>
+          <div class="gmail-empty__title">Belum ada email</div>
+          <div class="gmail-empty__desc">Klik <b>Refresh</b> untuk mengambil email terbaru.</div>
+        </div>
+
+        <!-- List -->
+        <div id="gmail-list" class="list-group gmail-list"></div>
+      </div>
+
+      <div class="modal-footer gmail-modal__footer">
+        <div class="d-flex align-items-center" style="gap:.5rem;">
+          <span class="badge badge-pill badge-light border" id="gmail-count">0 email</span>
+          <small class="text-muted" id="gmail-hint">Klik item untuk detail.</small>
+        </div>
+        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== MODAL: DETAIL EMAIL (PRETTY) ===== -->
+<div id="gmail-detail-modal" class="modal fade gmail-detail-modal" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <div class="gmail-detail-top">
+          <div class="gmail-icon">
+            <i class="mdi mdi-email-open-outline"></i>
+          </div>
+          <div>
+            <div class="gmail-detail-title" id="gmail-detail-title">Detail Email</div>
+            <div class="gmail-detail-subtitle" id="gmail-detail-subtitle">Memuat isi email…</div>
+          </div>
+        </div>
+
+        <button type="button" class="close text-white" data-dismiss="modal" aria-hidden="true">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="gmail-detail-card" id="gmail-detail-body">
+          <div class="text-center text-muted py-5">Memuat…</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="gmail-detail-actions mr-auto">
+          <span class="badge badge-pill badge-light border" id="gmail-detail-badge">—</span>
+          <small class="text-muted" id="gmail-detail-hint">Klik tab Email/Text/RAW untuk melihat isi.</small>
+        </div>
+        <button type="button" class="btn btn-danger waves-effect" data-dismiss="modal">Tutup Detail</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<style>
+  .fab-gmail{
+    position: fixed;
+    right: 18px;
+    bottom: 100px;
+    z-index: 9999;
+    border-radius: 999px;
+    box-shadow: 0 14px 35px rgba(0,0,0,.22);
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  /* biar di hp cuma ikon aja */
+  @media (max-width: 575.98px){
+    .fab-gmail .fab-text{ display:none; }
+    .fab-gmail{ padding: 12px; }
+  }
+</style>
+<?php
+  $uname = strtolower((string)$this->session->userdata('admin_username'));
+  $isKB  = in_array($uname, ['kitchen','bar'], true);
+?>
+
+<?php if (!$isKB): ?>
+  <button type="button"
+          onclick="openGmailInbox()"
+          class="btn btn-danger btn-sm waves-effect waves-light fab-gmail"
+          title="Cek transaksi QRIS">
+    <i class="mdi mdi-gmail"></i>
+    <span class="fab-text">Cek transaksi QRIS</span>
+  </button>
+<?php endif; ?>
+
+<script>
+window.GMAIL_CFG = {
+  URL_LIST:   <?= json_encode(site_url('admin_pos/gmail_inbox')) ?>,
+  URL_SYNC:   <?= json_encode(site_url('admin_pos/gmail_sync')) ?>,
+  URL_DETAIL: <?= json_encode(site_url('admin_pos/gmail_detail').'/') ?>
+};
+
+function loadCssOnce(href){
+  if (document.querySelector('link[data-href="'+href+'"]')) return Promise.resolve();
+  return new Promise(res=>{
+    const l=document.createElement('link');
+    l.rel='stylesheet'; l.href=href; l.setAttribute('data-href', href);
+    l.onload=res; document.head.appendChild(l);
+  });
+}
+function loadJsOnce(src){
+  if (document.querySelector('script[data-src="'+src+'"]')) return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=src; s.defer=true; s.setAttribute('data-src', src);
+    s.onload=res; s.onerror=rej; document.body.appendChild(s);
+  });
+}
+
+window.openGmailInbox = async function(){
+  try{
+    await loadCssOnce("<?= base_url('assets/min/gmai.min.css?v=3') ?>");
+    await loadJsOnce("<?= base_url('assets/min/gmail.min.js?v=3') ?>");
+    if (window.gmailInitAndOpen) window.gmailInitAndOpen(window.GMAIL_CFG);
+    else $('#gmail-inbox-modal').modal('show');
+  }catch(e){
+    console.error(e);
+    if (window.Swal) Swal.fire('Gagal', 'Gagal memuat modul Gmail (css/js).', 'error');
+  }
+};
 </script>
