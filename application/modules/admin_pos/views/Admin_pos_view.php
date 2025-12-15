@@ -699,6 +699,55 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 }
 
   </style>
+  <style>
+  .gmail-toast{
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 99999;
+    display: none;
+    min-width: 240px;
+    max-width: 360px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 14px 40px rgba(0,0,0,.28);
+    transform: translateY(8px);
+    opacity: 0;
+    transition: all .18s ease;
+  }
+  .gmail-toast.show{
+    display:block;
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .gmail-toast .trow{ display:flex; gap:10px; align-items:flex-start; }
+  .gmail-toast .ticon{
+    width: 28px; height: 28px;
+    border-radius: 10px;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,.14);
+    flex: 0 0 28px;
+  }
+  .gmail-toast .tmsg{ font-size: 13px; line-height: 1.35; }
+  .gmail-toast .tsub{ font-size: 12px; opacity:.85; margin-top:2px; }
+  .gmail-toast .tclose{
+    margin-left:auto;
+    color: rgba(255,255,255,.8);
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    font-size: 18px;
+  }
+
+  /* variants */
+  .gmail-toast.success{ background:#065f46; }
+  .gmail-toast.info{ background:#1f2937; }
+  .gmail-toast.warn{ background:#92400e; }
+  .gmail-toast.error{ background:#991b1b; }
+</style>
+
 <!-- ===== MODAL: INBOX GMAIL (PRETTY) ===== -->
 <div id="gmail-inbox-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -833,6 +882,75 @@ $(document).on('click', '#gmail-clear', function(){
 
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
 
+
+    let toastTimer = null;
+
+  function showToast(msg, sub, type){
+    type = type || 'info';
+
+    let el = document.getElementById('gmail-toast');
+    if (!el){
+      el = document.createElement('div');
+      el.id = 'gmail-toast';
+      el.className = 'gmail-toast';
+      el.innerHTML = `
+        <div class="trow">
+          <div class="ticon"><i class="mdi mdi-bell-outline"></i></div>
+          <div style="min-width:0">
+            <div class="tmsg" id="gmail-toast-msg"></div>
+            <div class="tsub" id="gmail-toast-sub" style="display:none"></div>
+          </div>
+          <div class="tclose" title="Tutup">&times;</div>
+        </div>
+      `;
+      document.body.appendChild(el);
+
+      el.querySelector('.tclose').addEventListener('click', function(){
+        hideToast();
+      });
+    }
+
+    // set variant + icon
+    el.classList.remove('success','info','warn','error');
+    el.classList.add(type);
+
+    const icon = el.querySelector('.ticon i');
+    if (icon){
+      icon.className = 'mdi ' + (
+        type === 'success' ? 'mdi-check-circle-outline' :
+        type === 'error'   ? 'mdi-alert-circle-outline' :
+        type === 'warn'    ? 'mdi-alert-outline' :
+                             'mdi-bell-outline'
+      );
+    }
+
+    const msgEl = document.getElementById('gmail-toast-msg');
+    const subEl = document.getElementById('gmail-toast-sub');
+    if (msgEl) msgEl.textContent = msg || '';
+    if (sub){
+      subEl.style.display = '';
+      subEl.textContent = sub;
+    }else{
+      subEl.style.display = 'none';
+      subEl.textContent = '';
+    }
+
+    clearTimeout(toastTimer);
+    el.style.display = 'block';
+    requestAnimationFrame(()=> el.classList.add('show'));
+
+    toastTimer = setTimeout(hideToast, 2800);
+  }
+
+  function hideToast(){
+    const el = document.getElementById('gmail-toast');
+    if (!el) return;
+    el.classList.remove('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ try{ el.style.display='none'; }catch(e){} }, 200);
+  }
+
+
   function uiState(state){ // 'loading' | 'list' | 'empty'
     const $loading = $('#gmail-loading');
     const $list    = $('#gmail-list');
@@ -942,22 +1060,32 @@ $(document).on('click', '#gmail-clear', function(){
 
     $.getJSON(URL_SYNC, { limit: opts.limit || 20 })
       .done(function(res){
-        if (!res || res.ok !== true){
-          console.warn('Sync gagal', res);
-          return;
-        }
-        const sync = res.sync || null;
-        if (!sync || sync.ok !== true){
-          console.warn('Sync error', sync);
-          return;
-        }
+      if (!res || res.ok !== true) {
+        showToast('Sync gagal', 'Response tidak valid', 'error');
+        console.warn('Sync gagal', res);
+        return;
+      }
+      const sync = res.sync || null;
+      if (!sync || sync.ok !== true) {
+        showToast('Sync error', sync?.msg || 'Tidak bisa ambil email', 'error');
+        console.warn('Sync error', sync);
+        return;
+      }
 
-        // kalau ada email baru: reload tabel silent (tanpa shimmer/flicker)
-        const inserted = sync.inserted ? parseInt(sync.inserted,10) : 0;
-        if (inserted > 0){
-          loadInbox({silent:true, limit: opts.limit || 20});
-        }
-      })
+      const inserted = sync.inserted ? parseInt(sync.inserted,10) : 0;
+
+      if (inserted > 0){
+        showToast(`✅ ${inserted} email baru masuk`, sync.last_sync_new ? ('Last sync: '+sync.last_sync_new) : '', 'success');
+        loadInbox({silent:true, limit: opts.limit || 20});
+      } else {
+        showToast('Tidak ada email baru', sync.last_sync_new ? ('Last sync: '+sync.last_sync_new) : '', 'info');
+      }
+    })
+    .fail(function(xhr){
+      showToast('Sync gagal', 'Koneksi/Server bermasalah', 'error');
+      console.error(xhr?.responseText);
+    })
+
       .fail(function(xhr){
         console.error(xhr?.responseText);
       })
