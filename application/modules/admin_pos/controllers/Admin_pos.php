@@ -7,7 +7,6 @@ class Admin_pos extends Admin_Controller {
         parent::__construct();
         $this->load->model('M_admin_pos','dm');
         // $this->load->helper(['url','text','security']);
-         $this->load->library('Gmail_oauth');
         cek_session_akses(get_class($this), $this->session->userdata('admin_session'));
     }
 
@@ -1968,7 +1967,7 @@ public function gmail_detail($id)
 }
 private function _gmail_sync(int $limit = 20): void
 {
-   
+    $this->load->library('Gmail_oauth');
 
   // token harus sudah ada
   $row = $this->db->get_where('settings',['id'=>1])->row();
