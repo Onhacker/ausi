@@ -21,30 +21,43 @@ class Auth extends MX_Controller {
 	}
 
 
-  public function gmail_callback(){
+  public function gmail_callback()
+{
     $client = Gmail_oauth::client();
 
-    $code = (string)$this->input->get('code', true);
-    if ($code === '') show_error('OAuth code kosong', 400);
+    // 1) Kalau Google kirim error, tampilkan dulu (ini penyebab code kosong paling sering)
+    $err  = $this->input->get('error'); // jangan TRUE
+    $desc = $this->input->get('error_description');
+    if ($err) {
+        show_error('OAuth error: '.$err.($desc ? ' | '.$desc : ''), 400);
+    }
+
+    // 2) Ambil code RAW (hindari xss_clean)
+    $code = $this->input->get('code'); // <-- PENTING: jangan pakai TRUE
+    if (!$code) {
+        // bantu debug: lihat query string yang masuk
+        show_error('OAuth code kosong. Query: '.htmlspecialchars($_SERVER['QUERY_STRING'] ?? ''), 400);
+    }
 
     $token = $client->fetchAccessTokenWithAuthCode($code);
-    if (isset($token['error'])) show_error('OAuth error: '.$token['error'], 400);
+    if (isset($token['error'])) {
+        show_error('OAuth token error: '.$token['error'], 400);
+    }
 
+    // simpan token (jaga refresh_token lama)
     $oldRow = $this->db->select('gmail_token')->get_where('settings', ['id'=>1])->row();
     $oldTok = $oldRow && $oldRow->gmail_token ? json_decode($oldRow->gmail_token, true) : [];
 
     if (empty($token['refresh_token']) && !empty($oldTok['refresh_token'])) {
-      $token['refresh_token'] = $oldTok['refresh_token'];
+        $token['refresh_token'] = $oldTok['refresh_token'];
     }
 
     $this->db->where('id', 1)->update('settings', [
-      'gmail_token'      => json_encode($token),
-      'token_updated_at' => date('Y-m-d H:i:s'),
+        'gmail_token'      => json_encode($token),
+        'token_updated_at' => date('Y-m-d H:i:s'),
     ]);
 
-    // kalau mau cepat cek update DB berhasil:
-    // echo $this->db->affected_rows(); exit;
+    redirect('admin_pos/gmail_inbox');
+}
 
-    redirect('admin_pos/gmail_inbox?sync=1');
-  }
 }
