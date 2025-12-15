@@ -643,7 +643,7 @@ function loadJsOnce(src){
 window.openGmailInbox = async function(){
   try{
     await loadCssOnce("<?= base_url('assets/min/gmail.css?v=3') ?>");
-    await loadJsOnce("<?= base_url('assets/min/gmail.js?v=3') ?>");
+    await loadJsOnce("<?= base_url('assets/min/gmail.min.js?v=3') ?>");
     if (window.gmailInitAndOpen) window.gmailInitAndOpen(window.GMAIL_CFG);
     else $('#gmail-inbox-modal').modal('show');
   }catch(e){
