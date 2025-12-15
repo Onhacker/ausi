@@ -1877,7 +1877,9 @@ public function gmail_inbox()
         echo json_encode(["success"=>false,"title"=>"Akses","pesan"=>"Tidak diizinkan."]); return;
     }
 
-    $sync  = (int)$this->input->get('sync') === 1;
+    $syncParam = $this->input->get('sync', true);
+$sync = in_array((string)$syncParam, ['1','true','yes','on'], true);
+
     $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
     $q     = trim((string)$this->input->get('q'));
 
@@ -1950,18 +1952,15 @@ private function _gmail_sync(int $limit = 20): array
     $client = Gmail_oauth::client();
     $client->setAccessToken($tok);
 
-    // refresh bila expired
     if ($client->isAccessTokenExpired()) {
         $refresh = $tok['refresh_token'] ?? $client->getRefreshToken();
         if (!$refresh) {
-            return ['ok'=>false,'msg'=>'Access token expired tapi refresh_token tidak ada. Reconnect OAuth (access_type=offline + prompt=consent).'];
+            return ['ok'=>false,'msg'=>'Access token expired tapi refresh_token tidak ada. Reconnect OAuth (offline+consent).'];
         }
-
         $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
         if (isset($newTok['error'])) {
             return ['ok'=>false,'msg'=>'Refresh token gagal: '.$newTok['error']];
         }
-
         if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
         $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
         $client->setAccessToken($newTok);
@@ -1970,54 +1969,68 @@ private function _gmail_sync(int $limit = 20): array
     try {
         $svc = new \Google\Service\Gmail($client);
 
-        // ✅ untuk memastikan akun yang terhubung
         $profile = $svc->users->getProfile('me');
         $emailMe = $profile->getEmailAddress();
 
-        // ✅ biasanya user maunya INBOX
-        $list = $svc->users_messages->listUsersMessages('me', [
+        // TEST MODE (jangan ketat dulu)
+        $params = [
             'maxResults' => $limit,
-            'labelIds'   => ['INBOX'],
-            'q'          => 'newer_than:365d', // coba longgar dulu
-            // 'includeSpamTrash' => true, // opsional
-        ]);
+            // 'labelIds' => ['INBOX'],
+            // 'q' => 'in:inbox newer_than:5y',
+            'includeSpamTrash' => true,
+        ];
 
+        $list = $svc->users_messages->listUsersMessages('me', $params);
         $msgs = $list->getMessages() ?: [];
-        $fetched = count($msgs);
+
+        $fetched  = count($msgs);
         $inserted = 0;
+        $dbFail   = 0;
 
         foreach ($msgs as $m) {
-            $msg = $svc->users_messages->get('me', $m->getId(), ['format'=>'metadata']);
+            $msg = $svc->users_messages->get('me', $m->getId(), [
+                'format' => 'metadata',
+                'metadataHeaders' => ['From','Subject','Date'],
+            ]);
 
-            $headers = $msg->getPayload()->getHeaders();
-            $from = $subject = $date = '';
-            foreach ($headers as $h){
-                if ($h->getName()==='From')    $from = $h->getValue();
-                if ($h->getName()==='Subject') $subject = $h->getValue();
-                if ($h->getName()==='Date')    $date = $h->getValue();
-            }
-
+            // cek duplikat
             $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$msg->getId()])->row();
             if ($exists) continue;
 
-            $this->db->insert('gmail_inbox', [
+            $from = $subject = $dateHdr = '';
+            foreach (($msg->getPayload()->getHeaders() ?: []) as $h){
+                if ($h->getName()==='From')    $from = $h->getValue();
+                if ($h->getName()==='Subject') $subject = $h->getValue();
+                if ($h->getName()==='Date')    $dateHdr = $h->getValue();
+            }
+
+            // received_at pakai internalDate Gmail
+            $internalMs = (int)$msg->getInternalDate(); // ms
+            $receivedAt = $internalMs ? date('Y-m-d H:i:s', (int)($internalMs/1000)) : date('Y-m-d H:i:s');
+
+            $ok = $this->db->insert('gmail_inbox', [
                 'gmail_id'    => $msg->getId(),
                 'from_email'  => $from,
                 'subject'     => $subject,
                 'snippet'     => $msg->getSnippet(),
                 'raw'         => json_encode($msg),
                 'status'      => 'baru',
-                'received_at' => date('Y-m-d H:i:s'),
+                'received_at' => $receivedAt,
                 'created_at'  => date('Y-m-d H:i:s'),
             ]);
-            $inserted++;
+
+            if ($ok) $inserted++;
+            else     $dbFail++;
         }
 
         return [
-            'ok'       => true,
-            'me'       => $emailMe,
-            'fetched'  => $fetched,
+            'ok' => true,
+            'me' => $emailMe,
+            'gmail_total' => (int)$profile->getMessagesTotal(),
+            'fetched' => $fetched,
             'inserted' => $inserted,
+            'db_fail' => $dbFail,
+            'params' => $params,
         ];
 
     } catch (\Google\Service\Exception $e) {
