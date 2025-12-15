@@ -1871,23 +1871,13 @@ public function list_meja(){
 
 public function gmail_inbox()
 {
-    // batasi akses: kitchen/bar tidak perlu
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     if (in_array($uname, ['kitchen','bar'], true)){
-        echo json_encode(["success"=>false,"title"=>"Akses","pesan"=>"Tidak diizinkan."]); return;
+        return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
     }
-
-    $syncParam = $this->input->get('sync', true);
-$sync = in_array((string)$syncParam, ['1','true','yes','on'], true);
 
     $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
     $q     = trim((string)$this->input->get('q'));
-
-    $syncInfo = null;
-    if ($sync){
-     $syncInfo = $this->_gmail_sync($limit);
- }
-
 
     $this->db->from('gmail_inbox');
     if ($q !== ''){
@@ -1897,14 +1887,12 @@ $sync = in_array((string)$syncParam, ['1','true','yes','on'], true);
           ->or_like('snippet', $q)
         ->group_end();
     }
-    $rows = $this->db->order_by('received_at','DESC')
-                     ->limit($limit)
-                     ->get()->result();
 
-    echo json_encode([
-      "success"=>true,
-       "sync"=>$syncInfo,
-      "data"=>array_map(function($r){
+    $rows = $this->db->order_by('received_at','DESC')->limit($limit)->get()->result();
+
+    return $this->_json([
+      'ok'=>true,
+      'data'=>array_map(function($r){
         return [
           "id" => (int)$r->id,
           "from_email" => (string)$r->from_email,
@@ -1916,6 +1904,23 @@ $sync = in_array((string)$syncParam, ['1','true','yes','on'], true);
       }, $rows)
     ]);
 }
+
+public function gmail_sync()
+{
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if (in_array($uname, ['kitchen','bar'], true)){
+        return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
+    }
+
+    $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
+
+    $info = $this->_gmail_sync($limit);
+    $ok   = !empty($info['ok']);
+
+    return $this->_json(['ok'=>$ok, 'sync'=>$info], $ok ? 200 : 500);
+}
+
+
 public function gmail_detail($id)
 {
     $id = (int)$id;
@@ -2067,10 +2072,17 @@ private function _gmail_sync(int $limit = 20): array
         $lastSyncNew = $lastSyncOld;
         if ($maxInternalMs > 0) {
             $lastSyncNew = date('Y-m-d H:i:s', (int)($maxInternalMs/1000));
-            $this->db->where('id',1)->update('settings', [
-                'gmail_last_sync_at' => $lastSyncNew
-            ]);
+        } else {
+            // tidak ada insert baru
+            if ($fetched > 0 && $fetched < $limit) {
+                $lastSyncNew = date('Y-m-d H:i:s'); // aman karena tidak kepotong limit
+            }
         }
+
+        if (!empty($lastSyncNew) && $lastSyncNew !== $lastSyncOld) {
+            $this->db->where('id',1)->update('settings', ['gmail_last_sync_at' => $lastSyncNew]);
+        }
+
 
         return [
             'ok' => true,

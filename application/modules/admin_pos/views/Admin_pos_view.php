@@ -190,6 +190,8 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                   <span class="btn-label"><i class="fe-refresh-ccw"></i></span>
                   Refresh
                 </button>
+
+
                 <?php if (!$isKB): ?>
                   <button type="button"
                           onclick="openGmailInbox()"
@@ -197,6 +199,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                     <span class="btn-label"><i class="mdi mdi-gmail"></i></span>
                     Gmail/ Cek transaksi
                   </button>
+
                   <?php endif; ?>
 
                 <?php if (!$isKB): ?>
@@ -725,9 +728,13 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
             </button>
           </div>
 
-          <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
+         <!--  <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
             <i class="fe-refresh-ccw mr-1"></i> Refresh
+          </button> -->
+          <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
+            <i class="fe-refresh-ccw mr-1"></i><span class="btn-text"> Refresh</span>
           </button>
+
         </div>
 
         <!-- Loading (shimmer) -->
@@ -805,32 +812,79 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
   </div>
 </div>
 <script>
+$(document).on('click', '#gmail-clear', function(){
+  $('#gmail-q').val('');
+  loadInbox({silent:false, limit:20});
+  try{ document.getElementById('gmail-q').focus(); }catch(e){}
+});
+
+</script>
+
+<script>
 (function(){
   if (window.__GMAIL_UI__) return; window.__GMAIL_UI__ = true;
 
   const URL_LIST   = "<?= site_url('admin_pos/gmail_inbox') ?>";
-  const URL_DETAIL = "<?= site_url('admin_pos/gmail_detail') ?>/"; // +id
+  const URL_SYNC   = "<?= site_url('admin_pos/gmail_sync') ?>";
+  const URL_DETAIL = "<?= site_url('admin_pos/gmail_detail') ?>/";
+
+  let autoSyncTimer = null;
+  let isSyncing = false;
 
   function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
 
-  function gmailLoading(on){
-    document.getElementById('gmail-loading').style.display = on ? '' : 'none';
+  function uiState(state){ // 'loading' | 'list' | 'empty'
+    const $loading = $('#gmail-loading');
+    const $list    = $('#gmail-list');
+    const $empty   = $('#gmail-empty');
+
+    if (state === 'loading'){
+      $loading.show();
+      $list.hide();
+      $empty.hide();
+      return;
+    }
+    if (state === 'empty'){
+      $loading.hide();
+      $list.hide();
+      $empty.show();
+      return;
+    }
+    // list
+    $loading.hide();
+    $empty.hide();
+    $list.show();
+  }
+
+  function setSubtitle(text){
+    const el = document.getElementById('gmail-subtitle');
+    if (el) el.textContent = text || 'Tarik email terbaru & cari cepat';
+  }
+
+  function gmailSyncing(on){
+    isSyncing = !!on;
+    const $btn = $('#gmail-sync-btn');
+    if ($btn.length){
+      $btn.prop('disabled', on);
+      $btn.find('i').toggleClass('spin', on);
+      $btn.find('.btn-text').text(on ? ' Sync…' : ' Refresh'); // pastikan tombol punya span.btn-text
+    }
+    setSubtitle(on ? 'Sinkronisasi Gmail… (background)' : 'Tarik email terbaru & cari cepat');
   }
 
   function renderInbox(rows){
     const $list  = $('#gmail-list');
-    const $empty = $('#gmail-empty');
     const $count = $('#gmail-count');
 
-    $list.empty();
     rows = rows || [];
     $count.text(rows.length + ' email');
 
     if (!rows.length){
-      $empty.show();
+      uiState('empty');
       return;
     }
-    $empty.hide();
+
+    $list.empty();
 
     rows.forEach(r=>{
       const badge = (r.status === 'diproses')
@@ -839,52 +893,96 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 
       const html = `
         <button type="button" class="list-group-item list-group-item-action" onclick="gmailOpenDetail(${parseInt(r.id,10)})">
-          <div class="d-flex justify-content-between align-items-start">
-            <div style="min-width:0">
-              <div class="font-weight-bold text-truncate">${esc(r.subject||'(tanpa subject)')}</div>
-              <div class="text-muted small text-truncate">${esc(r.from_email||'-')}</div>
-            </div>
-            <div class="text-right" style="margin-left:.5rem">
-              ${badge}
-              <div class="text-muted small">${esc(r.received_at||'')}</div>
-            </div>
+          <div class="gmail-item__top">
+            <div class="gmail-from">${esc(r.from_email||'-')}</div>
+            <div class="gmail-date">${esc(r.received_at||'')}</div>
           </div>
-          <div class="text-muted small mt-1 text-truncate">${esc(r.snippet||'')}</div>
+          <div class="gmail-subject text-truncate">${esc(r.subject||'(tanpa subject)')}</div>
+          <div class="d-flex align-items-center justify-content-between" style="gap:.5rem">
+            <div class="gmail-snippet text-truncate" style="min-width:0">${esc(r.snippet||'')}</div>
+            <div>${badge}</div>
+          </div>
         </button>`;
       $list.append(html);
     });
+
+    uiState('list');
   }
 
+  // ===== READ TABLE ONLY =====
   function loadInbox(opts){
     opts = opts || {};
     const q = ($('#gmail-q').val() || '').trim();
 
-    gmailLoading(true);
-    return $.getJSON(URL_LIST, {
-      sync: opts.sync ? 1 : 0,
-      limit: opts.limit || 20,
-      q: q
-    }).done(function(res){
-      gmailLoading(false);
-      if (!res || !res.success){
+    if (!opts.silent) uiState('loading');
+
+    return $.getJSON(URL_LIST, { limit: opts.limit || 20, q })
+      .done(function(res){
+        const ok = (res && (res.ok === true || res.success === true));
+        if (!ok){
+          renderInbox([]);
+          if (window.Swal) Swal.fire(res?.title||'Gagal', res?.msg||res?.pesan||'Tidak bisa memuat inbox', 'error');
+          return;
+        }
+        renderInbox(res.data || []);
+      })
+      .fail(function(xhr){
         renderInbox([]);
-        if (window.Swal) Swal.fire(res?.title||'Gagal', res?.pesan||'Tidak bisa memuat inbox', 'error');
-        return;
-      }
-      renderInbox(res.data || []);
-    }).fail(function(xhr){
-      gmailLoading(false);
-      renderInbox([]);
-      if (window.Swal) Swal.fire('Error','Koneksi bermasalah saat memuat Gmail','error');
-      console.error(xhr?.responseText);
-    });
+        if (window.Swal) Swal.fire('Error','Koneksi bermasalah saat memuat Gmail','error');
+        console.error(xhr?.responseText);
+      });
   }
 
+  // ===== SYNC BACKGROUND =====
+  function syncInbox(opts){
+    opts = opts || {};
+    if (isSyncing) return;
+
+    gmailSyncing(true);
+
+    $.getJSON(URL_SYNC, { limit: opts.limit || 20 })
+      .done(function(res){
+        if (!res || res.ok !== true){
+          console.warn('Sync gagal', res);
+          return;
+        }
+        const sync = res.sync || null;
+        if (!sync || sync.ok !== true){
+          console.warn('Sync error', sync);
+          return;
+        }
+
+        // kalau ada email baru: reload tabel silent (tanpa shimmer/flicker)
+        const inserted = sync.inserted ? parseInt(sync.inserted,10) : 0;
+        if (inserted > 0){
+          loadInbox({silent:true, limit: opts.limit || 20});
+        }
+      })
+      .fail(function(xhr){
+        console.error(xhr?.responseText);
+      })
+      .always(function(){
+        gmailSyncing(false);
+      });
+  }
+
+  // ===== OPEN MODAL: table dulu, lalu autosync =====
   window.openGmailInbox = function(){
     $('#gmail-inbox-modal').modal('show');
-    loadInbox({sync:true, limit:20});
+
+    loadInbox({silent:false, limit:20}).always(function(){
+      clearTimeout(autoSyncTimer);
+      autoSyncTimer = setTimeout(function(){
+        syncInbox({limit:20});
+      }, 500);
+    });
+
     setTimeout(()=>{ try{ document.getElementById('gmail-q').focus(); }catch(e){} }, 150);
   };
+
+  $('#gmail-inbox-modal').on('hidden.bs.modal', function(){
+    clearTimeout(autoSyncTimer);
+  });
 
   window.gmailOpenDetail = function(id){
     $('#gmail-detail-modal').modal('show');
@@ -898,18 +996,36 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
     });
   };
 
-  // tombol sync
-  $('#gmail-sync-btn').on('click', function(){ loadInbox({sync:true, limit:20}); });
+  // tombol refresh = paksa sync
+  $(document).on('click', '#gmail-sync-btn', function(){
+    syncInbox({limit:20});
+  });
 
-  // search debounce
+  // clear search
+  $(document).on('click', '#gmail-clear', function(){
+    $('#gmail-q').val('');
+    loadInbox({silent:false, limit:20});
+    try{ document.getElementById('gmail-q').focus(); }catch(e){}
+  });
+
+  // search debounce: hanya baca table
   let t=null;
-  $('#gmail-q').on('input', function(){
+  $(document).on('input', '#gmail-q', function(){
     clearTimeout(t);
-    t = setTimeout(()=>loadInbox({sync:false, limit:20}), 250);
+    t = setTimeout(()=>loadInbox({silent:false, limit:20}), 250);
   });
 
 })();
 </script>
+
+
+
+
+<style>
+/* biar icon refresh muter saat sync */
+.spin{ animation: spin 1s linear infinite; display:inline-block; }
+@keyframes spin{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+</style>
 
   <script>
     const IS_KB = <?= $isKB ? 'true' : 'false' ?>;
