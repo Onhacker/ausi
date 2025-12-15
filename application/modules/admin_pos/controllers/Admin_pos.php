@@ -1982,6 +1982,10 @@ public function gmail_detail($id)
     ->group_end();
     $this->db->update('gmail_inbox', ['status' => 'dilihat']);
 
+    // ambil status terbaru untuk ditampilkan
+    $row2 = $this->db->select('status')->get_where('gmail_inbox',['id'=>$id])->row();
+    $statusNow = $row2 ? (string)($row2->status ?? '') : (string)($row->status ?? '');
+
     $gmailId = (string)($row->gmail_id ?? '');
     if ($gmailId === '') {
         echo '<div class="text-danger">gmail_id kosong. Pastikan sync menyimpan gmail_id.</div>';
@@ -1994,7 +1998,7 @@ public function gmail_detail($id)
         // ambil full message
         $full = $svc->users_messages->get('me', $gmailId, ['format' => 'full']);
 
-        // headers (optional ambil yang paling valid dari Gmail)
+        // headers (lebih valid dari Gmail)
         $headers = $full->getPayload() ? ($full->getPayload()->getHeaders() ?: []) : [];
         $fromH = $subjH = $dateH = '';
         foreach ($headers as $h){
@@ -2003,7 +2007,7 @@ public function gmail_detail($id)
             if ($h->getName()==='Date')    $dateH = $h->getValue();
         }
 
-        // extract body
+        // extract body (text & html)
         $payload = $full->getPayload();
         $body = $payload ? $this->_extract_body_from_payload($payload) : ['text'=>'','html'=>''];
 
@@ -2015,28 +2019,30 @@ public function gmail_detail($id)
             $text = (string)($full->getSnippet() ?? $row->snippet ?? '');
         }
 
-        // render aman
+        // render aman: sanitize html + srcdoc
         $safeHtml = $html !== '' ? $this->_sanitize_html_basic($html) : '';
         $srcdoc   = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : '';
 
         $fromShow = $fromH !== '' ? $fromH : (string)$row->from_email;
         $subjShow = $subjH !== '' ? $subjH : (string)$row->subject;
+
+        // tanggal pakai yang sudah kamu simpan (received_at/created_at)
         $dateShow = $row->received_at ?? $row->created_at ?? '';
-        // kalau kamu punya formatter indo di controller, pakai di sini:
+        // kalau punya formatter indo di controller, aktifkan:
         // $dateShow = $this->_indo_datetime($dateShow, true);
+
+        // badge status
+        $statusLabel = ($statusNow === 'diproses') ? 'diproses' : 'dilihat';
 
         echo '
           <div class="mb-2"><b>Dari:</b> '.html_escape($fromShow).'</div>
           <div class="mb-2"><b>Subjek:</b> '.html_escape($subjShow).'</div>
           <div class="mb-2"><b>Tanggal:</b> '.html_escape($dateShow).'</div>
-          <div class="mb-2"><b>Status:</b> '.html_escape(($row->status === "diproses") ? "diproses" : "dilihat").'</div>
+          <div class="mb-2"><b>Status:</b> '.html_escape($statusLabel).'</div>
 
           <ul class="nav nav-tabs mt-3" role="tablist">
             <li class="nav-item">
-              <a class="nav-link active" data-toggle="tab" href="#tab-text" role="tab">Teks</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-toggle="tab" href="#tab-html" role="tab">HTML (Sandbox)</a>
+              <a class="nav-link active" data-toggle="tab" href="#tab-html" role="tab">Email</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" data-toggle="tab" href="#tab-raw" role="tab">RAW</a>
@@ -2044,14 +2050,11 @@ public function gmail_detail($id)
           </ul>
 
           <div class="tab-content border-left border-right border-bottom p-3">
-            <div class="tab-pane fade show active" id="tab-text" role="tabpanel">
-              <div style="white-space:pre-wrap">'.html_escape($text).'</div>
-            </div>
-
-            <div class="tab-pane fade" id="tab-html" role="tabpanel">
-              '.($srcdoc !== ''
-                ? '<iframe sandbox="" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px" srcdoc="'.$srcdoc.'"></iframe>'
-                : '<div class="text-muted">Email tidak memiliki HTML.</div>'
+            <div class="tab-pane fade show active" id="tab-html" role="tabpanel">
+              '.(
+                $srcdoc !== ''
+                  ? '<iframe sandbox="" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px" srcdoc="'.$srcdoc.'"></iframe>'
+                  : '<div style="white-space:pre-wrap">'.html_escape($text).'</div>'
               ).'
             </div>
 
