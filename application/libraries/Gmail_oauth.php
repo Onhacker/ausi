@@ -8,7 +8,7 @@ use Google\Service\Gmail;
 
 class Gmail_oauth {
 
-  public static function client(): Client
+  public static function client(bool $forceConsent = false, ?string $state = null): Client
   {
     $CI = &get_instance();
     $CI->load->config('google_gmail');
@@ -23,9 +23,20 @@ class Gmail_oauth {
     $client->setClientSecret($cfg['client_secret']);
     $client->setRedirectUri($cfg['redirect_uri']);
 
+    // scope minimal untuk baca email
     $client->addScope(Gmail::GMAIL_READONLY);
+
+    // penting untuk refresh_token
     $client->setAccessType('offline');
-    $client->setPrompt('consent select_account');
+    $client->setIncludeGrantedScopes(true);
+
+    // state anti-CSRF (opsional)
+    if ($state) $client->setState($state);
+
+    // consent hanya saat perlu refresh_token
+    if ($forceConsent) $client->setPrompt('consent select_account');
+    else              $client->setPrompt(''); // boleh juga dikosongkan
+
     return $client;
   }
 }
