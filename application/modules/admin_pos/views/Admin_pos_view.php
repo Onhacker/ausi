@@ -701,27 +701,29 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
   </style>
   <style>
   .gmail-toast{
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 99999;
-    display: none;
-    min-width: 240px;
-    max-width: 360px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: #111827;
-    color: #fff;
-    box-shadow: 0 14px 40px rgba(0,0,0,.28);
-    transform: translateY(8px);
-    opacity: 0;
-    transition: all .18s ease;
-  }
-  .gmail-toast.show{
-    display:block;
-    transform: translateY(0);
-    opacity: 1;
-  }
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 99999;
+  display: none;
+  min-width: 260px;
+  max-width: 520px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #111827;
+  color: #fff;
+  box-shadow: 0 14px 40px rgba(0,0,0,.28);
+  opacity: 0;
+  transition: all .18s ease;
+}
+
+.gmail-toast.show{
+  display:block;
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
   .gmail-toast .trow{ display:flex; gap:10px; align-items:flex-start; }
   .gmail-toast .ticon{
     width: 28px; height: 28px;
