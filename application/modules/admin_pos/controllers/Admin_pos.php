@@ -1900,7 +1900,7 @@ public function gmail_inbox()
           "snippet" => (string)$r->snippet,
           "status" => (string)($r->status ?? 'baru'),
           // "received_at" => (string)($r->received_at ?? $r->created_at ?? '')
-          "received_at" => tgl_indo($r->received_at ?? $r->created_at ?? '', true)
+          "received_at" => date_time_view($r->received_at ?? $r->created_at ?? '', true)
 
         ];
       }, $rows)
