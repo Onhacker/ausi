@@ -9,10 +9,17 @@ class Auth extends MX_Controller {
     $this->load->database();
   }
 
-  public function gmail_connect(){
-    $client = Gmail_oauth::client();
-    redirect($client->createAuthUrl());
-  }
+  public function gmail_connect()
+	{
+	  try {
+	    $this->load->library('Gmail_oauth'); // PENTING (biar class dikenali)
+	    $client = Gmail_oauth::client();
+	    redirect($client->createAuthUrl());
+	  } catch (\Throwable $e) {
+	    show_error("GMAIL CONNECT ERROR: ".$e->getMessage(), 500);
+	  }
+	}
+
 
   public function gmail_callback(){
     $client = Gmail_oauth::client();
