@@ -1974,36 +1974,178 @@ public function gmail_detail($id)
         return;
     }
 
-    // ✅ SET STATUS jadi "dilihat" saat dibuka (hanya kalau masih "baru" / NULL)
+    // ✅ update status jadi "dilihat" (jangan timpa "diproses")
     $this->db->where('id', $id);
     $this->db->group_start()
         ->where('status', 'baru')
         ->or_where('status IS NULL', null, false)
     ->group_end();
-    $this->db->update('gmail_inbox', [
-        'status' => 'dilihat',
-        // kalau kamu punya kolom updated_at, boleh aktifkan:
-        // 'updated_at' => date('Y-m-d H:i:s'),
-    ]);
+    $this->db->update('gmail_inbox', ['status' => 'dilihat']);
 
-    // biar tampilan detail ikut reflect
-    if (empty($row->status) || $row->status === 'baru') $row->status = 'dilihat';
+    $gmailId = (string)($row->gmail_id ?? '');
+    if ($gmailId === '') {
+        echo '<div class="text-danger">gmail_id kosong. Pastikan sync menyimpan gmail_id.</div>';
+        return;
+    }
 
-    $html = '
-      <div class="mb-2"><b>Dari:</b> '.html_escape($row->from_email).'</div>
-      <div class="mb-2"><b>Subjek:</b> '.html_escape($row->subject).'</div>
-     <div class="mb-2"><b>Tanggal:</b> '.html_escape($this->_indo_datetime($row->received_at ?? $row->created_at ?? '', true)).'</div>
+    try {
+        $svc = $this->_gmail_service_ready();
 
-      <div class="mb-2"><b>Status:</b> '.html_escape($row->status).'</div>
-      <hr>
-      <div class="mb-2"><b>Snippet:</b><br>'.nl2br(html_escape($row->snippet)).'</div>
-      <hr>
-      <details>
-        <summary class="text-muted">Lihat RAW</summary>
-        <pre style="white-space:pre-wrap">'.html_escape($row->raw ?? '').'</pre>
-      </details>
-    ';
-    echo $html;
+        // ambil full message
+        $full = $svc->users_messages->get('me', $gmailId, ['format' => 'full']);
+
+        // headers (optional ambil yang paling valid dari Gmail)
+        $headers = $full->getPayload() ? ($full->getPayload()->getHeaders() ?: []) : [];
+        $fromH = $subjH = $dateH = '';
+        foreach ($headers as $h){
+            if ($h->getName()==='From')    $fromH = $h->getValue();
+            if ($h->getName()==='Subject') $subjH = $h->getValue();
+            if ($h->getName()==='Date')    $dateH = $h->getValue();
+        }
+
+        // extract body
+        $payload = $full->getPayload();
+        $body = $payload ? $this->_extract_body_from_payload($payload) : ['text'=>'','html'=>''];
+
+        $text = (string)($body['text'] ?? '');
+        $html = (string)($body['html'] ?? '');
+
+        // fallback bila body kosong
+        if ($text === '' && $html === '') {
+            $text = (string)($full->getSnippet() ?? $row->snippet ?? '');
+        }
+
+        // render aman
+        $safeHtml = $html !== '' ? $this->_sanitize_html_basic($html) : '';
+        $srcdoc   = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : '';
+
+        $fromShow = $fromH !== '' ? $fromH : (string)$row->from_email;
+        $subjShow = $subjH !== '' ? $subjH : (string)$row->subject;
+        $dateShow = $row->received_at ?? $row->created_at ?? '';
+        // kalau kamu punya formatter indo di controller, pakai di sini:
+        // $dateShow = $this->_indo_datetime($dateShow, true);
+
+        echo '
+          <div class="mb-2"><b>Dari:</b> '.html_escape($fromShow).'</div>
+          <div class="mb-2"><b>Subjek:</b> '.html_escape($subjShow).'</div>
+          <div class="mb-2"><b>Tanggal:</b> '.html_escape($dateShow).'</div>
+          <div class="mb-2"><b>Status:</b> '.html_escape(($row->status === "diproses") ? "diproses" : "dilihat").'</div>
+
+          <ul class="nav nav-tabs mt-3" role="tablist">
+            <li class="nav-item">
+              <a class="nav-link active" data-toggle="tab" href="#tab-text" role="tab">Teks</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" href="#tab-html" role="tab">HTML (Sandbox)</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" href="#tab-raw" role="tab">RAW</a>
+            </li>
+          </ul>
+
+          <div class="tab-content border-left border-right border-bottom p-3">
+            <div class="tab-pane fade show active" id="tab-text" role="tabpanel">
+              <div style="white-space:pre-wrap">'.html_escape($text).'</div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-html" role="tabpanel">
+              '.($srcdoc !== ''
+                ? '<iframe sandbox="" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px" srcdoc="'.$srcdoc.'"></iframe>'
+                : '<div class="text-muted">Email tidak memiliki HTML.</div>'
+              ).'
+            </div>
+
+            <div class="tab-pane fade" id="tab-raw" role="tabpanel">
+              <pre style="white-space:pre-wrap">'.html_escape(json_encode($full, JSON_PRETTY_PRINT)).'</pre>
+            </div>
+          </div>
+        ';
+
+    } catch (\Google\Service\Exception $e) {
+        echo '<div class="text-danger">Gmail API error: '.html_escape($e->getMessage()).'</div>';
+    } catch (\Throwable $e) {
+        echo '<div class="text-danger">Server error: '.html_escape($e->getMessage()).'</div>';
+    }
+}
+
+private function _gmail_service_ready(): \Google\Service\Gmail
+{
+    $row = $this->db->get_where('settings',['id'=>1])->row();
+    $tok = $row ? json_decode((string)$row->gmail_token, true) : null;
+
+    if (!$tok || empty($tok['access_token'])) {
+        throw new Exception('Token Gmail belum tersimpan di settings.gmail_token (id=1).');
+    }
+
+    $client = Gmail_oauth::client();
+    $client->setAccessToken($tok);
+
+    if ($client->isAccessTokenExpired()) {
+        $refresh = $tok['refresh_token'] ?? $client->getRefreshToken();
+        if (!$refresh) {
+            throw new Exception('Access token expired tapi refresh_token tidak ada. Reconnect OAuth (offline+consent).');
+        }
+
+        $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
+        if (isset($newTok['error'])) {
+            throw new Exception('Refresh token gagal: '.$newTok['error']);
+        }
+        if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
+
+        $this->db->where('id',1)->update('settings', ['gmail_token'=>json_encode($newTok)]);
+        $client->setAccessToken($newTok);
+    }
+
+    return new \Google\Service\Gmail($client);
+}
+
+private function _b64url_decode(string $data): string
+{
+    $data = strtr($data, '-_', '+/');
+    $pad  = strlen($data) % 4;
+    if ($pad) $data .= str_repeat('=', 4 - $pad);
+    return (string)base64_decode($data);
+}
+
+private function _extract_body_from_payload($payload): array
+{
+    $text = '';
+    $html = '';
+
+    $walk = function($part) use (&$walk, &$text, &$html){
+        $mime  = (string)$part->getMimeType();
+        $parts = $part->getParts();
+
+        if ($parts) {
+            foreach ($parts as $p) $walk($p);
+            return;
+        }
+
+        $body = $part->getBody();
+        $data = $body ? $body->getData() : null;
+        if (!$data) return;
+
+        $decoded = $this->_b64url_decode($data);
+
+        if ($mime === 'text/plain' && $text === '') $text = $decoded;
+        if ($mime === 'text/html'  && $html === '') $html = $decoded;
+    };
+
+    $walk($payload);
+
+    return ['text'=>$text, 'html'=>$html];
+}
+
+// Sanitizer ringan + kita tetap render di iframe sandbox (aman).
+private function _sanitize_html_basic(string $html): string
+{
+    // buang script/style/iframe/object/embed
+    $html = preg_replace('#<(script|style|iframe|object|embed)[^>]*>.*?</\1>#is', '', $html);
+    // buang on* handlers (onclick, onload, dst)
+    $html = preg_replace('#\son\w+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)#is', '', $html);
+    // cegah javascript: di href/src
+    $html = preg_replace('#(href|src)\s*=\s*("|\')\s*javascript:.*?\2#is', '$1="#"', $html);
+    return $html;
 }
 
 private function _gmail_sync(int $limit = 20): array
