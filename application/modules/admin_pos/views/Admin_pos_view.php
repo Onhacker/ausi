@@ -844,24 +844,117 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
   </div>
 </div>
 
+<style>
+/* ===== DETAIL MODAL THEME (match inbox) ===== */
+.gmail-detail-modal .modal-content{
+  border:0;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+}
 
-<!-- ===== MODAL: DETAIL EMAIL ===== -->
-<div id="gmail-detail-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-full">
+.gmail-detail-modal .modal-header{
+  border:0;
+  padding: 14px 16px;
+  color:#fff;
+  background: linear-gradient(135deg, #EA4335, #FBBC05, #34A853, #4285F4);
+  background-size: 300% 300%;
+  animation: gmailGradient 8s ease infinite;
+}
+
+.gmail-detail-modal .modal-header .close{
+  color:#fff;
+  opacity:.9;
+  text-shadow:none;
+}
+
+.gmail-detail-top{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+}
+
+.gmail-detail-top .gmail-icon{
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.18);
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter: blur(6px);
+}
+.gmail-detail-top .gmail-icon i{ font-size: 22px; }
+
+.gmail-detail-title{
+  font-weight:800;
+  letter-spacing:.2px;
+  line-height:1.1;
+}
+.gmail-detail-subtitle{
+  font-size: 12px;
+  opacity: .9;
+  margin-top: 2px;
+}
+
+.gmail-detail-modal .modal-body{
+  background:#fafbff;
+  padding: 14px 14px 10px;
+}
+
+.gmail-detail-card{
+  background:#fff;
+  border:1px solid #eef0f6;
+  border-radius:14px;
+  box-shadow: 0 8px 22px rgba(17,24,39,.06);
+  padding: 12px;
+}
+
+.gmail-detail-modal .modal-footer{
+  border-top: 1px solid #f0f2f7;
+  background:#fafbff;
+}
+
+.gmail-detail-actions{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+}
+</style>
+<!-- ===== MODAL: DETAIL EMAIL (PRETTY) ===== -->
+<div id="gmail-detail-modal" class="modal fade gmail-detail-modal" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
+
       <div class="modal-header">
-        <h4 class="mymodal-title mb-0" id="gmail-detail-title">Detail Email</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <div class="gmail-detail-top">
+          <div class="gmail-icon">
+            <i class="mdi mdi-email-open-outline"></i>
+          </div>
+          <div>
+            <div class="gmail-detail-title" id="gmail-detail-title">Detail Email</div>
+            <div class="gmail-detail-subtitle" id="gmail-detail-subtitle">Memuat isi email…</div>
+          </div>
+        </div>
+
+        <button type="button" class="close text-white" data-dismiss="modal" aria-hidden="true">×</button>
       </div>
-      <div class="modal-body" id="gmail-detail-body">
-        <div class="text-center text-muted py-5">Memuat…</div>
+
+      <div class="modal-body">
+        <div class="gmail-detail-card" id="gmail-detail-body">
+          <div class="text-center text-muted py-5">Memuat…</div>
+        </div>
       </div>
+
       <div class="modal-footer">
+        <div class="gmail-detail-actions mr-auto">
+          <span class="badge badge-pill badge-light border" id="gmail-detail-badge">—</span>
+          <small class="text-muted" id="gmail-detail-hint">Klik tab Email/Text/RAW untuk melihat isi.</small>
+        </div>
         <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
       </div>
+
     </div>
   </div>
 </div>
+
 <script>
 $(document).on('click', '#gmail-clear', function(){
   $('#gmail-q').val('');
@@ -1131,6 +1224,8 @@ $(document).on('click', '#gmail-clear', function(){
   window.gmailOpenDetail = function(id){
     $('#gmail-detail-modal').modal('show');
     $('#gmail-detail-body').html('<div class="text-center text-muted py-5">Memuat…</div>');
+    document.getElementById('gmail-detail-subtitle').textContent = 'Memuat isi email…';
+    document.getElementById('gmail-detail-badge').textContent = 'Loading';
 
     $.get(URL_DETAIL + id, function(html){
       $('#gmail-detail-body').html(html);
@@ -1140,6 +1235,9 @@ $(document).on('click', '#gmail-clear', function(){
 })
     .fail(function(xhr){
       $('#gmail-detail-body').html('<div class="text-danger">Gagal memuat detail.</div>');
+      document.getElementById('gmail-detail-subtitle').textContent = 'Email berhasil dimuat';
+document.getElementById('gmail-detail-badge').textContent = 'OK';
+
       console.error(xhr?.responseText);
     });
   };
