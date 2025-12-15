@@ -2019,7 +2019,17 @@ public function gmail_detail($id)
 
         // render aman: sanitize html + srcdoc
         $safeHtml = $html !== '' ? $this->_sanitize_html_basic($html) : '';
-        $srcdoc   = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : '';
+
+if ($safeHtml !== '') {
+    // ✅ buat path relatif bisa kebaca
+    $safeHtml = $this->_inject_base_href($safeHtml, base_url());
+
+    // ✅ kalau logo pakai cid:, embed jadi data URI
+    $safeHtml = $this->_embed_cid_images($svc, $gmailId, $full->getPayload(), $safeHtml);
+}
+
+$srcdoc = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : '';
+
 
         $fromShow = $fromH !== '' ? $fromH : (string)$row->from_email;
         $subjShow = $subjH !== '' ? $subjH : (string)$row->subject;
@@ -2071,6 +2081,85 @@ public function gmail_detail($id)
     } catch (\Throwable $e) {
         echo '<div class="text-danger">Server error: '.html_escape($e->getMessage()).'</div>';
     }
+}
+private function _inject_base_href(string $html, string $baseHref): string
+{
+    if ($baseHref === '') return $html;
+    if (stripos($html, '<base ') !== false) return $html;
+
+    if (preg_match('~<head[^>]*>~i', $html)) {
+        return preg_replace('~<head[^>]*>~i', '$0'."\n".'<base href="'.htmlspecialchars($baseHref, ENT_QUOTES, 'UTF-8').'">', $html, 1);
+    }
+    return '<base href="'.htmlspecialchars($baseHref, ENT_QUOTES, 'UTF-8').'">'."\n".$html;
+}
+
+private function _collect_inline_cid_map($part, array &$map): void
+{
+    if (!$part) return;
+
+    $mime  = (string)$part->getMimeType();
+    $parts = $part->getParts();
+
+    if ($parts) {
+        foreach ($parts as $p) $this->_collect_inline_cid_map($p, $map);
+        return;
+    }
+
+    if (stripos($mime, 'image/') !== 0) return;
+
+    $headers = $part->getHeaders() ?: [];
+    $cid = '';
+    foreach ($headers as $h) {
+        if (strtolower((string)$h->getName()) === 'content-id') {
+            $cid = trim((string)$h->getValue());
+            break;
+        }
+    }
+    if ($cid === '') return;
+
+    $cid = trim($cid, "<> \t\n\r\0\x0B"); // buang <...>
+
+    $body = $part->getBody();
+    $attId = $body ? (string)$body->getAttachmentId() : '';
+    if ($attId === '') return;
+
+    $map[strtolower($cid)] = [
+        'cid' => $cid,
+        'mime' => $mime,
+        'attachmentId' => $attId,
+    ];
+}
+
+private function _embed_cid_images(\Google\Service\Gmail $svc, string $gmailId, $payload, string $html): string
+{
+    $map = [];
+    $this->_collect_inline_cid_map($payload, $map);
+    if (!$map) return $html;
+
+    foreach ($map as $k => $info) {
+        $cid = (string)$info['cid'];
+        if (stripos($html, 'cid:'.$cid) === false && stripos($html, 'cid:'.strtolower($cid)) === false) {
+            continue;
+        }
+
+        $att = $svc->users_messages_attachments->get('me', $gmailId, (string)$info['attachmentId']);
+        $data = $att ? (string)$att->getData() : '';
+        if ($data === '') continue;
+
+        $bin = $this->_b64url_decode($data);
+
+        // batasi biar nggak berat (mis. 1MB)
+        if (strlen($bin) > 1024 * 1024) continue;
+
+        $dataUri = 'data:'.$info['mime'].';base64,'.base64_encode($bin);
+
+        // replace src="cid:..."
+        $html = preg_replace('~src\s*=\s*(["\'])\s*cid:'.preg_quote($cid,'~').'\s*\1~i', 'src=$1'.$dataUri.'$1', $html);
+        // handle jika cid di html lower/upper beda
+        $html = preg_replace('~src\s*=\s*(["\'])\s*cid:'.preg_quote(strtolower($cid),'~').'\s*\1~i', 'src=$1'.$dataUri.'$1', $html);
+    }
+
+    return $html;
 }
 
 private function _gmail_service_ready(): \Google\Service\Gmail
