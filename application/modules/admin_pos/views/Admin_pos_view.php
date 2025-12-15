@@ -838,7 +838,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
           <span class="badge badge-pill badge-light border" id="gmail-count">0 email</span>
           <small class="text-muted" id="gmail-hint">Klik item untuk detail.</small>
         </div>
-        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-danger waves-effect" data-dismiss="modal">Tutup Detail</button>
       </div>
     </div>
   </div>
@@ -1237,7 +1237,7 @@ document.getElementById('gmail-detail-badge').textContent = 'OK';
 })
     .fail(function(xhr){
       $('#gmail-detail-body').html('<div class="text-danger">Gagal memuat detail.</div>');
-      
+
       console.error(xhr?.responseText);
     });
   };
