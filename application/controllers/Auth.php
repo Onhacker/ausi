@@ -21,42 +21,30 @@ class Auth extends MX_Controller {
 	}
 
 
-  public function gmail_callback()
-{
-  $client = Gmail_oauth::client();
+  public function gmail_callback(){
+    $client = Gmail_oauth::client();
 
-  // ✅ kalau ditolak Google, dia kirim ?error=...
-  $err  = (string)$this->input->get('error'); // tanpa TRUE
-  $desc = (string)$this->input->get('error_description');
-  if ($err !== '') {
-    show_error('OAuth ditolak: '.$err.($desc ? ' | '.$desc : '').'. Query: '.$_SERVER['QUERY_STRING'], 400);
+    $code = (string)$this->input->get('code', true);
+    if ($code === '') show_error('OAuth code kosong', 400);
+
+    $token = $client->fetchAccessTokenWithAuthCode($code);
+    if (isset($token['error'])) show_error('OAuth error: '.$token['error'], 400);
+
+    $oldRow = $this->db->select('gmail_token')->get_where('settings', ['id'=>1])->row();
+    $oldTok = $oldRow && $oldRow->gmail_token ? json_decode($oldRow->gmail_token, true) : [];
+
+    if (empty($token['refresh_token']) && !empty($oldTok['refresh_token'])) {
+      $token['refresh_token'] = $oldTok['refresh_token'];
+    }
+
+    $this->db->where('id', 1)->update('settings', [
+      'gmail_token'      => json_encode($token),
+      'token_updated_at' => date('Y-m-d H:i:s'),
+    ]);
+
+    // kalau mau cepat cek update DB berhasil:
+    // echo $this->db->affected_rows(); exit;
+
+    redirect('admin_pos/gmail_inbox?sync=1');
   }
-
-  // ✅ kalau sukses, dia kirim ?code=...
-  $code = (string)$this->input->get('code'); // tanpa TRUE
-  if ($code === '') {
-    show_error('OAuth code kosong. Query: '.$_SERVER['QUERY_STRING'], 400);
-  }
-
-  $token = $client->fetchAccessTokenWithAuthCode($code);
-  if (isset($token['error'])) {
-    show_error('OAuth token error: '.$token['error'].'. Query: '.$_SERVER['QUERY_STRING'], 400);
-  }
-
-  // simpan + pertahankan refresh_token lama jika google tidak mengirim ulang
-  $oldRow = $this->db->select('gmail_token')->get_where('settings', ['id'=>1])->row();
-  $oldTok = ($oldRow && $oldRow->gmail_token) ? json_decode($oldRow->gmail_token, true) : [];
-
-  if (empty($token['refresh_token']) && !empty($oldTok['refresh_token'])) {
-    $token['refresh_token'] = $oldTok['refresh_token'];
-  }
-
-  $this->db->where('id', 1)->update('settings', [
-    'gmail_token'      => json_encode($token),
-    'token_updated_at' => date('Y-m-d H:i:s'),
-  ]);
-
-  redirect('admin_pos/gmail_inbox');
-}
-
 }
