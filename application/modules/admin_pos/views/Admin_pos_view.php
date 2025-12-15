@@ -195,7 +195,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                           onclick="openGmailInbox()"
                           class="btn btn-danger btn-sm waves-effect waves-light mb-2 mr-2">
                     <span class="btn-label"><i class="mdi mdi-gmail"></i></span>
-                    Gmail
+                    Gmail/ Cek transaksi
                   </button>
                   <?php endif; ?>
 
