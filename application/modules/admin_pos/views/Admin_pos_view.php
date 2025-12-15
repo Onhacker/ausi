@@ -616,57 +616,42 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
     </div>
   </div>
 </div>
-
 <script>
-  // config URL dari PHP (biar gmail.js tidak butuh inline PHP)
-  window.GMAIL_CFG = {
-    URL_LIST:   "<?= site_url('admin_pos/gmail_inbox') ?>",
-    URL_SYNC:   "<?= site_url('admin_pos/gmail_sync') ?>",
-    URL_DETAIL: "<?= site_url('admin_pos/gmail_detail') ?>/"
-  };
+window.GMAIL_CFG = {
+  URL_LIST:   <?= json_encode(site_url('admin_pos/gmail_inbox')) ?>,
+  URL_SYNC:   <?= json_encode(site_url('admin_pos/gmail_sync')) ?>,
+  URL_DETAIL: <?= json_encode(site_url('admin_pos/gmail_detail').'/') ?>
+};
 
-  function loadCssOnce(href){
-    if (document.querySelector('link[data-href="'+href+'"]')) return Promise.resolve();
-    return new Promise((res)=>{
-      const l = document.createElement('link');
-      l.rel = 'stylesheet';
-      l.href = href;
-      l.setAttribute('data-href', href);
-      l.onload = res;
-      document.head.appendChild(l);
-    });
+function loadCssOnce(href){
+  if (document.querySelector('link[data-href="'+href+'"]')) return Promise.resolve();
+  return new Promise(res=>{
+    const l=document.createElement('link');
+    l.rel='stylesheet'; l.href=href; l.setAttribute('data-href', href);
+    l.onload=res; document.head.appendChild(l);
+  });
+}
+function loadJsOnce(src){
+  if (document.querySelector('script[data-src="'+src+'"]')) return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=src; s.defer=true; s.setAttribute('data-src', src);
+    s.onload=res; s.onerror=rej; document.body.appendChild(s);
+  });
+}
+
+window.openGmailInbox = async function(){
+  try{
+    await loadCssOnce("<?= base_url('assets/min/gmail.css?v=3') ?>");
+    await loadJsOnce("<?= base_url('assets/min/gmail.js?v=3') ?>");
+    if (window.gmailInitAndOpen) window.gmailInitAndOpen(window.GMAIL_CFG);
+    else $('#gmail-inbox-modal').modal('show');
+  }catch(e){
+    console.error(e);
+    if (window.Swal) Swal.fire('Gagal', 'Gagal memuat modul Gmail (css/js).', 'error');
   }
-
-  function loadJsOnce(src){
-    if (document.querySelector('script[data-src="'+src+'"]')) return Promise.resolve();
-    return new Promise((res, rej)=>{
-      const s = document.createElement('script');
-      s.src = src;
-      s.defer = true;
-      s.setAttribute('data-src', src);
-      s.onload = res;
-      s.onerror = rej;
-      document.body.appendChild(s);
-    });
-  }
-
-  window.openGmailInbox = async function(){
-    try{
-      await loadCssOnce("<?= base_url('assets/min/gmail.css?v=1') ?>");
-      await loadJsOnce("<?= base_url('assets/min/gmail.js?v=1') ?>");
-
-      if (window.gmailInitAndOpen){
-        window.gmailInitAndOpen(window.GMAIL_CFG); // init + open di gmail.js
-      } else {
-        $('#gmail-inbox-modal').modal('show'); // fallback
-      }
-    }catch(e){
-      console.error(e);
-      if (window.Swal) Swal.fire('Gagal', 'Gagal memuat modul Gmail (css/js).', 'error');
-    }
-  };
+};
 </script>
-
 
   <script>
     const IS_KB = <?= $isKB ? 'true' : 'false' ?>;
