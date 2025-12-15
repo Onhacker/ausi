@@ -480,36 +480,312 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
       </div>
     </div>
   </div>
-<!-- ===== MODAL: INBOX GMAIL ===== -->
+
+  <style type="text/css">
+    /* ===== GMAIL MODAL THEME ===== */
+.gmail-modal{
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+}
+
+.gmail-modal__header{
+  border: 0;
+  padding: 14px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #EA4335, #FBBC05, #34A853, #4285F4);
+  background-size: 300% 300%;
+  animation: gmailGradient 8s ease infinite;
+}
+
+@keyframes gmailGradient{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+.gmail-icon{
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.18);
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter: blur(6px);
+}
+.gmail-icon i{ font-size: 22px; }
+
+.gmail-title{ font-weight: 800; letter-spacing:.2px; }
+.gmail-subtitle{ font-size: 12px; opacity: .9; }
+
+.gmail-toolbar{
+  display:flex;
+  align-items:center;
+  gap: .6rem;
+  margin-bottom: 12px;
+}
+
+.gmail-search{
+  position: relative;
+  flex: 1;
+  display:flex;
+  align-items:center;
+  background: #f6f7fb;
+  border: 1px solid #eef0f6;
+  border-radius: 12px;
+  padding: 0 10px;
+}
+.gmail-search i{
+  color: #6c757d;
+  font-size: 18px;
+}
+.gmail-search input{
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-left: 8px;
+  padding-right: 34px;
+  height: 38px;
+}
+.gmail-clear{
+  position:absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 10px;
+  padding: 4px 8px;
+}
+
+.gmail-sync{
+  border-radius: 12px;
+  padding: 9px 12px;
+  box-shadow: 0 8px 18px rgba(66,133,244,.22);
+}
+
+/* ===== LIST ===== */
+.gmail-list .list-group-item{
+  border: 0;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(17,24,39,.06);
+  transition: transform .08s ease, box-shadow .2s ease;
+}
+.gmail-list .list-group-item:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(17,24,39,.10);
+}
+.gmail-item__top{
+  display:flex;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.gmail-from{
+  font-weight: 700;
+  color:#111827;
+  max-width: 68%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gmail-date{
+  font-size: 12px;
+  color:#6b7280;
+  white-space: nowrap;
+}
+.gmail-subject{
+  font-weight: 700;
+  color:#1f2937;
+  margin-bottom: 4px;
+}
+.gmail-snippet{
+  font-size: 13px;
+  color:#6b7280;
+  line-height: 1.35;
+}
+.gmail-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color:#374151;
+}
+
+/* ===== LOADING SHIMMER ===== */
+.gmail-loading{
+  padding: 8px 2px 14px;
+}
+.gmail-skel{
+  display:flex;
+  gap: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #eef0f6;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.skel-avatar{
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: #f0f2f7;
+  overflow:hidden;
+  position:relative;
+}
+.skel-lines{ flex:1; }
+.skel-line{
+  height: 10px;
+  border-radius: 999px;
+  background: #f0f2f7;
+  margin-bottom: 10px;
+  overflow:hidden;
+  position:relative;
+}
+.skel-line::after, .skel-avatar::after{
+  content:"";
+  position:absolute;
+  top:0; left:-60%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent);
+  animation: shimmer 1.1s infinite;
+}
+@keyframes shimmer{
+  100%{ left: 120%; }
+}
+.w35{ width:35%; } .w40{ width:40%; } .w45{ width:45%; }
+.w50{ width:50%; } .w60{ width:60%; } .w70{ width:70%; }
+.w80{ width:80%; } .w90{ width:90%; } .w95{ width:95%; }
+
+.gmail-loading-text{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:.5rem;
+  color:#6b7280;
+  font-size: 13px;
+  padding-top: 6px;
+}
+
+/* ===== EMPTY ===== */
+.gmail-empty{
+  text-align:center;
+  padding: 24px 10px 18px;
+  background: #fff;
+  border: 1px dashed #e5e7eb;
+  border-radius: 14px;
+}
+.gmail-empty__icon{
+  width: 60px; height: 60px;
+  border-radius: 18px;
+  margin: 0 auto 10px;
+  background: #f3f4f6;
+  display:flex; align-items:center; justify-content:center;
+  color:#6b7280;
+}
+.gmail-empty__icon i{ font-size: 30px; }
+.gmail-empty__title{ font-weight: 800; color:#111827; }
+.gmail-empty__desc{ font-size: 13px; color:#6b7280; }
+
+.gmail-modal__footer{
+  border-top: 1px solid #f0f2f7;
+  background: #fafbff;
+}
+
+  </style>
+<!-- ===== MODAL: INBOX GMAIL (PRETTY) ===== -->
 <div id="gmail-inbox-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-light">
-        <h4 class="mymodal-title mb-0">Inbox Gmail</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <div class="modal-content gmail-modal">
+      <div class="modal-header gmail-modal__header">
+        <div class="d-flex align-items-center" style="gap:.6rem;">
+          <div class="gmail-icon">
+            <i class="mdi mdi-email-outline"></i>
+          </div>
+          <div>
+            <div class="gmail-title">Inbox Gmail</div>
+            <div class="gmail-subtitle" id="gmail-subtitle">Tarik email terbaru & cari cepat</div>
+          </div>
+        </div>
+
+        <button type="button" class="close text-white" data-dismiss="modal" aria-hidden="true">×</button>
       </div>
 
       <div class="modal-body">
-        <div class="d-flex align-items-center mb-2" style="gap:.5rem">
-          <input type="search" id="gmail-q" class="form-control form-control-sm" placeholder="Cari subject / from / snippet…">
-          <button type="button" class="btn btn-sm btn-primary" id="gmail-sync-btn">
-            <i class="fe-refresh-ccw"></i> Refresh
+        <!-- Toolbar -->
+        <div class="gmail-toolbar">
+          <div class="gmail-search">
+            <i class="mdi mdi-magnify"></i>
+            <input type="search" id="gmail-q" class="form-control" placeholder="Cari subject / from / snippet…">
+            <button type="button" class="btn btn-light btn-sm gmail-clear" id="gmail-clear" title="Bersihkan">
+              <i class="mdi mdi-close"></i>
+            </button>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
+            <i class="fe-refresh-ccw mr-1"></i> Refresh
           </button>
         </div>
 
-        <div id="gmail-loading" class="text-center text-muted py-3" style="display:none">Memuat…</div>
-        <div id="gmail-empty" class="text-muted small py-3" style="display:none">Tidak ada email.</div>
+        <!-- Loading (shimmer) -->
+        <div id="gmail-loading" class="gmail-loading" style="display:none">
+          <div class="gmail-skel">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w60"></div>
+              <div class="skel-line w90"></div>
+              <div class="skel-line w40"></div>
+            </div>
+          </div>
+          <div class="gmail-skel">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w50"></div>
+              <div class="skel-line w80"></div>
+              <div class="skel-line w35"></div>
+            </div>
+          </div>
+          <div class="gmail-skel">
+            <div class="skel-avatar"></div>
+            <div class="skel-lines">
+              <div class="skel-line w70"></div>
+              <div class="skel-line w95"></div>
+              <div class="skel-line w45"></div>
+            </div>
+          </div>
+          <div class="gmail-loading-text">
+            <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+            Memuat email…
+          </div>
+        </div>
 
-        <div id="gmail-list" class="list-group"></div>
+        <!-- Empty State -->
+        <div id="gmail-empty" class="gmail-empty" style="display:none">
+          <div class="gmail-empty__icon">
+            <i class="mdi mdi-inbox-arrow-down-outline"></i>
+          </div>
+          <div class="gmail-empty__title">Belum ada email</div>
+          <div class="gmail-empty__desc">Klik <b>Refresh</b> untuk mengambil email terbaru.</div>
+        </div>
+
+        <!-- List -->
+        <div id="gmail-list" class="list-group gmail-list"></div>
       </div>
 
-      <div class="modal-footer">
-        <small class="text-muted mr-auto" id="gmail-count">0 email</small>
+      <div class="modal-footer gmail-modal__footer">
+        <div class="d-flex align-items-center" style="gap:.5rem;">
+          <span class="badge badge-pill badge-light border" id="gmail-count">0 email</span>
+          <small class="text-muted" id="gmail-hint">Klik item untuk detail.</small>
+        </div>
         <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
       </div>
     </div>
   </div>
 </div>
+
 
 <!-- ===== MODAL: DETAIL EMAIL ===== -->
 <div id="gmail-detail-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
