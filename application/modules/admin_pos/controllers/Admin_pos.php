@@ -2018,9 +2018,18 @@ public function gmail_detail($id)
         }
 
         // render aman: sanitize html + srcdoc
-        $safeHtml = $html !== '' ? $this->_sanitize_html_basic($html) : '';
+      $safeHtml = $html !== '' ? $this->_sanitize_html_basic($html) : '';
 
         if ($safeHtml !== '') {
+
+            // ✅ FIX mixed content (google fonts wajib https)
+            $safeHtml = str_replace('http://fonts.googleapis.com', 'https://fonts.googleapis.com', $safeHtml);
+            $safeHtml = str_replace('http://fonts.gstatic.com',     'https://fonts.gstatic.com',     $safeHtml);
+
+            // ✅ (opsional) upgrade semua http:// jadi https://
+            // kalau takut ada link yang tidak support https, komentari baris ini
+            // $safeHtml = preg_replace('~\bhttp://~i', 'https://', $safeHtml);
+
             // ✅ buat path relatif bisa kebaca
             $safeHtml = $this->_inject_base_href($safeHtml, base_url());
 
