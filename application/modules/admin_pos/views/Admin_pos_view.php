@@ -847,7 +847,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 
 <!-- ===== MODAL: DETAIL EMAIL ===== -->
 <div id="gmail-detail-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-full">
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="mymodal-title mb-0" id="gmail-detail-title">Detail Email</h4>
