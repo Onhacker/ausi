@@ -15,19 +15,32 @@ class Auth extends Onhacker_Controller {
 		}
 
 		public function gmail_callback()
-		{
-		  $client = Gmail_oauth::client();
-		  $code = (string)$this->input->get('code', true);
-		  if ($code === '') show_error('OAuth code kosong', 400);
+{
+  $client = Gmail_oauth::client();
 
-		  $token = $client->fetchAccessTokenWithAuthCode($code);
-		  if (isset($token['error'])) show_error('OAuth error: '.$token['error'], 400);
+  $code = (string)$this->input->get('code', true);
+  if ($code === '') show_error('OAuth code kosong', 400);
 
-		  // simpan token (access + refresh) ke DB (contoh di table settings id=1)
-		  $this->db->update('settings', ['gmail_token' => json_encode($token)], ['id'=>1]);
+  $token = $client->fetchAccessTokenWithAuthCode($code);
+  if (isset($token['error'])) show_error('OAuth error: '.$token['error'], 400);
 
-		  redirect('admin_pos'); // atau ke halaman admin gmail
-		}
+  // ambil token lama (buat jaga-jaga refresh_token)
+  $oldRow = $this->db->select('gmail_token')->get_where('settings', ['id'=>1])->row();
+  $oldTok = $oldRow && $oldRow->gmail_token ? json_decode($oldRow->gmail_token, true) : [];
+
+  // kalau Google tidak kirim refresh_token, pakai yang lama
+  if (empty($token['refresh_token']) && !empty($oldTok['refresh_token'])) {
+    $token['refresh_token'] = $oldTok['refresh_token'];
+  }
+
+  $this->db->where('id', 1)->update('settings', [
+    'gmail_token'       => json_encode($token),
+    'token_updated_at'  => date('Y-m-d H:i:s'),
+  ]);
+
+  redirect('admin_pos/gmail_inbox'); // biar langsung lihat inbox
+}
+
 
 
     
