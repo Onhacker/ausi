@@ -783,7 +783,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
             <i class="fe-refresh-ccw mr-1"></i> Refresh
           </button> -->
           <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
-            <i class="fe-refresh-ccw mr-1"></i><span class="btn-text"> Refresh</span>
+            <i class="fe-refresh-ccw mr-1"></i><span class="btn-text"> Cek Email</span>
           </button>
 
         </div>
@@ -988,7 +988,7 @@ $(document).on('click', '#gmail-clear', function(){
     if ($btn.length){
       $btn.prop('disabled', on);
       $btn.find('i').toggleClass('spin', on);
-      $btn.find('.btn-text').text(on ? ' Sync…' : ' Refresh'); // pastikan tombol punya span.btn-text
+      $btn.find('.btn-text').text(on ? ' Sinkr…' : ' Cek Email'); // pastikan tombol punya span.btn-text
     }
     setSubtitle(on ? 'Sinkronisasi Gmail… (background)' : 'Tarik email terbaru & cari cepat');
   }
