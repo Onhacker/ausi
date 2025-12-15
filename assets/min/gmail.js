@@ -3,18 +3,18 @@
 
   // ini akan di-set di openGmailInbox() di halaman
   w.gmailInitAndOpen = function (cfg) {
-    // cegah init dobel
-    if (w.__GMAIL_UI__) {
-      // kalau sudah init, cukup buka modal
-      $('#gmail-inbox-modal').modal('show');
-      return;
-    }
-    w.__GMAIL_UI__ = true;
+  // kalau sudah init, panggil open inbox versi global (reload + autosync)
+  if (w.__GMAIL_UI__) {
+    if (w.gmailOpenInbox) w.gmailOpenInbox();
+    else $('#gmail-inbox-modal').modal('show');
+    return;
+  }
+  w.__GMAIL_UI__ = true;
 
-    cfg = cfg || (w.GMAIL_CFG || {});
-    var URL_LIST   = cfg.URL_LIST   || '';
-    var URL_SYNC   = cfg.URL_SYNC   || '';
-    var URL_DETAIL = cfg.URL_DETAIL || '';
+  cfg = cfg || (w.GMAIL_CFG || {});
+  var URL_LIST   = cfg.URL_LIST   || '';
+  var URL_SYNC   = cfg.URL_SYNC   || '';
+  var URL_DETAIL = cfg.URL_DETAIL || '';
 
     if (!URL_LIST || !URL_SYNC || !URL_DETAIL) {
       console.error('GMAIL_CFG belum lengkap', cfg);
@@ -235,20 +235,26 @@
         });
     }
 
-    function openInbox() {
-      $('#gmail-inbox-modal').modal('show');
+   function openInbox() {
+  $('#gmail-inbox-modal').modal('show');
 
-      loadInbox({ silent: false, limit: 20 }).always(function () {
-        clearTimeout(autoSyncTimer);
-        autoSyncTimer = setTimeout(function () {
-          syncInbox({ limit: 20 });
-        }, 500);
-      });
+  loadInbox({ silent: false, limit: 20 }).always(function () {
+    clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(function () {
+      syncInbox({ limit: 20 });
+    }, 500);
+  });
 
-      setTimeout(function () {
-        try { document.getElementById('gmail-q').focus(); } catch (e) {}
-      }, 150);
-    }
+  setTimeout(function () {
+    try { document.getElementById('gmail-q').focus(); } catch (e) {}
+  }, 150);
+}
+
+// expose supaya bisa dipanggil lagi saat klik tombol
+w.gmailOpenInbox = openInbox;
+
+// setelah init → langsung buka inbox
+openInbox();
 
     function openDetail(id) {
       $('#gmail-detail-modal').modal('show');
