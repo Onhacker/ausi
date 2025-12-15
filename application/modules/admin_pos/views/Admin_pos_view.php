@@ -195,7 +195,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                           onclick="openGmailInbox()"
                           class="btn btn-danger btn-sm waves-effect waves-light mb-2 mr-2">
                     <span class="btn-label"><i class="mdi mdi-gmail"></i></span>
-                    Tes Baca Gmail jgn buka dlu
+                    Gmail
                   </button>
                   <?php endif; ?>
 
@@ -493,7 +493,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
         <div class="d-flex align-items-center mb-2" style="gap:.5rem">
           <input type="search" id="gmail-q" class="form-control form-control-sm" placeholder="Cari subject / from / snippet…">
           <button type="button" class="btn btn-sm btn-primary" id="gmail-sync-btn">
-            <i class="fe-refresh-ccw"></i> Sync
+            <i class="fe-refresh-ccw"></i> Refresh
           </button>
         </div>
 
