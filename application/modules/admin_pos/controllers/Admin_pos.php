@@ -1949,9 +1949,13 @@ private function _gmail_sync(int $limit = 20): array
         return ['ok'=>false,'msg'=>'Token Gmail belum tersimpan di settings.gmail_token (id=1).'];
     }
 
+    // ambil last sync (incremental)
+    $lastSyncOld = $row->gmail_last_sync_at ?? null;
+
     $client = Gmail_oauth::client();
     $client->setAccessToken($tok);
 
+    // refresh bila expired
     if ($client->isAccessTokenExpired()) {
         $refresh = $tok['refresh_token'] ?? $client->getRefreshToken();
         if (!$refresh) {
@@ -1962,7 +1966,7 @@ private function _gmail_sync(int $limit = 20): array
             return ['ok'=>false,'msg'=>'Refresh token gagal: '.$newTok['error']];
         }
         if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
-        $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
+        $this->db->where('id',1)->update('settings', ['gmail_token'=>json_encode($newTok)]);
         $client->setAccessToken($newTok);
     }
 
@@ -1972,44 +1976,80 @@ private function _gmail_sync(int $limit = 20): array
         $profile = $svc->users->getProfile('me');
         $emailMe = $profile->getEmailAddress();
 
-        // TEST MODE (jangan ketat dulu)
+        // ====== QUERY LEBIH SEMPIT ======
+        // Gmail q paling aman pakai after:YYYY/MM/DD
+        // kasih buffer -1 hari supaya tidak miss karena beda zona waktu
+        $q = '';
+        if (!empty($lastSyncOld)) {
+            $dt = new DateTime($lastSyncOld);
+            $dt->modify('-1 day');
+            $q = 'after:'.$dt->format('Y/m/d'); // contoh: after:2025/12/10
+        } else {
+            // kalau belum pernah sync: ambil 7 hari terakhir saja (biar cepat)
+            $q = 'newer_than:7d';
+        }
+
         $params = [
             'maxResults' => $limit,
-            // 'labelIds' => ['INBOX'],
-            // 'q' => 'in:inbox newer_than:5y',
-            'includeSpamTrash' => true,
+            'labelIds'   => ['INBOX'], // fokus inbox saja (lebih cepat)
+            'q'          => $q,
         ];
 
         $list = $svc->users_messages->listUsersMessages('me', $params);
         $msgs = $list->getMessages() ?: [];
+        $fetched = count($msgs);
 
-        $fetched  = count($msgs);
+        if ($fetched === 0) {
+            return [
+                'ok' => true,
+                'me' => $emailMe,
+                'gmail_total' => (int)$profile->getMessagesTotal(),
+                'fetched' => 0,
+                'inserted' => 0,
+                'db_fail' => 0,
+                'q' => $q,
+                'last_sync_old' => $lastSyncOld,
+                'last_sync_new' => $lastSyncOld,
+            ];
+        }
+
+        // ====== OPTIMASI: prefetch gmail_id yg sudah ada ======
+        $ids = array_map(fn($m) => $m->getId(), $msgs);
+        $existsSet = [];
+        $existsRows = $this->db->select('gmail_id')
+                               ->from('gmail_inbox')
+                               ->where_in('gmail_id', $ids)
+                               ->get()->result();
+        foreach ($existsRows as $er) $existsSet[(string)$er->gmail_id] = true;
+
         $inserted = 0;
         $dbFail   = 0;
+        $maxInternalMs = 0;
 
         foreach ($msgs as $m) {
-            $msg = $svc->users_messages->get('me', $m->getId(), [
+            $gid = (string)$m->getId();
+            if (isset($existsSet[$gid])) continue;
+
+            $msg = $svc->users_messages->get('me', $gid, [
                 'format' => 'metadata',
                 'metadataHeaders' => ['From','Subject','Date'],
             ]);
 
-            // cek duplikat
-            $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$msg->getId()])->row();
-            if ($exists) continue;
-
-            $from = $subject = $dateHdr = '';
+            $from = $subject = '';
             foreach (($msg->getPayload()->getHeaders() ?: []) as $h){
                 if ($h->getName()==='From')    $from = $h->getValue();
                 if ($h->getName()==='Subject') $subject = $h->getValue();
-                if ($h->getName()==='Date')    $dateHdr = $h->getValue();
             }
 
-            // received_at pakai internalDate Gmail
             $internalMs = (int)$msg->getInternalDate(); // ms
-            $receivedAt = $internalMs ? date('Y-m-d H:i:s', (int)($internalMs/1000)) : date('Y-m-d H:i:s');
+            if ($internalMs > $maxInternalMs) $maxInternalMs = $internalMs;
+
+            $receivedAt = $internalMs
+                ? date('Y-m-d H:i:s', (int)($internalMs/1000))
+                : date('Y-m-d H:i:s');
 
             $ok = $this->db->insert('gmail_inbox', [
-                'gmail_id'    => $msg->getId(),
+                'gmail_id'    => $gid,
                 'from_email'  => $from,
                 'subject'     => $subject,
                 'snippet'     => $msg->getSnippet(),
@@ -2023,6 +2063,15 @@ private function _gmail_sync(int $limit = 20): array
             else     $dbFail++;
         }
 
+        // ====== UPDATE last_sync_at ======
+        $lastSyncNew = $lastSyncOld;
+        if ($maxInternalMs > 0) {
+            $lastSyncNew = date('Y-m-d H:i:s', (int)($maxInternalMs/1000));
+            $this->db->where('id',1)->update('settings', [
+                'gmail_last_sync_at' => $lastSyncNew
+            ]);
+        }
+
         return [
             'ok' => true,
             'me' => $emailMe,
@@ -2030,7 +2079,9 @@ private function _gmail_sync(int $limit = 20): array
             'fetched' => $fetched,
             'inserted' => $inserted,
             'db_fail' => $dbFail,
-            'params' => $params,
+            'q' => $q,
+            'last_sync_old' => $lastSyncOld,
+            'last_sync_new' => $lastSyncNew,
         ];
 
     } catch (\Google\Service\Exception $e) {
