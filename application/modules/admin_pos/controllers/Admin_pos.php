@@ -1984,7 +1984,8 @@ public function gmail_detail($id)
 
     // ambil status terbaru untuk ditampilkan
     $row2 = $this->db->select('status')->get_where('gmail_inbox',['id'=>$id])->row();
-    $statusNow = $row2 ? (string)($row2->status ?? '') : (string)($row->status ?? '');
+    $statusNow   = $row2 ? (string)($row2->status ?? '') : (string)($row->status ?? '');
+    $statusLabel = ($statusNow === 'diproses') ? 'diproses' : 'dilihat';
 
     $gmailId = (string)($row->gmail_id ?? '');
     if ($gmailId === '') {
@@ -1993,18 +1994,15 @@ public function gmail_detail($id)
     }
 
     try {
-        $svc = $this->_gmail_service_ready();
-
-        // ambil full message
+        $svc  = $this->_gmail_service_ready();
         $full = $svc->users_messages->get('me', $gmailId, ['format' => 'full']);
 
         // headers (lebih valid dari Gmail)
         $headers = $full->getPayload() ? ($full->getPayload()->getHeaders() ?: []) : [];
-        $fromH = $subjH = $dateH = '';
+        $fromH = $subjH = '';
         foreach ($headers as $h){
             if ($h->getName()==='From')    $fromH = $h->getValue();
             if ($h->getName()==='Subject') $subjH = $h->getValue();
-            if ($h->getName()==='Date')    $dateH = $h->getValue();
         }
 
         // extract body (text & html)
@@ -2026,13 +2024,14 @@ public function gmail_detail($id)
         $fromShow = $fromH !== '' ? $fromH : (string)$row->from_email;
         $subjShow = $subjH !== '' ? $subjH : (string)$row->subject;
 
-        // tanggal pakai yang sudah kamu simpan (received_at/created_at)
         $dateShow = $row->received_at ?? $row->created_at ?? '';
-        // kalau punya formatter indo di controller, aktifkan:
+        // kalau kamu punya formatter indo di controller:
         // $dateShow = $this->_indo_datetime($dateShow, true);
 
-        // badge status
-        $statusLabel = ($statusNow === 'diproses') ? 'diproses' : 'dilihat';
+        // Tab Email: kalau HTML ada tampilkan iframe, kalau tidak fallback text
+        $emailView = ($srcdoc !== '')
+            ? '<iframe sandbox="" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px" srcdoc="'.$srcdoc.'"></iframe>'
+            : '<div style="white-space:pre-wrap">'.html_escape($text).'</div>';
 
         echo '
           <div class="mb-2"><b>Dari:</b> '.html_escape($fromShow).'</div>
@@ -2042,7 +2041,10 @@ public function gmail_detail($id)
 
           <ul class="nav nav-tabs mt-3" role="tablist">
             <li class="nav-item">
-              <a class="nav-link active" data-toggle="tab" href="#tab-html" role="tab">Email</a>
+              <a class="nav-link active" data-toggle="tab" href="#tab-email" role="tab">Email</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="tab" href="#tab-text" role="tab">Text</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" data-toggle="tab" href="#tab-raw" role="tab">RAW</a>
@@ -2050,12 +2052,12 @@ public function gmail_detail($id)
           </ul>
 
           <div class="tab-content border-left border-right border-bottom p-3">
-            <div class="tab-pane fade show active" id="tab-html" role="tabpanel">
-              '.(
-                $srcdoc !== ''
-                  ? '<iframe sandbox="" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px" srcdoc="'.$srcdoc.'"></iframe>'
-                  : '<div style="white-space:pre-wrap">'.html_escape($text).'</div>'
-              ).'
+            <div class="tab-pane fade show active" id="tab-email" role="tabpanel">
+              '.$emailView.'
+            </div>
+
+            <div class="tab-pane fade" id="tab-text" role="tabpanel">
+              <div style="white-space:pre-wrap">'.html_escape($text).'</div>
             </div>
 
             <div class="tab-pane fade" id="tab-raw" role="tabpanel">
