@@ -782,7 +782,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
          <!--  <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
             <i class="fe-refresh-ccw mr-1"></i> Refresh
           </button> -->
-          <button type="button" class="btn btn-primary btn-sm gmail-sync" id="gmail-sync-btn">
+          <button type="button" class="btn btn-danger btn-sm gmail-sync" id="gmail-sync-btn">
             <i class="fe-refresh-ccw mr-1"></i><span class="btn-text"> Cek Email</span>
           </button>
 
