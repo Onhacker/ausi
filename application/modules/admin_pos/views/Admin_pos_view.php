@@ -190,7 +190,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                   <span class="btn-label"><i class="fe-refresh-ccw"></i></span>
                   Refresh
                 </button>
-              <!--   <?php if (!$isKB): ?>
+                <?php if (!$isKB): ?>
                   <button type="button"
                           onclick="openGmailInbox()"
                           class="btn btn-danger btn-sm waves-effect waves-light mb-2 mr-2">
@@ -198,7 +198,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                     Tes Baca Gmail jgn buka dlu
                   </button>
                   <?php endif; ?>
- -->
+
                 <?php if (!$isKB): ?>
                   <!-- Filter status -->
                   <div class="form-group mb-2 mr-2">

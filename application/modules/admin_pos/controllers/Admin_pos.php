@@ -2042,15 +2042,57 @@ private function _gmail_sync(int $limit = 20): array
 
 public function gmail_connect()
 {
+    // batasi akses kalau perlu (admin/kasir saja)
     $uname = strtolower((string)$this->session->userdata('admin_username'));
-    if ($uname !== 'admin'){ show_error('Forbidden', 403); }
+    if (in_array($uname, ['kitchen','bar'], true)){
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode(["success"=>false,"pesan"=>"Tidak diizinkan."]));
+    }
 
     $client = Gmail_oauth::client();
-    $client->setAccessType('offline');     // wajib agar dapat refresh_token
-    $client->setPrompt('consent');         // paksa keluar refresh_token (kalau sebelumnya tidak dapat)
-    $client->setRedirectUri(site_url('admin_pos/gmail_oauth_cb'));
+
+    // optional: state untuk keamanan
+    $state = bin2hex(random_bytes(12));
+    $this->session->set_userdata('gmail_oauth_state', $state);
+    $client->setState($state);
 
     redirect($client->createAuthUrl());
+}
+
+public function gmail_callback()
+{
+    $code  = trim((string)$this->input->get('code', true));
+    $state = trim((string)$this->input->get('state', true));
+
+    // cek state (kalau pakai)
+    $savedState = (string)$this->session->userdata('gmail_oauth_state');
+    if ($savedState !== '' && $state !== '' && !hash_equals($savedState, $state)) {
+        show_error('Invalid OAuth state', 400);
+        return;
+    }
+
+    if ($code === '') {
+        show_error('OAuth code kosong. Pastikan redirect_uri cocok.', 400);
+        return;
+    }
+
+    $client = Gmail_oauth::client();
+    $tok = $client->fetchAccessTokenWithAuthCode($code);
+
+    if (isset($tok['error'])) {
+        show_error('OAuth error: '.$tok['error'].' - '.($tok['error_description'] ?? ''), 400);
+        return;
+    }
+
+    // refresh_token kadang tidak keluar kalau user sudah pernah consent sebelumnya.
+    // Tapi tetap simpan token yang ada.
+    $this->db->where('id', 1)->update('settings', [
+        'gmail_token'       => json_encode($tok),
+        'token_updated_at'  => date('Y-m-d H:i:s'),
+    ]);
+
+    // balik ke halaman inbox
+    redirect('admin_pos/gmail_inbox');
 }
 
 public function gmail_oauth_cb()
