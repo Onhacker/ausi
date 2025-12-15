@@ -1882,8 +1882,15 @@ public function gmail_inbox()
     $q     = trim((string)$this->input->get('q'));
 
     if ($sync){
-       $this->_gmail_sync($limit);
-    }
+          try {
+            $this->_gmail_sync($limit);
+          } catch (\Throwable $e){
+            log_message('error', 'GMAIL_SYNC_ERR: '.$e->getMessage()."\n".$e->getTraceAsString());
+            echo json_encode(["success"=>false,"pesan"=>$e->getMessage()]);
+            return;
+          }
+        }
+
 
     $this->db->from('gmail_inbox');
     if ($q !== ''){
