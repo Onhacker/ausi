@@ -197,7 +197,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                           onclick="openGmailInbox()"
                           class="btn btn-danger btn-sm waves-effect waves-light mb-2 mr-2">
                     <span class="btn-label"><i class="mdi mdi-gmail"></i></span>
-                    Gmail/ Cek transaksi
+                    Cek transaksi Qris
                   </button>
 
                   <?php endif; ?>
@@ -941,7 +941,8 @@ $(document).on('click', '#gmail-clear', function(){
     el.style.display = 'block';
     requestAnimationFrame(()=> el.classList.add('show'));
 
-    toastTimer = setTimeout(hideToast, 2800);
+    toastTimer = setTimeout(hideToast, 10000);
+
   }
 
   function hideToast(){
