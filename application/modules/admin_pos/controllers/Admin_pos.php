@@ -1923,18 +1923,39 @@ public function gmail_sync()
 
 public function gmail_detail($id)
 {
-    $id = (int)$id;
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if (in_array($uname, ['kitchen','bar'], true)){
+        echo '<div class="text-danger">Tidak diizinkan.</div>';
+        return;
+    }
+
+    $id  = (int)$id;
     $row = $this->db->get_where('gmail_inbox',['id'=>$id])->row();
     if (!$row){
         echo '<div class="text-danger">Email tidak ditemukan.</div>';
         return;
     }
 
-    // tampilkan sederhana dulu (subject/from/snippet/raw)
+    // ✅ SET STATUS jadi "dilihat" saat dibuka (hanya kalau masih "baru" / NULL)
+    $this->db->where('id', $id);
+    $this->db->group_start()
+        ->where('status', 'baru')
+        ->or_where('status IS NULL', null, false)
+    ->group_end();
+    $this->db->update('gmail_inbox', [
+        'status' => 'dilihat',
+        // kalau kamu punya kolom updated_at, boleh aktifkan:
+        // 'updated_at' => date('Y-m-d H:i:s'),
+    ]);
+
+    // biar tampilan detail ikut reflect
+    if (empty($row->status) || $row->status === 'baru') $row->status = 'dilihat';
+
     $html = '
       <div class="mb-2"><b>Dari:</b> '.html_escape($row->from_email).'</div>
       <div class="mb-2"><b>Subjek:</b> '.html_escape($row->subject).'</div>
       <div class="mb-2"><b>Tanggal:</b> '.html_escape($row->received_at ?? $row->created_at ?? '').'</div>
+      <div class="mb-2"><b>Status:</b> '.html_escape($row->status).'</div>
       <hr>
       <div class="mb-2"><b>Snippet:</b><br>'.nl2br(html_escape($row->snippet)).'</div>
       <hr>
@@ -1945,6 +1966,7 @@ public function gmail_detail($id)
     ';
     echo $html;
 }
+
 private function _gmail_sync(int $limit = 20): array
 {
     $row = $this->db->get_where('settings',['id'=>1])->row();

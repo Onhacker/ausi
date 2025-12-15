@@ -887,6 +887,13 @@ $(document).on('click', '#gmail-clear', function(){
 
     let toastTimer = null;
 
+    function markAsSeenInList(id){
+      const btn = document.querySelector('#gmail-list [data-gmail-id="'+id+'"]');
+      if (!btn) return;
+      const badge = btn.querySelector('.gmail-badge');
+      if (badge) badge.innerHTML = '<span class="badge badge-secondary">Dilihat</span>';
+    }
+
   function showToast(msg, sub, type){
     type = type || 'info';
 
@@ -1009,21 +1016,27 @@ $(document).on('click', '#gmail-clear', function(){
 
     rows.forEach(r=>{
       const badge = (r.status === 'diproses')
-        ? '<span class="badge badge-success">Diproses</span>'
+      ? '<span class="badge badge-success">Diproses</span>'
+      : (r.status === 'dilihat')
+        ? '<span class="badge badge-secondary">Dilihat</span>'
         : '<span class="badge badge-warning">Baru</span>';
 
-      const html = `
-        <button type="button" class="list-group-item list-group-item-action" onclick="gmailOpenDetail(${parseInt(r.id,10)})">
-          <div class="gmail-item__top">
-            <div class="gmail-from">${esc(r.from_email||'-')}</div>
-            <div class="gmail-date">${esc(r.received_at||'')}</div>
-          </div>
-          <div class="gmail-subject text-truncate">${esc(r.subject||'(tanpa subject)')}</div>
-          <div class="d-flex align-items-center justify-content-between" style="gap:.5rem">
-            <div class="gmail-snippet text-truncate" style="min-width:0">${esc(r.snippet||'')}</div>
-            <div>${badge}</div>
-          </div>
-        </button>`;
+    const html = `
+      <button type="button"
+              class="list-group-item list-group-item-action"
+              data-gmail-id="${parseInt(r.id,10)}"
+              onclick="gmailOpenDetail(${parseInt(r.id,10)})">
+        <div class="gmail-item__top">
+          <div class="gmail-from">${esc(r.from_email||'-')}</div>
+          <div class="gmail-date">${esc(r.received_at||'')}</div>
+        </div>
+        <div class="gmail-subject text-truncate">${esc(r.subject||'(tanpa subject)')}</div>
+        <div class="d-flex align-items-center justify-content-between" style="gap:.5rem">
+          <div class="gmail-snippet text-truncate" style="min-width:0">${esc(r.snippet||'')}</div>
+          <div class="gmail-badge">${badge}</div>
+        </div>
+      </button>`;
+
       $list.append(html);
     });
 
@@ -1121,7 +1134,11 @@ $(document).on('click', '#gmail-clear', function(){
 
     $.get(URL_DETAIL + id, function(html){
       $('#gmail-detail-body').html(html);
-    }).fail(function(xhr){
+
+  // ✅ update badge langsung (backend juga sudah update)
+  markAsSeenInList(parseInt(id,10));
+})
+    .fail(function(xhr){
       $('#gmail-detail-body').html('<div class="text-danger">Gagal memuat detail.</div>');
       console.error(xhr?.responseText);
     });
