@@ -1869,6 +1869,127 @@ public function list_meja(){
         ->set_output(json_encode(['success'=>true,'data'=>$out]));
 }
 
+public function gmail_inbox()
+{
+    // batasi akses: kitchen/bar tidak perlu
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if (in_array($uname, ['kitchen','bar'], true)){
+        echo json_encode(["success"=>false,"title"=>"Akses","pesan"=>"Tidak diizinkan."]); return;
+    }
+
+    $sync  = (int)$this->input->get('sync') === 1;
+    $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
+    $q     = trim((string)$this->input->get('q'));
+
+    if ($sync){
+       $this->_gmail_sync($limit);
+    }
+
+    $this->db->from('gmail_inbox');
+    if ($q !== ''){
+        $this->db->group_start()
+          ->like('subject', $q)
+          ->or_like('from_email', $q)
+          ->or_like('snippet', $q)
+        ->group_end();
+    }
+    $rows = $this->db->order_by('received_at','DESC')
+                     ->limit($limit)
+                     ->get()->result();
+
+    echo json_encode([
+      "success"=>true,
+      "data"=>array_map(function($r){
+        return [
+          "id" => (int)$r->id,
+          "from_email" => (string)$r->from_email,
+          "subject" => (string)$r->subject,
+          "snippet" => (string)$r->snippet,
+          "status" => (string)($r->status ?? 'baru'),
+          "received_at" => (string)($r->received_at ?? $r->created_at ?? '')
+        ];
+      }, $rows)
+    ]);
+}
+public function gmail_detail($id)
+{
+    $id = (int)$id;
+    $row = $this->db->get_where('gmail_inbox',['id'=>$id])->row();
+    if (!$row){
+        echo '<div class="text-danger">Email tidak ditemukan.</div>';
+        return;
+    }
+
+    // tampilkan sederhana dulu (subject/from/snippet/raw)
+    $html = '
+      <div class="mb-2"><b>Dari:</b> '.html_escape($row->from_email).'</div>
+      <div class="mb-2"><b>Subjek:</b> '.html_escape($row->subject).'</div>
+      <div class="mb-2"><b>Tanggal:</b> '.html_escape($row->received_at ?? $row->created_at ?? '').'</div>
+      <hr>
+      <div class="mb-2"><b>Snippet:</b><br>'.nl2br(html_escape($row->snippet)).'</div>
+      <hr>
+      <details>
+        <summary class="text-muted">Lihat RAW</summary>
+        <pre style="white-space:pre-wrap">'.html_escape($row->raw ?? '').'</pre>
+      </details>
+    ';
+    echo $html;
+}
+private function _gmail_sync(int $limit = 20): void
+{
+  $row = $this->db->get_where('settings',['id'=>1])->row();
+  $tok = $row ? json_decode((string)$row->gmail_token, true) : null;
+  if (!$tok) return;
+
+  $client = Gmail_oauth::client();
+  $client->setAccessToken($tok);
+
+  if ($client->isAccessTokenExpired()) {
+    $refresh = $client->getRefreshToken();
+    if ($refresh) {
+      $newTok = $client->fetchAccessTokenWithRefreshToken($refresh);
+      // merge refresh_token kalau tidak ikut balik
+      if (!isset($newTok['refresh_token'])) $newTok['refresh_token'] = $refresh;
+      $this->db->update('settings', ['gmail_token'=>json_encode($newTok)], ['id'=>1]);
+      $client->setAccessToken($newTok);
+    }
+  }
+
+  $svc = new \Google\Service\Gmail($client);
+
+  $list = $svc->users_messages->listUsersMessages('me', [
+    'maxResults' => $limit,
+    // 'q' => 'newer_than:7d', // opsional filter
+  ]);
+
+  $msgs = $list->getMessages() ?: [];
+  foreach ($msgs as $m){
+    $msg = $svc->users_messages->get('me', $m->getId(), ['format'=>'metadata']);
+
+    $headers = $msg->getPayload()->getHeaders();
+    $from = $subject = $date = '';
+    foreach ($headers as $h){
+      if ($h->getName()==='From') $from = $h->getValue();
+      if ($h->getName()==='Subject') $subject = $h->getValue();
+      if ($h->getName()==='Date') $date = $h->getValue();
+    }
+
+    // insert ignore by gmail_id (buat unique index)
+    $exists = $this->db->get_where('gmail_inbox',['gmail_id'=>$msg->getId()])->row();
+    if ($exists) continue;
+
+    $this->db->insert('gmail_inbox', [
+      'gmail_id'     => $msg->getId(),
+      'from_email'   => $from,
+      'subject'      => $subject,
+      'snippet'      => $msg->getSnippet(),
+      'raw'          => json_encode($msg),
+      'status'       => 'baru',
+      'received_at'  => date('Y-m-d H:i:s'),
+      'created_at'   => date('Y-m-d H:i:s'),
+    ]);
+  }
+}
 
 
 }

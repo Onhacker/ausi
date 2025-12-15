@@ -190,6 +190,14 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                   <span class="btn-label"><i class="fe-refresh-ccw"></i></span>
                   Refresh
                 </button>
+             <!--    <?php if (!$isKB): ?>
+                  <button type="button"
+                          onclick="openGmailInbox()"
+                          class="btn btn-danger btn-sm waves-effect waves-light mb-2 mr-2">
+                    <span class="btn-label"><i class="mdi mdi-gmail"></i></span>
+                    Baca Gmail
+                  </button>
+                  <?php endif; ?> -->
 
                 <?php if (!$isKB): ?>
                   <!-- Filter status -->
@@ -472,6 +480,160 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
       </div>
     </div>
   </div>
+<!-- ===== MODAL: INBOX GMAIL ===== -->
+<div id="gmail-inbox-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h4 class="mymodal-title mb-0">Inbox Gmail</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="d-flex align-items-center mb-2" style="gap:.5rem">
+          <input type="search" id="gmail-q" class="form-control form-control-sm" placeholder="Cari subject / from / snippet…">
+          <button type="button" class="btn btn-sm btn-primary" id="gmail-sync-btn">
+            <i class="fe-refresh-ccw"></i> Sync
+          </button>
+        </div>
+
+        <div id="gmail-loading" class="text-center text-muted py-3" style="display:none">Memuat…</div>
+        <div id="gmail-empty" class="text-muted small py-3" style="display:none">Tidak ada email.</div>
+
+        <div id="gmail-list" class="list-group"></div>
+      </div>
+
+      <div class="modal-footer">
+        <small class="text-muted mr-auto" id="gmail-count">0 email</small>
+        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: DETAIL EMAIL ===== -->
+<div id="gmail-detail-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="mymodal-title mb-0" id="gmail-detail-title">Detail Email</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+      </div>
+      <div class="modal-body" id="gmail-detail-body">
+        <div class="text-center text-muted py-5">Memuat…</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  if (window.__GMAIL_UI__) return; window.__GMAIL_UI__ = true;
+
+  const URL_LIST   = "<?= site_url('admin_pos/gmail_inbox') ?>";
+  const URL_DETAIL = "<?= site_url('admin_pos/gmail_detail') ?>/"; // +id
+
+  function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
+
+  function gmailLoading(on){
+    document.getElementById('gmail-loading').style.display = on ? '' : 'none';
+  }
+
+  function renderInbox(rows){
+    const $list  = $('#gmail-list');
+    const $empty = $('#gmail-empty');
+    const $count = $('#gmail-count');
+
+    $list.empty();
+    rows = rows || [];
+    $count.text(rows.length + ' email');
+
+    if (!rows.length){
+      $empty.show();
+      return;
+    }
+    $empty.hide();
+
+    rows.forEach(r=>{
+      const badge = (r.status === 'diproses')
+        ? '<span class="badge badge-success">Diproses</span>'
+        : '<span class="badge badge-warning">Baru</span>';
+
+      const html = `
+        <button type="button" class="list-group-item list-group-item-action" onclick="gmailOpenDetail(${parseInt(r.id,10)})">
+          <div class="d-flex justify-content-between align-items-start">
+            <div style="min-width:0">
+              <div class="font-weight-bold text-truncate">${esc(r.subject||'(tanpa subject)')}</div>
+              <div class="text-muted small text-truncate">${esc(r.from_email||'-')}</div>
+            </div>
+            <div class="text-right" style="margin-left:.5rem">
+              ${badge}
+              <div class="text-muted small">${esc(r.received_at||'')}</div>
+            </div>
+          </div>
+          <div class="text-muted small mt-1 text-truncate">${esc(r.snippet||'')}</div>
+        </button>`;
+      $list.append(html);
+    });
+  }
+
+  function loadInbox(opts){
+    opts = opts || {};
+    const q = ($('#gmail-q').val() || '').trim();
+
+    gmailLoading(true);
+    return $.getJSON(URL_LIST, {
+      sync: opts.sync ? 1 : 0,
+      limit: opts.limit || 20,
+      q: q
+    }).done(function(res){
+      gmailLoading(false);
+      if (!res || !res.success){
+        renderInbox([]);
+        if (window.Swal) Swal.fire(res?.title||'Gagal', res?.pesan||'Tidak bisa memuat inbox', 'error');
+        return;
+      }
+      renderInbox(res.data || []);
+    }).fail(function(xhr){
+      gmailLoading(false);
+      renderInbox([]);
+      if (window.Swal) Swal.fire('Error','Koneksi bermasalah saat memuat Gmail','error');
+      console.error(xhr?.responseText);
+    });
+  }
+
+  window.openGmailInbox = function(){
+    $('#gmail-inbox-modal').modal('show');
+    loadInbox({sync:true, limit:20});
+    setTimeout(()=>{ try{ document.getElementById('gmail-q').focus(); }catch(e){} }, 150);
+  };
+
+  window.gmailOpenDetail = function(id){
+    $('#gmail-detail-modal').modal('show');
+    $('#gmail-detail-body').html('<div class="text-center text-muted py-5">Memuat…</div>');
+
+    $.get(URL_DETAIL + id, function(html){
+      $('#gmail-detail-body').html(html);
+    }).fail(function(xhr){
+      $('#gmail-detail-body').html('<div class="text-danger">Gagal memuat detail.</div>');
+      console.error(xhr?.responseText);
+    });
+  };
+
+  // tombol sync
+  $('#gmail-sync-btn').on('click', function(){ loadInbox({sync:true, limit:20}); });
+
+  // search debounce
+  let t=null;
+  $('#gmail-q').on('input', function(){
+    clearTimeout(t);
+    t = setTimeout(()=>loadInbox({sync:false, limit:20}), 250);
+  });
+
+})();
+</script>
 
   <script>
     const IS_KB = <?= $isKB ? 'true' : 'false' ?>;
