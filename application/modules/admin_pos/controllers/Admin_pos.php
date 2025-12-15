@@ -2020,15 +2020,15 @@ public function gmail_detail($id)
         // render aman: sanitize html + srcdoc
         $safeHtml = $html !== '' ? $this->_sanitize_html_basic($html) : '';
 
-if ($safeHtml !== '') {
-    // ✅ buat path relatif bisa kebaca
-    $safeHtml = $this->_inject_base_href($safeHtml, base_url());
+        if ($safeHtml !== '') {
+            // ✅ buat path relatif bisa kebaca
+            $safeHtml = $this->_inject_base_href($safeHtml, base_url());
 
-    // ✅ kalau logo pakai cid:, embed jadi data URI
-    $safeHtml = $this->_embed_cid_images($svc, $gmailId, $full->getPayload(), $safeHtml);
-}
+            // ✅ kalau logo pakai cid:, embed jadi data URI
+            $safeHtml = $this->_embed_cid_images($svc, $gmailId, $full->getPayload(), $safeHtml);
+        }
 
-$srcdoc = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : '';
+        $srcdoc = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : '';
 
 
         $fromShow = $fromH !== '' ? $fromH : (string)$row->from_email;
@@ -2036,7 +2036,7 @@ $srcdoc = $safeHtml !== '' ? htmlspecialchars($safeHtml, ENT_QUOTES, 'UTF-8') : 
 
         $dateShow = $row->received_at ?? $row->created_at ?? '';
         // kalau kamu punya formatter indo di controller:
-        // $dateShow = $this->_indo_datetime($dateShow, true);
+        $dateShow = $this->_indo_datetime($dateShow, true);
 
         // Tab Email: kalau HTML ada tampilkan iframe, kalau tidak fallback text
         $emailView = ($srcdoc !== '')
