@@ -544,7 +544,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
 
                     $status_label = $status_raw;
                     if     ($status_raw === 'pending')    $status_label = 'menunggu pembayaran';
-                    elseif ($status_raw === 'verifikasi') $status_label = 'verifikasi kasir';
+                    elseif ($status_raw === 'verifikasi') $status_label = 'verifikasi';
                     elseif ($status_raw === 'paid')       $status_label = 'lunas';
                     elseif ($status_raw === 'sent')       $status_label = 'terkirim';
                     elseif ($status_raw === 'canceled')   $status_label = 'dibatalkan';
