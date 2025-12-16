@@ -313,7 +313,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
           </script>
 
           <!-- Tabel -->
-          <table id="datable_pos" class="table table-sm table-striped table-bordered w-100">
+          <table id="datable_pos" class="table table-sm table-bordered table-hover w-100">
             <thead>
               <tr>
                 <th width="6%">No.</th>
