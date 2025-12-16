@@ -461,35 +461,17 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             // Mulai baris baru
             $row = [];
 
-            // === Mode (tanpa badge) + emoji ===
-           // === Mode icon saja (tanpa teks) ===
+            // === Mode badge ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
-
-            $mode_icon  = 'mdi mdi-shopify'; // default bungkus
-            $mode_title = 'Bungkus';
-
             switch ($mode_raw) {
                 case 'dinein':
-                case 'dine-in':
-                    $mode_icon  = 'mdi mdi-silverware-variant';
-                    $mode_title = 'Makan di Tempat';
-                    break;
-
-                case 'delivery':
-                    $mode_icon  = 'mdi-truck-delivery';
-                    $mode_title = 'Antar / Kirim';
-                    break;
-
+                case 'dine-in':  $mode_label='Makan di Tempat';  $mode_badge='badge-info';    break;
+                case 'delivery': $mode_label='Antar/ Kirim';     $mode_badge='badge-warning'; break;
                 case 'walking':
                 case 'walkin':
                 case 'walk-in':
-                default:
-                    $mode_icon  = 'mdi mdi-shopify';
-                    $mode_title = 'Bungkus';
-                    break;
+                default:         $mode_label='Bungkus';           $mode_badge='badge-pink'; break;
             }
-
-
 
             // === Info kurir (hanya untuk delivery) ===
             $kurirInfoHtml = '';
@@ -666,16 +648,14 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             $row['no'] = '';
 
             // 2. mode (+ meta rowid untuk kebutuhan JS)
-            $row['mode'] =
-            '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
-            . '<div class="text-left">'
-            .   '<span class="mode-icon" title="'.htmlspecialchars($mode_title, ENT_QUOTES, 'UTF-8').'">'
-            .     '<i class="mdi '.$mode_icon.'"></i>'
-            .   '</span>'
-            .   $kurirInfoHtml
-            . '</div>';
-
-
+            $row['mode']  =
+                '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
+              . '<div class="d-inline-block text-left">'
+              .   '<span class="badge badge-pill '.$mode_badge.'">'
+              .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+              .   '</span>'
+              .   $kurirInfoHtml
+              . '</div>';
 
             // 3. meja
             $row['meja'] = $meja_html;
