@@ -461,17 +461,26 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             // Mulai baris baru
             $row = [];
 
-            // === Mode badge ===
+            // === Mode (tanpa badge) + emoji ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
             switch ($mode_raw) {
                 case 'dinein':
-                case 'dine-in':  $mode_label='Makan di Tempat';  $mode_badge='badge-info';    break;
-                case 'delivery': $mode_label='Antar/ Kirim';     $mode_badge='badge-warning'; break;
+                case 'dine-in':
+                    $mode_label = '🍽️ Makan di Tempat';
+                    break;
+
+                case 'delivery':
+                    $mode_label = '🛵 Antar / Kirim';
+                    break;
+
                 case 'walking':
                 case 'walkin':
                 case 'walk-in':
-                default:         $mode_label='Bungkus';           $mode_badge='badge-primary'; break;
+                default:
+                    $mode_label = '📦 Bungkus';
+                    break;
             }
+
 
             // === Info kurir (hanya untuk delivery) ===
             $kurirInfoHtml = '';
@@ -648,14 +657,13 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             $row['no'] = '';
 
             // 2. mode (+ meta rowid untuk kebutuhan JS)
-            $row['mode']  =
+            $row['mode'] =
                 '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
-              . '<div class="d-inline-block text-left">'
-              .   '<span class="badge badge-pill '.$mode_badge.'">'
-              .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
-              .   '</span>'
+              . '<div class="text-left">'
+              .   '<div class="font-weight-bold">'.htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8').'</div>'
               .   $kurirInfoHtml
               . '</div>';
+
 
             // 3. meja
             $row['meja'] = $meja_html;
