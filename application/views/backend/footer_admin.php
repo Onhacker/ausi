@@ -780,7 +780,7 @@ if (!function_exists('nav_class')) {
 
   <button type="button"
           onclick="openGmailInbox()"
-          class="btn btn-primary btn-sm waves-effect waves-light fab-gmail"
+          class="btn btn-blue btn-sm waves-effect waves-light fab-gmail"
           title="Cek transaksi QRIS">
     <i class="mdi mdi-gmail"></i>
     <span class="fab-text">Cek transaksi QRIS</span>

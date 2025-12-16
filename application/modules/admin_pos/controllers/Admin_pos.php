@@ -388,7 +388,7 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
 
         if ($has['cash'])     $chips[] = $chip('mdi-cash',          'Tunai',    'badge-success');
         if ($has['qris'])     $chips[] = $chip('mdi-qrcode-scan',   'QRIS',     'badge-info');
-        if ($has['transfer']) $chips[] = $chip('mdi-bank-transfer', 'Transfer', 'badge-secondary');
+        if ($has['transfer']) $chips[] = $chip('mdi-bank-transfer', 'Transfer', 'badge-blue');
     }
 
     // ==== PENANDA VOUCHER (kalau ada) ====
