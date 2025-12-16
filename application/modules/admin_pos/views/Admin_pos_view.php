@@ -173,6 +173,16 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
   70%  { transform: scale(1.5); opacity: 0; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+.mode-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+}
+.mode-icon i{
+  font-size: 26px;   /* bisa 28px kalau mau lebih gede */
+  line-height: 1;
+}
 
   </style>
  
