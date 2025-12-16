@@ -462,24 +462,33 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             $row = [];
 
             // === Mode (tanpa badge) + emoji ===
+           // === Mode icon saja (tanpa teks) ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
+
+            $mode_icon  = 'mdi-shopping-outline'; // default bungkus
+            $mode_title = 'Bungkus';
+
             switch ($mode_raw) {
                 case 'dinein':
                 case 'dine-in':
-                    $mode_label = '🍽️';
+                    $mode_icon  = 'mdi-silverware-fork-knife';
+                    $mode_title = 'Makan di Tempat';
                     break;
 
                 case 'delivery':
-                    $mode_label = '🛵';
+                    $mode_icon  = 'mdi-truck-delivery';
+                    $mode_title = 'Antar / Kirim';
                     break;
 
                 case 'walking':
                 case 'walkin':
                 case 'walk-in':
                 default:
-                    $mode_label = '📦';
+                    $mode_icon  = 'mdi-shopping-outline';
+                    $mode_title = 'Bungkus';
                     break;
             }
+
 
 
             // === Info kurir (hanya untuk delivery) ===
@@ -658,11 +667,14 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
 
             // 2. mode (+ meta rowid untuk kebutuhan JS)
             $row['mode'] =
-                '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
-              . '<div class="text-left">'
-              .   '<div class="font-weight-bold">'.htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8').'</div>'
-              .   $kurirInfoHtml
-              . '</div>';
+            '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
+            . '<div class="text-left">'
+            .   '<span class="mode-icon" title="'.htmlspecialchars($mode_title, ENT_QUOTES, 'UTF-8').'">'
+            .     '<i class="mdi '.$mode_icon.'"></i>'
+            .   '</span>'
+            .   $kurirInfoHtml
+            . '</div>';
+
 
 
             // 3. meja
