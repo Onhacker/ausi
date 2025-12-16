@@ -466,18 +466,18 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             switch ($mode_raw) {
                 case 'dinein':
                 case 'dine-in':
-                    $mode_label = '🍽️ Makan di Tempat';
+                    $mode_label = '🍽️';
                     break;
 
                 case 'delivery':
-                    $mode_label = '🛵 Antar / Kirim';
+                    $mode_label = '🛵';
                     break;
 
                 case 'walking':
                 case 'walkin':
                 case 'walk-in':
                 default:
-                    $mode_label = '📦 Bungkus';
+                    $mode_label = '📦';
                     break;
             }
 
