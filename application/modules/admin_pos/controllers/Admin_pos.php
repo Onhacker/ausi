@@ -432,8 +432,8 @@ $qrisBtn = '';
 if (!empty($has['qris'])) {
     $qrisBtn =
         '<div style="flex-basis:100%;height:0"></div>' .
-        '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 qris-check-btn" title="Cek transaksi QRIS di Gmail">'
-      .   '<i class="mdi mdi-magnify mr-1"></i>Cek'
+        '<button type="button" class="btn btn-outline-blue btn-sm py-0 px-2 qris-check-btn" title="Cek transaksi QRIS di Gmail">'
+      .   '<i class="mdi mdi-magnify mr-1"></i>Cek Trx'
       . '</button>';
 }
 
