@@ -494,13 +494,23 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             }
 
 
-            // Meja + nama
-            $meja   = $r->meja_nama ?: ($r->meja_kode ?: '—');
-            $nama   = trim((string)($r->nama ?? ''));
-            $meja_html = htmlspecialchars($meja, ENT_QUOTES, 'UTF-8');
-            if ($nama !== ''){
-                $meja_html .= '<div class="text-dark small"><strong>'.htmlspecialchars($nama,ENT_QUOTES,'UTF-8').'</strong></div>';
+           // Meja + nama
+            $meja = trim((string)($r->meja_nama ?: $r->meja_kode)); // ✅ kalau dua-duanya kosong => ''
+            $nama = trim((string)($r->nama ?? ''));
+
+            $meja_html = ($meja !== '') ? htmlspecialchars($meja, ENT_QUOTES, 'UTF-8') : '';
+
+            if ($nama !== '') {
+                $nama_safe = htmlspecialchars($nama, ENT_QUOTES, 'UTF-8');
+
+                // kalau meja kosong, tampilkan nama saja (tetap rapi)
+                if ($meja_html === '') {
+                    $meja_html = '<div class="text-dark small"><strong>'.$nama_safe.'</strong></div>';
+                } else {
+                    $meja_html .= '<div class="text-dark small"><strong>'.$nama_safe.'</strong></div>';
+                }
             }
+
 
             // Waktu (timestamp detik)
             $createdTs = strtotime($r->created_at ?: 'now') ?: time();
