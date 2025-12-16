@@ -465,13 +465,13 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
            // === Mode icon saja (tanpa teks) ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
 
-            $mode_icon  = 'mdi-shopping-outline'; // default bungkus
+            $mode_icon  = 'mdi mdi-shopify'; // default bungkus
             $mode_title = 'Bungkus';
 
             switch ($mode_raw) {
                 case 'dinein':
                 case 'dine-in':
-                    $mode_icon  = 'mdi-silverware-fork-knife';
+                    $mode_icon  = 'mdi mdi-silverware-variant';
                     $mode_title = 'Makan di Tempat';
                     break;
 
@@ -484,7 +484,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
                 case 'walkin':
                 case 'walk-in':
                 default:
-                    $mode_icon  = 'mdi-shopping-outline';
+                    $mode_icon  = 'mdi mdi-shopify';
                     $mode_title = 'Bungkus';
                     break;
             }
