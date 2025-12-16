@@ -780,7 +780,7 @@ if (!function_exists('nav_class')) {
 
   <button type="button"
           onclick="openGmailInbox()"
-          class="btn btn-danger btn-sm waves-effect waves-light fab-gmail"
+          class="btn btn-primary btn-sm waves-effect waves-light fab-gmail"
           title="Cek transaksi QRIS">
     <i class="mdi mdi-gmail"></i>
     <span class="fab-text">Cek transaksi QRIS</span>
@@ -824,5 +824,17 @@ window.openGmailInbox = async function(){
 </script>
 
 <?php endif; ?>
+<script>
+(function(){
+  if (!window.jQuery) return;
+  $(document)
+    .off('click.qrischeck', '.qris-check-btn')
+    .on('click.qrischeck', '.qris-check-btn', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if (window.openGmailInbox) window.openGmailInbox();
+    });
+})();
+</script>
 
 <!-- END OF GMAIL AREA -->

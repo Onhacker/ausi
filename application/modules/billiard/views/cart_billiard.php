@@ -429,7 +429,7 @@ $show_pay_buttons =
   <?php if (!$hide_cancel): ?>
   <div class="row">
     <div class="col-12">
-      <button class="btn btn-outline-secondary w-100 mt-2" id="btnBatal" type="button">
+      <button class="btn btn-danger w-100 mt-2 mb-2" id="btnBatal" type="button">
         <i class="mdi mdi-close"></i> Batalkan Booking
       </button>
     </div>
@@ -443,7 +443,7 @@ $show_pay_buttons =
       <div id="editCard" class="card-box">
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-4 mb-2">
               <label class="form-label">Tanggal</label>
               <div class="border rounded p-2">
                 <?= $tgl_disp ?: html_escape($booking->tanggal ?? '') ?>
@@ -496,7 +496,7 @@ $show_pay_buttons =
                     </div>
                   </div>
 
-                  <div class="col-12">
+                  <div class="col-12 mt-2">
                     <button id="btnUbah" class="btn btn-primary w-100" type="submit">Ubah Jadwal</button>
                   </div>
                 </div>

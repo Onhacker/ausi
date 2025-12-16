@@ -5,6 +5,9 @@
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     $isKB  = in_array($uname, ['kitchen','bar'], true); // kitchen / bar
   ?>
+<style>
+  .qris-check-btn{ line-height: 1.2; }
+</style>
 
   <style>
     /* Badge tabel */

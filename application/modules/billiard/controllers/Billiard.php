@@ -286,7 +286,8 @@ public function daftar_booking(){
     if (!isset($cards_by_meja[$mejaId]['days'][$dkey])){
       // label tanggal
       $epoch  = strtotime($dkey);
-      $monMap = ['Jan'=>'JAN','Feb'=>'FEB','Mar'=>'MAR','Apr'=>'APR','May'=>'MEI','Jun'=>'JUN','Jul'=>'JUL','Aug'=>'AGU','Sep'=>'SEP','Oct'=>'OKT','Nov'=>'DES','Dec'=>'DES'];
+      $monMap = ['Jan'=>'JAN','Feb'=>'FEB','Mar'=>'MAR','Apr'=>'APR','May'=>'MEI','Jun'=>'JUN','Jul'=>'JUL','Aug'=>'AGU','Sep'=>'SEP','Oct'=>'OKT','Nov'=>'NOV','Dec'=>'DES'];
+
       $monEn  = date('M',$epoch);
       $hariMap= ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 
@@ -360,6 +361,8 @@ public function daftar_booking(){
 // ====== LIVE MONITOR: View utama ======
 public function monitor(){
   $this->output->set_header('X-Robots-Tag: noindex, nofollow', true);
+  $this->_require_cron_key();
+
   // anti-cache
   if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
   else {
@@ -2061,11 +2064,27 @@ private function _is_free_booking_row($row): bool {
       'reason'         => $reason,
     ];
   }
+private function _require_cron_key(){
+  $key = (string)$this->input->get('key', true);
+  $ok  = $key !== '' && $key === (string)$this->config->item('CRON_KEY');
+  if (!$ok) show_404();
+}
 
-  public function update_cart(){
+public function update_cart(){
     $token   = trim((string)$this->input->post('t', TRUE));
     $recBook = $this->mbi->get_by_token($token);
-    if (!$recBook) return $this->_json(["success"=>false,"title"=>"Tidak Valid","pesan"=>"Link tidak ditemukan."]);
+    if (!$recBook) {
+      return $this->_json(["success"=>false,"title"=>"Tidak Valid","pesan"=>"Link tidak ditemukan."]);
+    }
+
+    // blok edit kalau sudah pakai voucher
+    if (!empty($recBook->voucher_code)) {
+      return $this->_json([
+        "success"=>false,
+        "title"=>"Tidak Bisa Diubah",
+        "pesan"=>"Booking yang sudah memakai voucher tidak bisa diubah. Silakan batal & booking ulang."
+      ]);
+    }
 
     // Cek kebijakan edit (kuota & waktu)
     $lock = $this->_edit_lock_info($recBook);
@@ -2151,7 +2170,7 @@ $grand_total = $subtotal + $kode_unik;
       return $this->_json(["success"=>false,"title"=>"Invalid Time","pesan"=>"Waktu tidak valid."]);
     }
     if ($aEnd <= $aStart) $aEnd->modify('+1 day'); // overnight for the new interval
-
+    $collisions = [];
     foreach ($others as $o){
       $bStart = $mk_dt($o->tanggal, $o->jam_mulai);
       $bEnd   = $mk_dt($o->tanggal, $o->jam_selesai);
@@ -2280,9 +2299,9 @@ $grand_total = $subtotal + $kode_unik;
     $this->load->view('billiard/metode_billiard', $data);
   }
 
-  public function konfirmasi(){
+ public function konfirmasi(){
   $token  = trim((string)$this->input->post('t', TRUE));
-  $metode = trim((string)$this->input->post('metode_bayar', TRUE));
+  $metode = strtolower(trim((string)$this->input->post('metode_bayar', TRUE)));
   if (!in_array($metode, ['cash','qris','transfer'], true)) $metode = 'cash';
 
   $rec = $this->mbi->get_by_token($token);
@@ -2292,47 +2311,42 @@ $grand_total = $subtotal + $kode_unik;
   if (strtolower((string)$rec->status) === 'batal') {
     return $this->_json(["success"=>false,"title"=>"Waktu Habis","pesan"=>"Batas waktu pembayaran sudah habis. Booking dibatalkan."]);
   }
-if ($this->_is_free_booking_row($rec)) {
-  // pastikan status tetap free + metode voucher
-  $this->mbi->update_by_token($token, [
-    'metode_bayar' => 'voucher',
-    'status'       => 'free',
-    'kode_unik'    => 0,
-    'grand_total'  => 0,
-    'updated_at'   => date('Y-m-d H:i:s'),
-  ]);
-  return $this->_json([
-    "success"=>true,
-    "title"=>"Booking Gratis",
-    "pesan"=>"Voucher aktif. Booking gratis, tidak perlu pembayaran.",
-    "redirect_url"=> site_url('billiard/free').'?t='.urlencode($token)
-  ]);
-}
 
-  // race check
+  if ($this->_is_free_booking_row($rec)) {
+    $this->mbi->update_by_token($token, [
+      'metode_bayar' => 'voucher',
+      'status'       => 'free',
+      'kode_unik'    => 0,
+      'grand_total'  => 0,
+      'updated_at'   => date('Y-m-d H:i:s'),
+    ]);
+    return $this->_json([
+      "success"=>true,
+      "title"=>"Booking Gratis",
+      "pesan"=>"Voucher aktif. Booking gratis, tidak perlu pembayaran.",
+      "redirect_url"=> site_url('billiard/free').'?t='.urlencode($token)
+    ]);
+  }
+
   if ($this->mbi->has_overlap($rec->meja_id, $rec->tanggal, $rec->jam_mulai, $rec->jam_selesai, $rec->id_pesanan)){
     return $this->_json(["success"=>false,"title"=>"Slot Bentrok","pesan"=>"Slot diambil pengguna lain tepat saat konfirmasi. Silakan atur ulang."]);
   }
 
-  // Semua metode diset ke 'verifikasi' (tidak ada auto-terkonfirmasi untuk cash)
-$status = 'verifikasi';
-$this->mbi->update_by_token($token, [
-  'metode_bayar' => $metode,
-  'status'       => $status,
-  'updated_at'   => date('Y-m-d H:i:s'),
-]);
+  // ✅ sinkron metode + kode unik + grand_total
+  $this->_set_verifikasi((int)$rec->id_pesanan, $metode);
 
-
-  // WA otomat (ringkas)
-  $this->_wa_ringkasan($rec, $metode, $status);
+  // ✅ ambil ulang record terbaru (biar WA pakai angka & updated_at yang benar)
+  $rec2 = $this->mbi->get_by_token($token);
+  $this->_wa_ringkasan($rec2 ?: $rec, $metode, 'verifikasi');
 
   return $this->_json([
     "success"=>true,
     "title"=>"Terkonfirmasi",
-    "pesan"=>"Status: ".str_replace('_',' ',$status).". Rincian dikirim via WhatsApp.",
+    "pesan"=>"Status: verifikasi. Rincian dikirim via WhatsApp.",
     "redirect_url"=> site_url('billiard/booked').'?t='.urlencode($token)
   ]);
 }
+
 
 
   /* ========= Resume / Detail ========= */
@@ -2686,26 +2700,24 @@ private function _normalize_msisdn($s): string {
 
 /** Pastikan tabel voucher_billiard ada */
 private function _ensure_voucher_table(): void {
-  if ($this->db->table_exists('voucher_billiard')) return;
+  if (!$this->db->table_exists('voucher_billiard')) {
+    $this->db->query("CREATE TABLE ..."); // punyamu
+  }
 
-  $sql = "CREATE TABLE IF NOT EXISTS `voucher_billiard` (
-    `id_voucher` INT AUTO_INCREMENT PRIMARY KEY,
-    `no_hp` VARCHAR(32) NOT NULL,
-    `no_hp_norm` VARCHAR(32) NOT NULL,
-    `nama` VARCHAR(100) NULL,
-    `kode_voucher` VARCHAR(32) NOT NULL UNIQUE,
-    `jenis` VARCHAR(32) NOT NULL DEFAULT 'FREE_MAIN',
-    `status` VARCHAR(20) NOT NULL DEFAULT 'baru',    -- baru | terpakai | batal
-    `is_claimed` TINYINT(1) NOT NULL DEFAULT 0,
-    `issued_from_count` INT NOT NULL DEFAULT 0,
-    `jam_voucher` INT NOT NULL DEFAULT 1,                  -- jumlah konfirmasi saat voucher dikeluarkan
-    `created_at` DATETIME NOT NULL,
-    `claimed_at` DATETIME NULL,
-    `notes` VARCHAR(255) NULL,
-    INDEX `idx_hp_norm` (`no_hp_norm`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-  $this->db->query($sql);
+  // === migrasi kolom (idempotent) ===
+  $adds = [];
+  if (!$this->db->field_exists('tgl_mulai','voucher_billiard'))        $adds[] = "ADD COLUMN tgl_mulai DATE NULL";
+  if (!$this->db->field_exists('tgl_selesai','voucher_billiard'))      $adds[] = "ADD COLUMN tgl_selesai DATE NULL";
+  if (!$this->db->field_exists('minimal_subtotal','voucher_billiard')) $adds[] = "ADD COLUMN minimal_subtotal INT NOT NULL DEFAULT 0";
+  if (!$this->db->field_exists('nilai','voucher_billiard'))           $adds[] = "ADD COLUMN nilai INT NOT NULL DEFAULT 0";
+  if (!$this->db->field_exists('max_potongan','voucher_billiard'))     $adds[] = "ADD COLUMN max_potongan INT NOT NULL DEFAULT 0";
+  if (!$this->db->field_exists('expired_at','voucher_billiard'))       $adds[] = "ADD COLUMN expired_at DATETIME NULL";
+
+  if ($adds) {
+    $this->db->query("ALTER TABLE voucher_billiard ".implode(', ', $adds));
+  }
 }
+
 
 /** Kode voucher unik */
 private function _make_voucher_code($len = 8): string {
@@ -2757,11 +2769,22 @@ private function _voucher_stats_by_hp(string $no_hp_raw): array {
   }
 
   // nama terakhir (opsional)
-  $nama = $this->db->select('nama')->from('pesanan_billiard')
-    ->where('status', 'terkonfirmasi')
-    ->order_by('id_pesanan', 'DESC')
-    ->limit(1)
-    ->get()->row('nama') ?? '';
+  $nama = '';
+  if ($use_norm_col) {
+    $nama = (string)($this->db->select('nama')->from('pesanan_billiard')
+      ->where('status','terkonfirmasi')
+      ->where('no_hp_normalized', $hp_norm)
+      ->order_by('id_pesanan','DESC')->limit(1)
+      ->get()->row('nama') ?? '');
+  } else {
+    // fallback: cari nama terakhir utk nomor itu via loop (ambil 200 terakhir biar gak berat)
+    $rs = $this->db->select('no_hp,nama')->from('pesanan_billiard')
+      ->where('status','terkonfirmasi')->order_by('id_pesanan','DESC')->limit(200)->get()->result();
+    foreach ($rs as $r) {
+      if ($this->_normalize_msisdn($r->no_hp) === $hp_norm) { $nama = (string)$r->nama; break; }
+    }
+  }
+
 
   $batas = $this->_voucher_threshold();
   $should = (int) floor($confirmed / $batas);
@@ -2793,6 +2816,8 @@ private function _voucher_stats_by_hp(string $no_hp_raw): array {
  * - Bisa testing manual (tambahkan ?no_hp=08xxxxxxxxxx untuk proses 1 nomor)
  */
 public function voucher_issue_job() {
+  $this->_require_cron_key();
+
    // file_put_contents(FCPATH.'cron_test.txt', date('c')." JOB TRIGGER\n", FILE_APPEND);
  file_put_contents('/home/u665626191/websites/Xv7HnoWox/public_html/cron_test.log', date('Y-m-d H:i:s')."\n", FILE_APPEND);
 
@@ -2868,6 +2893,10 @@ public function voucher_issue_job() {
     for ($i = 0; $i < $to_make; $i++) {
       $kode = $this->_make_voucher_code(8);
       $jamVoucherDefault = $web->jam_voucher_default;
+      // tanggal berlaku (DATE) — konsisten dengan data kamu: tgl_selesai = tgl_mulai + N hari (exclusive)
+      $tgl_mulai   = $now->format('Y-m-d');
+      $tgl_selesai = (clone $now)->modify('+' . $batasHariV . ' days')->format('Y-m-d');
+
       $this->db->insert('voucher_billiard', [
         'no_hp'             => $hp_norm,                // simpan normalized
         'no_hp_norm'        => $hp_norm,
@@ -2878,6 +2907,8 @@ public function voucher_issue_job() {
         'is_claimed'        => 0,
         'issued_from_count' => $stats['confirmed'],
         'jam_voucher'       => $jamVoucherDefault,
+         'tgl_mulai'         => $tgl_mulai,
+  'tgl_selesai'       => $tgl_selesai,
         'created_at'        => $now->format('Y-m-d H:i:s'),
         'claimed_at'        => null,
         'notes'             => 'Auto issue by job (batas_edit=' . $stats['batas'] . ')',

@@ -358,37 +358,31 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
     $s      = strtolower(trim($rawStr));
     $chips  = [];
 
-    // builder chip metode
+    // ✅ selalu define biar bisa dipakai di bawah
+    $has = ['cash'=>false, 'qris'=>false, 'transfer'=>false];
+
     $chip = function($icon,$label,$cls){
         return '<span class="badge badge-pill '.$cls.' mr-1">'
              .   '<i class="mdi '.$icon.' mr-1"></i>'.$label
              . '</span>';
     };
 
-    // ==== METODE PEMBAYARAN (cash / qris / transfer) ====
     if ($s !== '' && $s !== '-' && $s !== 'unknown') {
         $tokens = [];
 
-        // dukung format JSON (array string)
         if ($s[0] === '[' || $s[0] === '{') {
             $tmp = json_decode($rawStr, true);
             if (is_array($tmp)) {
-                foreach ($tmp as $v) {
-                    $tokens[] = strtolower(trim((string)$v));
-                }
+                foreach ($tmp as $v) $tokens[] = strtolower(trim((string)$v));
             }
         }
-
-        // fallback: pecah manual
         if (!$tokens) {
             $tokens = preg_split('/[\s,\/\+\|]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
         }
 
-        // flag 3 jenis metode
-        $has = ['cash'=>false, 'qris'=>false, 'transfer'=>false];
         foreach ($tokens as $t) {
-            if (preg_match('/^(cash|tunai)$/', $t))                             $has['cash']     = true;
-            elseif (preg_match('/^(qris|qr|scan)$/', $t))                      $has['qris']     = true;
+            if (preg_match('/^(cash|tunai)$/', $t)) $has['cash'] = true;
+            elseif (preg_match('/^(qris|qr|scan)$/', $t)) $has['qris'] = true;
             elseif (preg_match('/^(transfer|tf|bank|bca|bri|bni|mandiri)$/', $t)) $has['transfer'] = true;
         }
 
@@ -418,26 +412,38 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
     }
 
     // kalau sama sekali tidak ada chip
-    if (!$chips) {
-        return '<span class="text-muted">—</span>';
-    }
+ if (!$chips) {
+    return '<span class="text-muted">—</span>';
+}
 
-    // tooltip gabungan (metode + info voucher)
-    $titleParts = [];
-    if ($rawStr !== '') {
-        $titleParts[] = 'Metode: '.$rawStr;
-    }
-    if ($voucher_disc > 0) {
-        $titleParts[] = 'Voucher '.($codeTrim !== '' ? $codeTrim : '')
-                      .' (potongan Rp '.number_format($voucher_disc,0,',','.').')';
-    }
-    $title = implode(' | ', $titleParts);
+// tooltip gabungan (metode + info voucher)
+$titleParts = [];
+if ($rawStr !== '') {
+    $titleParts[] = 'Metode: '.$rawStr;
+}
+if ($voucher_disc > 0) {
+    $titleParts[] = 'Voucher '.($codeTrim !== '' ? $codeTrim : '')
+                  .' (potongan Rp '.number_format($voucher_disc,0,',','.').')';
+}
+$title = implode(' | ', $titleParts);
 
-    return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
-         . ($title ? ' title="'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'"' : '')
-         . '>'
-         . implode('', $chips)
-         . '</div>';
+// ✅ tombol cek transaksi khusus jika ada QRIS
+$qrisBtn = '';
+if (!empty($has['qris'])) {
+    $qrisBtn =
+        '<div style="flex-basis:100%;height:0"></div>' .
+        '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 qris-check-btn" title="Cek transaksi QRIS di Gmail">'
+      .   '<i class="mdi mdi-magnify mr-1"></i>Cek transaksi'
+      . '</button>';
+}
+
+return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
+     . ($title ? ' title="'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'"' : '')
+     . '>'
+     . implode('', $chips)
+     . $qrisBtn
+     . '</div>';
+
 };
 
 
