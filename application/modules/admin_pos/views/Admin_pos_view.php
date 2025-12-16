@@ -314,7 +314,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 
           <!-- Tabel -->
           <table id="datable_pos" class="table table-sm table-bordered table-hover w-100">
-            <thead>
+            <thead class="thead-light">
               <tr>
                 <th width="6%">No.</th>
                 <th width="10%">Mode</th>
