@@ -361,7 +361,7 @@ public function daftar_booking(){
 // ====== LIVE MONITOR: View utama ======
 public function monitor(){
   $this->output->set_header('X-Robots-Tag: noindex, nofollow', true);
-  $this->_require_cron_key();
+  // $this->_require_cron_key();
 
   // anti-cache
   if (method_exists($this,'_nocache_headers')) { $this->_nocache_headers(); }
@@ -2816,7 +2816,7 @@ private function _voucher_stats_by_hp(string $no_hp_raw): array {
  * - Bisa testing manual (tambahkan ?no_hp=08xxxxxxxxxx untuk proses 1 nomor)
  */
 public function voucher_issue_job() {
-  $this->_require_cron_key();
+  // $this->_require_cron_key();
 
    // file_put_contents(FCPATH.'cron_test.txt', date('c')." JOB TRIGGER\n", FILE_APPEND);
  file_put_contents('/home/u665626191/websites/Xv7HnoWox/public_html/cron_test.log', date('Y-m-d H:i:s')."\n", FILE_APPEND);
