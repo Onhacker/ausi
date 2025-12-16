@@ -317,8 +317,8 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
             <thead>
               <tr>
                 <th width="6%">No.</th>
-                <th>Mode</th>
-                <th>Meja / Nama</th>
+                <th width="10%">Mode</th>
+                <th width="20%">Meja / Nama</th>
 
                 <?php if ($isKB): ?>
                   <th>Pesanan</th>
@@ -328,7 +328,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
                 <th>Durasi</th>
                 <th class="th-price">Jumlah</th>
                 <th>Status</th>
-                <th class="th-method">Metode</th>
+                <th width="10%" class="th-method">Metode</th>
 
                 <?php if (!$isKB): ?>
                   <th width="14%">Aksi</th>
