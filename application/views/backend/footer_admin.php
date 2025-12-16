@@ -754,19 +754,23 @@ if (!function_exists('nav_class')) {
   </div>
 </div>
 
-
 <style>
   .fab-gmail{
     position: fixed;
-    right: 18px;
-    top: 140px;
+    right: 0;               /* ✅ nempel tepi kanan */
+    bottom: 140px;
     z-index: 9999;
-    border-radius: 999px;
+
+    border-radius: 999px 0 0 999px; /* ✅ sisi kanan rata, sisi kiri bulat */
     box-shadow: 0 14px 35px rgba(0,0,0,.22);
-    padding: 10px 14px;
+
+    padding: 10px 14px 10px 12px;
     display: inline-flex;
     align-items: center;
     gap: .5rem;
+
+    /* optional: biar gak ketutup scrollbar di browser tertentu */
+    margin-right: 0;
   }
 
   /* biar di hp cuma ikon aja */
@@ -778,12 +782,13 @@ if (!function_exists('nav_class')) {
 
 
 
+
   <button type="button"
           onclick="openGmailInbox()"
           class="btn btn-blue btn-sm waves-effect waves-light fab-gmail"
           title="Cek transaksi QRIS">
     <i class="mdi mdi-gmail"></i>
-    <span class="fab-text">Cek transaksi QRIS</span>
+    <span class="fab-text">Cek Trx QRIS</span>
   </button>
 
 <script>
