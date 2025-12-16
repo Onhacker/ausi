@@ -379,7 +379,7 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
 
   <!-- ===== MODAL: DETAIL ORDER ===== -->
   <div id="pos-detail-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable  modal-full">
+    <div class="modal-dialog modal-dialog-scrollable  modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h4 class="mymodal-title">Detail Order</h4>

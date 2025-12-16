@@ -15,118 +15,76 @@ function msisdn($p){
 
 $id        = (int)($order->id ?? 0);
 $nomor     = ($order->nomor ?? '') !== '' ? $order->nomor : $id;
-$modeRaw   = strtolower(trim((string)($order->mode ?? '-')));
-$modeLabel = ($modeRaw==='dinein' || $modeRaw==='dine-in') ? 'Dine-in' : ($modeRaw==='delivery' ? 'Delivery' : 'Walk-in');
 
-$meja   = $order->meja_nama ?: ($order->meja_kode ?: '—');
-$nama   = trim((string)($order->nama ?? ''));
-$cat    = ($active_cat === 1 || $active_cat === 2) ? (int)$active_cat : null;
-$label  = $cat===1 ? 'Kitchen (Makanan)' : ($cat===2 ? 'Bar (Minuman)' : 'Semua Item');
-$catatan= trim((string)($order->catatan ?? ''));
+$modeRaw    = strtolower(trim((string)($order->mode ?? '-')));
+$isDine     = ($modeRaw==='dinein' || $modeRaw==='dine-in');
+$isDelivery = ($modeRaw==='delivery');
 
-$showMeja     = ($modeRaw==='dinein' || $modeRaw==='dine-in');
-$isDelivery   = ($modeRaw === 'delivery');
-$phoneRaw     = trim((string)($order->customer_phone ?? ''));
-$waNumber     = $phoneRaw !== '' ? msisdn($phoneRaw) : '';
+$modeLabel  = $isDine ? 'Dine-in' : ($isDelivery ? 'Delivery' : 'Walk-in');
+$showMeja   = $isDine;
+
+$meja       = $order->meja_nama ?: ($order->meja_kode ?: '—');
+$nama       = trim((string)($order->nama ?? ''));
+$cat        = ($active_cat === 1 || $active_cat === 2) ? (int)$active_cat : null;
+$label      = $cat===1 ? 'Kitchen (Makanan)' : ($cat===2 ? 'Bar (Minuman)' : 'Semua Item');
+$catatan    = trim((string)($order->catatan ?? ''));
+
+$phoneRaw   = trim((string)($order->customer_phone ?? ''));
+$waNumber   = $phoneRaw !== '' ? msisdn($phoneRaw) : '';
+$waHref     = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
+
 $alamat_kirim = trim((string)($order->alamat_kirim ?? ''));
 
-// (opsional) tampilkan paid method ringkas jika ada
-$paidRaw   = trim((string)($order->paid_method ?? ''));
-$paidLabel = $paidRaw !== '' ? $paidRaw : '—';
+$paidRaw    = trim((string)($order->paid_method ?? ''));
+$paidLabel  = $paidRaw !== '' ? $paidRaw : '—';
 
-// siapkan href WA yang aman (tetap bisa klik dari nomor, tanpa tombol terpisah)
-$waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
+$showCustomerBox = ($nama !== '' || $phoneRaw !== '' || $isDelivery || $paidRaw !== '');
+
+// background ikon via inline style (tanpa class dine/delivery/walkin)
+$iconBg = $isDine
+  ? 'linear-gradient(135deg,#ef4444,#dc2626)'
+  : ($isDelivery ? 'linear-gradient(135deg,#0ea5e9,#0284c7)' : 'linear-gradient(135deg,#6b7280,#4b5563)');
 ?>
 
 <style>
-  /* ===== Order Header (lebih simpel) ===== */
+  /* ===== Header Card ===== */
   .order-card{
-    position:relative;
-    display:flex;
-    gap:.9rem;
-    align-items:flex-start;
-    padding:.7rem .85rem;
+    padding:.75rem .85rem;
     border:1px solid #e5e7eb;
     border-radius:12px;
-    background:#ffffff;
+    background:#fff;
     box-shadow:0 1px 4px rgba(15,23,42,.04);
     margin-bottom:.75rem;
   }
-  .order-left{
+  .order-head{
     display:flex;
-    gap:.6rem;
+    gap:.65rem;
     align-items:flex-start;
     min-width:0;
-    flex:1;
   }
   .order-icon{
-    width:40px;
-    height:40px;
-    border-radius:999px;
-    color:#fff;
-    flex:0 0 40px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    width:40px; height:40px; border-radius:999px;
+    color:#fff; flex:0 0 40px;
+    display:flex; align-items:center; justify-content:center;
     font-size:19px;
     box-shadow: inset 0 8px 18px rgba(0,0,0,.12);
   }
-  .order-icon.dine{     background:linear-gradient(135deg,#ef4444,#dc2626); }
-  .order-icon.delivery{ background:linear-gradient(135deg,#0ea5e9,#0284c7); }
-  .order-icon.walkin{   background:linear-gradient(135deg,#6b7280,#4b5563); }
-
   .order-title{
-    margin:0 0 .15rem;
+    margin:0;
     font-weight:800;
     font-size:1rem;
     color:#111827;
     letter-spacing:.2px;
+    line-height:1.2;
   }
-  .order-meta{
-    margin:0;
+  .order-sub{
+    margin:.15rem 0 0;
     color:#6b7280;
     font-size:.85rem;
   }
-  .order-meta b{ color:#374151; }
 
-  .order-badges{
-    margin-top:.4rem;
-    display:flex;
-    gap:.35rem;
-    flex-wrap:wrap;
-  }
-  .pill{
-    display:inline-block;
-    padding:.18rem .55rem;
-    border-radius:999px;
-    font-size:.72rem;
-    border:1px solid #e1e5ea;
-    background:#f8f9fb;
-    color:#374151;
-  }
-  .pill.mode{
-    border-color:transparent;
-    color:#fff;
-  }
-  .pill.mode.dine{     background:#ef4444; }
-  .pill.mode.delivery{ background:#0ea5e9; }
-  .pill.mode.walkin{   background:#6b7280; }
-
-  .order-actions{
-    display:flex;
-    gap:.4rem;
-    flex-wrap:wrap;
-    align-items:flex-start;
-  }
-  .btn-xxs{
-    padding:.25rem .6rem;
-    font-size:.78rem;
-    border-radius:999px;
-  }
-
-  /* ===== Detail dalam bentuk table label–value ===== */
+  /* ===== Box + Table label-value ===== */
   .cust-box{
-    margin-top:.55rem;
     border:1px solid #e5e7eb;
     background:#fff;
     border-radius:12px;
@@ -146,12 +104,11 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
     vertical-align:top;
     white-space:nowrap;
   }
-  .id-table td{
-    padding:.2rem .4rem;
-    color:#111827;
-  }
+  .id-table td{ padding:.2rem .4rem; color:#111827; }
 
-  /* Table compact */
+  .btn-xxs{ padding:.25rem .6rem; font-size:.78rem; border-radius:999px; }
+
+  /* Table compact items */
   .table-compact thead th{
     background:#f9fbfd;
     border-top:0;
@@ -165,38 +122,53 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
 </style>
 
 <div class="order-card">
-  <!-- kiri -->
-  <div class="order-left">
-    <div class="order-icon <?= ($modeRaw==='dinein'||$modeRaw==='dine-in') ? 'dine' : ($modeRaw==='delivery' ? 'delivery' : 'walkin') ?>">
-      <?php if ($modeRaw==='dinein' || $modeRaw==='dine-in'): ?>
+
+  <!-- HEADER: ICON + TITLE -->
+  <div class="order-head">
+    <div class="order-icon" style="background:<?= esc($iconBg) ?>;">
+      <?php if ($isDine): ?>
         <i class="dripicons-basket"></i>
-      <?php elseif ($modeRaw==='delivery'): ?>
+      <?php elseif ($isDelivery): ?>
         <i class="dripicons-rocket"></i>
       <?php else: ?>
         <i class="dripicons-shopping-bag"></i>
       <?php endif; ?>
     </div>
 
-    <div class="order-main">
+    <div style="min-width:0;">
       <h3 class="order-title">Order #<?= esc($nomor) ?></h3>
+      <p class="order-sub mb-0">
+        <b><?= esc($modeLabel) ?></b>
+        <?php if ($showMeja): ?>
+          &nbsp;•&nbsp; Meja: <b><?= esc($meja) ?></b>
+        <?php endif; ?>
+      </p>
+    </div>
+  </div>
 
-      <!-- RINGKASAN ORDER DALAM BENTUK TABEL -->
-      <div class="cust-box" style="margin-top:.35rem;">
-        <table class="id-table">
+  <!-- 2 KOLOM: Ringkasan (kiri) + Detail Pelanggan (kanan) -->
+  <div class="row mt-3">
+    <!-- KIRI: RINGKASAN ORDER + TOMBOL CETAK (DI DALAM) -->
+    <div class="col-md-6 mb-2 mb-md-0">
+      <div class="cust-box">
+        <table class="id-table mb-1">
           <tr>
             <th>Mode</th>
             <td><?= esc($modeLabel) ?></td>
           </tr>
+
           <?php if ($showMeja): ?>
             <tr>
               <th>Meja</th>
               <td><?= esc($meja) ?></td>
             </tr>
           <?php endif; ?>
+
           <tr>
             <th>Filter Item</th>
             <td><?= esc($label) ?></td>
           </tr>
+
           <?php if ($catatan !== ''): ?>
             <tr>
               <th>Catatan</th>
@@ -208,11 +180,22 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
             </tr>
           <?php endif; ?>
         </table>
-      </div>
 
-      <!-- DETAIL PELANGGAN (OPSIONAL) JUGA DALAM TABEL -->
-      <?php if ($nama !== '' || $phoneRaw !== '' || $isDelivery || $paidRaw !== ''): ?>
-        <div class="cust-box">
+        <div class="text-right mt-2">
+          <button type="button"
+                  class="btn btn-pink btn-xxs"
+                  onclick="printStrukInlinex(<?= (int)$id ?>, '80', true, true)"
+                  aria-label="Cetak struk 80mm via RawBT">
+            <i class="fe-printer"></i> Cetak
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KANAN: DETAIL PELANGGAN -->
+    <div class="col-md-6">
+      <div class="cust-box">
+        <?php if ($showCustomerBox): ?>
           <table class="id-table">
             <?php if ($nama !== ''): ?>
               <tr>
@@ -226,9 +209,7 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
                 <th>HP/WA</th>
                 <td>
                   <?php if ($waHref !== ''): ?>
-                    <a href="<?= esc($waHref) ?>" target="_blank" rel="noopener">
-                      <?= esc($phoneRaw) ?>
-                    </a>
+                    <a href="<?= esc($waHref) ?>" target="_blank" rel="noopener"><?= esc($phoneRaw) ?></a>
                   <?php else: ?>
                     <span><?= esc($phoneRaw) ?></span>
                   <?php endif; ?>
@@ -239,11 +220,7 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
             <?php if ($isDelivery): ?>
               <tr>
                 <th>Alamat Kirim</th>
-                <td>
-                  <div style="white-space:pre-wrap;">
-                    <?= esc($alamat_kirim !== '' ? $alamat_kirim : '-') ?>
-                  </div>
-                </td>
+                <td><div style="white-space:pre-wrap;"><?= esc($alamat_kirim !== '' ? $alamat_kirim : '-') ?></div></td>
               </tr>
             <?php endif; ?>
 
@@ -254,19 +231,11 @@ $waHref = $waNumber !== '' ? ('https://wa.me/'.$waNumber) : '';
               </tr>
             <?php endif; ?>
           </table>
-        </div>
-      <?php endif; ?>
+        <?php else: ?>
+          <div class="text-muted">—</div>
+        <?php endif; ?>
+      </div>
     </div>
-  </div>
-
-  <!-- kanan (aksi) -->
-  <div class="order-actions">
-    <button type="button"
-            class="btn btn-outline-secondary btn-xxs"
-            onclick="printStrukInlinex(<?= (int)$id ?>, '80', true, true)"
-            aria-label="Cetak struk 80mm via RawBT">
-      <i class="fe-printer"></i> Cetak
-    </button>
   </div>
 </div>
 

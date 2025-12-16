@@ -45,6 +45,10 @@ $status = strtolower($order->status ?? '-');
 $statusBadge = ($status==='paid'?'success':($status==='verifikasi'?'warning':($status==='canceled'?'dark':'secondary')));
 $is_paid_like = in_array($status, ['paid','lunas','selesai','completed','success'], true);
 
+// label status biar tidak dobel "paid + Sudah Lunas"
+$status_text_show  = $is_paid_like ? 'Sudah Lunas' : ($order->status ?? '-');
+$statusBadge_show  = $is_paid_like ? 'success' : $statusBadge;
+
 // hitung grand total tampil
 $grand_calc = $total + ($is_delivery ? $delivery_fee : 0) + $kode_unik;
 $grand_show = isset($order->grand_total) ? (int)$order->grand_total : $grand_calc;
@@ -109,44 +113,16 @@ $order_code  = trim((string)($order->nomor ?? $order->kode ?? $order->order_code
 $success_url = $order_code !== '' ? site_url('produk/order_success/'.$order_code) : site_url('produk/order_success');
 $pm_label    = 'Lihat Order';
 
+// DETAIL kanan hanya jika ada info customer/delivery/catatan (biar tidak dobel2 kosong)
+$show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan !== '');
 ?>
+
 <style>
   .card-order{ overflow:hidden; }
-  .card-order .header{
-    display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
-    border-bottom:1px dashed rgba(0,0,0,.08); padding-bottom:.5rem; margin-bottom:.75rem;
-  }
-  .card-order .meta{
-    display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center;
-  }
-  .card-order .meta .pill{
-    display:inline-flex; align-items:center; gap:6px;
-    background:#f7f7f9; border:1px solid rgba(0,0,0,.06);
-    padding:4px 8px; border-radius:999px; font-size:.85rem;
-  }
-  .card-order .section-title{
-    font-weight:600; margin:.25rem 0 .35rem; color:#111827; font-size:.95rem;
-  }
-  .kv{ display:flex; gap:8px; flex-wrap:wrap; }
-  .kv .k{ min-width:92px; color:#6b7280; }
-  .kv .v{ font-weight:600; color:#111827; }
-  @media (max-width: 575.98px){
-    .card-order .header{ flex-direction:column; align-items:flex-start; }
-  }
   .table-items thead th{ background:#f8fafc; border-top:none; }
   .total-row th{ border-top:2px solid #e5e7eb !important; }
 
-  /* QR Maps */
-  .qr-maps-img{
-    max-width: 140px;
-    height:auto;
-    background:#fff;
-    border-radius:6px;
-    box-shadow:0 0 0 1px rgba(0,0,0,.06);
-    padding:4px;
-  }
-
-  /* Box + table untuk detail (rapi) */
+  /* Box + table */
   .info-box{
     border:1px solid #e5e7eb;
     background:#fff;
@@ -172,6 +148,63 @@ $pm_label    = 'Lihat Order';
     font-size:.9rem;
     padding:.15rem .25rem;
     color:#111827;
+  }
+
+  .section-title{
+    font-weight:700; margin:.25rem 0 .5rem; color:#111827; font-size:.98rem;
+  }
+
+  /* ===== Ringkasan (tabel) ===== */
+  .order-summary{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0 6px;
+  }
+  .order-summary th{
+    width:120px;
+    font-size:.82rem;
+    font-weight:700;
+    color:#6b7280;
+    padding:.2rem .25rem;
+    white-space:nowrap;
+    vertical-align:top;
+  }
+  .order-summary td{
+    font-size:.92rem;
+    padding:.2rem .25rem;
+    color:#111827;
+    font-weight:600;
+  }
+
+  /* Actions di ringkasan */
+  .summary-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:flex-end;
+    margin-top:.5rem;
+  }
+  .summary-actions .btn,
+  .summary-actions .dropdown,
+  .summary-actions .dropdown-toggle{
+    width:100%;
+  }
+  @media (min-width:576px){
+    .summary-actions .btn,
+    .summary-actions .dropdown,
+    .summary-actions .dropdown-toggle{
+      width:auto;
+    }
+  }
+
+  /* QR Maps */
+  .qr-maps-img{
+    max-width: 140px;
+    height:auto;
+    background:#fff;
+    border-radius:6px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.06);
+    padding:4px;
   }
 
   /* ===== Modal Assign Kurir ===== */
@@ -205,107 +238,132 @@ $pm_label    = 'Lihat Order';
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
-<div class="card card-body card-order">
-  <!-- HEADER RINGKAS -->
-  <div class="header">
-    <div>
-      <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
-        <span class="badge badge-pill <?= $modeBadgeClass ?> mr-2">
-          <?= htmlspecialchars(ucfirst($order->mode ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
-        </span>
-        <h5 class="mb-0">Order #<?= htmlspecialchars($order->nomor ?? $order->id, ENT_QUOTES,'UTF-8'); ?></h5>
-      </div>
+<div class="card-order">
 
-      <div class="meta">
-        <span class="pill">
-          <i class="fe-clock"></i>
-          <?= htmlspecialchars(date('d-m-Y H:i', strtotime($order->created_at)), ENT_QUOTES,'UTF-8'); ?>
-        </span>
-        <span class="pill">
-          <i class="fe-credit-card"></i>
-          <?= htmlspecialchars($pm_raw ?: '-', ENT_QUOTES,'UTF-8'); ?>
-        </span>
+  <div class="row">
+    <!-- KIRI: RINGKASAN ORDER -->
+    <div class="col-lg-6 mb-3 mb-lg-0">
+      <div class="section-title">Ringkasan Order</div>
 
-        <span class="pill">
-          <i class="fe-flag"></i>
-          <span class="badge badge-<?= $statusBadge ?> mb-0" style="font-size:.78rem;">
-            <?= htmlspecialchars($order->status ?? '-', ENT_QUOTES,'UTF-8'); ?>
-          </span>
-        </span>
+      <div class="info-box mb-0">
+        <table class="order-summary">
+          <tbody>
+            <tr>
+              <th>Mode</th>
+              <td>
+                <span class="badge badge-pill <?= $modeBadgeClass ?>">
+                  <?= htmlspecialchars(ucfirst($order->mode ?? '-'), ENT_QUOTES, 'UTF-8'); ?>
+                </span>
+                <?php if ($is_dinein && $meja_label !== '—'): ?>
+                  <span class="ml-2 text-dark" style="font-weight:600;">
+                   <?= htmlspecialchars($meja_label, ENT_QUOTES,'UTF-8'); ?>
+                  </span>
+                <?php endif; ?>
+              </td>
+            </tr>
 
-        <?php if ($is_dinein && $meja_label !== '—'): ?>
-          <span class="pill">
-            <i class="fe-layout"></i> Meja: <strong><?= htmlspecialchars($meja_label, ENT_QUOTES,'UTF-8'); ?></strong>
-          </span>
-        <?php endif; ?>
+            <tr>
+              <th>No Order</th>
+              <td>#<?= htmlspecialchars($order->nomor ?? $order->id, ENT_QUOTES,'UTF-8'); ?></td>
+            </tr>
 
-        <!-- KURIR -->
-        <span class="pill" id="kurirMeta" <?= $hasKurir ? '' : 'style="display:none"' ?>>
-          <i class="fe-user-check"></i>
-          Kurir:
-          <strong>
-            <?php if ($kurir_telp !== ''): ?>
-              <a href="tel:<?= htmlspecialchars(preg_replace('/\s+/', '', $kurir_telp), ENT_QUOTES,'UTF-8'); ?>">
-                <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
-              </a>
-            <?php else: ?>
-              <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
-            <?php endif; ?>
-          </strong>
-        </span>
+            <tr>
+              <th>Waktu</th>
+              <td><?= htmlspecialchars(date('d-m-Y H:i:s', strtotime($order->created_at)), ENT_QUOTES,'UTF-8'); ?></td>
+            </tr>
 
-      </div>
-    </div>
+            <tr>
+              <th>Status</th>
+              <td>
+                <span class="badge badge-<?= $statusBadge_show ?>" style="font-size:.82rem;" title="<?= htmlspecialchars($order->status ?? '-', ENT_QUOTES,'UTF-8'); ?>">
+                  <?= htmlspecialchars($status_text_show, ENT_QUOTES,'UTF-8'); ?>
+                </span>
+              </td>
+            </tr>
 
-    <?php if ($has_phone && !$is_paid_like): ?>
-      <div class="dropdown d-inline-block">
-        <button type="button" class="btn btn-sm btn-success dropdown-toggle mb-2"
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          <i class="mdi mdi-whatsapp"></i> WA Pengingat
-        </button>
-        <div class="dropdown-menu dropdown-menu-right">
-          <?php if (in_array($status, ['pending','verifikasi'], true)): ?>
-            <a class="dropdown-item" href="#"
-               onclick="waReminder(<?= $idForPrint ?>,'payment');return false;">
-              Pengingat Pembayaran
-            </a>
+            <tr>
+              <th>Pembayaran</th>
+              <td>
+                <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
+                  <span><?= htmlspecialchars($pm_raw ?: '-', ENT_QUOTES,'UTF-8'); ?></span>
+                  <a class="btn btn-xs btn-outline-primary ml-1"
+                     href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                    <i class="fe-credit-card"></i> <?= htmlspecialchars($pm_label, ENT_QUOTES, 'UTF-8'); ?>
+                  </a>
+                </div>
+              </td>
+            </tr>
+
+            <tr id="rowKurir" <?= $hasKurir ? '' : 'style="display:none"' ?>>
+              <th>Kurir</th>
+              <td id="kurirMeta">
+                <?php if ($hasKurir): ?>
+                  <i class="fe-user-check"></i>
+                  <strong>
+                    <?php if ($kurir_telp !== ''): ?>
+                      <a href="tel:<?= htmlspecialchars(preg_replace('/\s+/', '', $kurir_telp), ENT_QUOTES,'UTF-8'); ?>">
+                        <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
+                      </a>
+                    <?php else: ?>
+                      <?= htmlspecialchars($kurir_nm, ENT_QUOTES,'UTF-8'); ?>
+                    <?php endif; ?>
+                  </strong>
+                <?php else: ?>
+                  <span class="text-muted">—</span>
+                <?php endif; ?>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Tombol di Ringkasan -->
+        <div class="summary-actions">
+          <?php if ($has_phone && !$is_paid_like): ?>
+            <div class="dropdown d-inline-block">
+              <button type="button" class="btn btn-sm btn-success dropdown-toggle"
+                      data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="mdi mdi-whatsapp"></i> WA Pengingat
+              </button>
+              <div class="dropdown-menu dropdown-menu-right">
+                <?php if (in_array($status, ['pending','verifikasi'], true)): ?>
+                  <a class="dropdown-item" href="#"
+                     onclick="waReminder(<?= $idForPrint ?>,'payment');return false;">
+                    Pengingat Pembayaran
+                  </a>
+                <?php endif; ?>
+
+                <?php if ($is_delivery): ?>
+                  <a class="dropdown-item" href="#"
+                     onclick="waReminder(<?= $idForPrint ?>,'delivery');return false;">
+                    Pengingat Pengantaran
+                  </a>
+                <?php endif; ?>
+              </div>
+            </div>
           <?php endif; ?>
 
-          <?php if ($is_delivery): ?>
-            <a class="dropdown-item" href="#"
-               onclick="waReminder(<?= $idForPrint ?>,'delivery');return false;">
-              Pengingat Pengantaran
-            </a>
+          <?php if ($is_delivery && $canAssignKurir): ?>
+            <button type="button" class="btn btn-sm btn-success" id="btnAssignKurirHeader"
+                    onclick="openKurirModal(<?= $idForPrint ?>)">
+              <i class="fe-send"></i> Tugaskan Kurir
+            </button>
           <?php endif; ?>
+
+          <button type="button" class="btn btn-sm btn-pink"
+                  onclick="printStrukInline(<?= $idForPrint ?>, '80', true, true)">
+            <i class="fe-printer"></i> Cetak Struk
+          </button>
         </div>
       </div>
-    <?php endif; ?>
-
-    <div class="text-right">
-      <?php if ($is_delivery && $canAssignKurir): ?>
-        <button type="button" class="btn btn-sm btn-success mb-2" id="btnAssignKurirHeader"
-          onclick="openKurirModal(<?= $idForPrint ?>)">
-          <i class="fe-send"></i> Tugaskan Kurir
-        </button><br>
-      <?php endif; ?>
-
-      <button type="button" class="btn btn-sm btn-outline-secondary"
-        onclick="printStrukInline(<?= $idForPrint ?>, '80', true, true)">
-        <i class="fe-printer"></i> Cetak
-      </button>
     </div>
-  </div>
 
-  <!-- DETAIL PELANGGAN (PAKAI TABLE) -->
-  <?php 
-    $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan !== '' || (!$has_phone && $pm_raw !== ''));
-    if ($show_detail):
-  ?>
-    <div class="mb-3">
+    <!-- KANAN: DETAIL PELANGGAN -->
+    <div class="col-lg-6">
       <div class="section-title">Detail Pelanggan</div>
-      <div class="row">
-        <!-- Kolom kiri -->
-        <div class="col-md-6">
+
+      <?php if ($show_detail): ?>
+
+        <?php if ($customer_name !== '' || $has_phone): ?>
           <div class="info-box">
             <table class="info-table">
               <?php if ($customer_name !== ''): ?>
@@ -325,104 +383,83 @@ $pm_label    = 'Lihat Order';
                   </td>
                 </tr>
               <?php endif; ?>
+            </table>
+          </div>
+        <?php endif; ?>
 
+        <?php if ($is_delivery): ?>
+          <div class="info-box">
+            <table class="info-table">
               <tr>
-                <th>Pembayaran</th>
-                <td>
-                  <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
-                    <a class="btn btn-xs btn-outline-primary"
-                       href="<?= htmlspecialchars($success_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
-                      <i class="fe-credit-card"></i>
-                      <?= htmlspecialchars($pm_label, ENT_QUOTES, 'UTF-8'); ?>
-                    </a>
-
-                    <?php if ($is_paid_like): ?>
-                      <span class="badge badge-success">Sudah Lunas</span>
-                    <?php endif; ?>
-                  </div>
+                <th>Alamat Kirim</th>
+                <td style="font-weight:500;">
+                  <?= nl2br(htmlspecialchars($alamat_kirim !== '' ? $alamat_kirim : '-', ENT_QUOTES, 'UTF-8')); ?>
                 </td>
+              </tr>
+
+              <?php if ($has_coord || $distance_km !== null): ?>
+                <?php if ($distance_km !== null): ?>
+                  <tr>
+                    <th>Jarak</th>
+                    <td>
+                      Jarak estimasi:
+                      <strong><?= number_format($distance_km, 1, ',', '.'); ?> km</strong>
+                      <small class="text-muted">(± <?= number_format($distance_m, 0, ',', '.'); ?> m)</small>
+                    </td>
+                  </tr>
+                <?php endif; ?>
+
+                <?php if ($has_coord && $maps_url): ?>
+                  <tr>
+                    <th>Lokasi</th>
+                    <td>
+                      <div class="mb-1 small">
+                        Koordinat:
+                        <a href="<?= htmlspecialchars($maps_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                          <?= htmlspecialchars($dest_lat . ', ' . $dest_lng, ENT_QUOTES, 'UTF-8'); ?>
+                          <i class="fe-external-link"></i>
+                        </a>
+                      </div>
+
+                      <?php if ($maps_qr_url): ?>
+                        <div class="mt-1">
+                          <div class="small text-muted mb-1">Scan QR untuk buka Google Maps:</div>
+                          <img
+                            src="<?= htmlspecialchars($maps_qr_url, ENT_QUOTES, 'UTF-8'); ?>"
+                            alt="QR Google Maps"
+                            class="qr-maps-img"
+                          >
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endif; ?>
+              <?php endif; ?>
+            </table>
+          </div>
+        <?php endif; ?>
+
+        <?php if ($catatan !== ''): ?>
+          <div class="info-box mb-0">
+            <table class="info-table">
+              <tr>
+                <th>Catatan</th>
+                <td><?= nl2br(htmlspecialchars($catatan, ENT_QUOTES, 'UTF-8')); ?></td>
               </tr>
             </table>
           </div>
+        <?php endif; ?>
+
+      <?php else: ?>
+        <div class="info-box mb-0">
+          <div class="text-muted">—</div>
         </div>
-
-        <!-- Kolom kanan -->
-        <div class="col-md-6">
-          <?php if ($is_delivery): ?>
-            <div class="info-box mb-2">
-              <table class="info-table">
-                <tr>
-                  <th>Alamat Kirim</th>
-                  <td style="font-weight:500;">
-                    <?= nl2br(htmlspecialchars($alamat_kirim !== '' ? $alamat_kirim : '-', ENT_QUOTES, 'UTF-8')); ?>
-                  </td>
-                </tr>
-
-                <?php if ($has_coord || $distance_km !== null): ?>
-                  <?php if ($distance_km !== null): ?>
-                    <tr>
-                      <th>Jarak</th>
-                      <td>
-                        <div>
-                          Jarak estimasi:
-                          <strong><?= number_format($distance_km, 1, ',', '.'); ?> km</strong>
-                          <small class="text-muted">
-                            (± <?= number_format($distance_m, 0, ',', '.'); ?> m)
-                          </small>
-                        </div>
-                      </td>
-                    </tr>
-                  <?php endif; ?>
-
-                  <?php if ($has_coord && $maps_url): ?>
-                    <tr>
-                      <th>Lokasi</th>
-                      <td>
-                        <div class="mb-1 small">
-                          Koordinat:
-                          <a href="<?= htmlspecialchars($maps_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
-                            <?= htmlspecialchars($dest_lat . ', ' . $dest_lng, ENT_QUOTES, 'UTF-8'); ?>
-                            <i class="fe-external-link"></i>
-                          </a>
-                        </div>
-
-                        <?php if ($maps_qr_url): ?>
-                          <div class="mt-1">
-                            <div class="small text-muted mb-1">
-                              Scan QR untuk buka Google Maps:
-                            </div>
-                            <img
-                              src="<?= htmlspecialchars($maps_qr_url, ENT_QUOTES, 'UTF-8'); ?>"
-                              alt="QR Google Maps"
-                              class="qr-maps-img"
-                            >
-                          </div>
-                        <?php endif; ?>
-                      </td>
-                    </tr>
-                  <?php endif; ?>
-                <?php endif; ?>
-              </table>
-            </div>
-          <?php endif; ?>
-
-          <?php if ($catatan !== ''): ?>
-            <div class="info-box mb-0">
-              <table class="info-table">
-                <tr>
-                  <th>Catatan</th>
-                  <td><?= nl2br(htmlspecialchars($catatan, ENT_QUOTES, 'UTF-8')); ?></td>
-                </tr>
-              </table>
-            </div>
-          <?php endif; ?>
-        </div>
-      </div>
+      <?php endif; ?>
     </div>
-  <?php endif; ?>
+  </div>
 
   <!-- ITEM + TOTAL -->
-  <div class="table-responsive">
+  <div class="table-responsive mt-3">
     <table class="table table-sm table-striped table-items mb-2">
       <thead>
         <tr>
@@ -601,20 +638,22 @@ $pm_label    = 'Lihat Order';
           var nama = res.data && res.data.nama ? res.data.nama : 'Kurir';
           var telp = res.data && res.data.phone ? String(res.data.phone) : '';
           var telpPlain = telp.replace(/\s+/g,'');
-          var html = ' <i class="fe-user-check"></i> Kurir: <strong>';
+          var html = ' <i class="fe-user-check"></i> <strong>';
           if (telp){
             html += '<a href="tel:'+telpPlain+'">'+$('<div>').text(nama).html()+'</a>';
           } else {
             html += $('<div>').text(nama).html();
           }
           html += '</strong>';
+
           $('#kurirMeta').html(html).show();
+          $('#rowKurir').show();
 
           $('#btnAssignKurirHeader').remove();
           $('#modalAssignKurir').modal('hide');
-          // 🔥 TAMBAHKAN INI:
+
           if (typeof reload_table === 'function') {
-            reload_table('assign-courier');   // atau 'user', bebas label reason-nya
+            reload_table('assign-courier');
           }
         } else {
           alert(res && res.msg ? res.msg : 'Gagal menugaskan kurir.');

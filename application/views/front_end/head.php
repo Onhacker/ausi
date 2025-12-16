@@ -33,6 +33,7 @@
   <meta property="og:title" content="<?= htmlspecialchars($rec->nama_website.' - '.$title, ENT_QUOTES, 'UTF-8') ?>" />
   <meta property="og:description" content="<?= htmlspecialchars($deskripsi, ENT_QUOTES, 'UTF-8') ?>" />
   <meta property="og:image" content="<?= $prev ?>" />
+  <meta name="twitter:image" content="<?= $prev ?>" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:url" content="<?= current_url() ?>" />
