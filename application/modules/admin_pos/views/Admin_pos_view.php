@@ -5,203 +5,183 @@
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     $isKB  = in_array($uname, ['kitchen','bar'], true); // kitchen / bar
   ?>
+
 <style>
   .qris-check-btn{ line-height: 1.2; }
 </style>
 
-  <style>
-    /* Badge tabel */
-    .table td .badge.border{
-      border-color: rgba(0,0,0,.12) !important;
-      background:#f9fafb !important;
-      color:#111827 !important;
-      font-weight:600;
+<style>
+  /* Badge tabel */
+  .table td .badge.border{
+    border-color: rgba(0,0,0,.12) !important;
+    background:#f9fafb !important;
+    color:#111827 !important;
+    font-weight:600;
+  }
+
+  /* Kartu meja */
+  .meja-card{
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:.75rem;
+    padding:.75rem;
+    margin:.25rem;
+    width:100%;
+  }
+  .meja-kode{
+    font-weight:700;
+    font-size:1rem;
+  }
+  .meja-meta{
+    color:#6b7280;
+    font-size:.85rem;
+  }
+  .meja-actions .btn{
+    margin-right:.3rem;
+    margin-top:.35rem;
+  }
+
+  /* ===== Idle countdown ===== */
+  .idle-countdown{
+    border:1px solid #e2e8f0;
+    background:#f8fafc;
+    color:#0f172a;
+    padding:.4rem .75rem;
+    border-radius:.5rem;
+    font-weight:700;
+    letter-spacing:.3px;
+  }
+  @media (max-width: 575.98px){
+    .idle-countdown .d-none.d-sm-inline{
+      display:none !important;
     }
+  }
 
-    /* Kartu meja */
-    .meja-card{
-      border:1px solid rgba(0,0,0,.08);
-      border-radius:.75rem;
-      padding:.75rem;
-      margin:.25rem;
-      width:100%;
-    }
-    .meja-kode{
-      font-weight:700;
-      font-size:1rem;
-    }
-    .meja-meta{
-      color:#6b7280;
-      font-size:.85rem;
-    }
-    .meja-actions .btn{
-      margin-right:.3rem;
-      margin-top:.35rem;
-    }
+  /* ==== CHIP KHUSUS VOUCHER ==== */
+  .voucher-chip{
+    background: #fff7ed;                       /* krem lembut */
+    color: #9a3412;                            /* coklat orange */
+    border-radius: 999px;
+    border: 1px dashed #fb923c;                /* garis putus-putus ala kupon */
+    display: inline-flex;
+    align-items: center;
+    padding: .15rem .6rem .15rem .4rem;
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .01em;
+  }
 
-    /* ===== Idle countdown ===== */
-    .idle-countdown{
-      border:1px solid #e2e8f0;
-      background:#f8fafc;
-      color:#0f172a;
-      padding:.4rem .75rem;
-      border-radius:.5rem;
-      font-weight:700;
-      letter-spacing:.3px;
-    }
-    @media (max-width: 575.98px){
-      .idle-countdown .d-none.d-sm-inline{
-        display:none !important;
-      }
-    }
+  .voucher-chip-icon{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fed7aa;                       /* lingkaran oranye muda */
+    margin-right: .25rem;
+  }
 
-    /* ===== Running Ticker ===== */
-    .ticker-wrap{
-      position:relative;
-      overflow:hidden;
-      border-radius:.5rem;
-      border:1px solid #ffeeba;
-      background:#fff3cd;   /* alert-warning vibes */
-      color:#856404;
-    }
-    .ticker-track{
-      display:inline-block;
-      white-space:nowrap;
-      padding:.5rem 0;
-      animation: ticker-move 25s linear infinite; /* kecilkan untuk lebih cepat */
-    }
-    .ticker-item{
-      display:inline-block;
-      margin:0 2rem;
-      font-weight:600;
-    }
-    @keyframes ticker-move{
-      0%   { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-    /* ==== CHIP KHUSUS VOUCHER ==== */
-.voucher-chip{
-  background: #fff7ed;                       /* krem lembut */
-  color: #9a3412;                            /* coklat orange */
-  border-radius: 999px;
-  border: 1px dashed #fb923c;                /* garis putus-putus ala kupon */
-  display: inline-flex;
-  align-items: center;
-  padding: .15rem .6rem .15rem .4rem;
-  font-size: .75rem;
-  font-weight: 500;
-  letter-spacing: .01em;
-}
+  .voucher-chip-icon i{
+    font-size: .9rem;
+    line-height: 1;
+  }
 
-.voucher-chip-icon{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: #fed7aa;                       /* lingkaran oranye muda */
-  margin-right: .25rem;
-}
+  .voucher-chip-text{
+    white-space: nowrap;
+  }
 
-.voucher-chip-icon i{
-  font-size: .9rem;
-  line-height: 1;
-}
+  /* Ratakan isi sel di tengah untuk Mode / Status / Metode */
+  table.dataTable tbody td.col-mode,
+  table.dataTable tbody td.col-status,
+  table.dataTable tbody td.col-metode{
+    vertical-align: middle !important;
+  }
 
-.voucher-chip-text{
-  white-space: nowrap;
-}
- /* Ratakan isi sel di tengah untuk Mode / Status / Metode */
-table.dataTable tbody td.col-mode,
-table.dataTable tbody td.col-status,
-table.dataTable tbody td.col-metode{
-  vertical-align: middle !important;
-}
+  /* Metode: wrapper d-flex tetap center */
+  table.dataTable tbody td.col-metode > div.d-flex {
+    align-items: center;
+    justify-content: center;
+  }
 
-/* Metode: wrapper d-flex tetap center */
-table.dataTable tbody td.col-metode > div.d-flex {
-  align-items: center;
-  justify-content: center;
-}
+  /* Semua badge di 3 kolom itu sejajar enak */
+  table.dataTable tbody td.col-mode   .badge.badge-pill,
+  table.dataTable tbody td.col-status .badge.badge-pill,
+  table.dataTable tbody td.col-metode .badge.badge-pill{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-/* Semua badge di 3 kolom itu sejajar enak */
-table.dataTable tbody td.col-mode   .badge.badge-pill,
-table.dataTable tbody td.col-status .badge.badge-pill,
-table.dataTable tbody td.col-metode .badge.badge-pill{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-@keyframes kurirBlink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.1; }
-}
+  @keyframes kurirBlink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.1; }
+  }
 
-.kurir-belum {
-  display: flex;          /* atau boleh 'block' kalau mau lebih simpel */
-  align-items: center;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: #fff5f5;
-  color: #c53030;
-  margin-top: 4px;        /* kasih jarak kecil dari badge 'Antar/Kirim' */
-}
+  .kurir-belum {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #fff5f5;
+    color: #c53030;
+    margin-top: 4px;
+  }
 
-.kurir-belum-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 6px;
-  background: #e53e3e;
-  position: relative;
-}
+  .kurir-belum-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: #e53e3e;
+    position: relative;
+  }
 
-.kurir-belum-dot::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 2px solid rgba(229, 62, 62, 0.6);
-  animation: kurirPing 1.2s ease-out infinite;
-}
+  .kurir-belum-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    border: 2px solid rgba(229, 62, 62, 0.6);
+    animation: kurirPing 1.2s ease-out infinite;
+  }
 
-@keyframes kurirPing {
-  0%   { transform: scale(0.6); opacity: 1; }
-  70%  { transform: scale(1.5); opacity: 0; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-.mode-icon{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  line-height:1;
-}
-.mode-icon i{
-  font-size: 26px;   /* bisa 28px kalau mau lebih gede */
-  line-height: 1;
-}
-/* biar semua isi td sejajar vertikal */
-table.dataTable tbody td{
-  vertical-align: middle !important;
-}
+  @keyframes kurirPing {
+    0%   { transform: scale(0.6); opacity: 1; }
+    70%  { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
 
-/* khusus kolom meja/nama: center + rapikan tinggi baris teks */
-.meja-cell{
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  line-height: 1.15;
-}
+  .mode-icon{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+  }
+  .mode-icon i{
+    font-size: 26px;
+    line-height: 1;
+  }
 
-/* gaya teks */
-.meja-cell .meja-title{ font-weight: 700; }
-.meja-cell .meja-name { font-weight: 700; font-size: .95rem; }
+  /* biar semua isi td sejajar vertikal */
+  table.dataTable tbody td{
+    vertical-align: middle !important;
+  }
 
-  </style>
- 
+  /* khusus kolom meja/nama: center + rapikan tinggi baris teks */
+  .meja-cell{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.15;
+  }
+
+  /* gaya teks */
+  .meja-cell .meja-title{ font-weight: 700; }
+  .meja-cell .meja-name { font-weight: 700; font-size: .95rem; }
+</style>
+
   <div class="row">
     <div class="col-12">
       <div class="card">
@@ -219,8 +199,6 @@ table.dataTable tbody td{
                   <span class="btn-label"><i class="fe-refresh-ccw"></i></span>
                   Refresh
                 </button>
-
-
 
                 <?php if (!$isKB): ?>
                   <!-- Filter status -->
@@ -250,27 +228,7 @@ table.dataTable tbody td{
           </div>
           <!-- /Toolbar -->
 
-          <?php
-            // (OPSIONAL) kalau kamu sudah punya perhitungan jam tutup aktif,
-            // set epoch detik di $closing_deadline_ts. Kalau belum ada, biarkan 0.
-            $closing_deadline_ts = isset($closing_deadline_ts) ? (int)$closing_deadline_ts : 0;
-          ?>
-          <?php if (!empty($closing_ticker)): ?>
-            <div class="ticker-wrap mb-2" data-close-ts="<?= (int)$closing_deadline_ts ?>">
-              <div class="ticker-track">
-                <span class="ticker-item">
-                  <i class="mdi mdi-clock-outline mr-1"></i>
-                  <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
-                </span>
-                <span class="ticker-item d-none d-md-inline">
-                  <i class="mdi mdi-clock-outline mr-1"></i>
-                  <?= htmlspecialchars($closing_ticker, ENT_QUOTES, 'UTF-8'); ?>
-                </span>
-              </div>
-            </div>
-          <?php endif; ?>
-
-          <!-- Script: auto-reload 20 menit + kontrol ticker -->
+          <!-- Script: auto-reload 20 menit -->
           <script>
           (function(){
             // cegah inisialisasi ganda
@@ -309,32 +267,8 @@ table.dataTable tbody td{
               tick();
             }
 
-            // ====== Ticker jam tutup (opsional) ======
-            const tickerWrap = document.querySelector('.ticker-wrap');
-            function evalTicker(){
-              if (!tickerWrap) return;
-
-              let closeTs = parseInt(tickerWrap.getAttribute('data-close-ts') || '', 10);
-              if (!closeTs && window.WINDOW_CLOSE_TS) {
-                closeTs = parseInt(window.WINDOW_CLOSE_TS, 10) || 0;
-              }
-
-              if (!closeTs){
-                tickerWrap.style.display = 'none';
-                return;
-              }
-
-              const nowSec = Math.floor(Date.now()/1000);
-              const diff   = closeTs - nowSec; // detik ke tutup
-
-              // tampilkan hanya bila 0 < diff ≤ 3600 (≤ 1 jam)
-              tickerWrap.style.display = (diff > 0 && diff <= 3600) ? '' : 'none';
-            }
-
-            // start semuanya
+            // start
             startTimer();
-            evalTicker();
-            setInterval(evalTicker, 30000);
           })();
           </script>
 
@@ -503,7 +437,6 @@ table.dataTable tbody td{
       </div>
     </div>
   </div>
-
 
   <script>
     const IS_KB = <?= $isKB ? 'true' : 'false' ?>;
