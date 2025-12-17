@@ -625,7 +625,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             if (!$isKitchen && !$isBar) {
                 $idInt = (int)$r->id;
 
-                $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="fe-check-circle"></i></button>';
+                $btnPaid   = '<button type="button" class="btn btn-sm btn-primary mr-1" onclick="mark_paid_one('.$idInt.')"><i class="mdi mdi-check-decagram"></i></button>';
                 $btnCancel = '<button type="button" class="btn btn-sm btn-secondary mr-1" onclick="mark_canceled_one('.$idInt.')" '.($isClosed ? 'disabled' : '').'><i class="fe-x-circle"></i></button>';
 
                 $unameLower = strtolower((string)$this->session->userdata('admin_username'));
