@@ -1,5 +1,10 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
-<link href="<?= base_url('assets/min/thead.min.css'); ?>" rel="stylesheet" type="text/css"/>
+<?php
+$cssPath = 'assets/min/thead.min.css';
+$cssFile = FCPATH . $cssPath; // FCPATH biasanya sudah ada trailing slash
+$cssVer  = is_file($cssFile) ? filemtime($cssFile) : time();
+?>
+<link rel="stylesheet" href="<?= base_url($cssPath) ?>?v=<?= $cssVer ?>" type="text/css"/>
 
 <div class="container-fluid">
  
