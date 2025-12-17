@@ -1,4 +1,5 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
+<link href="<?= base_url('assets/min/thead.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
   <?php
@@ -174,12 +175,16 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    line-height: 1.15;
+    /*line-height: 1.15;*/
   }
 
   /* gaya teks */
   .meja-cell .meja-title{ font-weight: 700; }
-  .meja-cell .meja-name { font-weight: 700; font-size: .95rem; }
+  .meja-cell .meja-name { font-weight: 700; font-size: 12px; }
+
+
+
+
 </style>
 
   <div class="row">
@@ -273,7 +278,9 @@
           </script>
 
           <!-- Tabel -->
-          <table id="datable_pos" class="table table-sm table-bordered table-hover w-100">
+          <table id="datable_pos" class="table table-sm table-bordered table-hover w-100 dt-head-flow">
+
+
             <thead class="thead-light">
               <tr>
                 <th width="6%">No.</th>

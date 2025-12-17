@@ -1,4 +1,5 @@
 <link href="<?= base_url('assets/admin/datatables/css/dataTables.bootstrap4.min.css'); ?>" rel="stylesheet" type="text/css"/>
+<link href="<?= base_url('assets/min/thead.min.css'); ?>" rel="stylesheet" type="text/css"/>
 
 <div class="container-fluid">
  
@@ -38,7 +39,7 @@
             </div>
           </div>
           <!-- /Toolbar -->
-    <table id="table_billiard" class="table table-striped table-bordered w-100">
+    <table id="table_billiard" class="table table-striped table-bordered w-100 dt-head-flow">
       <thead>
         <tr>
           <th width="6%">No.</th>
