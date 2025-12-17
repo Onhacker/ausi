@@ -665,12 +665,8 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
               $lines[] = '<div class="meja-title">'.htmlspecialchars($meja, ENT_QUOTES, 'UTF-8').'</div>';
             }
             if ($nama !== '') {
-              $lines[] = '<div class="meja-name">'
-              .   '<i class="mdi mdi-face-recognition mr-1"></i>'
-              .   htmlspecialchars($nama, ENT_QUOTES, 'UTF-8')
-              . '</div>';
-          }
-
+              $lines[] = '<div class="meja-name">🙋 '.htmlspecialchars($nama, ENT_QUOTES, 'UTF-8').'</div>';
+            }
 
             $row['meja'] = '<div class="meja-cell">'.implode('', $lines).'</div>';
 
