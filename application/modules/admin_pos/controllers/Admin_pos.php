@@ -658,7 +658,18 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
               . '</div>';
 
             // 3. meja
-            $row['meja'] = $meja_html;
+            // --- Meja + Nama (rapi & lurus) ---
+            $lines = [];
+
+            if ($meja !== '') {
+              $lines[] = '<div class="meja-title">'.htmlspecialchars($meja, ENT_QUOTES, 'UTF-8').'</div>';
+            }
+            if ($nama !== '') {
+              $lines[] = '<div class="meja-name">'.htmlspecialchars($nama, ENT_QUOTES, 'UTF-8').'</div>';
+            }
+
+            $row['meja'] = '<div class="meja-cell">'.implode('', $lines).'</div>';
+
 
             // 4. pesanan (kalau kitchen/bar)
             if ($isKitchen || $isBar) {
