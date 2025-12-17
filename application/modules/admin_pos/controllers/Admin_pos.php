@@ -666,7 +666,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             }
             if ($nama !== '') {
               $lines[] = '<div class="meja-name">'
-              .   '<i class="mdi mdi-odnoklassniki mr-1"></i>'
+              .   '<i class="mdi mdi-face-recognition mr-1"></i>'
               .   htmlspecialchars($nama, ENT_QUOTES, 'UTF-8')
               . '</div>';
           }
