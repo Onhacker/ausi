@@ -333,7 +333,25 @@ public function get_dataa(){
         $status = $this->input->post('status', true);
         if ($status === '' || $status === null) { $status = 'all'; }
 
-        $this->dm->set_max_rows(10000);
+        // $this->dm->set_max_rows(10000);
+        // ===== cap max_rows biar query nggak kebablasan =====
+        $uname = strtolower((string)$this->session->userdata('admin_username'));
+
+        $maxRows = 1000;              // kasir/admin default
+        if ($uname === 'admin') $maxRows = 2000;     // admin boleh lebih
+        if ($uname === 'kitchen' || $uname === 'bar') $maxRows = 300; // kitchen/bar cukup sedikit (order aktif)
+
+        // kalau status=all, biasanya hasil membengkak → kecilkan
+        if ($status === 'all') $maxRows = min($maxRows, 800);
+
+        // kalau user memilih "All" (length=-1), tetap batasi
+        $dtLen = (int)$this->input->post('length');
+        if ($dtLen === -1) {
+            $maxRows = min($maxRows, 500);
+        }
+
+        $this->dm->set_max_rows($maxRows);
+
         $this->dm->set_kasir_scope(false);
         $this->dm->set_status_filter($status);
 

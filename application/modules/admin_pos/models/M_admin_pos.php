@@ -42,9 +42,17 @@ class M_admin_pos extends CI_Model {
     /* =========================
      * Setters / Filters
      * ========================= */
-    public function set_max_rows($n = 100){
-        $this->max_rows = max(0,(int)$n);
+    // public function set_max_rows($n = 100){
+    //     $this->max_rows = max(0,(int)$n);
+    // }
+
+    public function set_max_rows($n = 500){
+        $n = (int)$n;
+        if ($n < 50)   $n = 50;
+        if ($n > 3000) $n = 3000; // hard cap anti berat
+        $this->max_rows = $n;
     }
+
 
     public function set_kasir_scope($enabled = true, $days = 1){
         $this->kasir_scope_enabled = (bool)$enabled;

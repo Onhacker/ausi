@@ -217,54 +217,71 @@ function ensureElapsedSpans(api){
     window.table = $('#datable_pos').DataTable({
       pageLength: 10,
       lengthMenu: [[10,25,100], [10,25,100]],
+
+      // ✅ biar nggak spam request saat user ngetik search
+      searchDelay: 350,
+
+      processing: true,
+      serverSide: true,
+      scrollX: true,
+
+      // ✅ optimasi render
+      deferRender: true,
+      autoWidth: false,
+
       oLanguage:{
         sProcessing:"Memuat Data...",
         sSearch:"<i class='ti-search'></i> Cari :",
         sZeroRecords:"Data tidak ditemukan",
         sLengthMenu:"Tampil _MENU_ data",
         sEmptyTable:"Belum ada data",
-        sInfo:"Menampilkan _START_ - _END_ dari _TOTAL_ data",
+        sInfo:"Tampil _START_ - _END_ dari _TOTAL_ data",
         sInfoEmpty:"Tidak ada data",
         sInfoFiltered:"(disaring dari _MAX_ total)",
         oPaginate:{ sNext:"<i class='fe-chevrons-right'></i>", sPrevious:"<i class='fe-chevrons-left'></i>"}
       },
-      processing:true,
-      serverSide:true,
-      scrollX:true,
+
       ajax:{
         url:"<?= site_url('admin_pos/get_dataa') ?>",
         type:"POST",
         data:function(d){
           var $fs = $('#filter-status');
-          d.status = ($fs.length ? $fs.val() : '') || 'all';
+          var st  = ($fs.length ? $fs.val() : '');
+
+          // ✅ PENTING: jangan paksa 'all'
+          // kosong => server pakai default (di model kamu: exclude 'paid')
+          d.status = st || '';
         }
       },
+
       columns: columns,
       order: [],
+
       rowCallback:function(row, data, iDisplayIndex){
         var info = this.fnPagingInfo();
         var idx  = info.iPage * info.iLength + (iDisplayIndex + 1);
-        $('td:eq(0)', row).html(idx); // kolom No. = index 0
+        $('td:eq(0)', row).html(idx);
       },
+
       createdRow: function(row, data){
         if (data && data.id){
           $(row).attr('data-id', data.id).addClass('row-link').css('cursor','pointer');
         }
       },
+
       drawCallback: function(){
         var api = this.api();
-        ensureElapsedSpans(api); // pastikan ada <span.elapsed>
+        ensureElapsedSpans(api);
         setTimeout(function(){ if (window.POS_tickOnce) window.POS_tickOnce(); }, 0);
       },
+
       initComplete: function(){
         var api = this.api();
-        ensureElapsedSpans(api); // tick pertama juga disiapkan
+        ensureElapsedSpans(api);
         if (window.POS_tickOnce) window.POS_tickOnce();
-      },
-
-
+      }
     });
-  
+
 
     // pastikan flag reload reset di semua outcome
     window.table.on('xhr.dt error.dt', function(){ window.isReloading = false; });
