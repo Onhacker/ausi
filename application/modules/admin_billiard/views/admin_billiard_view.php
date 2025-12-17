@@ -42,7 +42,7 @@
     <table id="table_billiard" class="table table-striped table-bordered w-100 dt-head-flow">
       <thead>
         <tr>
-          <th width="6%">No.</th>
+          <th width="3%">No.</th>
           <th>Kode Book</th>
           <th>Meja / Nama</th>
           <th>Waktu Booking</th>
