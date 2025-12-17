@@ -21,7 +21,7 @@ class M_admin_pos extends CI_Model {
         null              // aksi (non-orderable)
     ];
 
-    private $column_search = ['o.mode','o.meja_nama','o.meja_kode','o.paid_method','o.status','o.nomor'];
+    private $column_search = ['o.mode','o.meja_nama','o.nama','o.meja_kode','o.paid_method','o.status','o.nomor'];
     private $order         = ['o.created_at'=>'DESC','o.id'=>'DESC'];
 
     private $kasir_scope_enabled = false;
