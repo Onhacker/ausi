@@ -187,6 +187,7 @@ $cssVer  = is_file($cssFile) ? filemtime($cssFile) : time();
   .meja-cell .meja-title{ font-weight: 700; }
   .meja-cell .meja-name { font-weight: 700; font-size: 12px; }
 
+  .meja-name{ display:flex; align-items:center; }
 
 
 
