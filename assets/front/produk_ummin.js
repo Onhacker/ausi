@@ -45,7 +45,7 @@
 
 /* === Core logic: filter, list produk, cart badge, subkategori, mode alert, dll === */
 (function(){
-  const CFG=window.AUSI_CFG||{};
+    const CFG=window.AUSI_CFG||{};
   const SUB_API=((CFG.sub_api||"").replace(/\/?$/,"/"));
 
   const $grid=$("#grid-products");
@@ -53,10 +53,84 @@
   const $cartCount=$("#cart-count");
   const $fabCount=$("#fab-count");
 
+  // ===== Infinite scroll config =====
+  const INFINITE_SCROLL = true;
+  const INFINITE_ROOT_MARGIN = "0px 0px 450px 0px";
+
+  let __hasMore = true;
+  let __loadingMore = false;
+  let __io = null;
+  let __scrollFallbackBound = false;
+  let __mainSeq = 0;
+let __moreSeq = 0;
+
+  // kalau infinite: sembunyikan pagination dari awal
+  if (INFINITE_SCROLL) { $pagi.empty().hide(); }
+
+ // sentinel
+let $sentinel = $("#infinite-sentinel");
+if (!$sentinel.length){
+  $sentinel = $(`
+    <div class="col-12">
+    <div id="infinite-sentinel" class="col-12 text-center py-3">
+      <div class="d-inline-flex align-items-center small text-muted">
+        <span class="spinner-border spinner-border-sm mr-2 d-none" role="status"
+              style="width:.95rem;height:.95rem;border-width:.15rem;border-right-color:transparent;"></span>
+        <span class="sentinel-text">Scroll untuk muat lagi…</span>
+      </div>
+    </div></div>
+  `);
+
+  if ($pagi.length) $pagi.after($sentinel);
+  else $grid.after($sentinel);
+}
+
+function sentinelLoading(on, txt){
+  const $spin = $sentinel.find(".spinner-border");
+  const $txt  = $sentinel.find(".sentinel-text");
+  if (on){
+    $spin.removeClass("d-none");
+    $txt.text(txt || "Memuat…");
+  } else {
+    $spin.addClass("d-none");
+    if (txt) $txt.text(txt);
+  }
+}
+
+
+  function stopObserving(){
+    if (__io) {
+      try { __io.disconnect(); } catch(e){}
+    }
+    __io = null;
+  }
+
   // --- anti-nyalip request + simpan page terakhir ---
   let __reqSeq  = 0;
   let __xhr     = null;
   let __lastPage = 1;
+  let __mainLoading  = false;   // load utama (replace)
+let __firstLoaded  = false;   // page 1 sudah masuk produk
+let __loadTimer = null;
+let __pendingMain = null;
+
+function scheduleMainLoad(page=1, pushUrl=true){
+  __pendingMain = { page, pushUrl };
+
+  // ✅ kunci sejak dini (biar load-more gak sempat jalan)
+  __mainLoading = true;
+  __firstLoaded = false;
+  stopObserving();
+  clearMoreSkeleton();
+
+  clearTimeout(__loadTimer);
+  __loadTimer = setTimeout(function(){
+    const req = __pendingMain;
+    __pendingMain = null;
+    loadProducts(req.page, req.pushUrl, { append:false });
+  }, 180);
+}
+
 
   (function(){
     function toast(txt, type){
@@ -100,15 +174,63 @@
   $subWrap.hide().empty();
 
   function buildSkeleton(n){
-    let html="";
-    for(let i=0;i<n;i++){
-      html+=`<div class="col-6 col-md-3 mb-3"><div class="skel-card"><div class="skel-thumb skel-shimmer"></div><div class="skel-line w80 skel-shimmer"></div><div class="skel-line w60 skel-shimmer"></div><div class="skel-price skel-shimmer"></div><div class="skel-btn skel-shimmer"></div></div></div>`;
-    }
-    return html;
+  let html="";
+  for(let i=0;i<n;i++){
+    html+=`
+      <div class="col-6 col-md-3 js-skel-main">
+        <div class="skel-card">
+          <div class="skel-thumb skel-shimmer"></div>
+          <div class="skel-line w80 skel-shimmer"></div>
+          <div class="skel-line w60 skel-shimmer"></div>
+          <div class="skel-price skel-shimmer"></div>
+          <div class="skel-btn skel-shimmer"></div>
+        </div>
+      </div>`;
   }
-  function loading(on=true){
-    if(on){$grid.html(buildSkeleton(8));$pagi.html("");}
+  return html;
+}
+
+function clearMainSkeleton(){
+  $grid.find(".js-skel-main").remove();
+}
+
+ function buildMoreSkeleton(n){
+  let html = "";
+  for (let i=0;i<n;i++){
+    html += `
+      <div class="col-6 col-md-3 js-skel-more" data-skel="more">
+        <div class="skel-card">
+          <div class="skel-thumb skel-shimmer"></div>
+          <div class="skel-line w80 skel-shimmer"></div>
+          <div class="skel-line w60 skel-shimmer"></div>
+          <div class="skel-price skel-shimmer"></div>
+          <div class="skel-btn skel-shimmer"></div>
+        </div>
+      </div>`;
   }
+  return html;
+}
+
+  function showMoreSkeleton(n=8){
+    $grid.append(buildMoreSkeleton(n));
+  }
+function clearMoreSkeleton(){
+  // global remove (aman kalau DOM berubah / pindah parent)
+  $('.js-skel-more, [data-skel="more"]').remove();
+}
+
+
+
+function loading(on=true){
+  if(on){
+    $grid.html(buildSkeleton(8));     // ✅ skeleton lama kamu
+    clearMoreSkeleton();
+    if (INFINITE_SCROLL) $pagi.empty().hide();
+    else $pagi.empty().show();
+  }
+}
+
+
   function updateAllCartBadges(n){
     if($cartCount&&$cartCount.length)$cartCount.text(n);
     if($fabCount&&$fabCount.length)$fabCount.text(n);
@@ -180,8 +302,9 @@
   function renderErrorCard(message){
     const msg = message || "Koneksi bermasalah. Silakan coba lagi.";
     $grid.html(
+
       '<div class="col-12 mb-2">' +
-        '<div class="alert alert-danger text-center mb-0">' +
+        '<div class="alert alert-danger text-center">' +
           '<div class="mb-2">'+ msg +'</div>' +
           '<button type="button" class="btn btn-sm btn-blue js-reload-products">' +
             '<i class="mdi mdi-refresh mr-1"></i> Muat ulang' +
@@ -265,72 +388,175 @@
   }
 
 
-  function loadProducts(page=1, pushUrl=true){
-    loading(true);
-    const params = serializeFilters(page);
-    params.rec = params.recommended ? 1 : 0;
-    params._   = Date.now(); // bust cache
+ function loadProducts(page=1, pushUrl=true, opts){
+ opts = opts || {};
+const append = !!opts.append;
 
-    // abort request sebelumnya kalau masih jalan
-    if (__xhr && __xhr.readyState !== 4) { try{ __xhr.abort(); }catch(e){} }
+if (append) pushUrl = false;
 
-    const mySeq = ++__reqSeq;
-    __xhr = $.ajax({
-      url: CFG.list_ajax,
-      method: "GET",
-      dataType: "json",
-      data: params,
-      timeout: 12000 // 12s, silakan atur
-    })
-    .done(function(r){
-      if (mySeq !== __reqSeq) return; // ada request yang lebih baru: abaikan hasil ini
+// ✅ blokir load-more kalau load utama belum selesai / belum pernah sukses
+if (append && (!__firstLoaded || __mainLoading)) return;
 
-      if(!r || !r.success){
-        const msg = (r && (r.pesan || r.message)) ? (r.pesan || r.message) : "Gagal memuat data.";
-        renderErrorCard(msg);
-        return;
-      }
+if (!append) {
+  __mainLoading = true;
+  loading(true);          // ✅ skeleton lama kamu utk load utama
+  __hasMore = true;
+  if (INFINITE_SCROLL) $pagi.empty().hide();
+} else {
+  if (__loadingMore) return;
+  __loadingMore = true;
 
-      __lastPage = r.page || page || 1;
+  // ✅ skeleton load-more (yang kamu buat)
+  showMoreSkeleton(8);
+}
 
-      $grid.html(r.items_html).attr("aria-busy","false");
-      $pagi.html(r.pagination_html);
 
-      if (pushUrl){
-        const url=new URL(window.location.href);
-        url.searchParams.set("q",params.q);
-        url.searchParams.set("kategori",params.kategori);
-        url.searchParams.set("sub",params.sub_kategori);
-        url.searchParams.set("sort",params.sort);
-        url.searchParams.set("page",r.page);
-        url.searchParams.set("seed",params.seed);
-        if(params.recommended){ url.searchParams.set("rec","1"); } else { url.searchParams.delete("rec"); }
-        if(params.trend){ url.searchParams.set("trend", params.trend); } else { url.searchParams.delete("trend"); }
-        if(params.trend_days){ url.searchParams.set("trend_days", params.trend_days); } else { url.searchParams.delete("trend_days"); }
-        if(params.trend_min){ url.searchParams.set("trend_min", params.trend_min); } else { url.searchParams.delete("trend_min"); }
-         if(params.tipe){ url.searchParams.set("tipe", params.tipe); }
-        else{ url.searchParams.delete("tipe"); }
-        history.pushState(params, "", url.toString());
-      }
 
-      bindAddToCart();
-      bindPagination();
-      if (typeof bindDetailModal === "function") { bindDetailModal(); }
-    })
-    .fail(function(jq, text, err){
-      if (text === "abort") return; // kita sendiri yang cancel
-      const statusPart = jq && jq.status ? ` (HTTP ${jq.status})` : "";
-      const errPart    = err ? `: ${err}` : "";
-      const msg        = `Koneksi bermasalah${statusPart}${errPart}.`;
-      renderErrorCard(msg);
-    })
-    .always(function(){
-      $grid.attr("aria-busy","false");
-    });
+  const params = serializeFilters(page);
+  params.rec = params.recommended ? 1 : 0;
+  params._   = Date.now();
 
-    // aksesibilitas: tandai sedang loading
-    $grid.attr("aria-busy","true");
+  // abort request sebelumnya (aman, tapi kalau append sedang jalan ya kita biarkan)
+  if (!append && __xhr && __xhr.readyState !== 4) {
+    try{ __xhr.abort(); }catch(e){}
   }
+
+  const mySeq = ++__reqSeq;
+  if (!append) __mainSeq = mySeq;
+else __moreSeq = mySeq;
+
+  __xhr = $.ajax({
+    url: CFG.list_ajax,
+    method: "GET",
+    dataType: "json",
+    data: params,
+    timeout: 12000
+  })
+ .done(function(r){
+
+  // ✅ 0) Anti-nyalip: response lama langsung dibuang
+  if (mySeq !== __reqSeq) return;
+
+  // ✅ 1) Bersihkan skeleton yg relevan utk request ini
+  // - load-more: hapus placeholder load-more
+  // - main: gak wajib clear skeleton, karena akan di-replace oleh $grid.html(...)
+  clearMoreSkeleton();
+
+  // ✅ 2) Validasi response
+  if (!r || !r.success) {
+    const msg = (r && (r.pesan || r.message)) ? (r.pesan || r.message) : "Gagal memuat data.";
+    if (!append) renderErrorCard(msg);
+    else sentinelLoading(false, "Gagal memuat. Klik untuk coba lagi.");
+    return;
+  }
+
+  // ✅ 3) Render produk
+  __lastPage = r.page || page || 1;
+
+  if (append) {
+    $grid.append(r.items_html);
+  } else {
+    $grid.html(r.items_html);    // ✅ ini otomatis menghapus skeleton main
+    __firstLoaded = true;
+  }
+
+  // ✅ 4) Pagination (kalau infinite aktif: hide)
+  if (INFINITE_SCROLL) $pagi.empty().hide();
+  else $pagi.html(r.pagination_html || "").show();
+
+  // ✅ 5) Deteksi next page (tanpa ubah server)
+  let hasNext = false;
+  try {
+    const nextPage = (__lastPage || 1) + 1;
+    const $tmp = $("<div/>").html(r.pagination_html || "");
+    hasNext = $tmp.find('a[data-page="' + nextPage + '"]').length > 0;
+  } catch(e){}
+  __hasMore = hasNext;
+
+  // ✅ 6) UI sentinel
+  if (INFINITE_SCROLL) {
+    if (__hasMore) sentinelLoading(false, "Scroll untuk muat lagi…");
+    else { sentinelLoading(false, "✅ Semua produk sudah tampil"); stopObserving(); }
+  }
+
+  // ✅ 7) Update URL (tetap pakai blok punyamu)
+  if (pushUrl){
+    const url = new URL(window.location.href);
+    url.searchParams.set("q", params.q);
+    url.searchParams.set("kategori", params.kategori);
+    url.searchParams.set("sub", params.sub_kategori);
+    url.searchParams.set("sort", params.sort);
+    url.searchParams.set("page", __lastPage);
+    url.searchParams.set("seed", params.seed);
+
+    if (params.recommended) url.searchParams.set("rec","1");
+    else url.searchParams.delete("rec");
+
+    if (params.trend) url.searchParams.set("trend", params.trend);
+    else url.searchParams.delete("trend");
+
+    if (params.trend_days) url.searchParams.set("trend_days", params.trend_days);
+    else url.searchParams.delete("trend_days");
+
+    if (params.trend_min) url.searchParams.set("trend_min", params.trend_min);
+    else url.searchParams.delete("trend_min");
+
+    if (params.tipe) url.searchParams.set("tipe", params.tipe);
+    else url.searchParams.delete("tipe");
+
+    history.pushState(params, "", url.toString());
+  }
+
+  // ✅ 8) Rebind
+  bindAddToCart();
+  if (INFINITE_SCROLL) setupInfiniteScroll();
+  else bindPagination();
+
+  if (typeof bindDetailModal === "function") bindDetailModal();
+})
+
+
+ .fail(function(jq, text, err){
+
+  // ✅ jangan tampilkan error kalau request dibatalkan / cancel / status=0
+  if (text === "abort" || text === "canceled" || (jq && jq.status === 0)) return;
+  if (mySeq !== __reqSeq) return;
+
+  // ✅ opsional: kalau ini bukan request terbaru, abaikan errornya
+  if (!append && mySeq !== __mainSeq) return;
+  if (append  && mySeq !== __moreSeq) return;
+
+  const statusPart = jq && jq.status ? ` (HTTP ${jq.status})` : "";
+  const errPart    = err ? `: ${err}` : "";
+  const msg        = `Koneksi bermasalah${statusPart}${errPart}.`;
+
+  if (append) {
+    sentinelLoading(false, "Gagal memuat. Klik untuk coba lagi.");
+    $sentinel.off("click.retry").on("click.retry", function(){
+      $sentinel.off("click.retry");
+      loadProducts(__lastPage + 1, false, {append:true});
+    });
+  } else {
+    renderErrorCard(msg);
+  }
+})
+
+.always(function(){
+  $grid.attr("aria-busy","false");
+
+  clearMoreSkeleton();
+
+  // ✅ hanya request TERAKHIR yang boleh reset flag
+  if (!append && mySeq === __mainSeq) __mainLoading = false;
+  if (append && mySeq === __moreSeq) __loadingMore = false;
+
+  if (INFINITE_SCROLL) sentinelLoading(false);
+});
+
+
+
+  $grid.attr("aria-busy","true");
+}
 
   // Tombol "Muat ulang" saat error
   $(document).on('click', '.js-reload-products', function(e){
@@ -416,6 +642,34 @@
       });
     });
   }
+  function setupInfiniteScroll(){
+  if (!INFINITE_SCROLL) return;
+
+  stopObserving();
+
+  // fallback scroll (bind sekali saja)
+  if (!("IntersectionObserver" in window)) {
+    if (__scrollFallbackBound) return;
+    __scrollFallbackBound = true;
+
+    window.addEventListener("scroll", function(){
+      if (__loadingMore || !__hasMore) return;
+      const nearBottom = (window.innerHeight + window.pageYOffset) >= (document.body.offsetHeight - 600);
+      if (nearBottom) loadProducts(__lastPage + 1, false, {append:true});
+    }, {passive:true});
+    return;
+  }
+
+  __io = new IntersectionObserver(function(entries){
+    if (!entries || !entries.length) return;
+    if (!entries[0].isIntersecting) return;
+    if (__loadingMore || !__hasMore) return;
+    loadProducts(__lastPage + 1, false, {append:true});
+  }, { root: null, rootMargin: INFINITE_ROOT_MARGIN, threshold: 0 });
+
+  if ($sentinel[0]) __io.observe($sentinel[0]);
+}
+
 
   function loadCartCount(){
     $.getJSON(CFG.cart_count).done(function(r){
@@ -514,18 +768,21 @@
   let typingTimer=null;
   $("#q").on("input",function(){
     clearTimeout(typingTimer);
-    typingTimer=setTimeout(function(){loadProducts(1);},350);
+    typingTimer=setTimeout(function(){scheduleMainLoad(1);
+},350);
   }).on("keydown",function(e){
     if(e.key==="Enter"){
       e.preventDefault();
       clearTimeout(typingTimer);
-      loadProducts(1);
+      scheduleMainLoad(1);
+
     }
   });
 
   $(document).on("click","#btn-search",function(e){
     e.preventDefault();
-    loadProducts(1);
+    scheduleMainLoad(1);
+
   });
 
   $(document).on("click","#btn-reset",function(e){
@@ -549,7 +806,8 @@
     history.replaceState({},"",url.toString());
 
     hideSubcats();
-    loadProducts(1);
+    scheduleMainLoad(1);
+
   });
 
   $(document).on("click",".sort-opt",function(e){
@@ -576,7 +834,8 @@
       url.searchParams.delete("seed");
       history.replaceState({},"",url.toString());
     }
-    loadProducts(1);
+    scheduleMainLoad(1);
+
   });
 
 
@@ -613,7 +872,10 @@
     url.searchParams.delete("sub");
     history.replaceState({}, "", url.toString());
 
-    loadProducts(1);
+    // scheduleMainLoad(1);
+
+    scheduleMainLoad(1);
+
     scrollToGrid();
     return;
   }
@@ -626,7 +888,8 @@
     $("#sub_kategori").val("");
     hideSubcats();
     markActiveKategori();
-    loadProducts(1);
+    scheduleMainLoad(1);
+
     scrollToGrid();
     return;
   }
@@ -638,7 +901,8 @@
   $("#kategori").val(kat);
   $("#sub_kategori").val("");
   markActiveKategori();
-  loadProducts(1);
+  scheduleMainLoad(1);
+
   if (kat){ fetchAndRenderSubcats(kat); } else { hideSubcats(); }
   scrollToGrid();
 });
@@ -650,7 +914,8 @@
     const sid=String($(this).data("sub")||"");
     $("#sub_kategori").val(sid);
     markActiveSub(sid);
-    loadProducts(1);
+    scheduleMainLoad(1);
+
     scrollToGrid();
   });
 
@@ -786,6 +1051,7 @@
     const firstPage=parseInt(url.searchParams.get("page")||"1",10);
     __lastPage = firstPage || 1;
     loadProducts(firstPage,false);
+        // setupInfiniteScroll();
 
     const $modeInfo=$("#mode-info");
     const curModeRaw=($modeInfo.data("mode")||"").toString().toLowerCase();

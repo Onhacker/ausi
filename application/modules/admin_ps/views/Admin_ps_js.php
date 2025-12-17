@@ -21,10 +21,26 @@ function buildSesiOptions(selectedMinutes = null){
   $sel.empty();
 
   // bikin 1–10 sesi standar
-  for(let i = 1; i <= 10; i++){
-    const menit = i * unit;
-    $sel.append(`<option value="${menit}">${i} sesi (${menit} menit)</option>`);
+  function fmtDur(m){
+    m = parseInt(m, 10) || 0;
+    const jam = Math.floor(m / 60);
+    const sisa = m % 60;
+
+    if (jam > 0 && sisa > 0) return `${jam} jam ${sisa} menit`;
+    if (jam > 0) return `${jam} jam`;
+    return `${sisa} menit`;
   }
+
+  for (let i = 1; i <= 24; i++){
+    const menit = i * unit;
+
+    $sel.append(`
+      <option value="${menit}">
+        ${i} sesi (${menit} menit • ${fmtDur(menit)})
+      </option>
+    `);
+  }
+
 
   // tentukan nilai yang dipilih
   let targetMenit = unit; // default: 1 sesi
