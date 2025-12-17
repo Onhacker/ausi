@@ -183,6 +183,22 @@ table.dataTable tbody td.col-metode .badge.badge-pill{
   font-size: 26px;   /* bisa 28px kalau mau lebih gede */
   line-height: 1;
 }
+/* biar semua isi td sejajar vertikal */
+table.dataTable tbody td{
+  vertical-align: middle !important;
+}
+
+/* khusus kolom meja/nama: center + rapikan tinggi baris teks */
+.meja-cell{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+}
+
+/* gaya teks */
+.meja-cell .meja-title{ font-weight: 700; }
+.meja-cell .meja-name { font-weight: 700; font-size: .95rem; }
 
   </style>
  
