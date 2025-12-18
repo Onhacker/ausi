@@ -371,10 +371,14 @@ public function get_dataa(){
 
         // === Formatter METODE (hanya: Cash, QRIS, Transfer) ===
         // === Formatter METODE (Cash / QRIS / Transfer + penanda Voucher) ===
-$fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
+$fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0, $order_status = '') {
     $rawStr = (string)$raw;
     $s      = strtolower(trim($rawStr));
     $chips  = [];
+
+    // ✅ status paid?
+    $st = strtolower(trim((string)$order_status));
+    $isPaid = in_array($st, ['paid','lunas'], true);
 
     // ✅ selalu define biar bisa dipakai di bawah
     $has = ['cash'=>false, 'qris'=>false, 'transfer'=>false];
@@ -384,7 +388,6 @@ $fmt_method = function($raw, $voucher_code = null, $voucher_disc = 0) {
              .   '<i class="mdi '.$icon.' mr-1"></i>'.$label
              . '</span>';
     };
-
     if ($s !== '' && $s !== '-' && $s !== 'unknown') {
         $tokens = [];
 
@@ -447,13 +450,14 @@ $title = implode(' | ', $titleParts);
 
 // ✅ tombol cek transaksi khusus jika ada QRIS
 $qrisBtn = '';
-if (!empty($has['qris'])) {
+if (!empty($has['qris']) && !$isPaid) {
     $qrisBtn =
         '<div style="flex-basis:100%;height:0"></div>' .
         '<button type="button" class="btn btn-outline-blue btn-sm py-0 px-2 qris-check-btn" title="Cek transaksi QRIS di Gmail">'
       .   '<i class="mdi mdi-magnify mr-1"></i>Cek Trx'
       . '</button>';
 }
+
 
 return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
      . ($title ? ' title="'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'"' : '')
@@ -714,10 +718,12 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
                 $row['metode'] = ($isKitchen || $isBar)
                     ? ''
                     : $fmt_method(
-                        $r->paid_method ?? '',
-                        $r->voucher_code ?? null,
-                        $r->voucher_disc ?? 0
-                      );
+  $r->paid_method ?? '',
+  $r->voucher_code ?? null,
+  $r->voucher_disc ?? 0,
+  $r->status ?? ''     // ✅ kirim status
+);
+
 
 
             // 10. aksi (hanya kasir/admin)
