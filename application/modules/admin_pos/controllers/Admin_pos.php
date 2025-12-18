@@ -566,7 +566,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
                     $badge = 'secondary';
                     if     ($status_raw === 'paid')       $badge = 'success';
                     elseif ($status_raw === 'canceled')   $badge = 'dark';
-                    elseif ($status_raw === 'verifikasi') $badge = 'warning';
+                    elseif ($status_raw === 'verifikasi') $badge = 'danger';
                     elseif ($status_raw === 'failed')     $badge = 'danger';
                     elseif ($status_raw === 'sent')       $badge = 'info';
 
