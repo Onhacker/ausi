@@ -55,20 +55,6 @@ function buildSesiOptions(selectedMinutes = null){
 }
 
 
-  // tentukan nilai yang dipilih
-  let targetMenit = unit; // default: 1 sesi
-
-  if (selectedMinutes){
-    // bulatkan durasi lama ke sesi terdekat (dibulatkan ke atas)
-    let sesi = Math.ceil(selectedMinutes / unit);
-    if (sesi < 1) sesi = 1;
-    if (sesi > 10) sesi = 10;
-    targetMenit = sesi * unit;
-  }
-
-  $sel.val(String(targetMenit));
-}
-
 /* ==== Estimator ==== */
 function updateEstimator(){
   const unit = Math.max(1, parseInt(SETTING.durasi_unit,10));
@@ -224,6 +210,7 @@ function edit(id){
       $('#no_hp').val(d.no_hp || '');
       $('#catatan').val(d.catatan || '');
       buildSesiOptions(d.durasi_menit);
+
       const st = (d.status || 'baru');
       $(`input[name="status"][value="${st}"]`).prop('checked', true);
       updateEstimator();
