@@ -119,7 +119,7 @@ class Admin_billiard extends Admin_Controller {
                 switch ($sraw){
                     case 'draft':            $badge='warning'; $label='menunggu pembayaran'; break;
                     case 'menunggu_bayar':   $badge='warning'; $label='menunggu pembayaran'; break;
-                    case 'verifikasi':       $badge='info';    $label='menunggu verifikasi'; break;
+                    case 'verifikasi':       $badge='danger';    $label='menunggu verifikasi'; break;
                     case 'terkonfirmasi':    $badge='success'; $label='lunas'; break;
                     case 'batal':            $badge='dark';    $label='batal'; break;
                     case 'free':             $badge='primary'; $label='free'; break;
