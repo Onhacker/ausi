@@ -454,7 +454,7 @@ if (!empty($has['qris']) && !$isPaid) {
     $qrisBtn =
         '<div style="flex-basis:100%;height:0"></div>' .
         '<button type="button" class="btn btn-outline-blue btn-sm py-0 px-2 qris-check-btn" title="Cek transaksi QRIS di Gmail">'
-      .   '<i class="mdi mdi-magnify mr-1"></i>Cek Trx'
+      .   '<i class="mdi mdi-gmail mr-1"></i>Cek Trx'
       . '</button>';
 }
 
