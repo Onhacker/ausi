@@ -17,29 +17,42 @@ function formatRupiah(n){ return 'Rp ' + formatRupiahNumber(n); }
 /* ==== Sesi options ==== */
 function buildSesiOptions(selectedMinutes = null){
   const unit = Math.max(1, parseInt(SETTING.durasi_unit,10));
+  const MAX_SESI = 24;
+
   const $sel = $('#durasi_menit');
   $sel.empty();
 
-  // bikin 1–10 sesi standar
   function fmtDur(m){
     m = parseInt(m, 10) || 0;
     const jam = Math.floor(m / 60);
     const sisa = m % 60;
-
     if (jam > 0 && sisa > 0) return `${jam} jam ${sisa} menit`;
     if (jam > 0) return `${jam} jam`;
     return `${sisa} menit`;
   }
 
-  for (let i = 1; i <= 24; i++){
+  for (let i = 1; i <= MAX_SESI; i++){
     const menit = i * unit;
-
     $sel.append(`
       <option value="${menit}">
         ${i} sesi (${menit} menit • ${fmtDur(menit)})
       </option>
     `);
   }
+
+  // default 1 sesi
+  let targetMenit = unit;
+
+  const sel = parseInt(selectedMinutes, 10);
+  if (!Number.isNaN(sel) && sel > 0){
+    let sesi = Math.ceil(sel / unit);
+    if (sesi < 1) sesi = 1;
+    if (sesi > MAX_SESI) sesi = MAX_SESI;
+    targetMenit = sesi * unit;
+  }
+
+  $sel.val(String(targetMenit));
+}
 
 
   // tentukan nilai yang dipilih
@@ -210,7 +223,7 @@ function edit(id){
       $('#nama').val(d.nama);
       $('#no_hp').val(d.no_hp || '');
       $('#catatan').val(d.catatan || '');
-      buildSesiOptions(parseInt(d.durasi_menit,10));
+      buildSesiOptions(d.durasi_menit);
       const st = (d.status || 'baru');
       $(`input[name="status"][value="${st}"]`).prop('checked', true);
       updateEstimator();
