@@ -989,16 +989,23 @@ window.printStrukInline = function(orderId, paper, autoClose, useRawBT, opts){
 
   function H(sec){
     sec = sec|0; if (sec < 0) sec = 0;
+
     var d = (sec/86400)|0; sec -= d*86400;
     var h = (sec/3600)|0;  sec -= h*3600;
     var m = (sec/60)|0;    sec -= m*60;
-    var out = [];
-    if (d) out.push(d+' hari');
-    if (h) out.push(h+' jam');
-    if (m) out.push(m+' menit');
-    out.push(sec+' dtk');
-    return out.join(' ');
+
+    var top = [];
+    if (d) top.push(d+' hari');
+    if (h) top.push(h+' jam');
+
+    var bottom = [];
+    if (m) bottom.push(m+' menit');
+    bottom.push(sec+' dtk');
+
+    if (!top.length) return bottom.join(' ');        // ✅ 1 baris
+    return top.join(' ') + '\n' + bottom.join(' ');  // ✅ 2 baris
   }
+
   window.POS_humanizeDuration = H;
 
   function tickOnce(){
