@@ -223,10 +223,6 @@ table.dataTable tbody td.col-mode .small{
   line-height: 1;
   /*padding: .35rem .55rem;*/
 }
-.elapsed{
-  font-variant-numeric: tabular-nums; /* angka rata */
-  white-space: nowrap;
-}
 
 
 </style>
