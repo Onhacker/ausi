@@ -662,8 +662,7 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
 
   // ===== Chart 1: Pendapatan (forecast style) =====
   Highcharts.chart('chartPendapatan', Highcharts.merge(
-    baseForecastOptions(nowTs, tickPos)
-
+    baseForecastOptions(nowTs, tickPos),
     {
       chart: { type: 'spline' },
       title: { text: null },
@@ -707,8 +706,7 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
 
   // ===== Chart 2: Pengeluaran (dibuat forecast line biar seragam) =====
   Highcharts.chart('chartPengeluaran', Highcharts.merge(
-    baseForecastOptions(nowTs, tickPos)
-
+    baseForecastOptions(nowTs, tickPos),
     {
       chart: { type: 'spline' }, // <— sebelumnya column, sekarang forecast style
       title: { text: null },
@@ -727,8 +725,7 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
   const baseProfit = (colors[6] || '#b07aa1');
 
   Highcharts.chart('chartLaba', Highcharts.merge(
-    baseForecastOptions(nowTs, tickPos)
-
+    baseForecastOptions(nowTs, tickPos),
     {
       chart: { type: 'area' },
       title: { text: null },
