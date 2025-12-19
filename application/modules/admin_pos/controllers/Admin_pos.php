@@ -490,7 +490,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
               case 'dine-in':
                 $mode_label='Makan di Tempat';
                 $mode_badge='badge-info';
-                $mode_emoji='🍜';
+                $mode_emoji='🍱';
                 break;
 
               case 'delivery':
