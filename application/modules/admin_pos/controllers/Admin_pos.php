@@ -510,7 +510,7 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
                     $kurirInfoHtml = '
                     <div class="kurir-belum mt-1">
                         <span class="kurir-belum-dot"></span>
-                        <i class="mdi mdi-motorbike"></i><span> belum ditugaskan</span>
+                        <i class="mdi mdi-motorbike"></i><span> belum dikirim</span>
                     </div>';
                 }
             }
