@@ -311,135 +311,11 @@
     });
   });
 </script>
+
 <script src="<?= base_url('/assets/admin/chart/highcharts.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/exporting.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/export-data.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/accessibility.js'); ?>"></script>
-
-<script>
-// ✅ pakai waktu lokal (WITA dari browser), supaya plotLine "sekarang" pas
-Highcharts.setOptions({
-  time: { useUTC: false }
-});
-
-// ---- helper untuk forecast look ----
-function ymdToLocalTs(ymd){
-  const m = String(ymd || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (!m) return NaN;
-  return new Date(+m[1], (+m[2]-1), +m[3], 0,0,0,0).getTime(); // local midnight
-}
-function toPoints(categories, values){
-  const cats = categories || [];
-  const vals = values || [];
-  return cats.map((d,i)=> [ymdToLocalTs(d), Number(vals[i] ?? 0)]);
-}
-function gradLine(base){
-  const c0 = Highcharts.color(base).brighten(-0.15).get('rgb');
-  const c1 = Highcharts.color(base).brighten( 0.25).get('rgb');
-  return {
-    linearGradient: { x1:0, y1:0, x2:0, y2:1 },
-    stops: [[0, c0],[1, c1]]
-  };
-}
-function gradFill(base){
-  const c0 = Highcharts.color(base).setOpacity(0.28).get('rgba');
-  const c1 = Highcharts.color(base).setOpacity(0.00).get('rgba');
-  return {
-    linearGradient: { x1:0, y1:0, x2:0, y2:1 },
-    stops: [[0, c0],[1, c1]]
-  };
-}
-function forecastPlotLine(nowTs){
-  return [{
-    color: '#4840d6',
-    width: 2,
-    value: nowTs,
-    zIndex: 5,
-    dashStyle: 'Dash',
-    label: {
-      text: '● Waktu sekarang',          // ✅ bullet
-      align: 'right',                   // ✅ di pucuk kanan
-      verticalAlign: 'top',             // ✅ di pucuk
-      y: 10,
-      x: -6,
-      rotation: 0,
-      style: { color:'#333', fontSize:'11px', fontWeight:'600' }
-    }
-  }];
-}
-
-function baseForecastOptions(nowTs, tickPos){
-  const hasTickPos = Array.isArray(tickPos) && tickPos.length;
-
-  return {
-    chart: { spacingTop: 22 },          // ✅ kasih ruang utk “bullet/legend” di pucuk
-    credits: { enabled:false },
-    exporting: { enabled:true },
-    subtitle: { text: 'Garis titik-titik menandakan data setelah waktu sekarang' },
-
-    // ✅ “bullet list” di pucuk = legend style bulat
-    legend: {
-      align: 'center',
-      verticalAlign: 'top',
-      layout: 'horizontal',
-      symbolRadius: 6,
-      symbolWidth: 12,
-      symbolHeight: 12,
-      itemStyle: { fontSize:'11px', fontWeight:'600' }
-    },
-
-    xAxis: {
-      type: 'datetime',
-      plotLines: forecastPlotLine(nowTs),
-
-      // ✅ INI KUNCI: paksa semua tanggal tampil (tidak auto-skip)
-      tickPositions: hasTickPos ? tickPos : undefined,
-      tickInterval: hasTickPos ? undefined : 24 * 3600 * 1000,
-
-      labels: {
-        format: '{value:%d-%m-%Y}',     // ✅ lengkap
-        rotation: -45,
-        step: 1,
-        allowOverlap: true
-      },
-      crosshair: true
-    },
-
-    tooltip: {
-      shared: true,
-      xDateFormat: '%d-%m-%Y',
-      valueDecimals: 0,
-      valuePrefix: 'Rp '
-    },
-
-    plotOptions: {
-      series: {
-        zoneAxis: 'x',
-        zones: [{ value: nowTs }, { dashStyle: 'Dot' }],
-        lineWidth: 4,
-        marker: {
-          enabled: false,
-          lineWidth: 2,
-          fillColor: '#fff',
-          states: { hover: { enabled:true, radius:4 } }
-        },
-        states: { inactive: { opacity: 1 } },
-        animation: { duration: 900 }
-      }
-    },
-
-    // kalau layar kecil, biar nggak “patah-patah” parah
-    responsive: {
-      rules: [{
-        condition: { maxWidth: 575 },
-        chartOptions: { xAxis: { labels: { step: 2 } } }
-      }]
-    }
-  };
-}
-
-</script>
-
 
 <script>
   // Nama bulan Indonesia
@@ -603,149 +479,115 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     return 'Rp ' + (parseInt(n||0,10)).toLocaleString('id-ID');
   }
 
-  function renderCharts(res){
-  // ===== info header (punya kamu, tetap) =====
-  if (res.filter){
-    const dfID = fmtTanggalWaktuIndo(res.filter.date_from, res.filter.time_from);
-    const dtID = fmtTanggalWaktuIndo(res.filter.date_to,   res.filter.time_to);
+   function renderCharts(res){
+    // info filter aktif di header kartu atas
+    if (res.filter){
+      const dfID = fmtTanggalWaktuIndo(res.filter.date_from, res.filter.time_from);
+      const dtID = fmtTanggalWaktuIndo(res.filter.date_to,   res.filter.time_to);
 
-    infoRangeEl.textContent =
-      'Rentang: ' + dfID +
-      ' s/d '     + dtID +
-      ' | Mode: '   + (res.filter.mode   || '-') +
-      ' | Metode: ' + (res.filter.metode || '-') +
-      ' | Status: ' + (res.filter.status || '-');
-  }
+      infoRangeEl.textContent =
+        'Rentang: ' + dfID +
+        ' s/d '     + dtID +
+        ' | Mode: '   + (res.filter.mode   || '-') +
+        ' | Metode: ' + (res.filter.metode || '-') +
+        ' | Status: ' + (res.filter.status || '-');
+    }
 
-  if (res.total_rekap){
-    infoTotalEl.textContent =
-      'Total Cafe: '+rupiah(res.total_rekap.cafe||0)+
-      ' · Billiard: '+rupiah(res.total_rekap.billiard||0)+
-      ' · Kursi Pijat: '+rupiah(res.total_rekap.kursi_pijat||0)+
-      ' · PS: '+rupiah(res.total_rekap.ps||0)+
-      ' · Pengeluaran: '+rupiah(res.total_rekap.pengeluaran||0)+
-      ' · Laba: '+rupiah(res.total_rekap.laba||0);
-  }
+    if (res.total_rekap){
+      infoTotalEl.textContent =
+        'Total Cafe: '+rupiah(res.total_rekap.cafe||0)+
+        ' · Billiard: '+rupiah(res.total_rekap.billiard||0)+
+        ' · Kursi Pijat: '+rupiah(res.total_rekap.kursi_pijat||0)+
+        ' · PS: '+rupiah(res.total_rekap.ps||0)+
+        ' · Pengeluaran: '+rupiah(res.total_rekap.pengeluaran||0)+
+        ' · Laba: '+rupiah(res.total_rekap.laba||0);
+    }
 
-  // ===== data (punya kamu, tetap) =====
-  const categories      = res.categories    || [];
-  const tickPos = (categories || []).map(ymdToLocalTs).filter(x => !isNaN(x));
+    const categories      = res.categories    || [];
+    const cafeData        = res.cafe          || [];
+    const billiardData    = res.billiard      || [];
+    const pengeluaranData = res.pengeluaran   || [];
+    const labaData        = res.laba          || [];
+    const kpData          = res.kursi_pijat   || [];
+    const psData          = res.ps            || [];
 
-  const cafeData        = res.cafe          || [];
-  const billiardData    = res.billiard      || [];
-  const pengeluaranData = res.pengeluaran   || [];
-  const labaData        = res.laba          || [];
-  const kpData          = res.kursi_pijat   || [];
-  const psData          = res.ps            || [];
+    const categoriesLabel = categories.map(function (v) {
+      return fmtTanggalIndo(v);
+    });
 
-  // ===== ubah ke format forecast: [timestamp, value] =====
-  const nowTs = Date.now();
-  const colors = Highcharts.getOptions().colors || [];
+    const totalPendapatan = cafeData.map(function(v,i){
+      const vb = (typeof billiardData[i] !== 'undefined') ? billiardData[i] : 0;
+      const vk = (typeof kpData[i]      !== 'undefined') ? kpData[i]      : 0;
+      const vp = (typeof psData[i]      !== 'undefined') ? psData[i]      : 0;
+      return v + vb + vk + vp;
+    });
 
-  const ptsCafe     = toPoints(categories, cafeData);
-  const ptsBilliard = toPoints(categories, billiardData);
-  const ptsKP       = toPoints(categories, kpData);
-  const ptsPS       = toPoints(categories, psData);
-  const ptsOut      = toPoints(categories, pengeluaranData);
-  const ptsProfit   = toPoints(categories, labaData);
-
-  // Total pendapatan per hari (pakai timestamp yg sama)
-  const ptsTotalPendapatan = categories.map((d,i)=>{
-    const ts = ymdToLocalTs(d);
-    const v  = Number(cafeData[i] ?? 0)
-             + Number(billiardData[i] ?? 0)
-             + Number(kpData[i] ?? 0)
-             + Number(psData[i] ?? 0);
-    return [ts, v];
-  });
-
-  // ===== Chart 1: Pendapatan (forecast style) =====
-  Highcharts.chart('chartPendapatan', Highcharts.merge(
-    baseForecastOptions(nowTs, tickPos),
-    {
+    Highcharts.chart('chartPendapatan', {
       chart: { type: 'spline' },
       title: { text: null },
-      yAxis: { min: 0, title: { text: 'Rupiah (Rp)' } },
-      legend: { enabled: true },
-      series: [
-        {
-          name: 'Cafe / POS',
-          data: ptsCafe,
-          color: gradLine(colors[0] || '#4e79a7'),
-          marker: { lineColor: (colors[0] || '#4e79a7') }
-        },
-        {
-          name: 'Billiard',
-          data: ptsBilliard,
-          color: gradLine(colors[1] || '#f28e2b'),
-          marker: { lineColor: (colors[1] || '#f28e2b') }
-        },
-        {
-          name: 'Kursi Pijat',
-          data: ptsKP,
-          color: gradLine(colors[2] || '#e15759'),
-          marker: { lineColor: (colors[2] || '#e15759') }
-        },
-        {
-          name: 'PlayStation (PS)',
-          data: ptsPS,
-          color: gradLine(colors[3] || '#76b7b2'),
-          marker: { lineColor: (colors[3] || '#76b7b2') }
-        },
-        {
-          name: 'Total Pendapatan (Cafe+Billiard+KP+PS)',
-          data: ptsTotalPendapatan,
-          lineWidth: 5,
-          color: gradLine(colors[4] || '#59a14f'),
-          marker: { lineColor: (colors[4] || '#59a14f') }
-        }
-      ]
-    }
-  ));
-
-  // ===== Chart 2: Pengeluaran (dibuat forecast line biar seragam) =====
-  Highcharts.chart('chartPengeluaran', Highcharts.merge(
-    baseForecastOptions(nowTs, tickPos),
-    {
-      chart: { type: 'spline' }, // <— sebelumnya column, sekarang forecast style
-      title: { text: null },
-      yAxis: { min: 0, title: { text: 'Rupiah (Rp)' } },
-      legend: { enabled: false },
-      series: [{
-        name: 'Pengeluaran',
-        data: ptsOut,
-        color: gradLine(colors[5] || '#edc948'),
-        marker: { lineColor: (colors[5] || '#edc948') }
-      }]
-    }
-  ));
-
-  // ===== Chart 3: Laba (area forecast style) =====
-  const baseProfit = (colors[6] || '#b07aa1');
-
-  Highcharts.chart('chartLaba', Highcharts.merge(
-    baseForecastOptions(nowTs, tickPos),
-    {
-      chart: { type: 'area' },
-      title: { text: null },
-      yAxis: { title: { text: 'Rupiah (Rp)' } },
-      legend: { enabled: false },
+      xAxis: { categories: categoriesLabel, crosshair:true },
+      yAxis: {
+        min: 0,
+        title: { text: 'Rupiah (Rp)' }
+      },
+      tooltip: {
+        shared: true,
+        valueDecimals: 0,
+        valuePrefix: 'Rp '
+      },
+      credits: { enabled: false },
+      exporting: { enabled: true },
       plotOptions: {
-        area: {
-          fillColor: gradFill(baseProfit),
-          lineColor: baseProfit
+        series: {
+          animation: { duration: 1000 },
+          marker: { enabled: false },
+          lineWidth: 2
         }
       },
-      series: [{
-        name: 'Laba (Cafe + Billiard + KP + PS - Pengeluaran)',
-        data: ptsProfit,
-        color: gradLine(baseProfit),
-        marker: { lineColor: baseProfit }
-      }]
-    }
-  ));
-}
+      series: [
+        { name: 'Cafe / POS',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
+        { name: 'Billiard',               data: billiardData, animation:{ duration:1000, defer: 300 } },
+        { name: 'Kursi Pijat',            data: kpData,       animation:{ duration:1000, defer: 600 } },
+        { name: 'PlayStation (PS)',       data: psData,       animation:{ duration:1000, defer: 900 } },
+        { name: 'Total Pendapatan (Cafe+Billiard+KP+PS)',
+          data: totalPendapatan,          animation:{ duration:1000, defer:1200 } }
+      ]
+    });
 
+    Highcharts.chart('chartPengeluaran', {
+      chart:{ type:'column' },
+      title:{ text:null },
+      xAxis:{ categories:categoriesLabel, crosshair:true },
+      yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
+      tooltip:{
+        shared:true,
+        valueDecimals:0,
+        valuePrefix:'Rp '
+      },
+      credits:{ enabled:false },
+      exporting:{ enabled:true },
+      series:[
+        { name:'Pengeluaran', data:pengeluaranData }
+      ]
+    });
+
+    Highcharts.chart('chartLaba', {
+      chart:{ type:'area' },
+      title:{ text:null },
+      xAxis:{ categories:categoriesLabel, crosshair:true },
+      yAxis:{ title:{ text:'Rupiah (Rp)' } },
+      tooltip:{
+        shared:true,
+        valueDecimals:0,
+        valuePrefix:'Rp '
+      },
+      credits:{ enabled:false },
+      exporting:{ enabled:true },
+      series:[
+        { name:'Laba (Cafe + Billiard + KP + PS - Pengeluaran)', data:labaData }
+      ]
+    });
+  } // <<< INI yang tadi hilang: tutup renderCharts(res)
 
 
 
