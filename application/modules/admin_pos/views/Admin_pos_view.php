@@ -234,6 +234,9 @@ table.dataTable tbody td.col-mode .small{
 .badge .elapsed{
   padding: 1px 0;         /* atau 2px 0 kalau masih mepet */
 }
+.badge i.mdi-av-timer{
+  vertical-align: middle;
+}
 
 
 </style>
