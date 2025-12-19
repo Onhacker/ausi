@@ -683,7 +683,8 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             $row['mode'] =
                 '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
               . '<div class="mode-wrap">'
-              .   '<span class="badge badge-pill '.$mode_badge.'">'
+              .   '<span class="badge badge-pill '.$mode_badge.' text-dark">'
+
               .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
               .   '</span>'
               .   $kurirInfoHtml
