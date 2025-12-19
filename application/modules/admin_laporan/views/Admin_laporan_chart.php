@@ -315,7 +315,6 @@
 <script src="<?= base_url('/assets/admin/chart/exporting.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/export-data.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/accessibility.js'); ?>"></script>
-<script src="https://code.highcharts.com/themes/adaptive.js"></script>
 
 <script>
 // ✅ pakai waktu lokal (WITA dari browser), supaya plotLine "sekarang" pas
