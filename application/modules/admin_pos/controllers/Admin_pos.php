@@ -633,22 +633,10 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
                 $dur = max(0, (int)$endTs - (int)$createdTs);
 
                 // Selesai → timer “mati”
-                $lamaHtml =
-                    '<div class="d-inline-flex align-items-center text-muted">'
-                  .   '<span class="badge badge-light border">'
-                  .     '<i class="mdi mdi-av-timer mr-1"></i>'
-                  .     '<span class="elapsed stopped" data-dur="'.$dur.'">—</span>'
-                  .   '</span>'
-                  . '</div>';
+                $lamaHtml = '<span class="elapsed stopped" data-dur="'.$dur.'">—</span>';
             } else {
                 // Masih berjalan → timer “live”
-                $lamaHtml =
-                    '<div class="d-inline-flex align-items-center">'
-                  .   '<span class="badge badge-light border text-primary">'
-                  .     '<i class="mdi mdi-av-timer mr-1"></i>'
-                  .     '<span class="elapsed live" data-start="'.$createdTs.'">—</span>'
-                  .   '</span>'
-                  . '</div>';
+                 $lamaHtml = '<span class="elapsed live" data-start="'.$createdTs.'">—</span>';
             }
 
 
