@@ -211,6 +211,18 @@ table.dataTable tbody td.col-mode .small{
   justify-content: center;
   text-align: center;
 }
+.mode-wrap{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.mode-emoji{
+  font-size: 20px;
+  line-height: 1;
+  padding: .35rem .55rem;
+}
 
 
 </style>

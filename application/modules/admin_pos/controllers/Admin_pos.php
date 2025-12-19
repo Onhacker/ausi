@@ -486,13 +486,27 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             // === Mode badge ===
             $mode_raw = strtolower(trim($r->mode ?: 'walking'));
             switch ($mode_raw) {
-                case 'dinein':
-                case 'dine-in':  $mode_label='Makan di Tempat';  $mode_badge='badge-info';    break;
-                case 'delivery': $mode_label='Antar/ Kirim';     $mode_badge='badge-warning'; break;
-                case 'walking':
-                case 'walkin':
-                case 'walk-in':
-                default:         $mode_label='Bungkus';           $mode_badge='badge-pink'; break;
+              case 'dinein':
+              case 'dine-in':
+                $mode_label='Makan di Tempat';
+                $mode_badge='badge-info';
+                $mode_emoji='🍽️';
+                break;
+
+              case 'delivery':
+                $mode_label='Antar/ Kirim';
+                $mode_badge='badge-warning';
+                $mode_emoji='🛵';
+                break;
+
+              case 'walking':
+              case 'walkin':
+              case 'walk-in':
+              default:
+                $mode_label='Bungkus';
+                $mode_badge='badge-pink';
+                $mode_emoji='🥡';
+                break;
             }
 
             // === Info kurir (hanya untuk delivery) ===
@@ -683,12 +697,14 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             $row['mode'] =
                 '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
               . '<div class="mode-wrap">'
-              .   '<span class="badge badge-pill '.$mode_badge.' text-dark">'
-
-              .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
+              .   '<span class="badge badge-pill '.$mode_badge.' text-dark mode-emoji"'
+              .         ' title="'.htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8').'">'
+              .       $mode_emoji
               .   '</span>'
+              .   '<span class="sr-only">'.htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8').'</span>'
               .   $kurirInfoHtml
               . '</div>';
+
 
 
             // 3. meja
