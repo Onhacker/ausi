@@ -223,6 +223,12 @@ table.dataTable tbody td.col-mode .small{
   line-height: 1;
   /*padding: .35rem .55rem;*/
 }
+/* biar '\n' tampil jadi 2 baris */
+.elapsed{
+  white-space: pre-line;
+  display: inline-block;
+  line-height: 1.05;
+}
 
 
 </style>
