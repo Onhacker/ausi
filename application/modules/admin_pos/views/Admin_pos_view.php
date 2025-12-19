@@ -188,6 +188,29 @@ $cssVer  = is_file($cssFile) ? filemtime($cssFile) : time();
   .meja-cell .meja-name { font-weight: 700; font-size: 12px; }
 
   
+/* pastikan kolom mode center */
+table.dataTable tbody td.col-mode{
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* wrapper mode jadi flex column dan center */
+.mode-wrap{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;     /* center horizontal */
+  justify-content: center; /* center vertical (dengan bantuan td middle) */
+}
+
+/* info kurir ikut center */
+table.dataTable tbody td.col-mode .kurir-belum,
+table.dataTable tbody td.col-mode .small{
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+  text-align: center;
+}
 
 
 </style>

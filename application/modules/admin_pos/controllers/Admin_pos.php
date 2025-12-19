@@ -670,14 +670,15 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
             $row['no'] = '';
 
             // 2. mode (+ meta rowid untuk kebutuhan JS)
-            $row['mode']  =
+            $row['mode'] =
                 '<span class="d-none meta-rowid" data-rowid="'.(int)$r->id.'"></span>'
-              . '<div class="d-inline-block text-left">'
+              . '<div class="mode-wrap">'
               .   '<span class="badge badge-pill '.$mode_badge.'">'
               .     htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8')
               .   '</span>'
               .   $kurirInfoHtml
               . '</div>';
+
 
             // 3. meja
             // --- Meja + Nama (rapi & lurus) ---
