@@ -370,13 +370,23 @@ case 'trending':
         return ['order'=>$order,'items'=>$items,'total'=>$total];
     }
 
-    // public function get_subcategories_for_placeholder($limit = 100){
-    //     return $this->db->select('id, nama')
-    //     ->from('kategori_produk_sub')
-    //     ->where('is_active', 1)    // sesuaikan jika berbeda
-    //     ->order_by('nama', 'ASC')
-    //     ->limit((int)$limit)
-    //     ->get()->result();
-    // }
+// di model pm (mis: Produk_model / Produk_model_front)
+public function get_bestseller_rank_map($minTerlaris = 40, $limit = 500){
+    $rows = $this->db->select('id, terlaris')
+        ->from('produk')
+        ->where('terlaris >=', (int)$minTerlaris)
+        ->order_by('terlaris', 'DESC')
+        ->order_by('id', 'ASC')   // tie-breaker supaya stabil
+        ->limit((int)$limit)
+        ->get()->result();
+
+    $map = [];
+    $rank = 1;
+    foreach ($rows as $r){
+        $map[(int)$r->id] = $rank++;
+    }
+    return $map;
+}
+
 
 }

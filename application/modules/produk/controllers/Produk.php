@@ -636,7 +636,14 @@ public function list_ajax(){
     // ===== ambil data =====
     $products = $this->pm->get_products($filters, $per_page, $offset, $sort);
     $this->_db_fail_response_if_any();
+    // ✅ tempel ranking global agar "Terlaris 1" tidak dobel antar page infinite scroll
+    $BESTSELLER_MIN = 40;                 // samakan dengan partial kamu
+    $rankMap = $this->pm->get_bestseller_rank_map($BESTSELLER_MIN, 500);
 
+    foreach ($products as $p){
+        $pid = (int)($p->id ?? 0);
+        $p->bestseller_rank = $rankMap[$pid] ?? null;
+    }
     // ===== render partials =====
     $items_html = $this->load->view('partials/produk_items_partial', [
         'products' => $products

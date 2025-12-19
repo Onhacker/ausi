@@ -290,7 +290,7 @@ $cssVer  = is_file($cssFile) ? filemtime($cssFile) : time();
               <tr>
                 <th width="6%">No.</th>
                 <th width="10%">Mode</th>
-                <th width="20%">Meja / Nama</th>
+                <th width="15%">Meja / Nama</th>
 
                 <?php if ($isKB): ?>
                   <th>Pesanan</th>

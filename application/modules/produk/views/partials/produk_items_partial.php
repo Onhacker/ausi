@@ -71,8 +71,20 @@
     $nowTs          = time();
 
     // ==== HITUNG RANKING TERLARIS (BERDASARKAN terlaris DESC) ====
-    $bestsellerRanks = [];
-    $bestsellerList  = [];
+   $myRank = isset($p->bestseller_rank) ? (int)$p->bestseller_rank : null;
+
+  if (!$soldout) {
+    if ($isPaket) {
+      $ribbon = ['class'=>'paket','text'=>'PKT Hemat'];
+    } elseif ($isBestseller && $myRank) {
+      $ribbon = ['class'=>'bestseller','text'=>'Terlaris '.$myRank];
+    } elseif ($isTrending) {
+      $ribbon = ['class'=>'trend','text'=>'Trending'];
+    } elseif ($isNew) {
+      $ribbon = ['class'=>'success','text'=>'Terbaru'];
+    }
+  }
+
 
     if (!empty($products)) {
       foreach ($products as $pp) {

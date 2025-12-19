@@ -476,7 +476,7 @@ else __moreSeq = mySeq;
   // ✅ 6) UI sentinel
   if (INFINITE_SCROLL) {
     if (__hasMore) sentinelLoading(false, "Scroll untuk muat lagi…");
-    else { sentinelLoading(false, "✅ Semua produk sudah tampil"); stopObserving(); }
+    else { sentinelLoading(false, " "); stopObserving(); }
   }
 
   // ✅ 7) Update URL (tetap pakai blok punyamu)
