@@ -219,7 +219,7 @@ table.dataTable tbody td.col-mode .small{
   justify-content:center;
 }
 .mode-emoji{
-  font-size: 20px;
+  font-size: 33px;
   line-height: 1;
   padding: .35rem .55rem;
 }
