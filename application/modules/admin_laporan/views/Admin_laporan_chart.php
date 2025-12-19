@@ -315,6 +315,7 @@
 <script src="<?= base_url('/assets/admin/chart/exporting.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/export-data.js'); ?>"></script>
 <script src="<?= base_url('/assets/admin/chart/accessibility.js'); ?>"></script>
+<script src="https://code.highcharts.com/themes/adaptive.js"></script>
 
 <script>
 // ✅ pakai waktu lokal (WITA dari browser), supaya plotLine "sekarang" pas
@@ -354,38 +355,68 @@ function forecastPlotLine(nowTs){
     color: '#4840d6',
     width: 2,
     value: nowTs,
-    zIndex: 3,
+    zIndex: 5,
     dashStyle: 'Dash',
     label: {
-      text: 'Waktu sekarang',
+      text: '● Waktu sekarang',          // ✅ bullet
+      align: 'right',                   // ✅ di pucuk kanan
+      verticalAlign: 'top',             // ✅ di pucuk
+      y: 10,
+      x: -6,
       rotation: 0,
-      y: 20,
-      style: { color: '#333' }
+      style: { color:'#333', fontSize:'11px', fontWeight:'600' }
     }
   }];
 }
-function baseForecastOptions(nowTs){
+
+function baseForecastOptions(nowTs, tickPos){
+  const hasTickPos = Array.isArray(tickPos) && tickPos.length;
+
   return {
+    chart: { spacingTop: 22 },          // ✅ kasih ruang utk “bullet/legend” di pucuk
     credits: { enabled:false },
     exporting: { enabled:true },
     subtitle: { text: 'Garis titik-titik menandakan data setelah waktu sekarang' },
+
+    // ✅ “bullet list” di pucuk = legend style bulat
+    legend: {
+      align: 'center',
+      verticalAlign: 'top',
+      layout: 'horizontal',
+      symbolRadius: 6,
+      symbolWidth: 12,
+      symbolHeight: 12,
+      itemStyle: { fontSize:'11px', fontWeight:'600' }
+    },
+
     xAxis: {
       type: 'datetime',
       plotLines: forecastPlotLine(nowTs),
-      tickInterval: 24 * 3600 * 1000, // harian
-      labels: { format: '{value:%d-%m}' },
+
+      // ✅ INI KUNCI: paksa semua tanggal tampil (tidak auto-skip)
+      tickPositions: hasTickPos ? tickPos : undefined,
+      tickInterval: hasTickPos ? undefined : 24 * 3600 * 1000,
+
+      labels: {
+        format: '{value:%d-%m-%Y}',     // ✅ lengkap
+        rotation: -45,
+        step: 1,
+        allowOverlap: true
+      },
       crosshair: true
     },
+
     tooltip: {
       shared: true,
       xDateFormat: '%d-%m-%Y',
       valueDecimals: 0,
       valuePrefix: 'Rp '
     },
+
     plotOptions: {
       series: {
         zoneAxis: 'x',
-        zones: [{ value: nowTs }, { dashStyle: 'Dot' }], // ✅ forecast zones
+        zones: [{ value: nowTs }, { dashStyle: 'Dot' }],
         lineWidth: 4,
         marker: {
           enabled: false,
@@ -396,9 +427,18 @@ function baseForecastOptions(nowTs){
         states: { inactive: { opacity: 1 } },
         animation: { duration: 900 }
       }
+    },
+
+    // kalau layar kecil, biar nggak “patah-patah” parah
+    responsive: {
+      rules: [{
+        condition: { maxWidth: 575 },
+        chartOptions: { xAxis: { labels: { step: 2 } } }
+      }]
     }
   };
 }
+
 </script>
 
 
@@ -590,6 +630,8 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
 
   // ===== data (punya kamu, tetap) =====
   const categories      = res.categories    || [];
+  const tickPos = (categories || []).map(ymdToLocalTs).filter(x => !isNaN(x));
+
   const cafeData        = res.cafe          || [];
   const billiardData    = res.billiard      || [];
   const pengeluaranData = res.pengeluaran   || [];
@@ -620,7 +662,8 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
 
   // ===== Chart 1: Pendapatan (forecast style) =====
   Highcharts.chart('chartPendapatan', Highcharts.merge(
-    baseForecastOptions(nowTs),
+    baseForecastOptions(nowTs, tickPos)
+
     {
       chart: { type: 'spline' },
       title: { text: null },
@@ -664,7 +707,8 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
 
   // ===== Chart 2: Pengeluaran (dibuat forecast line biar seragam) =====
   Highcharts.chart('chartPengeluaran', Highcharts.merge(
-    baseForecastOptions(nowTs),
+    baseForecastOptions(nowTs, tickPos)
+
     {
       chart: { type: 'spline' }, // <— sebelumnya column, sekarang forecast style
       title: { text: null },
@@ -683,7 +727,8 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
   const baseProfit = (colors[6] || '#b07aa1');
 
   Highcharts.chart('chartLaba', Highcharts.merge(
-    baseForecastOptions(nowTs),
+    baseForecastOptions(nowTs, tickPos)
+
     {
       chart: { type: 'area' },
       title: { text: null },
