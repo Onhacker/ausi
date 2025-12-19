@@ -343,9 +343,9 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
           <?php endif; ?>
 
           <?php if ($is_delivery && $canAssignKurir): ?>
-            <button type="button" class="btn btn-sm btn-success" id="btnAssignKurirHeader"
+            <button type="button" class="btn btn-sm btn-warning" id="btnAssignKurirHeader"
                     onclick="openKurirModal(<?= $idForPrint ?>)">
-              <i class="fe-send"></i> Tugaskan Kurir
+              <i class="mdi mdi-motorbike"></i> Tugaskan Kurir
             </button>
           <?php endif; ?>
 
