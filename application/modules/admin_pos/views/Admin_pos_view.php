@@ -223,11 +223,16 @@ table.dataTable tbody td.col-mode .small{
   line-height: 1;
   /*padding: .35rem .55rem;*/
 }
-/* biar '\n' tampil jadi 2 baris */
+/* spasi antar 2 baris */
 .elapsed{
   white-space: pre-line;
   display: inline-block;
-  line-height: 1.05;
+  line-height: 1.35;      /* naikkan (coba 1.3–1.5) */
+}
+
+/* tambah ruang atas-bawah di badge */
+.badge .elapsed{
+  padding: 1px 0;         /* atau 2px 0 kalau masih mepet */
 }
 
 
