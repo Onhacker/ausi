@@ -518,6 +518,16 @@ return '<div class="d-flex flex-wrap" style="gap:.25rem .25rem"'
 
            // Meja + nama
             $meja = trim((string)($r->meja_nama ?: $r->meja_kode)); // ✅ kalau dua-duanya kosong => ''
+
+            // ✅ strtoupper meja (lebih aman pakai mb_strtoupper kalau ada)
+            if ($meja !== '') {
+                if (function_exists('mb_strtoupper')) {
+                    $meja = mb_strtoupper($meja, 'UTF-8');
+                } else {
+                    $meja = strtoupper($meja);
+                }
+            }
+
             $nama = trim((string)($r->nama ?? ''));
 
             $meja_html = ($meja !== '') ? htmlspecialchars($meja, ENT_QUOTES, 'UTF-8') : '';
