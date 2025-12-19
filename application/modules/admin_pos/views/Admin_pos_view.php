@@ -332,7 +332,7 @@ table.dataTable tbody td.col-mode .small{
                 <?php endif; ?>
 
                 <th>Waktu</th>
-                <th>Durasi</th>
+                <th>Durasi Proses</th>
                 <th class="th-price">Bayar</th>
                 <th>Status</th>
                 <th width="10%" class="th-method">Metode</th>
