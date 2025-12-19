@@ -221,7 +221,7 @@ table.dataTable tbody td.col-mode .small{
 .mode-emoji{
   font-size: 33px;
   line-height: 1;
-  padding: .35rem .55rem;
+  /*padding: .35rem .55rem;*/
 }
 
 
