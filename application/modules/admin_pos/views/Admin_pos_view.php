@@ -333,7 +333,7 @@ table.dataTable tbody td.col-mode .small{
 
                 <th>Waktu</th>
                 <th>Durasi</th>
-                <th class="th-price">Jumlah</th>
+                <th class="th-price">Bayar</th>
                 <th>Status</th>
                 <th width="10%" class="th-method">Metode</th>
 

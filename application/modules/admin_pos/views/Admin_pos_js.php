@@ -993,10 +993,10 @@ window.printStrukInline = function(orderId, paper, autoClose, useRawBT, opts){
     var h = (sec/3600)|0;  sec -= h*3600;
     var m = (sec/60)|0;    sec -= m*60;
     var out = [];
-    if (d) out.push(d+'h');
-    if (h) out.push(h+'j');
-    if (m) out.push(m+'m');
-    out.push(sec+'d');
+    if (d) out.push(d+' hari');
+    if (h) out.push(h+' jam');
+    if (m) out.push(m+' menit');
+    out.push(sec+' dtk');
     return out.join(' ');
   }
   window.POS_humanizeDuration = H;
