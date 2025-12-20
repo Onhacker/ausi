@@ -483,26 +483,6 @@ function rupiahHC(n){
   return 'Rp ' + Highcharts.numberFormat(n, 0, ',', '.');
 }
 
-// formatter dataLabels: "Nama Seri: Rp xxx"
-function dlSeriesRupiah(){
-  if (this.y == null) return null;
-  return this.series.name + ': ' + rupiahHC(this.y);
-}
-
-// base config supaya konsisten
-const DL_ALL_SERIES = {
-  enabled: true,
-  allowOverlap: false,
-  crop: true,
-  overflow: 'justify',
-  formatter: dlSeriesRupiah,
-  style: {
-    fontSize: '10px',
-    fontWeight: '600',
-    textOutline: 'none'
-  }
-};
-
    function renderCharts(res){
     // info filter aktif di header kartu atas
     if (res.filter){
@@ -561,15 +541,28 @@ const DL_ALL_SERIES = {
       },
       credits: { enabled: false },
       exporting: { enabled: true },
- plotOptions: {
-  series: {
-    animation: { duration: 1000 },
-    marker: { enabled: false },
-    lineWidth: 2,
-    dataLabels: DL_ALL_SERIES
-  }
-},
-
+     plotOptions: {
+      series: {
+        animation: { duration: 1000 },
+        marker: { enabled: false },
+        lineWidth: 2,
+        dataLabels: {
+          enabled: true,
+          allowOverlap: false,
+          crop: true,
+          overflow: 'justify',
+          formatter: function(){
+            if (this.y == null) return null;
+            return this.series.name + ': ' + rupiahHC(this.y);
+          },
+          style: {
+            fontSize: '10px',
+            fontWeight: '600',
+            textOutline: 'none'
+          }
+        }
+      }
+    },
 
       series: [
         { name: 'Cafe',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
@@ -593,12 +586,22 @@ const DL_ALL_SERIES = {
       },
       credits:{ enabled:false },
       exporting:{ enabled:true },
-plotOptions: {
-  series: {
-    dataLabels: DL_ALL_SERIES
+      plotOptions: {
+  column: {
+    dataLabels: {
+      enabled: true,
+      formatter: function(){
+        if (this.y == null) return null;
+        return this.series.name + ': ' + rupiahHC(this.y);
+      },
+      style: {
+        fontSize: '10px',
+        fontWeight: '600',
+        textOutline: 'none'
+      }
+    }
   }
 },
-
 
       series:[
         { name:'Pengeluaran', data:pengeluaranData }
@@ -617,9 +620,20 @@ plotOptions: {
       },
       credits:{ enabled:false },
       exporting:{ enabled:true },
-plotOptions: {
-  series: {
-    dataLabels: DL_ALL_SERIES
+      plotOptions: {
+  area: {
+    dataLabels: {
+      enabled: true,
+      formatter: function(){
+        if (this.y == null) return null;
+        return this.series.name + ': ' + rupiahHC(this.y);
+      },
+      style: {
+        fontSize: '10px',
+        fontWeight: '600',
+        textOutline: 'none'
+      }
+    }
   }
 },
 
