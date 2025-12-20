@@ -125,6 +125,7 @@ if (!function_exists('nav_class')) {
         'admin_voucher_cafe*','admin_voucher_kursi_pijat*','admin_ps*','admin_voucher_ps*',
         'admin_monitor*', // NEW: Monitor TV Billiard
         'admin_voucher_billiard*', // <-- ADD INI
+        'admin_produk/statistik_produk*',
       ];
 
 
@@ -233,6 +234,7 @@ if (!function_exists('nav_class')) {
 
     $showMaster    =
     user_can_mod(['admin_produk']) ||
+     user_can_mod(['produk/statistik_produk']) ||  // ✅ ADD INI
     user_can_mod(['admin_kategori_produk']) ||
     user_can_mod(['admin_kurir']) ||
     user_can_mod(['admin_unit_lain']) ||
@@ -414,6 +416,11 @@ if (!function_exists('nav_class')) {
         <span class="emoji" aria-hidden="true">📦</span><span>Produk</span>
       </a>
     <?php endif; ?>
+    <?php if (user_can_mod(['produk/statistik_produk'])): ?>
+      <a id="quick-statistik-produk-link" href="<?= site_url('produk/statistik_produk') ?>" class="menu-item">
+        <span class="emoji" aria-hidden="true">📈</span><span>Statistik Produk</span>
+      </a>
+    <?php endif; ?>
 
     <?php if (user_can_mod(['admin_kategori_produk'])): ?>
       <a id="quick-kategori-link" href="<?= site_url('admin_kategori_produk') ?>" class="menu-item">
@@ -541,6 +548,8 @@ if (!function_exists('nav_class')) {
   admin_kursi_pijat:         { a: document.getElementById("quick-kursi-pijat-link") },          // <-- NEW
   admin_voucher_kursi_pijat: { a: document.getElementById("quick-voucher-kursi-pijat-link") }, // <-- NEW
   admin_voucher_billiard: { a: document.getElementById("quick-voucher-billiard-link") }, // <-- ADD
+  statistik_produk: { a: document.getElementById("quick-statistik-produk-link") }, // ✅ NEW
+
 
 };
 

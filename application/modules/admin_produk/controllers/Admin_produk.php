@@ -31,6 +31,93 @@ class Admin_produk extends Admin_Controller {
         $this->render($data);
     }
 
+    public function statistik_produk(){
+    $data["controller"] = get_class($this);
+    $data["title"]      = "Statistik Produk";
+    $data["subtitle"]   = $this->om->engine_nama_menu(get_class($this));
+
+    // =======================
+    // QUERY DATA (kolom terlaris)
+    // =======================
+    $topLimit  = 100;
+    $gridLimit = 100;
+
+    // total produk aktif
+    $total_aktif = (int)$this->db->where('is_active', 1)->count_all_results('produk');
+
+    // total terjual (sum terlaris) untuk produk aktif
+    $rowTotal = $this->db->select('COALESCE(SUM(terlaris),0) AS total', false)
+        ->from('produk')
+        ->where('is_active', 1)
+        ->get()->row();
+    $total_terlaris = (int)($rowTotal->total ?? 0);
+
+    // count produk yang pernah terjual (terlaris > 0)
+    $rowCount = $this->db->select('COUNT(*) AS cnt', false)
+        ->from('produk')
+        ->where('is_active', 1)
+        ->where('terlaris >', 0)
+        ->get()->row();
+    $count_terjual = (int)($rowCount->cnt ?? 0);
+
+    // Top list (untuk chart & grid)
+    $rows = $this->db->select('id, nama, terlaris, stok, harga', false)
+        ->from('produk')
+        ->where('is_active', 1)
+        ->where('terlaris >', 0)
+        ->order_by('terlaris', 'DESC')
+        ->limit($gridLimit)
+        ->get()->result_array();
+
+    $top10 = array_slice($rows, 0, $topLimit);
+
+    // KPI Top 1
+    $top1_name = $top10[0]['nama'] ?? '—';
+    $top1_val  = (int)($top10[0]['terlaris'] ?? 0);
+    $top1_pct  = ($total_terlaris > 0) ? round(($top1_val / $total_terlaris) * 100, 1) : 0;
+
+    // rata-rata terjual per produk (yang terjual)
+    $avg_terjual = ($count_terjual > 0) ? round($total_terlaris / $count_terjual, 2) : 0;
+
+    // Data Chart (kategori & nilai)
+    $chart_categories = array_map(function($r){
+        return mb_strimwidth((string)$r['nama'], 0, 22, '…', 'UTF-8'); // biar label ga kepanjangan
+    }, $top10);
+    $chart_values = array_map(function($r){
+        return (int)$r['terlaris'];
+    }, $top10);
+
+    // Data Grid (firstRowAsNames = true)
+    $gridData = [];
+    $gridData[] = ['ID','Produk','Terlaris','Stok','Harga'];
+    foreach ($rows as $r){
+        $gridData[] = [
+            (int)$r['id'],
+            (string)$r['nama'],
+            (int)$r['terlaris'],
+            (int)$r['stok'],
+            (float)$r['harga'],
+        ];
+    }
+
+    // lempar ke view
+    $data['kpi_total_terlaris'] = $total_terlaris;
+    $data['kpi_total_aktif']    = $total_aktif;
+    $data['kpi_count_terjual']  = $count_terjual;
+    $data['kpi_avg_terjual']    = $avg_terjual;
+    $data['kpi_top1_name']      = $top1_name;
+    $data['kpi_top1_val']       = $top1_val;
+    $data['kpi_top1_pct']       = $top1_pct;
+
+    $data['chart_categories']   = $chart_categories;
+    $data['chart_values']       = $chart_values;
+    $data['gridData']           = $gridData;
+
+    $data["content"] = $this->load->view("Statistik_view",$data,true);
+    $this->render($data);
+}
+
+
         /**
      * Helper: toggle semua produk di 1 kategori (berdasarkan nama kategori).
      * - Kalau ada yang is_active=1 -> set semua jadi 0 (nonaktif)

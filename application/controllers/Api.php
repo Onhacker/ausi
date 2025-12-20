@@ -28,11 +28,24 @@ class Api extends MX_Controller {
             'require' => ['Statistik','dashboard','admin_laporan/chart'],
         ],
         [
-            'label'   => 'Produk',
-            'url'     => site_url('admin_produk'),
-            'icon'    => 'mdi mdi-package-variant-closed',
-            'require' => ['Produk','admin_produk'],
+            'label'    => 'Produk',
+            'icon'     => 'mdi mdi-package-variant-closed',
+            'children' => [
+                [
+                    'label'   => 'Semua Produk',
+                    'url'     => site_url('admin_produk'),
+                    'icon'    => 'mdi mdi-package-variant-closed',
+                    'require' => ['Produk','admin_produk'],
+                ],
+                [
+                    'label'   => 'Statistik Produk',
+                    'url'     => site_url('admin_produk/statistik_produk'),
+                    'icon'    => 'mdi mdi-chart-bar',
+                    'require' => ['Statistik Produk','admin_produk/statistik_produk','user'],
+                ],
+            ],
         ],
+
     ];
 
     // ====== POS ======
@@ -321,11 +334,20 @@ public function get_menu_mobile()
         // ===== Produk / Master barang =====
         [
             'id'      => 'admin_produk',
-            'label'   => 'Produk',
+            'label'   => 'Semua Produk',
             'url'     => site_url('admin_produk'),
             'icon'    => 'mdi mdi-package-variant-closed',
             'require' => ['Produk','admin_produk'],
         ],
+        [
+            'id'      => 'statistik_produk',
+            'label'   => 'Statistik Produk',
+            'url'     => site_url('admin_produk/statistik_produk'),
+            'icon'    => 'mdi mdi-chart-bar',
+            'require' => ['Statistik Produk','admin_produk/statistik_produk','user'],
+        ],
+
+
         [
             'id'      => 'admin_kategori_produk',
             'label'   => 'Kategori Produk',
