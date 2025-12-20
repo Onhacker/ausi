@@ -85,32 +85,6 @@ $pm_raw = trim((string)($order->paid_method ?? ''));
 $s = strtolower($pm_raw);
 $tokens = [];
 
-// ==== QRIS BARCODE (tampil hanya jika qris + verifikasi) ====
-$is_verifikasi = ($status === 'verifikasi');
-
-// deteksi qris lebih ketat (berdasarkan tokens)
-$is_qris = in_array('qris', $tokens, true);
-
-// cari file barcode (utama: order_1675.png)
-$qris_rel = '';
-$qris_abs = '';
-
-if ($is_qris && $is_verifikasi) {
-  $cands = [
-    'uploads/qris/order_' . $idForPrint . '.png', // contoh: order_1675.png
-    'uploads/qris/' . $idForPrint . '.png',       // fallback kalau ternyata tanpa prefix
-  ];
-  foreach ($cands as $rel) {
-    $abs = FCPATH . ltrim($rel, '/');
-    if (is_file($abs)) { $qris_rel = $rel; $qris_abs = $abs; break; }
-  }
-}
-
-$show_qris_barcode = ($qris_rel !== '');
-$qris_src = $show_qris_barcode
-  ? base_url($qris_rel) . '?v=' . @filemtime($qris_abs)
-  : '';
-
 
 // dukung JSON string/array
 if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
@@ -125,6 +99,32 @@ if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
 if (!$tokens) {
   $tokens = preg_split('/[\s,\/\+\|\-]+/', $s, -1, PREG_SPLIT_NO_EMPTY);
 }
+// ==== QRIS BARCODE (tampil hanya jika qris + verifikasi) ====
+$is_verifikasi = ($status === 'verifikasi');
+
+// deteksi qris (setelah tokens terbentuk)
+$is_qris = in_array('qris', $tokens, true) || (strpos($s, 'qris') !== false);
+
+// cari file barcode (utama: assets/uploads/qris/order_1675.png)
+$qris_rel = '';
+$qris_abs = '';
+
+if ($is_qris && $is_verifikasi) {
+  $cands = [
+    'assets/uploads/qris/order_' . $idForPrint . '.png', // sesuai permintaan
+    'assets/uploads/qris/' . $idForPrint . '.png',       // fallback
+  ];
+
+  foreach ($cands as $rel) {
+    $abs = FCPATH . ltrim($rel, '/');
+    if (is_file($abs)) { $qris_rel = $rel; $qris_abs = $abs; break; }
+  }
+}
+
+$show_qris_barcode = ($qris_rel !== '');
+$qris_src = $show_qris_barcode
+  ? base_url($qris_rel) . '?v=' . @filemtime($qris_abs)
+  : '';
 
 $cashSyn  = ['cash','tunai','cod','bayar_ditempat','bayarditempat'];
 $digSyn   = ['transfer','tf','bank','qris','qr','qr-code','gopay','ovo','dana','shopeepay','mbanking','va','virtualaccount'];
