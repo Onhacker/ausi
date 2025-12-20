@@ -331,22 +331,23 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
                 </div>
               </td>
             </tr>
-            <?php if ($show_qris_barcode): ?>
+           <?php if ($show_qris_barcode): ?>
             <tr>
               <th>QRIS</th>
               <td>
                 <div class="small text-muted mb-1">Scan untuk pembayaran:</div>
 
-                <div class="d-flex flex-wrap align-items-center" style="gap:10px;">
+                <div class="d-flex flex-wrap align-items-start" style="gap:10px;">
                   <img src="<?= htmlspecialchars($qris_src, ENT_QUOTES, 'UTF-8'); ?>"
                        alt="Barcode QRIS"
                        class="qris-img">
 
-                  <div class="d-flex flex-column" style="gap:6px;">
+                  <!-- tombol kiri-kanan -->
+                  <div class="d-flex flex-wrap align-items-center" style="gap:8px;">
                     <a class="btn btn-xs btn-success"
                        href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
                        download="<?= htmlspecialchars($qris_download_name, ENT_QUOTES, 'UTF-8'); ?>">
-                      <i class="fe-download"></i> Download QRIS
+                      <i class="fe-download"></i> Download
                     </a>
 
                     <a class="btn btn-xs btn-outline-secondary"
@@ -359,6 +360,7 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
               </td>
             </tr>
           <?php endif; ?>
+
 
 
             <tr id="rowKurir" <?= $hasKurir ? '' : 'style="display:none"' ?>>
