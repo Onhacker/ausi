@@ -85,6 +85,33 @@ $pm_raw = trim((string)($order->paid_method ?? ''));
 $s = strtolower($pm_raw);
 $tokens = [];
 
+// ==== QRIS BARCODE (tampil hanya jika qris + verifikasi) ====
+$is_verifikasi = ($status === 'verifikasi');
+
+// deteksi qris lebih ketat (berdasarkan tokens)
+$is_qris = in_array('qris', $tokens, true);
+
+// cari file barcode (utama: order_1675.png)
+$qris_rel = '';
+$qris_abs = '';
+
+if ($is_qris && $is_verifikasi) {
+  $cands = [
+    'assets/uploads/qris/order_' . $idForPrint . '.png', // contoh: order_1675.png
+    'assets/uploads/qris/' . $idForPrint . '.png',       // fallback kalau ternyata tanpa prefix
+  ];
+  foreach ($cands as $rel) {
+    $abs = FCPATH . ltrim($rel, '/');
+    if (is_file($abs)) { $qris_rel = $rel; $qris_abs = $abs; break; }
+  }
+}
+
+$show_qris_barcode = ($qris_rel !== '');
+$qris_src = $show_qris_barcode
+  ? base_url($qris_rel) . '?v=' . @filemtime($qris_abs)
+  : '';
+
+
 // dukung JSON string/array
 if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
   $tmp = json_decode($pm_raw, true);
@@ -236,6 +263,15 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
     border:3px solid rgba(34,197,94,.35); border-top-color:#16a34a; animation:spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .qris-img{
+    max-width:220px;
+    height:auto;
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.06);
+    padding:6px;
+  }
+
 </style>
 
 <div class="card-order">
@@ -293,6 +329,17 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
                 </div>
               </td>
             </tr>
+            <?php if ($show_qris_barcode): ?>
+              <tr>
+                <th>QRIS</th>
+                <td>
+                  <div class="small text-muted mb-1">Scan untuk verifikasi pembayaran:</div>
+                  <img src="<?= htmlspecialchars($qris_src, ENT_QUOTES, 'UTF-8'); ?>"
+                  alt="Barcode QRIS"
+                  class="qris-img">
+                </td>
+              </tr>
+            <?php endif; ?>
 
             <tr id="rowKurir" <?= $hasKurir ? '' : 'style="display:none"' ?>>
               <th>Kurir</th>
