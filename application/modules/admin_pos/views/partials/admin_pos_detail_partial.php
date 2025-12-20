@@ -111,8 +111,8 @@ $qris_abs = '';
 
 if ($is_qris && $is_verifikasi) {
   $cands = [
-    'assets/uploads/qris/order_' . $idForPrint . '.png', // sesuai permintaan
-    'assets/uploads/qris/' . $idForPrint . '.png',       // fallback
+    'uploads/qris/order_' . $idForPrint . '.png', // sesuai permintaan
+    'uploads/qris/' . $idForPrint . '.png',       // fallback
   ];
 
   foreach ($cands as $rel) {
