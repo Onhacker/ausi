@@ -97,8 +97,8 @@ $qris_abs = '';
 
 if ($is_qris && $is_verifikasi) {
   $cands = [
-    'assets/uploads/qris/order_' . $idForPrint . '.png', // contoh: order_1675.png
-    'assets/uploads/qris/' . $idForPrint . '.png',       // fallback kalau ternyata tanpa prefix
+    'uploads/qris/order_' . $idForPrint . '.png', // contoh: order_1675.png
+    'uploads/qris/' . $idForPrint . '.png',       // fallback kalau ternyata tanpa prefix
   ];
   foreach ($cands as $rel) {
     $abs = FCPATH . ltrim($rel, '/');
