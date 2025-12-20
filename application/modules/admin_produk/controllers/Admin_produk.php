@@ -43,19 +43,19 @@ class Admin_produk extends Admin_Controller {
     $gridLimit = 100;
 
     // total produk aktif
-    $total_aktif = (int)$this->db->where('is_active', 1)->count_all_results('produk');
+    // $total_aktif = (int)$this->db->where('is_active', 1)->count_all_results('produk');
 
     // total terjual (sum terlaris) untuk produk aktif
     $rowTotal = $this->db->select('COALESCE(SUM(terlaris),0) AS total', false)
         ->from('produk')
-        ->where('is_active', 1)
+        // ->where('is_active', 1)
         ->get()->row();
     $total_terlaris = (int)($rowTotal->total ?? 0);
 
     // count produk yang pernah terjual (terlaris > 0)
     $rowCount = $this->db->select('COUNT(*) AS cnt', false)
         ->from('produk')
-        ->where('is_active', 1)
+        // ->where('is_active', 1)
         ->where('terlaris >', 0)
         ->get()->row();
     $count_terjual = (int)($rowCount->cnt ?? 0);
@@ -63,7 +63,7 @@ class Admin_produk extends Admin_Controller {
     // Top list (untuk chart & grid)
     $rows = $this->db->select('id, nama, terlaris, stok, harga', false)
         ->from('produk')
-        ->where('is_active', 1)
+        // ->where('is_active', 1)
         ->where('terlaris >', 0)
         ->order_by('terlaris', 'DESC')
         ->limit($gridLimit)
