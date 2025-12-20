@@ -1,133 +1,158 @@
+<!-- ================== (OPSIONAL) CSS DASHBOARDS (boleh taruh di <head>) ================== -->
+<link rel="stylesheet" href="https://code.highcharts.com/css/highcharts.css">
+<link rel="stylesheet" href="https://code.highcharts.com/dashboards/css/dashboards.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highcharts/grid-pro/css/grid-pro.css">
+
 <style>
-  .chart-header-card .mini-label {
-    font-size:11px;
-    line-height:1.4;
-    color:#6c757d;
+  /* Colors */
+  :root{
+    --highcharts-dashboards-green:#20d17e;
+    --highcharts-dashboards-orange:#feaa61;
+    --highcharts-dashboards-green-transparent:#20d17e30;
   }
-  .chart-header-card h6 {
-    font-size:13px;
+
+  /* Wrapper */
+  .highcharts-dashboards,
+  .highcharts-dashboards-wrapper{
+    background-color: var(--highcharts-neutral-color-3);
+  }
+
+  /* Override warna series (yang lain tetap dari highcharts.css) */
+  .highcharts-color-0{ stroke: var(--highcharts-dashboards-green); fill: var(--highcharts-dashboards-green); }
+  .highcharts-color-1{ stroke: var(--highcharts-dashboards-orange); fill: var(--highcharts-dashboards-orange); }
+
+  /* Rows & cells (kartu) */
+  .highcharts-dashboards-row#row-1{
+    border-radius:20px;
+    padding:10px;
+  }
+  .highcharts-dashboards-cell > .highcharts-dashboards-component{
+    background-color: var(--highcharts-background-color);
+    border-radius:20px;
+    padding:10px;
+    text-align:left;
+  }
+
+  /* Title/subtitle/value KPI */
+  .highcharts-dashboards-component-title{
+    padding-left:10px;
+    font-size:.8rem;
+    font-weight:100;
+  }
+  .highcharts-dashboards-component-subtitle{
+    font-size:.8rem;
+    font-weight:100;
+    padding-left:20px;
+    color: var(--highcharts-dashboards-green);
+  }
+  .highcharts-dashboards-component-kpi-value{
+    padding-left:20px;
+    font-weight:bold;
+  }
+
+  /* Grid theme */
+  .hcg-custom-theme{
+    --hcg-padding:10px;
+    --hcg-row-border-width:1px;
+    --hcg-header-background:transparent;
+  }
+
+  /* HTML cell (filter) */
+  #btn-open-filter{
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    background-color: var(--highcharts-dashboards-orange);
+    cursor:pointer;
+    color:#1f1f1f;
     font-weight:600;
-    color:#222;
-    margin-bottom:.25rem;
+  }
+  .dh-mini{
+    font-size:12px;
+    line-height:1.4;
+    color: var(--highcharts-neutral-color-80);
+    padding-left: 10px;
+    margin: 2px 0;
+    word-break: break-word;
+  }
+  .dh-title{
+    padding-left:10px;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 6px 0;
   }
 
-  /* ==== Style tabel data Highcharts (untuk "View data table") ==== */
-  .highcharts-data-table table {
-    font-family: Verdana, sans-serif;
-    border-collapse: collapse;
-    border: 1px solid var(--highcharts-neutral-color-10, #e6e6e6);
-    margin: 10px auto;
-    text-align: center;
-    width: 100%;
-    max-width: 500px;
-  }
+  /* Gradient area (laba) */
+  #gradient-0 stop{ stop-color: var(--highcharts-dashboards-green); }
+  #gradient-0 stop[offset="0"]{ stop-opacity:.75; }
+  #gradient-0 stop[offset="1"]{ stop-opacity:0; }
 
-  .highcharts-data-table caption {
-    padding: 1em 0;
-    font-size: 1.2em;
-    color: var(--highcharts-neutral-color-60, #666);
-  }
+  /* Heights & responsive cells */
+  #dashboard-row-1-cell-1,
+  #dashboard-row-1-cell-2,
+  #dashboard-row-1-cell-3{ height:160px; }
 
-  .highcharts-data-table th {
-    font-weight: 600;
-    padding: 0.5em;
-  }
+  #dashboard-row-2-cell-1{ height:360px; }
 
-  .highcharts-data-table td,
-  .highcharts-data-table th,
-  .highcharts-data-table caption {
-    padding: 0.5em;
-  }
+  #dashboard-row-3-cell-1,
+  #dashboard-row-3-cell-2,
+  #dashboard-row-3-cell-3{ height:260px; }
 
-  .highcharts-data-table thead tr,
-  .highcharts-data-table tbody tr:nth-child(even) {
-    background: var(--highcharts-neutral-color-3, #f7f7f7);
+  #dashboard-row-3-cell-1,
+  #dashboard-row-3-cell-2{ flex:1 1 20%; }
+  #dashboard-row-3-cell-3{ flex:1 1 60%; }
+
+  /* LARGE */
+  @media (max-width:1200px){
+    #dashboard-row-1-cell-1,
+    #dashboard-row-1-cell-2,
+    #dashboard-row-1-cell-3{ flex:1 1 33.333%; }
+
+    #dashboard-row-3-cell-1,
+    #dashboard-row-3-cell-2{ flex:1 1 20%; }
+    #dashboard-row-3-cell-3{ flex:1 1 60%; }
+  }
+  /* MEDIUM */
+  @media (max-width:992px){
+    #dashboard-row-1-cell-1,
+    #dashboard-row-1-cell-2,
+    #dashboard-row-1-cell-3{ flex:1 1 50%; }
+
+    #dashboard-row-3-cell-1,
+    #dashboard-row-3-cell-2{ flex:1 1 50%; }
+    #dashboard-row-3-cell-3{ flex:1 1 100%; }
+  }
+  /* SMALL */
+  @media (max-width:576px){
+    #dashboard-row-1-cell-1,
+    #dashboard-row-1-cell-2,
+    #dashboard-row-1-cell-3{ flex:1 1 100%; }
+
+    #dashboard-row-3-cell-1,
+    #dashboard-row-3-cell-2,
+    #dashboard-row-3-cell-3{ flex:1 1 100%; }
   }
 </style>
 
 <div class="container-fluid">
-  <div class="row"><div class="col-12">
-    <div class="page-title-box">
-      <div class="page-title-right">
-        <ol class="breadcrumb m-0">
-          <li class="breadcrumb-item active"><?= $subtitle; ?></li>
-        </ol>
-      </div>
-      <h4 class="page-title"><?= $title; ?></h4>
-      <!-- <div class="text-muted small">Grafik harian Cafe, Billiard, Pengeluaran, dan Laba</div> -->
-    </div>
-  </div></div>
-
-  <!-- HEADER FILTER STATUS + BUTTON -->
-  <style>
-    .chart-header-card .mini-label {
-      font-size:11px;
-      line-height:1.4;
-      color:#6c757d;
-    }
-    .chart-header-card h6 {
-      font-size:13px;
-      font-weight:600;
-      color:#222;
-      margin-bottom:.25rem;
-    }
-  </style>
-
-  <div class="card mb-3 chart-header-card">
-    <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-between align-items-start">
-        <div class="mb-2" style="min-width:230px;max-width:100%;">
-          <h6 class="mb-1">Filter Aktif</h6>
-          <div class="mini-label text-dark" id="infoRange">-</div>
-          <div class="mini-label text-dark" id="infoTotal">-</div>
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <div class="page-title-right">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item active"><?= $subtitle; ?></li>
+          </ol>
         </div>
-
-        <div class="btn-wrap text-right">
-          <button type="button" class="btn btn-blue btn-sm mb-1" id="btn-open-filter">
-            <i class="fe-settings"></i> Setel Waktu
-          </button>
-        </div>
+        <h4 class="page-title"><?= $title; ?></h4>
       </div>
     </div>
   </div>
 
-  <!-- ================== CHART AREA ================== -->
-  <div class="row" id="chart-area">
-    <div class="col-12 mb-4">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title mb-1">Pendapatan Harian</h5>
-          <div class="text-muted small mb-2">Cafe vs Billiard (Rp)</div>
-          <div id="chartPendapatan" style="width:100%; height:360px;"></div>
-        </div>
-      </div>
-    </div>
+  <!-- DASHBOARDS CONTAINER -->
+  <div id="dash_container"></div>
+</div>
 
-    <div class="col-lg-6 mb-4">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title mb-1">Pengeluaran Harian</h5>
-          <div class="text-muted small mb-2">Total biaya keluar per hari (Rp)</div>
-          <div id="chartPengeluaran" style="width:100%; height:320px;"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-6 mb-4">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title mb-1">Laba Harian</h5>
-          <div class="text-muted small mb-2">(Cafe + Billiard + Kursi Pijat + PS - Pengeluaran)</div>
-
-          <div id="chartLaba" style="width:100%; height:320px;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div><!-- /.container-fluid -->
-
-
-<!-- ================== MODAL FILTER ================== -->
+<!-- ================== MODAL FILTER (tetap kamu pakai) ================== -->
 <div class="modal fade" id="filterModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -140,7 +165,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- Kita pakai row sama seperti versi sebelumnya tapi SEKARANG DI MODAL -->
         <div class="form-row">
 
           <div class="form-group col-md-4">
@@ -149,29 +173,22 @@
               <option value="today">Hari ini</option>
               <option value="yesterday">Kemarin</option>
               <option value="this_week">Minggu ini</option>
-              <option value="this_month" selected>Bulan ini</option> <!-- default -->
+              <option value="this_month" selected>Bulan ini</option>
               <option value="range">Rentang Tanggal</option>
             </select>
-
-            <small class="text-muted" style="font-size:11px">
-              Pilih preset cepat atau pakai Rentang Tanggal.
-            </small>
+            <small class="text-muted" style="font-size:11px">Pilih preset cepat atau pakai Rentang Tanggal.</small>
           </div>
 
           <div class="form-group col-md-4">
             <label class="mb-1" for="dt_from">Dari (Tanggal & Jam)</label>
             <input type="datetime-local" id="dt_from" class="form-control form-control-sm">
-            <small class="text-muted" style="font-size:11px">
-              Contoh: 2025-10-31 19:00
-            </small>
+            <small class="text-muted" style="font-size:11px">Contoh: 2025-10-31 19:00</small>
           </div>
 
           <div class="form-group col-md-4">
             <label class="mb-1" for="dt_to">Sampai (Tanggal & Jam)</label>
             <input type="datetime-local" id="dt_to" class="form-control form-control-sm">
-            <small class="text-muted" style="font-size:11px">
-              Contoh: 2025-11-01 03:00
-            </small>
+            <small class="text-muted" style="font-size:11px">Contoh: 2025-11-01 03:00</small>
           </div>
 
           <div class="form-group col-md-6">
@@ -194,14 +211,12 @@
             </select>
           </div>
 
-        </div><!-- /.form-row -->
-      </div><!-- /.modal-body -->
+        </div>
+      </div>
 
       <div class="modal-footer d-flex flex-wrap justify-content-between">
         <div class="mb-2">
-          <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
-            Batal
-          </button>
+          <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Batal</button>
         </div>
         <div class="btn-wrap text-right">
           <button type="button" class="btn btn-warning btn-sm" id="btn-reset">
@@ -217,108 +232,19 @@
   </div>
 </div>
 
+<!-- ================== SCRIPTS (sesuai yang kamu minta) ================== -->
+<script src="https://cdn.jsdelivr.net/npm/@highcharts/grid-pro/grid-pro.js"></script>
 
-<!-- Highcharts assets -->
-<script>
-  // ==== Plugin animasi garis + sumbu ala demo Highcharts ====
-  (function (H) {
-    const animateSVGPath = (svgElem, animation, callback = void 0) => {
-      if (!svgElem || !svgElem.element || !svgElem.element.getTotalLength) {
-        return;
-      }
-      const length = svgElem.element.getTotalLength();
-      svgElem.attr({
-        'stroke-dasharray': length,
-        'stroke-dashoffset': length,
-        opacity: 1
-      });
-      svgElem.animate({
-        'stroke-dashoffset': 0
-      }, animation, callback);
-    };
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
-    // Override animasi untuk series line (dan turunan)
-    if (H.seriesTypes.line) {
-      const protoLine = H.seriesTypes.line.prototype;
-      const baseAnimate = protoLine.animate;
-
-      protoLine.animate = function (init) {
-        const series = this;
-        const animation = H.animObject(
-          series.options.animation || series.chart.renderer.globalAnimation
-        );
-
-        if (!init && series.graph) {
-          // animasi path garis
-          animateSVGPath(series.graph, animation);
-        } else if (baseAnimate) {
-          baseAnimate.apply(series, arguments);
-        }
-      };
-    }
-
-    // Pastikan spline juga pakai animasi yang sama
-    if (H.seriesTypes.spline && H.seriesTypes.line) {
-      H.seriesTypes.spline.prototype.animate = H.seriesTypes.line.prototype.animate;
-    }
-
-    // Animasi axis + label axis + plotLines
-    H.addEvent(H.Axis, 'afterRender', function () {
-      const axis = this;
-      const chart = axis.chart;
-      const animation = H.animObject(chart.renderer.globalAnimation);
-
-      if (axis.axisGroup) {
-        axis.axisGroup
-          .attr({ opacity: 0, rotation: -3, scaleY: 0.9 })
-          .animate({ opacity: 1, rotation: 0, scaleY: 1 }, animation);
-      }
-
-      if (axis.labelGroup) {
-        if (axis.horiz) {
-          axis.labelGroup
-            .attr({ opacity: 0, rotation: 3, scaleY: 0.5 })
-            .animate({ opacity: 1, rotation: 0, scaleY: 1 }, animation);
-        } else {
-          axis.labelGroup
-            .attr({ opacity: 0, rotation: 3, scaleX: -0.5 })
-            .animate({ opacity: 1, rotation: 0, scaleX: 1 }, animation);
-        }
-      }
-
-      if (axis.plotLinesAndBands) {
-        axis.plotLinesAndBands.forEach(function (plotLine) {
-          if (!plotLine.svgElem || !plotLine.label) {
-            return;
-          }
-
-          const plAnim = H.animObject(
-            (plotLine.options && plotLine.options.animation) || animation
-          );
-
-          // label muncul setelah garis selesai di-draw
-          plotLine.label.attr({ opacity: 0 });
-
-          animateSVGPath(
-            plotLine.svgElem,
-            plAnim,
-            function () {
-              plotLine.label.animate({ opacity: 1 }, plAnim);
-            }
-          );
-        });
-      }
-    });
-  });
-</script>
-
-<script src="<?= base_url('/assets/admin/chart/highcharts.js'); ?>"></script>
-<script src="<?= base_url('/assets/admin/chart/exporting.js'); ?>"></script>
-<script src="<?= base_url('/assets/admin/chart/export-data.js'); ?>"></script>
-<script src="<?= base_url('/assets/admin/chart/accessibility.js'); ?>"></script>
+<script src="https://code.highcharts.com/dashboards/dashboards.js"></script>
+<script src="https://code.highcharts.com/dashboards/modules/layout.js"></script>
 
 <script>
-  // Nama bulan Indonesia
+/* ================== UTIL FORMAT TANGGAL ================== */
 /**
  * Ubah string tanggal → "dd-mm-yyyy"
  * Menerima:
@@ -329,55 +255,50 @@
 function fmtTanggalIndo(input){
   if (!input) return '-';
   const str = String(input).trim();
-
-  // ambil 3 komponen pertama "YYYY-MM-DD" di depan
   const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (!m) return str; // fallback apa adanya kalau tidak cocok
-
+  if (!m) return str;
   const y  = m[1];
   const mo = ('0' + m[2]).slice(-2);
   const d  = ('0' + m[3]).slice(-2);
-
-  return d + '-' + mo + '-' + y; // dd-mm-yyyy
+  return d + '-' + mo + '-' + y;
 }
 
 /**
  * Gabung tanggal + jam → "dd-mm-yyyy HH:MM"
- * - dateStr boleh "YYYY-MM-DD" / "YYYY-MM-DD HH:MM"
- * - timeStr boleh "HH:MM" / "HH:MM:SS" (ambil HH:MM)
  */
 function fmtTanggalWaktuIndo(dateStr, timeStr){
   if (!dateStr) return '-';
-
-  const tgl = fmtTanggalIndo(dateStr); // sudah dd-mm-yyyy
-
+  const tgl = fmtTanggalIndo(dateStr);
   if (!timeStr) return tgl;
-
   const t = String(timeStr).trim();
   const m = t.match(/^(\d{2}):(\d{2})/);
   const jamMenit = m ? (m[1] + ':' + m[2]) : t;
-
   return tgl + ' ' + jamMenit;
 }
 
 (function(){
-
-  /* =========================================================
-   * UTIL TANGGAL/JAM
-   * ========================================================= */
+  /* ================== SETUP GLOBAL HIGHCHARTS (styled mode) ================== */
+  Highcharts.setOptions({
+    chart: { styledMode: true }
+  });
 
   const pad2 = n => String(n).padStart(2,'0');
+  function rupiahNum(n){
+    return 'Rp ' + (parseInt(n||0,10)).toLocaleString('id-ID');
+  }
+  function sumArr(a){
+    if (!Array.isArray(a)) return 0;
+    return a.reduce((s,v)=>s+(parseFloat(v)||0),0);
+  }
 
   function fmtDTLocal(d){
     return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate())
-         + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+      + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
-
   function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0); }
   function endOfDay(d){   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,0); }
   function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
 
-  // Hitung rentang default dari pilihan preset
   function computeRangeDT(preset){
     const now = new Date();
     const today0 = startOfDay(now);
@@ -390,7 +311,6 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       return { from:startOfDay(y), to:endOfDay(y) };
     }
     if (preset === 'this_week'){
-      // cari senin (hari ke-1)
       const dow = today0.getDay(); // 0=Min..6=Sab
       const senin = addDays(today0, -((dow + 6) % 7));
       const minggu = addDays(senin,6);
@@ -402,7 +322,7 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       return { from:awal, to:akhir };
     }
 
-    // 'range' → gunakan nilai input kalau valid, fallback hari ini.
+    // 'range'
     const $df = document.getElementById('dt_from');
     const $dt = document.getElementById('dt_to');
     if ($df.value && $dt.value){
@@ -415,7 +335,6 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     return { from:startOfDay(today0), to:endOfDay(today0) };
   }
 
-  // pasang nilai ke input datetime-local + enable/disable kalau preset bukan range
   function setRangeInputsDT(range, enable){
     const $df = document.getElementById('dt_from');
     const $dt = document.getElementById('dt_to');
@@ -425,7 +344,6 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     $dt.disabled = !enable;
   }
 
-  // jaga supaya dt_to tidak < dt_from
   function normalizeDTInputs(){
     const $df = document.getElementById('dt_from');
     const $dt = document.getElementById('dt_to');
@@ -438,160 +356,385 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     }
   }
 
-  // KONVERSI nilai UI (preset + dt_from/dt_to) ke param lama (_parse_filter() friendly)
   function getParams(){
     const presetSel = document.getElementById('preset').value;
     const r = computeRangeDT(presetSel);
 
-    // kalau preset==range, pakai persis dt_from/dt_to yg user isi
     const pickedFrom = (presetSel==='range') ? new Date(document.getElementById('dt_from').value) : r.from;
     const pickedTo   = (presetSel==='range') ? new Date(document.getElementById('dt_to').value)   : r.to;
 
     let F = isNaN(pickedFrom) ? r.from : pickedFrom;
     let T = isNaN(pickedTo)   ? r.to   : pickedTo;
-    if (T < F) T = new Date(F); // backup
-
-    const date_from = F.getFullYear() + '-' + pad2(F.getMonth()+1) + '-' + pad2(F.getDate());
-    const date_to   = T.getFullYear() + '-' + pad2(T.getMonth()+1) + '-' + pad2(T.getDate());
-    const time_from = pad2(F.getHours()) + ':' + pad2(F.getMinutes());
-    const time_to   = pad2(T.getHours()) + ':' + pad2(T.getMinutes());
+    if (T < F) T = new Date(F);
 
     return {
       preset    : presetSel,
-      date_from : date_from,
-      date_to   : date_to,
-      time_from : time_from,
-      time_to   : time_to,
+      date_from : F.getFullYear() + '-' + pad2(F.getMonth()+1) + '-' + pad2(F.getDate()),
+      date_to   : T.getFullYear() + '-' + pad2(T.getMonth()+1) + '-' + pad2(T.getDate()),
+      time_from : pad2(F.getHours()) + ':' + pad2(F.getMinutes()),
+      time_to   : pad2(T.getHours()) + ':' + pad2(T.getMinutes()),
       metode    : document.getElementById('metode').value || 'all',
       mode      : document.getElementById('mode').value   || 'all'
-      // status tidak kita expose di modal chart → backend akan pakai 'all'
     };
   }
 
-  /* =========================================================
-   * RENDER CHARTS
-   * ========================================================= */
+  /* ================== DASHBOARD BUILDER ================== */
+  let __board = null;
 
-  const infoRangeEl = document.getElementById('infoRange');
-  const infoTotalEl = document.getElementById('infoTotal');
+  function buildRekapRows(res){
+    const cat  = res.categories || [];
+    const cafe = res.cafe || [];
+    const bil  = res.billiard || [];
+    const kp   = res.kursi_pijat || [];
+    const ps   = res.ps || [];
+    const peng = res.pengeluaran || [];
+    const laba = res.laba || [];
 
-  function rupiah(n){
-    return 'Rp ' + (parseInt(n||0,10)).toLocaleString('id-ID');
+    const rows = [];
+    for (let i=0; i<cat.length; i++){
+      const c = parseFloat(cafe[i]) || 0;
+      const b = parseFloat(bil[i])  || 0;
+      const k = parseFloat(kp[i])   || 0;
+      const p = parseFloat(ps[i])   || 0;
+      const e = parseFloat(peng[i]) || 0;
+      const l = parseFloat(laba[i]) || 0;
+      rows.push([
+        fmtTanggalIndo(cat[i]),
+        c, b, k, p, e, l,
+        (c+b+k+p)
+      ]);
+    }
+    return rows;
   }
 
-   function renderCharts(res){
-    // info filter aktif di header kartu atas
-    if (res.filter){
-      const dfID = fmtTanggalWaktuIndo(res.filter.date_from, res.filter.time_from);
-      const dtID = fmtTanggalWaktuIndo(res.filter.date_to,   res.filter.time_to);
+  function computeTotals(res){
+    // kalau backend sudah kirim total_rekap, pakai itu biar konsisten
+    const t = res.total_rekap || {};
+    const out = {
+      cafe: parseFloat(t.cafe)||sumArr(res.cafe),
+      billiard: parseFloat(t.billiard)||sumArr(res.billiard),
+      kursi_pijat: parseFloat(t.kursi_pijat)||sumArr(res.kursi_pijat),
+      ps: parseFloat(t.ps)||sumArr(res.ps),
+      pengeluaran: parseFloat(t.pengeluaran)||sumArr(res.pengeluaran),
+      laba: parseFloat(t.laba)||sumArr(res.laba)
+    };
+    out.total_pendapatan = out.cafe + out.billiard + out.kursi_pijat + out.ps;
+    return out;
+  }
 
-      infoRangeEl.textContent =
-        'Rentang: ' + dfID +
-        ' s/d '     + dtID +
-        ' | Mode: '   + (res.filter.mode   || '-') +
-        ' | Metode: ' + (res.filter.metode || '-') +
-        ' | Status: ' + (res.filter.status || '-');
-    }
+  function infoText(res){
+    const f = res.filter || {};
+    const dfID = fmtTanggalWaktuIndo(f.date_from, f.time_from);
+    const dtID = fmtTanggalWaktuIndo(f.date_to,   f.time_to);
+    return {
+      range: 'Rentang: ' + dfID + ' s/d ' + dtID +
+             ' | Mode: ' + (f.mode||'-') +
+             ' | Metode: ' + (f.metode||'-') +
+             ' | Status: ' + (f.status||'-'),
+    };
+  }
 
-    if (res.total_rekap){
-      infoTotalEl.textContent =
-        'Total Cafe: '+rupiah(res.total_rekap.cafe||0)+
-        ' · Billiard: '+rupiah(res.total_rekap.billiard||0)+
-        ' · Kursi Pijat: '+rupiah(res.total_rekap.kursi_pijat||0)+
-        ' · PS: '+rupiah(res.total_rekap.ps||0)+
-        ' · Pengeluaran: '+rupiah(res.total_rekap.pengeluaran||0)+
-        ' · Laba: '+rupiah(res.total_rekap.laba||0);
-    }
+  async function createDashboard(res){
+    const totals = computeTotals(res);
 
-    const categories      = res.categories    || [];
-    const cafeData        = res.cafe          || [];
-    const billiardData    = res.billiard      || [];
-    const pengeluaranData = res.pengeluaran   || [];
-    const labaData        = res.laba          || [];
-    const kpData          = res.kursi_pijat   || [];
-    const psData          = res.ps            || [];
+    const categories = (res.categories || []).map(fmtTanggalIndo);
+    const cafeData = (res.cafe||[]).map(v=>parseFloat(v)||0);
+    const bilData  = (res.billiard||[]).map(v=>parseFloat(v)||0);
+    const kpData   = (res.kursi_pijat||[]).map(v=>parseFloat(v)||0);
+    const psData   = (res.ps||[]).map(v=>parseFloat(v)||0);
+    const pengData = (res.pengeluaran||[]).map(v=>parseFloat(v)||0);
+    const labaData = (res.laba||[]).map(v=>parseFloat(v)||0);
+    const totalPend = cafeData.map((v,i)=>v+(bilData[i]||0)+(kpData[i]||0)+(psData[i]||0));
 
-    const categoriesLabel = categories.map(function (v) {
-      return fmtTanggalIndo(v);
-    });
+    const it = infoText(res);
 
-    const totalPendapatan = cafeData.map(function(v,i){
-      const vb = (typeof billiardData[i] !== 'undefined') ? billiardData[i] : 0;
-      const vk = (typeof kpData[i]      !== 'undefined') ? kpData[i]      : 0;
-      const vp = (typeof psData[i]      !== 'undefined') ? psData[i]      : 0;
-      return v + vb + vk + vp;
-    });
-
-    Highcharts.chart('chartPendapatan', {
-      chart: { type: 'spline' },
-      title: { text: null },
-      xAxis: { categories: categoriesLabel, crosshair:true },
-      yAxis: {
-        min: 0,
-        title: { text: 'Rupiah (Rp)' }
+    __board = await Dashboards.board('dash_container', {
+      dataPool: {
+        connectors: [{
+          id: 'rekap',
+          type: 'JSON',
+          firstRowAsNames: false,
+          columnIds: ['Tanggal','Cafe','Billiard','KursiPijat','PS','Pengeluaran','Laba','TotalPendapatan'],
+          data: buildRekapRows(res)
+        }]
       },
-      tooltip: {
-        shared: true,
-        valueDecimals: 0,
-        valuePrefix: 'Rp '
+      gui: {
+        layouts: [{
+          rows: [{
+            id: 'row-1',
+            cells: [
+              { id: 'dashboard-row-1-cell-1' },
+              { id: 'dashboard-row-1-cell-2' },
+              { id: 'dashboard-row-1-cell-3' }
+            ]
+          }, {
+            cells: [{ id: 'dashboard-row-2-cell-1' }]
+          }, {
+            cells: [
+              { id: 'dashboard-row-3-cell-1' },
+              { id: 'dashboard-row-3-cell-2' },
+              { id: 'dashboard-row-3-cell-3' }
+            ]
+          }]
+        }]
       },
-      credits: { enabled: false },
-      exporting: { enabled: true },
-      plotOptions: {
-        series: {
-          animation: { duration: 1000 },
-          marker: { enabled: false },
-          lineWidth: 2
+      components: [
+        /* KPI #1: Total Cafe */
+        {
+          id: 'kpi_cafe',
+          type: 'KPI',
+          renderTo: 'dashboard-row-1-cell-1',
+          title: 'Total Cafe',
+          value: totals.cafe,
+          subtitle: 'POS Cafe',
+          linkedValueTo: { enabled:false },
+          valueFormatter: function(){ return rupiahNum(this.options.value); },
+          chartOptions: {
+            chart: { styledMode:true },
+            series: [{
+              type:'spline',
+              enableMouseTracking:false,
+              dataLabels:{ enabled:false },
+              marker:{ enabled:false },
+              data: cafeData
+            }]
+          }
+        },
+
+        /* KPI #2: Total Billiard */
+        {
+          id: 'kpi_billiard',
+          type: 'KPI',
+          renderTo: 'dashboard-row-1-cell-2',
+          title: 'Total Billiard',
+          value: totals.billiard,
+          subtitle: 'Billiard',
+          linkedValueTo: { enabled:false },
+          valueFormatter: function(){ return rupiahNum(this.options.value); },
+          chartOptions: {
+            chart: { styledMode:true },
+            series: [{
+              type:'spline',
+              enableMouseTracking:false,
+              dataLabels:{ enabled:false },
+              marker:{ enabled:false },
+              data: bilData
+            }]
+          }
+        },
+
+        /* HTML #3: Filter & tombol */
+        {
+          id: 'html_filter',
+          type: 'HTML',
+          renderTo: 'dashboard-row-1-cell-3',
+          elements: [{
+            tagName: 'div',
+            children: [
+              { tagName:'div', textContent:'Filter Aktif', attributes:{ class:'dh-title' } },
+              { tagName:'div', textContent: it.range, attributes:{ class:'dh-mini', id:'dh_infoRange' } },
+              { tagName:'div', textContent:
+                ('Total Cafe: '+rupiahNum(totals.cafe)+
+                 ' · Billiard: '+rupiahNum(totals.billiard)+
+                 ' · KP: '+rupiahNum(totals.kursi_pijat)+
+                 ' · PS: '+rupiahNum(totals.ps)+
+                 ' · Pengeluaran: '+rupiahNum(totals.pengeluaran)+
+                 ' · Laba: '+rupiahNum(totals.laba)),
+                attributes:{ class:'dh-mini', id:'dh_infoTotal' }
+              },
+              { tagName:'div', attributes:{ style:'padding-left:10px;margin-top:10px;' }, children:[
+                { tagName:'button', textContent:'Setel Waktu', attributes:{ id:'btn-open-filter' } }
+              ]}
+            ]
+          }]
+        },
+
+        /* Chart besar: Pendapatan Harian */
+        {
+          id: 'chart_pendapatan',
+          type: 'Highcharts',
+          renderTo: 'dashboard-row-2-cell-1',
+          title: 'Pendapatan Harian',
+          chartOptions: {
+            chart: { styledMode:true, type:'spline', marginTop: 55 },
+            credits:{ enabled:false },
+            title:{ text:'' },
+            xAxis:{ categories, crosshair:true },
+            yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
+            tooltip:{ shared:true, valuePrefix:'Rp ' },
+            plotOptions:{ series:{ marker:{ enabled:false } } },
+            series: [
+              { name:'Cafe / POS', type:'spline', data: cafeData },
+              { name:'Billiard', type:'spline', data: bilData },
+              { name:'Kursi Pijat', type:'spline', data: kpData },
+              { name:'PlayStation (PS)', type:'spline', data: psData },
+              { name:'Total Pendapatan', type:'spline', data: totalPend }
+            ]
+          }
+        },
+
+        /* KPI: Pengeluaran (spark column) */
+        {
+          id: 'kpi_pengeluaran',
+          type: 'KPI',
+          renderTo: 'dashboard-row-3-cell-1',
+          title: 'Pengeluaran',
+          value: totals.pengeluaran,
+          subtitle: 'Total biaya keluar',
+          linkedValueTo: { enabled:false },
+          valueFormatter: function(){ return rupiahNum(this.options.value); },
+          chartOptions: {
+            chart: { styledMode:true },
+            series: [{
+              type:'column',
+              enableMouseTracking:false,
+              dataLabels:{ enabled:false },
+              data: pengData
+            }]
+          }
+        },
+
+        /* KPI: Laba (spark area) */
+        {
+          id: 'kpi_laba',
+          type: 'KPI',
+          renderTo: 'dashboard-row-3-cell-2',
+          title: 'Laba',
+          value: totals.laba,
+          subtitle: '(Cafe+Billiard+KP+PS-Pengeluaran)',
+          linkedValueTo: { enabled:false },
+          valueFormatter: function(){ return rupiahNum(this.options.value); },
+          chartOptions: {
+            chart: { styledMode:true },
+            defs: {
+              gradient0: {
+                tagName: 'linearGradient',
+                id: 'gradient-0',
+                x1: 0, y1: 0, x2: 0, y2: 1,
+                children: [
+                  { tagName:'stop', offset: 0 },
+                  { tagName:'stop', offset: 1 }
+                ]
+              }
+            },
+            plotOptions: {
+              series: { marker:{ enabled:false } },
+              areaspline: { fillColor: 'url(#gradient-0)' }
+            },
+            series: [{
+              type:'areaspline',
+              enableMouseTracking:false,
+              dataLabels:{ enabled:false },
+              data: labaData
+            }]
+          }
+        },
+
+        /* Grid: Rekap Harian */
+        {
+          id: 'grid_rekap',
+          renderTo: 'dashboard-row-3-cell-3',
+          connector: { id: 'rekap' },
+          title: 'Rekap Harian',
+          type: 'Grid',
+          gridOptions: {
+            credits: { enabled:false },
+            rendering: { theme: 'hcg-custom-theme' }
+          }
         }
-      },
-      series: [
-        { name: 'Cafe / POS',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
-        { name: 'Billiard',               data: billiardData, animation:{ duration:1000, defer: 300 } },
-        { name: 'Kursi Pijat',            data: kpData,       animation:{ duration:1000, defer: 600 } },
-        { name: 'PlayStation (PS)',       data: psData,       animation:{ duration:1000, defer: 900 } },
-        { name: 'Total Pendapatan (Cafe+Billiard+KP+PS)',
-          data: totalPendapatan,          animation:{ duration:1000, defer:1200 } }
       ]
+    }, true);
+
+    // simpan global
+    window.__AUSI_DASH_BOARD__ = __board;
+  }
+
+  function updateDashboard(res){
+    if (!__board) return;
+
+    const totals = computeTotals(res);
+    const it = infoText(res);
+
+    // update HTML info
+    const elR = document.getElementById('dh_infoRange');
+    const elT = document.getElementById('dh_infoTotal');
+    if (elR) elR.textContent = it.range;
+    if (elT) elT.textContent =
+      ('Total Cafe: '+rupiahNum(totals.cafe)+
+       ' · Billiard: '+rupiahNum(totals.billiard)+
+       ' · KP: '+rupiahNum(totals.kursi_pijat)+
+       ' · PS: '+rupiahNum(totals.ps)+
+       ' · Pengeluaran: '+rupiahNum(totals.pengeluaran)+
+       ' · Laba: '+rupiahNum(totals.laba));
+
+    const categories = (res.categories || []).map(fmtTanggalIndo);
+    const cafeData = (res.cafe||[]).map(v=>parseFloat(v)||0);
+    const bilData  = (res.billiard||[]).map(v=>parseFloat(v)||0);
+    const kpData   = (res.kursi_pijat||[]).map(v=>parseFloat(v)||0);
+    const psData   = (res.ps||[]).map(v=>parseFloat(v)||0);
+    const pengData = (res.pengeluaran||[]).map(v=>parseFloat(v)||0);
+    const labaData = (res.laba||[]).map(v=>parseFloat(v)||0);
+    const totalPend = cafeData.map((v,i)=>v+(bilData[i]||0)+(kpData[i]||0)+(psData[i]||0));
+
+    // KPI update (value + sparkline)
+    const kpiCafe = __board.getComponentById('kpi_cafe');
+    if (kpiCafe){
+      kpiCafe.update({ value: totals.cafe }, true);
+      if (kpiCafe.chart && kpiCafe.chart.series[0]){
+        kpiCafe.chart.series[0].setData(cafeData, true, false, false);
+      }
+    }
+
+    const kpiBil = __board.getComponentById('kpi_billiard');
+    if (kpiBil){
+      kpiBil.update({ value: totals.billiard }, true);
+      if (kpiBil.chart && kpiBil.chart.series[0]){
+        kpiBil.chart.series[0].setData(bilData, true, false, false);
+      }
+    }
+
+    const kpiPeng = __board.getComponentById('kpi_pengeluaran');
+    if (kpiPeng){
+      kpiPeng.update({ value: totals.pengeluaran }, true);
+      if (kpiPeng.chart && kpiPeng.chart.series[0]){
+        kpiPeng.chart.series[0].setData(pengData, true, false, false);
+      }
+    }
+
+    const kpiLaba = __board.getComponentById('kpi_laba');
+    if (kpiLaba){
+      kpiLaba.update({ value: totals.laba }, true);
+      if (kpiLaba.chart && kpiLaba.chart.series[0]){
+        kpiLaba.chart.series[0].setData(labaData, true, false, false);
+      }
+    }
+
+    // Chart pendapatan update (xAxis + 5 series)
+    const chPend = __board.getComponentById('chart_pendapatan');
+    if (chPend && chPend.chart){
+      const c = chPend.chart;
+      c.xAxis[0].setCategories(categories, false);
+
+      // urutan series harus sama seperti createDashboard()
+      if (c.series[0]) c.series[0].setData(cafeData, false, false, false);
+      if (c.series[1]) c.series[1].setData(bilData,  false, false, false);
+      if (c.series[2]) c.series[2].setData(kpData,   false, false, false);
+      if (c.series[3]) c.series[3].setData(psData,   false, false, false);
+      if (c.series[4]) c.series[4].setData(totalPend,false, false, false);
+
+      c.redraw();
+    }
+
+    // Grid rekap update via connector.load() (lebih aman daripada reload component)
+    __board.dataPool.getConnector('rekap').then(function(connector){
+      connector.options.data = buildRekapRows(res);
+      return connector.load();
+    }).catch(function(e){
+      console.error('Gagal update grid connector', e);
     });
+  }
 
-    Highcharts.chart('chartPengeluaran', {
-      chart:{ type:'column' },
-      title:{ text:null },
-      xAxis:{ categories:categoriesLabel, crosshair:true },
-      yAxis:{ min:0, title:{ text:'Rupiah (Rp)' } },
-      tooltip:{
-        shared:true,
-        valueDecimals:0,
-        valuePrefix:'Rp '
-      },
-      credits:{ enabled:false },
-      exporting:{ enabled:true },
-      series:[
-        { name:'Pengeluaran', data:pengeluaranData }
-      ]
-    });
-
-    Highcharts.chart('chartLaba', {
-      chart:{ type:'area' },
-      title:{ text:null },
-      xAxis:{ categories:categoriesLabel, crosshair:true },
-      yAxis:{ title:{ text:'Rupiah (Rp)' } },
-      tooltip:{
-        shared:true,
-        valueDecimals:0,
-        valuePrefix:'Rp '
-      },
-      credits:{ enabled:false },
-      exporting:{ enabled:true },
-      series:[
-        { name:'Laba (Cafe + Billiard + KP + PS - Pengeluaran)', data:labaData }
-      ]
-    });
-  } // <<< INI yang tadi hilang: tutup renderCharts(res)
-
-
-
-  function loadCharts(cbAfter){
+  function loadChartsAndDashboard(cbAfter){
     const params = getParams();
 
     fetch("<?= site_url('admin_laporan/chart_data'); ?>", {
@@ -601,32 +744,29 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       credentials:'same-origin'
     })
     .then(r=>r.json())
-    .then(res=>{
+    .then(async res=>{
       if (!res || !res.success){
         console.error('chart_data invalid',res);
         return;
       }
-      renderCharts(res);
-
-      if (typeof cbAfter === 'function'){
-        cbAfter();
+      if (!__board){
+        await createDashboard(res);
+      } else {
+        updateDashboard(res);
       }
+      if (typeof cbAfter === 'function') cbAfter();
     })
-    .catch(err=>{
-      console.error('Gagal load chart_data()', err);
-    });
+    .catch(err=>console.error('Gagal load chart_data()', err));
   }
 
-  /* =========================================================
-   * INTERAKSI MODAL
-   * ========================================================= */
-
-  // Buka modal filter
-  document.getElementById('btn-open-filter').addEventListener('click', function(){
+  /* ================== EVENT MODAL ================== */
+  // tombol "Setel Waktu" ada di HTML component dashboard => pakai delegasi
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('#btn-open-filter');
+    if (!btn) return;
     $('#filterModal').modal('show');
   });
 
-  // Saat preset diubah di modal → isi dt_from/dt_to dan lock/unlock
   document.getElementById('preset').addEventListener('change', function(){
     const isRange = (this.value === 'range');
     const range = computeRangeDT(this.value);
@@ -634,7 +774,6 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     normalizeDTInputs();
   });
 
-  // Kalau user edit dt_from/dt_to manual → switch preset jadi 'range'
   document.getElementById('dt_from').addEventListener('change', function(){
     const presetSel = document.getElementById('preset');
     if (presetSel.value !== 'range'){
@@ -644,6 +783,7 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     }
     normalizeDTInputs();
   });
+
   document.getElementById('dt_to').addEventListener('change', function(){
     const presetSel = document.getElementById('preset');
     if (presetSel.value !== 'range'){
@@ -654,55 +794,38 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
     normalizeDTInputs();
   });
 
-  // Reset dari modal → balik "today", mode=all, metode=all
-document.getElementById('btn-reset').addEventListener('click', function(){
-  document.getElementById('preset').value = 'this_month';
-  document.getElementById('metode').value = 'all';
-  document.getElementById('mode').value   = 'all';
+  document.getElementById('btn-reset').addEventListener('click', function(){
+    document.getElementById('preset').value = 'this_month';
+    document.getElementById('metode').value = 'all';
+    document.getElementById('mode').value   = 'all';
 
-  const r = computeRangeDT('this_month');
-  setRangeInputsDT(r, false);
-  normalizeDTInputs();
-});
+    const r = computeRangeDT('this_month');
+    setRangeInputsDT(r, false);
+    normalizeDTInputs();
+  });
 
-
-  // Terapkan dari modal:
-  // - normalisasi input
-  // - loadCharts()
-  // - tutup modal
-  // - scroll halus ke chart
   document.getElementById('btn-apply').addEventListener('click', function(){
     normalizeDTInputs();
-
-    loadCharts(function(){
-      // tutup modal
+    loadChartsAndDashboard(function(){
       $('#filterModal').modal('hide');
-
-      // scroll ke chart area
-      const target = document.getElementById('chart-area');
+      const target = document.getElementById('dash_container');
       if (target){
-        target.scrollIntoView({
-          behavior:'smooth',
-          block:'start'
-        });
+        target.scrollIntoView({ behavior:'smooth', block:'start' });
       }
     });
   });
 
-  // INIT pertama kali halaman dibuka:
-  // preset default: today
- document.addEventListener('DOMContentLoaded', function(){
-  const presetSel = document.getElementById('preset');
-  presetSel.value = 'this_month'; // default = bulan ini
+  /* ================== INIT ================== */
+  document.addEventListener('DOMContentLoaded', function(){
+    const presetSel = document.getElementById('preset');
+    presetSel.value = 'this_month';
 
-  const initRange = computeRangeDT('this_month');
-  setRangeInputsDT(initRange, false);
-  normalizeDTInputs();
+    const initRange = computeRangeDT('this_month');
+    setRangeInputsDT(initRange, false);
+    normalizeDTInputs();
 
-  // load chart awal pakai Bulan ini
-  loadCharts();
-});
-
+    loadChartsAndDashboard();
+  });
 
 })();
 </script>
