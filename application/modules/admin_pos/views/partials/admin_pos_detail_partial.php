@@ -125,6 +125,8 @@ $show_qris_barcode = ($qris_rel !== '');
 $qris_src = $show_qris_barcode
   ? base_url($qris_rel) . '?v=' . @filemtime($qris_abs)
   : '';
+$qris_download_url = $show_qris_barcode ? base_url($qris_rel) : '';
+$qris_download_name = 'qris_order_' . $idForPrint . '.png';
 
 $cashSyn  = ['cash','tunai','cod','bayar_ditempat','bayarditempat'];
 $digSyn   = ['transfer','tf','bank','qris','qr','qr-code','gopay','ovo','dana','shopeepay','mbanking','va','virtualaccount'];
@@ -330,16 +332,34 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
               </td>
             </tr>
             <?php if ($show_qris_barcode): ?>
-              <tr>
-                <th>QRIS</th>
-                <td>
-                  <div class="small text-muted mb-1">Scan untuk verifikasi pembayaran:</div>
+            <tr>
+              <th>QRIS</th>
+              <td>
+                <div class="small text-muted mb-1">Scan untuk pembayaran:</div>
+
+                <div class="d-flex flex-wrap align-items-center" style="gap:10px;">
                   <img src="<?= htmlspecialchars($qris_src, ENT_QUOTES, 'UTF-8'); ?>"
-                  alt="Barcode QRIS"
-                  class="qris-img">
-                </td>
-              </tr>
-            <?php endif; ?>
+                       alt="Barcode QRIS"
+                       class="qris-img">
+
+                  <div class="d-flex flex-column" style="gap:6px;">
+                    <a class="btn btn-xs btn-success"
+                       href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+                       download="<?= htmlspecialchars($qris_download_name, ENT_QUOTES, 'UTF-8'); ?>">
+                      <i class="fe-download"></i> Download QRIS
+                    </a>
+
+                    <a class="btn btn-xs btn-outline-secondary"
+                       href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+                       target="_blank" rel="noopener">
+                      <i class="fe-external-link"></i> Buka
+                    </a>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          <?php endif; ?>
+
 
             <tr id="rowKurir" <?= $hasKurir ? '' : 'style="display:none"' ?>>
               <th>Kurir</th>
