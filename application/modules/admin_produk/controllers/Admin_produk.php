@@ -53,21 +53,23 @@ class Admin_produk extends Admin_Controller {
     $total_terlaris = (int)($rowTotal->total ?? 0);
 
     // count produk yang pernah terjual (terlaris > 0)
+    // count produk (terlaris >= 0)  => ini akan menghitung SEMUA baris (karena terlaris default 0)
     $rowCount = $this->db->select('COUNT(*) AS cnt', false)
         ->from('produk')
         // ->where('is_active', 1)
-        ->where('terlaris >', 0)
+        ->where('terlaris >=', 0)
         ->get()->row();
     $count_terjual = (int)($rowCount->cnt ?? 0);
 
-    // Top list (untuk chart & grid)
+    // Top list (untuk chart & grid) => sekarang termasuk terlaris = 0
     $rows = $this->db->select('id, nama, terlaris, stok, harga', false)
         ->from('produk')
         // ->where('is_active', 1)
-        ->where('terlaris >', 0)
+        ->where('terlaris >=', 0)
         ->order_by('terlaris', 'DESC')
         ->limit($gridLimit)
         ->get()->result_array();
+
 
     $top10 = array_slice($rows, 0, $topLimit);
 
