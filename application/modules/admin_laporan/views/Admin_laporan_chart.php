@@ -478,6 +478,30 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
   function rupiah(n){
     return 'Rp ' + (parseInt(n||0,10)).toLocaleString('id-ID');
   }
+function rupiahHC(n){
+  n = (n == null) ? 0 : Number(n);
+  return 'Rp ' + Highcharts.numberFormat(n, 0, ',', '.');
+}
+
+// formatter dataLabels: "Nama Seri: Rp xxx"
+function dlSeriesRupiah(){
+  if (this.y == null) return null;
+  return this.series.name + ': ' + rupiahHC(this.y);
+}
+
+// base config supaya konsisten
+const DL_ALL_SERIES = {
+  enabled: true,
+  allowOverlap: false,
+  crop: true,
+  overflow: 'justify',
+  formatter: dlSeriesRupiah,
+  style: {
+    fontSize: '10px',
+    fontWeight: '600',
+    textOutline: 'none'
+  }
+};
 
    function renderCharts(res){
     // info filter aktif di header kartu atas
@@ -537,15 +561,18 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       },
       credits: { enabled: false },
       exporting: { enabled: true },
-      plotOptions: {
-        series: {
-          animation: { duration: 1000 },
-          marker: { enabled: false },
-          lineWidth: 2
-        }
-      },
+ plotOptions: {
+  series: {
+    animation: { duration: 1000 },
+    marker: { enabled: false },
+    lineWidth: 2,
+    dataLabels: DL_ALL_SERIES
+  }
+},
+
+
       series: [
-        { name: 'Cafe / POS',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
+        { name: 'Cafe',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
         { name: 'Billiard',               data: billiardData, animation:{ duration:1000, defer: 300 } },
         { name: 'Kursi Pijat',            data: kpData,       animation:{ duration:1000, defer: 600 } },
         { name: 'PlayStation (PS)',       data: psData,       animation:{ duration:1000, defer: 900 } },
@@ -566,6 +593,13 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       },
       credits:{ enabled:false },
       exporting:{ enabled:true },
+plotOptions: {
+  series: {
+    dataLabels: DL_ALL_SERIES
+  }
+},
+
+
       series:[
         { name:'Pengeluaran', data:pengeluaranData }
       ]
@@ -583,6 +617,12 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
       },
       credits:{ enabled:false },
       exporting:{ enabled:true },
+plotOptions: {
+  series: {
+    dataLabels: DL_ALL_SERIES
+  }
+},
+
       series:[
         { name:'Laba (Cafe + Billiard + KP + PS - Pengeluaran)', data:labaData }
       ]
