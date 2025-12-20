@@ -478,10 +478,6 @@ function fmtTanggalWaktuIndo(dateStr, timeStr){
   function rupiah(n){
     return 'Rp ' + (parseInt(n||0,10)).toLocaleString('id-ID');
   }
-function rupiahHC(n){
-  n = (n == null) ? 0 : Number(n);
-  return 'Rp ' + Highcharts.numberFormat(n, 0, ',', '.');
-}
 
    function renderCharts(res){
     // info filter aktif di header kartu atas
@@ -541,31 +537,15 @@ function rupiahHC(n){
       },
       credits: { enabled: false },
       exporting: { enabled: true },
-     plotOptions: {
-      series: {
-        animation: { duration: 1000 },
-        marker: { enabled: false },
-        lineWidth: 2,
-        dataLabels: {
-          enabled: true,
-          allowOverlap: false,
-          crop: true,
-          overflow: 'justify',
-          formatter: function(){
-            if (this.y == null) return null;
-            return this.series.name + ': ' + rupiahHC(this.y);
-          },
-          style: {
-            fontSize: '10px',
-            fontWeight: '600',
-            textOutline: 'none'
-          }
+      plotOptions: {
+        series: {
+          animation: { duration: 1000 },
+          marker: { enabled: false },
+          lineWidth: 2
         }
-      }
-    },
-
+      },
       series: [
-        { name: 'Cafe',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
+        { name: 'Cafe / POS',              data: cafeData,     animation:{ duration:1000, defer:   0 } },
         { name: 'Billiard',               data: billiardData, animation:{ duration:1000, defer: 300 } },
         { name: 'Kursi Pijat',            data: kpData,       animation:{ duration:1000, defer: 600 } },
         { name: 'PlayStation (PS)',       data: psData,       animation:{ duration:1000, defer: 900 } },
@@ -586,23 +566,6 @@ function rupiahHC(n){
       },
       credits:{ enabled:false },
       exporting:{ enabled:true },
-      plotOptions: {
-  column: {
-    dataLabels: {
-      enabled: true,
-      formatter: function(){
-        if (this.y == null) return null;
-        return this.series.name + ': ' + rupiahHC(this.y);
-      },
-      style: {
-        fontSize: '10px',
-        fontWeight: '600',
-        textOutline: 'none'
-      }
-    }
-  }
-},
-
       series:[
         { name:'Pengeluaran', data:pengeluaranData }
       ]
@@ -620,23 +583,6 @@ function rupiahHC(n){
       },
       credits:{ enabled:false },
       exporting:{ enabled:true },
-      plotOptions: {
-  area: {
-    dataLabels: {
-      enabled: true,
-      formatter: function(){
-        if (this.y == null) return null;
-        return this.series.name + ': ' + rupiahHC(this.y);
-      },
-      style: {
-        fontSize: '10px',
-        fontWeight: '600',
-        textOutline: 'none'
-      }
-    }
-  }
-},
-
       series:[
         { name:'Laba (Cafe + Billiard + KP + PS - Pengeluaran)', data:labaData }
       ]
