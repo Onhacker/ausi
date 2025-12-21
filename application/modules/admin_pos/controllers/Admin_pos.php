@@ -1989,35 +1989,44 @@ public function gmail_inbox()
         return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
     }
 
-    $limit  = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
-    $page   = (int)$this->input->get('page');  if ($page < 1) $page = 1;
-    $offset = ($page - 1) * $limit;
+    // ✅ default 10 biar load awal ringan
+    $limit  = (int)$this->input->get('limit');
+    if ($limit < 1) $limit = 10;
+    if ($limit > 50) $limit = 50;
+
+    $page   = (int)$this->input->get('page');
+    if ($page < 1) $page = 1;
 
     $q      = trim((string)$this->input->get('q'));
-    $status = trim((string)$this->input->get('status')); // baru/dilihat/diproses (opsional)
+    $status = trim((string)$this->input->get('status'));
 
-    // === cache builder biar gampang count + get ===
+    // === cache builder
     $this->db->start_cache();
     $this->db->from('gmail_inbox');
 
     if ($status !== '') $this->db->where('status', $status);
 
     if ($q !== ''){
-      $this->db->group_start()
-        ->like('subject', $q)
-        ->or_like('from_email', $q);
+        $this->db->group_start()
+            ->like('subject', $q)
+            ->or_like('from_email', $q);
 
-      // snippet cuma kalau query agak panjang (biar gak berat)
-      if (mb_strlen($q) >= 3) {
-        $this->db->or_like('snippet', $q);
-      }
+        // ✅ snippet itu LONGTEXT, LIKE query pendek bikin berat -> bisa 500
+        if (mb_strlen($q) >= 3) {
+            $this->db->or_like('snippet', $q);
+        }
 
-      $this->db->group_end();
+        $this->db->group_end();
     }
 
     $this->db->stop_cache();
 
     $filtered = (int)$this->db->count_all_results('', false);
+
+    $pages = (int)ceil(max(1, $filtered) / $limit);
+    if ($page > $pages) $page = $pages;
+
+    $offset = ($page - 1) * $limit;
 
     $rows = $this->db->select('id, from_email, subject, snippet, status, received_at, created_at', false)
         ->order_by('received_at','DESC')
@@ -2028,16 +2037,29 @@ public function gmail_inbox()
 
     $total  = (int)$this->db->count_all('gmail_inbox');
     $unread = (int)$this->db->from('gmail_inbox')->where('status','baru')->count_all_results();
-    $pages = (int)ceil(max(1, $filtered) / $limit);
+
+    $countRows = count($rows);
+    $from = ($filtered > 0) ? ($offset + 1) : 0;
+    $to   = ($filtered > 0) ? min($offset + $countRows, $filtered) : 0;
+
     return $this->_json([
       'ok' => true,
       'meta' => [
-        'page' => $page,
-        'limit' => $limit,
-        'total' => $total,
+        'page'     => $page,
+        'pages'    => $pages,
+        'limit'    => $limit,
+        'total'    => $total,
         'filtered' => $filtered,
-        'unread' => $unread,
-        'pages' => $pages, // ✅ tambahkan ini
+        'unread'   => $unread,
+
+        // ✅ enak untuk UI "11-20 dari 143"
+        'from'     => $from,
+        'to'       => $to,
+
+        'has_prev' => $page > 1,
+        'has_next' => $page < $pages,
+        'prev_page'=> $page > 1 ? $page - 1 : null,
+        'next_page'=> $page < $pages ? $page + 1 : null,
       ],
       'data' => array_map(function($r){
         return [
@@ -2051,6 +2073,7 @@ public function gmail_inbox()
       }, $rows)
     ]);
 }
+
 
 public function gmail_sync()
 {

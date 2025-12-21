@@ -131,6 +131,23 @@
       }
       setSubtitle(on ? 'Sinkronisasi Gmail…' : 'Tarik email terbaru & cari cepat');
     }
+    function renderPager(meta){
+  meta = meta || {};
+  CUR.page  = parseInt(meta.page, 10)  || 1;
+  CUR.pages = parseInt(meta.pages, 10) || 1;
+  CUR.limit = parseInt(meta.limit, 10) || CUR.limit;
+
+  $('#gmail-pageinfo').text(CUR.page + ' / ' + CUR.pages);
+
+  $('#gmail-prev').prop('disabled', !(meta.has_prev || CUR.page > 1));
+  $('#gmail-next').prop('disabled', !(meta.has_next || CUR.page < CUR.pages));
+
+  if (meta.from != null && meta.to != null && meta.filtered != null) {
+    $('#gmail-count').text(meta.from + '-' + meta.to + ' dari ' + meta.filtered + ' email');
+  } else {
+    $('#gmail-count').text('0 email');
+  }
+}
 
     function renderInbox(rows) {
       var $list = $('#gmail-list');
@@ -173,37 +190,37 @@
     }
 
     function loadInbox(opts) {
-      opts = opts || {};
-      var q = ($('#gmail-q').val() || '').trim();
+  opts = opts || {};
+  var q = ($('#gmail-q').val() || '').trim();
 
-      if (!opts.silent) uiState('loading');
+  // kalau dipanggil tanpa page, pakai CUR.page
+  var page = (opts.page != null) ? opts.page : CUR.page;
+  var limit = (opts.limit != null) ? opts.limit : CUR.limit;
 
-      return $.getJSON(URL_LIST, { limit: opts.limit || 20, q: q })
-        .done(function (res) {
-          var ok = !!(res && (res.ok === true || res.success === true));
-          if (!ok) {
-            renderInbox([]);
-            if (w.Swal) Swal.fire((res && (res.title || 'Gagal')) || 'Gagal',
-                                 (res && (res.msg || res.pesan)) || 'Tidak bisa memuat inbox',
-                                 'error');
-            return;
-          }
-          renderInbox(res.data || []);
-        })
-        .fail(function (xhr) {
-          renderInbox([]);
-          var msg = 'Koneksi bermasalah saat memuat Gmail';
-          if (xhr) {
-            msg += '\nHTTP: ' + xhr.status + ' ' + (xhr.statusText || '');
-          // kalau server balas HTML (login/error), tampilkan sedikit
-          var t = (xhr.responseText || '').toString();
-          if (t) msg += '\nResp: ' + t.substring(0, 200);
-        }
-        if (w.Swal) Swal.fire('Error', msg, 'error');
-        console.error(xhr && xhr.responseText);
-      });
+  if (!opts.silent) uiState('loading');
 
-    }
+  return $.getJSON(URL_LIST, { limit: limit, page: page, q: q })
+    .done(function (res) {
+      var ok = !!(res && (res.ok === true || res.success === true));
+      if (!ok) {
+        renderInbox([]);
+        renderPager({page:1,pages:1,limit:limit,filtered:0,from:0,to:0,has_prev:false,has_next:false});
+        if (w.Swal) Swal.fire((res && (res.title || 'Gagal')) || 'Gagal',
+                             (res && (res.msg || res.pesan)) || 'Tidak bisa memuat inbox',
+                             'error');
+        return;
+      }
+      renderInbox(res.data || []);
+      renderPager(res.meta || {});
+    })
+    .fail(function (xhr) {
+      renderInbox([]);
+      renderPager({page:1,pages:1,limit:limit,filtered:0,from:0,to:0,has_prev:false,has_next:false});
+      if (w.Swal) Swal.fire('Error', 'Koneksi bermasalah saat memuat Gmail', 'error');
+      console.error(xhr && xhr.responseText);
+    });
+}
+
 
     function syncInbox(opts) {
       opts = opts || {};
