@@ -807,7 +807,12 @@ if (!function_exists('nav_class')) {
     <i class="mdi mdi-gmail"></i>
     <span class="fab-text">Cek Trx QRIS</span>
   </button>
-
+<?php
+$cssFile = FCPATH.'assets/min/gmai.min.css';
+$jsFile  = FCPATH.'assets/min/gmail.min.js';
+$cssVer  = is_file($cssFile) ? filemtime($cssFile) : time();
+$jsVer   = is_file($jsFile)  ? filemtime($jsFile)  : time();
+?>
 <script>
 window.GMAIL_CFG = {
   URL_LIST:   <?= json_encode(site_url('admin_pos/gmail_inbox')) ?>,
@@ -834,8 +839,8 @@ function loadJsOnce(src){
 
 window.openGmailInbox = async function(){
   try{
-    await loadCssOnce("<?= base_url('assets/min/gmai.min.css?v=3') ?>");
-    await loadJsOnce("<?= base_url('assets/min/gmail.min.js?v=4') ?>");
+    await loadCssOnce("<?= base_url('assets/min/gmai.min.css?v='.$cssVer) ?>");
+    await loadJsOnce("<?= base_url('assets/min/gmail.min.js?v='.$jsVer) ?>");
     if (window.gmailInitAndOpen) window.gmailInitAndOpen(window.GMAIL_CFG);
     else $('#gmail-inbox-modal').modal('show');
   }catch(e){

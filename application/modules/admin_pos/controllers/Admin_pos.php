@@ -1984,41 +1984,38 @@ private function _indo_datetime($datetime, bool $with_day = false): string
 
 public function gmail_inbox()
 {
+  try {
     $uname = strtolower((string)$this->session->userdata('admin_username'));
     if (in_array($uname, ['kitchen','bar'], true)){
-        return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
+      return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
     }
 
-    // ✅ default 10 biar load awal ringan
+    // default 10 biar ringan
     $limit  = (int)$this->input->get('limit');
     if ($limit < 1) $limit = 10;
     if ($limit > 50) $limit = 50;
 
-    $page   = (int)$this->input->get('page');
+    $page = (int)$this->input->get('page');
     if ($page < 1) $page = 1;
 
     $q      = trim((string)$this->input->get('q'));
     $status = trim((string)$this->input->get('status'));
 
-    // === cache builder
     $this->db->start_cache();
     $this->db->from('gmail_inbox');
 
     if ($status !== '') $this->db->where('status', $status);
 
     if ($q !== ''){
-        $this->db->group_start()
-            ->like('subject', $q)
-            ->or_like('from_email', $q);
+      $this->db->group_start()
+        ->like('subject', $q)
+        ->or_like('from_email', $q);
 
-        // ✅ snippet itu LONGTEXT, LIKE query pendek bikin berat -> bisa 500
-        $qLen = function_exists('mb_strlen') ? mb_strlen($q) : strlen($q);
-        if ($qLen >= 3) {
-          $this->db->or_like('snippet', $q);
-        }
+      // SNIPPET itu LONGTEXT -> jangan cari kalau query pendek (biar nggak berat/500)
+      $qLen = function_exists('mb_strlen') ? mb_strlen($q) : strlen($q);
+      if ($qLen >= 3) $this->db->or_like('snippet', $q);
 
-
-        $this->db->group_end();
+      $this->db->group_end();
     }
 
     $this->db->stop_cache();
@@ -2031,9 +2028,9 @@ public function gmail_inbox()
     $offset = ($page - 1) * $limit;
 
     $rows = $this->db->select('id, from_email, subject, snippet, status, received_at, created_at', false)
-        ->order_by('received_at','DESC')
-        ->limit($limit, $offset)
-        ->get()->result();
+      ->order_by('received_at','DESC')
+      ->limit($limit, $offset)
+      ->get()->result();
 
     $this->db->flush_cache();
 
@@ -2053,11 +2050,8 @@ public function gmail_inbox()
         'total'    => $total,
         'filtered' => $filtered,
         'unread'   => $unread,
-
-        // ✅ enak untuk UI "11-20 dari 143"
         'from'     => $from,
         'to'       => $to,
-
         'has_prev' => $page > 1,
         'has_next' => $page < $pages,
         'prev_page'=> $page > 1 ? $page - 1 : null,
@@ -2065,16 +2059,22 @@ public function gmail_inbox()
       ],
       'data' => array_map(function($r){
         return [
-          "id" => (int)$r->id,
-          "from_email" => (string)$r->from_email,
-          "subject" => (string)$r->subject,
-          "snippet" => (string)$r->snippet,
-          "status" => (string)($r->status ?? 'baru'),
-          "received_at" => $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true),
+          'id'        => (int)$r->id,
+          'from_email'=> (string)$r->from_email,
+          'subject'   => (string)$r->subject,
+          'snippet'   => (string)$r->snippet,
+          'status'    => (string)($r->status ?? 'baru'),
+          'received_at'=> $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true),
         ];
       }, $rows)
     ]);
+
+  } catch (\Throwable $e) {
+    log_message('error', 'gmail_inbox error: '.$e->getMessage());
+    return $this->_json(['ok'=>false,'msg'=>'Server error (lihat log).'], 500);
+  }
 }
+
 
 
 public function gmail_sync()
