@@ -2086,18 +2086,22 @@ public function gmail_inbox()
 
 public function gmail_sync()
 {
-    $uname = strtolower((string)$this->session->userdata('admin_username'));
-    if (in_array($uname, ['kitchen','bar'], true)){
-        return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
-    }
+  $uname = strtolower((string)$this->session->userdata('admin_username'));
+  if (in_array($uname, ['kitchen','bar'], true)){
+      return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
+  }
 
-    $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
+  $limit = (int)$this->input->get('limit');
+  if ($limit < 1) $limit = 20;
+  if ($limit > 50) $limit = 50;
 
-    $info = $this->_gmail_sync($limit);
-    $ok   = !empty($info['ok']);
+  $this->load->library('Gmail_sync_service');
+  $info = $this->gmail_sync_service->sync($limit);
 
-    return $this->_json(['ok'=>$ok, 'sync'=>$info], $ok ? 200 : 500);
+  $ok = !empty($info['ok']);
+  return $this->_json(['ok'=>$ok, 'sync'=>$info], $ok ? 200 : 500);
 }
+
 
 
 public function gmail_detail($id)
