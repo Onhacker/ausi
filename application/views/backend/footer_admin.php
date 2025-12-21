@@ -865,15 +865,10 @@ window.openGmailInbox = async function(){
 })();
 </script>
 <script>
-(function(w, $){
+(function(w,$){
   if(!w.jQuery) return;
 
-  // ✅ load CSS toast gmail biar tampilannya sama (tanpa buka modal)
-  if (typeof loadCssOnce === 'function') {
-    loadCssOnce("<?= base_url('assets/min/gmai.min.css?v=3') ?>");
-  }
-
-  function miniToast(msg, sub, type){
+  function persistToast(msg, sub, type){
     type = type || 'info';
     var el = document.getElementById('gmail-toast');
     if(!el){
@@ -890,23 +885,15 @@ window.openGmailInbox = async function(){
           '<div class="tclose" title="Tutup">&times;</div>' +
         '</div>';
       document.body.appendChild(el);
+
       el.querySelector('.tclose').addEventListener('click', function(){
-        el.classList.remove('show'); setTimeout(()=>{ el.style.display='none'; }, 200);
+        el.classList.remove('show');
+        setTimeout(function(){ el.style.display='none'; }, 150);
       });
     }
 
     el.classList.remove('success','info','warn','error');
     el.classList.add(type);
-
-    var icon = el.querySelector('.ticon i');
-    if(icon){
-      icon.className = 'mdi ' + (
-        type==='success' ? 'mdi-check-circle-outline' :
-        type==='error'   ? 'mdi-alert-circle-outline' :
-        type==='warn'    ? 'mdi-alert-outline' :
-                           'mdi-bell-outline'
-      );
-    }
 
     document.getElementById('gmail-toast-msg').textContent = msg || '';
     var subEl = document.getElementById('gmail-toast-sub');
@@ -918,51 +905,44 @@ window.openGmailInbox = async function(){
       subEl.textContent = '';
     }
 
-    el.style.display = 'block';
-    requestAnimationFrame(()=> el.classList.add('show'));
-    setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{ el.style.display='none'; }, 200); }, 8000);
+    el.style.display='block';
+    requestAnimationFrame(function(){ el.classList.add('show'); });
+
+    // ✅ tidak ada auto hide
   }
 
   var POLL_URL = (w.GMAIL_CFG && w.GMAIL_CFG.URL_POLL) ? w.GMAIL_CFG.URL_POLL : '';
   if(!POLL_URL) return;
 
-  var key = 'gmail_last_id_seen';
-  var lastId = parseInt(localStorage.getItem(key) || '0', 10) || 0;
-  var first = true;
+  var key='gmail_last_id_seen';
+  var lastId=parseInt(localStorage.getItem(key)||'0',10)||0;
+  var first=true;
 
   function doPoll(){
-    $.getJSON(POLL_URL, { since_id: lastId })
-      .done(function(res){
-        if(!res || res.ok !== true) return;
-        var m = res.meta || {};
-        var latestId = parseInt(m.latest_id || 0, 10) || 0;
-        var newCount = parseInt(m.new_count || 0, 10) || 0;
+    $.getJSON(POLL_URL,{since_id:lastId}).done(function(res){
+      if(!res || res.ok!==true) return;
+      var m=res.meta||{};
+      var latestId=parseInt(m.latest_id||0,10)||0;
+      var newCount=parseInt(m.new_count||0,10)||0;
 
-        // ✅ pertama kali jangan munculin toast spam
-        if(first){
-          if(latestId > 0){
-            lastId = latestId;
-            localStorage.setItem(key, String(lastId));
-          }
-          first = false;
-          return;
-        }
+      if(first){
+        if(latestId>0){ lastId=latestId; localStorage.setItem(key,String(lastId)); }
+        first=false;
+        return;
+      }
 
-        // ✅ kalau ada email baru masuk (cron), tampilkan toast
-        if(newCount > 0 && latestId > lastId){
-          miniToast('✅ ' + newCount + ' email baru masuk', '', 'success');
-          lastId = latestId;
-          localStorage.setItem(key, String(lastId));
-        }
-      })
-      .fail(function(){ /* diam aja biar ga ganggu */ });
+      if(newCount>0 && latestId>lastId){
+        persistToast('✅ '+newCount+' email baru masuk', '', 'success');
+        lastId=latestId;
+        localStorage.setItem(key,String(lastId));
+      }
+    });
   }
 
-  // polling tiap 20 detik (DB only, ringan)
   setInterval(doPoll, 20000);
   doPoll();
-
-})(window, window.jQuery);
+})(window,window.jQuery);
 </script>
+
 
 <!-- END OF GMAIL AREA -->
