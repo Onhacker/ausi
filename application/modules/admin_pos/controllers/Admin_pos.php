@@ -2023,7 +2023,7 @@ public function gmail_inbox()
 
     $total  = (int)$this->db->count_all('gmail_inbox');
     $unread = (int)$this->db->from('gmail_inbox')->where('status','baru')->count_all_results();
-
+    $pages = (int)ceil(max(1, $filtered) / $limit);
     return $this->_json([
       'ok' => true,
       'meta' => [

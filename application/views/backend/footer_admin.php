@@ -719,8 +719,16 @@ if (!function_exists('nav_class')) {
           <span class="badge badge-pill badge-light border" id="gmail-count">0 email</span>
           <small class="text-muted" id="gmail-hint">Klik item untuk detail.</small>
         </div>
+
+        <div class="ml-auto d-flex align-items-center" style="gap:.35rem;">
+          <button class="btn btn-light btn-sm" id="gmail-prev-page"><i class="mdi mdi-chevron-left"></i></button>
+          <span class="badge badge-light border" id="gmail-page-info">1/1</span>
+          <button class="btn btn-light btn-sm" id="gmail-next-page"><i class="mdi mdi-chevron-right"></i></button>
+        </div>
+
         <button type="button" class="btn btn-secondary waves-effect" data-dismiss="modal">Tutup</button>
       </div>
+
     </div>
   </div>
 </div>

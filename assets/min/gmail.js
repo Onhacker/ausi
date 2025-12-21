@@ -192,9 +192,17 @@
         })
         .fail(function (xhr) {
           renderInbox([]);
-          if (w.Swal) Swal.fire('Error', 'Koneksi bermasalah saat memuat Gmail', 'error');
-          console.error(xhr && xhr.responseText);
-        });
+          var msg = 'Koneksi bermasalah saat memuat Gmail';
+          if (xhr) {
+            msg += '\nHTTP: ' + xhr.status + ' ' + (xhr.statusText || '');
+          // kalau server balas HTML (login/error), tampilkan sedikit
+          var t = (xhr.responseText || '').toString();
+          if (t) msg += '\nResp: ' + t.substring(0, 200);
+        }
+        if (w.Swal) Swal.fire('Error', msg, 'error');
+        console.error(xhr && xhr.responseText);
+      });
+
     }
 
     function syncInbox(opts) {
