@@ -2003,13 +2003,18 @@ public function gmail_inbox()
     if ($status !== '') $this->db->where('status', $status);
 
     if ($q !== ''){
-        $this->db->group_start()
-          ->like('subject', $q)
-          ->or_like('from_email', $q)
-          // kalau snippet berat, bisa kamu matikan:
-          ->or_like('snippet', $q)
-        ->group_end();
+      $this->db->group_start()
+        ->like('subject', $q)
+        ->or_like('from_email', $q);
+
+      // snippet cuma kalau query agak panjang (biar gak berat)
+      if (mb_strlen($q) >= 3) {
+        $this->db->or_like('snippet', $q);
+      }
+
+      $this->db->group_end();
     }
+
     $this->db->stop_cache();
 
     $filtered = (int)$this->db->count_all_results('', false);
@@ -2032,6 +2037,7 @@ public function gmail_inbox()
         'total' => $total,
         'filtered' => $filtered,
         'unread' => $unread,
+        'pages' => $pages, // ✅ tambahkan ini
       ],
       'data' => array_map(function($r){
         return [
