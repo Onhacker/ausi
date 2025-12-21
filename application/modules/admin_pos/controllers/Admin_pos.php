@@ -2684,4 +2684,41 @@ public function gmail_download_attachment($id, $attachmentId)
 }
 
 
+public function gmail_poll()
+{
+  $uname = strtolower((string)$this->session->userdata('admin_username'));
+  if (in_array($uname, ['kitchen','bar'], true)){
+    return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
+  }
+
+  $sinceId = (int)$this->input->get('since_id'); // id terakhir yang diketahui browser
+
+  $latest = $this->db->select('id, created_at, received_at')
+    ->from('gmail_inbox')
+    ->order_by('id', 'DESC')
+    ->limit(1)->get()->row();
+
+  $unread = (int)$this->db->from('gmail_inbox')->where('status','baru')->count_all_results();
+
+  $newCount = 0;
+  if ($sinceId > 0) {
+    $newCount = (int)$this->db->from('gmail_inbox')->where('id >', $sinceId)->count_all_results();
+  } else {
+    // pertama kali: jangan spam toast → anggap 0
+    $newCount = 0;
+  }
+
+  return $this->_json([
+    'ok' => true,
+    'meta' => [
+      'unread' => $unread,
+      'latest_id' => (int)($latest->id ?? 0),
+      'latest_created_at' => (string)($latest->created_at ?? ''),
+      'latest_received_at' => (string)($latest->received_at ?? ''),
+      'new_count' => $newCount,
+    ]
+  ]);
+}
+
+
 }
