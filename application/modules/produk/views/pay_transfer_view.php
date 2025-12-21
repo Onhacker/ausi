@@ -30,6 +30,9 @@ $grand_display  = (int)($grand_total ?? $order->grand_total ?? $grand_fallback);
   // status & ref (untuk polling)
   $status_now = strtolower($order->status ?? 'pending');
   $order_ref  = isset($order->nomor) ? rawurlencode($order->nomor) : (string)($order->kode ?? $order->id ?? '');
+  $order_nomor = trim((string)($order->nomor ?? ''));
+$show_change_method_btn = ($order_nomor !== '' && !in_array($status_now, ['paid','canceled'], true));
+
 ?>
 
 <style>
@@ -71,13 +74,26 @@ $grand_display  = (int)($grand_total ?? $order->grand_total ?? $grand_fallback);
     <div class="col-md-6">
       <div class="card card-body mb-3">
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h5 class="mb-0">Nominal Pembayaran</h5>
+          <!-- <h5 class="mb-0">Nominal Pembayaran</h5> -->
           <?php if (!in_array($status_now, ['paid','canceled'], true)): ?>
             <span class="chip chip-warn">
               <i class="mdi mdi-timer-sand"></i> Menunggu Transfer
             </span>
           <?php endif; ?>
         </div>
+        <?php if ($show_change_method_btn): ?>
+          <div class="mb-2">
+            <button type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    id="btn-ubah-metode"
+                    data-nomor="<?= html_escape($order_nomor) ?>">
+              <i class="mdi mdi-refresh"></i> Ubah Metode Pembayaran
+            </button>
+            <small class="text-muted d-block mt-1">
+              Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
+            </small>
+          </div>
+        <?php endif; ?>
 
         <div class="total-panel">
           <div class="line">
@@ -337,3 +353,70 @@ $grand_display  = (int)($grand_total ?? $order->grand_total ?? $grand_fallback);
 })();
 </script>
 <?php endif; ?>
+<script>
+(function(){
+  const btn = document.getElementById('btn-ubah-metode');
+  if (!btn) return;
+
+  let CSRF_NAME = "<?= $this->security->get_csrf_token_name(); ?>";
+  let CSRF_HASH = "<?= $this->security->get_csrf_hash(); ?>";
+
+  const nomor = btn.getAttribute('data-nomor') || '';
+  if (!nomor) return;
+
+  async function postReset(){
+    const form = new URLSearchParams();
+    form.append('nomor', nomor);
+    form.append(CSRF_NAME, CSRF_HASH);
+
+    const res = await fetch("<?= site_url('produk/change_payment_method'); ?>", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json'
+      },
+      body: form.toString(),
+      credentials: 'same-origin'
+    });
+
+    const js = await res.json().catch(() => null);
+    if (js && js.csrf) { CSRF_NAME = js.csrf.name; CSRF_HASH = js.csrf.hash; }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return js;
+  }
+
+  async function run(){
+    btn.disabled = true;
+    try{
+      const r = await postReset();
+      if (r && r.ok){
+        window.location.href = r.redirect || ("<?= site_url('produk/order_success/') ?>" + encodeURIComponent(nomor));
+        return;
+      }
+      alert((r && r.msg) ? r.msg : 'Gagal mengubah metode pembayaran.');
+    }catch(e){
+      console.error(e);
+      alert('Gagal menghubungi server.');
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', function(){
+    if (window.Swal){
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ubah metode pembayaran?',
+        html: 'Status pesanan akan dikembalikan ke <b>PENDING</b> agar kamu bisa pilih metode bayar lagi.',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, ubah',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then(x => { if (x.isConfirmed) run(); });
+    } else {
+      if (confirm('Ubah metode pembayaran? Status akan kembali ke PENDING.')) run();
+    }
+  });
+})();
+</script>
+

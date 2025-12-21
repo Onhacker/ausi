@@ -332,29 +332,48 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
               </td>
             </tr>
            <?php if ($show_qris_barcode): ?>
+            <?php 
+            $order_id = (int)$idForPrint; // atau (int)$order->id
+
+// versi: pakai filemtime kalau ada, fallback time()
+$v = 0;
+if (!empty($qris_abs) && is_file($qris_abs)) $v = (int)@filemtime($qris_abs);
+if ($v <= 0) $v = time();
+
+// URL gambar via controller + bypass SW
+$qris_src = site_url('produk/qris_png/'.$order_id).'?sw-bypass=1&v='.$v;
+
+// untuk download / buka
+$qris_download_url = $qris_src; // pakai url yang sama biar selalu fresh
+ ?>
             <tr>
               <th>QRIS</th>
               <td>
                 <div class="small text-muted mb-1">Scan untuk pembayaran:</div>
 
                 <div class="d-flex flex-wrap align-items-start" style="gap:10px;">
-                  <img src="<?= htmlspecialchars($qris_src, ENT_QUOTES, 'UTF-8'); ?>"
-                       alt="Barcode QRIS"
-                       class="qris-img">
+                 <img
+  id="qris-img"
+  src="<?= htmlspecialchars($qris_src, ENT_QUOTES, 'UTF-8'); ?>"
+  alt="QRIS"
+  style="max-width: 320px; width:100%; height:auto; image-rendering: -webkit-optimize-contrast; background:#fff;"
+>
+
 
                   <!-- tombol kiri-kanan -->
                   <div class="d-flex flex-wrap align-items-center" style="gap:8px;">
                     <a class="btn btn-xs btn-success"
-                       href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
-                       download="<?= htmlspecialchars($qris_download_name, ENT_QUOTES, 'UTF-8'); ?>">
-                      <i class="fe-download"></i> Download
-                    </a>
+   href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+   download="<?= htmlspecialchars($qris_download_name, ENT_QUOTES, 'UTF-8'); ?>">
+  <i class="fe-download"></i> Download
+</a>
 
-                    <a class="btn btn-xs btn-outline-secondary"
-                       href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
-                       target="_blank" rel="noopener">
-                      <i class="fe-external-link"></i> Buka
-                    </a>
+<a class="btn btn-xs btn-outline-secondary"
+   href="<?= htmlspecialchars($qris_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+   target="_blank" rel="noopener">
+  <i class="fe-external-link"></i> Buka
+</a>
+
                   </div>
                 </div>
               </td>

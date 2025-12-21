@@ -3027,13 +3027,13 @@ private function _set_verifikasi($id, $method){
     // ===== Kode unik =====
     $kode = 0; // default untuk CASH
     if ($needUnique){
-        // jaga kode unik 1..499 (re-use kalau sudah ada yang valid)
+        // jaga kode unik 1..99 (re-use kalau sudah ada yang valid)
         $kode = (int)($row->kode_unik ?? 0);
-        if ($kode < 1 || $kode > 499) {
+        if ($kode < 1 || $kode > 99) {
             try {
-                $kode = random_int(1, 499);
+                $kode = random_int(1, 99);
             } catch (\Throwable $e) {
-                $kode = mt_rand(1, 499);
+                $kode = mt_rand(1, 99);
             }
         }
     }
@@ -3072,10 +3072,10 @@ private function _set_verifikasi($id, $method){
 
 //     $kode = 0;
 //     if ($needUnique){
-//         // jaga kode unik 1..499 (re-use kalau sudah ada yang valid)
+//         // jaga kode unik 1..99 (re-use kalau sudah ada yang valid)
 //         $kode = (int)($row->kode_unik ?? 0);
-//         if ($kode < 1 || $kode > 499) {
-//             $kode = random_int(1, 499);
+//         if ($kode < 1 || $kode > 99) {
+//             $kode = random_int(1, 99);
 //         }
 //     }
 
@@ -3267,8 +3267,14 @@ private function _qris_set_amount(string $payload, $amount): string {
             $this->_overlay_logo_on_png($png, $logoPath, 0.22); // 22% lebar QR
         }
 
+        
         // URL gambar QR yang dipakai di view
-        $qris_img = base_url('uploads/qris/order_'.$orderId.'.png');
+        $pngPath = FCPATH."uploads/qris/order_{$orderId}.png";
+        $v = is_file($pngPath) ? filemtime($pngPath) : time();
+        $qris_img = site_url("produk/qris_png/".rawurlencode($row->ref ?? $ref))
+          . '?sw-bypass=1&v=' . $v;
+
+
 
         $data = [
             'title'       => 'Pembayaran via QRIS',
@@ -3354,26 +3360,38 @@ private function _qris_set_amount(string $payload, $amount): string {
     }
 
     public function qris_png($ref = null){
-        if (!$ref) show_404();
+  if (!$ref) show_404();
 
-    $this->_nocache_headers(); // tambah ini
+  $this->_nocache_headers();
 
+  // ✅ bisa terima id atau ref
+  if (ctype_digit((string)$ref)) {
+    $row = $this->db->get_where('pesanan', ['id' => (int)$ref])->row();
+  } else {
     $row = $this->_get_order_by_ref($ref);
-    if (!$row) show_404();
-    $orderId = (int)$row->id;
-    $status = strtolower($row->status ?? '');
-    if (in_array($status, ['paid','canceled'], true)) show_404();
+  }
+  if (!$row) show_404();
 
-    $path = FCPATH.'uploads/qris/order_'.$orderId.'.png';
-    if (!is_file($path)) show_404();
+  $orderId = (int)$row->id;
+  $status  = strtolower($row->status ?? '');
+  if (in_array($status, ['paid','canceled'], true)) show_404();
 
-    header('Content-Type: image/png');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('Content-Length: '.filesize($path));
-    readfile($path);
-    exit;
+  $path = FCPATH.'uploads/qris/order_'.$orderId.'.png';
+  if (!is_file($path)) show_404();
+
+  header('Content-Type: image/png');
+  header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+  header('Pragma: no-cache');
+  header('Expires: 0');
+  header('Surrogate-Control: no-store');
+  header_remove('ETag');
+  header_remove('Last-Modified');
+
+  header('Content-Length: '.filesize($path));
+  readfile($path);
+  exit;
 }
+
 
 
 
@@ -3964,6 +3982,94 @@ private function _curl_json($url)
   $json = json_decode($raw, true);
   return is_array($json) ? $json : null;
 }
+
+public function change_payment_method()
+{
+  $out = function(array $arr){
+    $arr['csrf'] = [
+      'name' => $this->security->get_csrf_token_name(),
+      'hash' => $this->security->get_csrf_hash(),
+    ];
+    $this->output->set_content_type('application/json', 'utf-8');
+    echo json_encode($arr, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    exit;
+  };
+
+  $nomor = trim((string)$this->input->post('nomor', true));
+  if ($nomor === '') $out(['ok'=>false,'msg'=>'Nomor pesanan kosong.']);
+
+  // ✅ ambil paid_method juga untuk deteksi QRIS
+  $row = $this->db->select('id, nomor, status, paid_method')
+                  ->from('pesanan')
+                  ->where('nomor', $nomor)
+                  ->limit(1)->get()->row();
+
+  if (!$row) $out(['ok'=>false,'msg'=>'Pesanan tidak ditemukan.']);
+
+  $st = strtolower((string)$row->status);
+
+  // hanya boleh saat menunggu verifikasi
+  if ($st !== 'verifikasi') {
+    $out(['ok'=>false,'msg'=>'Hanya bisa ubah metode saat status Menunggu Verifikasi.']);
+  }
+
+  // ====== DETEKSI QRIS ======
+  $pm_raw = trim((string)($row->paid_method ?? ''));
+  $pm_low = strtolower($pm_raw);
+
+  $is_qris = false;
+
+  // support JSON string/array
+  if ($pm_low !== '' && ($pm_low[0] === '[' || $pm_low[0] === '{')) {
+    $tmp = json_decode($pm_raw, true);
+    if (is_array($tmp)) {
+      $flat = json_encode($tmp);
+      $is_qris = (stripos($flat, 'qris') !== false);
+    }
+  }
+  if (!$is_qris) {
+    $is_qris = (stripos($pm_low, 'qris') !== false);
+  }
+
+  // ✅ kalau sebelumnya QRIS, hapus file PNG dulu
+  if ($is_qris) {
+    $orderId = (int)$row->id;
+
+    $paths = [
+      FCPATH . "uploads/qris/order_{$orderId}.png",
+      FCPATH . "uploads/qris/{$orderId}.png", // fallback jika kamu pernah pakai format ini
+    ];
+
+    foreach ($paths as $p) {
+      if (is_file($p)) { @unlink($p); }
+    }
+  }
+
+  // ===== reset minimal =====
+  $data = [
+    'status'      => 'pending',
+    'paid_method' => null, // atau '' kalau kamu prefer string kosong
+  ];
+
+  if ($this->db->field_exists('paid_at', 'pesanan'))    $data['paid_at'] = null;
+  if ($this->db->field_exists('updated_at', 'pesanan')) $data['updated_at'] = date('Y-m-d H:i:s');
+
+  // opsional: bersihkan bukti transfer/qris kalau kolomnya ada
+  foreach (['bukti_transfer','bukti','bukti_path','bukti_url','payment_proof','payment_ref'] as $col){
+    if ($this->db->field_exists($col, 'pesanan')) $data[$col] = null;
+  }
+
+  $this->db->where('id', (int)$row->id)->update('pesanan', $data);
+
+  $dbErr = $this->db->error();
+  if (!empty($dbErr['code'])) $out(['ok'=>false,'msg'=>'DB Error: '.$dbErr['message']]);
+
+  $out([
+    'ok'       => true,
+    'redirect' => site_url('produk/order_success/'.rawurlencode($row->nomor)),
+  ]);
+}
+
 
 
 }

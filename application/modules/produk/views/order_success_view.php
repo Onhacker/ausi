@@ -262,6 +262,17 @@ list($status_label, $status_class) = status_badge($status);
             </small>
           <?php endif; ?>
         </div>
+        <?php if ($status === 'verifikasi' && !empty($order->nomor)): ?>
+          <div class="mt-2">
+            <button type="button" class="btn btn-outline-danger btn-rounded btn-sm"
+            onclick="ubahMetodePembayaran('<?= htmlspecialchars($order->nomor, ENT_QUOTES, 'UTF-8'); ?>')">
+            <i class="mdi mdi-refresh"></i> Ubah Metode Pembayaran
+          </button>
+          <small class="d-block text-muted mt-1">
+            Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
+          </small>
+        </div>
+      <?php endif; ?>
 
         <?php if ($is_delivery && $delivery_fee <= 0): ?>
           <style type="text/css">
@@ -727,7 +738,7 @@ list($status_label, $status_class) = status_badge($status);
       `,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'Gaskeun 💨',
+      confirmButtonText: 'Ya, Bayar 💨',
       cancelButtonText: 'Nanti dulu…',
       reverseButtons: true,
       allowOutsideClick: false
@@ -817,6 +828,68 @@ list($status_label, $status_class) = status_badge($status);
 })();
 </script>
 <?php endif; ?>
+<script>
+window.CSRF_NAME = "<?= $this->security->get_csrf_token_name(); ?>";
+window.CSRF_HASH = "<?= $this->security->get_csrf_hash(); ?>";
+
+window.ubahMetodePembayaran = function(nomor){
+  if (typeof Swal === 'undefined'){
+    if (!confirm('Ubah metode pembayaran? Status akan kembali ke PENDING.')) return;
+  } else {
+    // pakai Swal
+    Swal.fire({
+      icon: 'warning',
+      title: 'Ubah metode pembayaran?',
+      html: 'Status akan dikembalikan ke <b>PENDING</b> agar kamu bisa pilih metode bayar lagi.',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, ubah',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    }).then(function(res){
+      if (!res.isConfirmed) return;
+      doReset(nomor);
+    });
+    return;
+  }
+
+  doReset(nomor);
+};
+
+function doReset(nomor){
+  if (typeof Swal !== 'undefined'){
+    Swal.fire({ title:'Memproses...', didOpen:()=>Swal.showLoading(), allowOutsideClick:false, showConfirmButton:false });
+  }
+
+  $.ajax({
+    url: "<?= site_url('produk/change_payment_method'); ?>",
+    method: "POST",
+    dataType: "json",
+    data: (function(){
+      var d = { nomor: nomor };
+      d[window.CSRF_NAME] = window.CSRF_HASH;
+      return d;
+    })()
+  })
+  .done(function(r){
+    if (r && r.csrf) { window.CSRF_NAME = r.csrf.name; window.CSRF_HASH = r.csrf.hash; }
+    if (typeof Swal !== 'undefined') Swal.close();
+
+    if (r && r.ok && r.redirect){
+      window.location.href = r.redirect; // reload ke order_success -> tombol metode bayar muncul lagi
+      return;
+    }
+    if (typeof Swal !== 'undefined'){
+      Swal.fire({ icon:'error', title:'Gagal', text:(r && r.msg) ? r.msg : 'Gagal ubah metode pembayaran.' });
+    } else {
+      alert((r && r.msg) ? r.msg : 'Gagal ubah metode pembayaran.');
+    }
+  })
+  .fail(function(xhr){
+    if (typeof Swal !== 'undefined') Swal.close();
+    alert('Gagal menghubungi server. (HTTP ' + (xhr.status||'-') + ')');
+  });
+}
+</script>
 
 
 <?php $this->load->view("front_end/footer.php"); ?>

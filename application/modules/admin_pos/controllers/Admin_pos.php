@@ -2724,8 +2724,6 @@ public function change_payment_method()
 {
   // $this->_nocache_headers();
   // $this->_ensure_db();
-
-  // pastikan hanya admin yang boleh (sesuaikan dengan auth Anda)
   // $this->_require_admin(); // jika ada
 
   $order_id = (int)$this->input->post('order_id', true);
@@ -2733,7 +2731,8 @@ public function change_payment_method()
     return $this->_json_out(['ok'=>false,'msg'=>'Order tidak valid.']);
   }
 
-  $order = $this->db->select('id, nomor, status')
+  // ✅ ambil paid_method juga untuk deteksi QRIS
+  $order = $this->db->select('id, nomor, status, paid_method')
                     ->from('pesanan')
                     ->where('id', $order_id)
                     ->limit(1)->get()->row();
@@ -2748,19 +2747,62 @@ public function change_payment_method()
     return $this->_json_out(['ok'=>false,'msg'=>'Pesanan sudah lunas, tidak bisa ganti metode.']);
   }
 
-  // UPDATE: ubah status jadi pending
-  // (opsional tapi sangat disarankan) reset paid_method/paid_at supaya order_success tampil pilihan metode lagi
+  // ============================================================
+  // ✅ Hapus QRIS hanya jika metode sebelumnya QRIS
+  // (support string biasa maupun JSON string/array)
+  // ============================================================
+  $pm_raw = trim((string)($order->paid_method ?? ''));
+  $pm_low = strtolower($pm_raw);
+  $is_qris = false;
+
+  if ($pm_low !== '' && ($pm_low[0] === '[' || $pm_low[0] === '{')) {
+    $tmp = json_decode($pm_raw, true);
+    if (is_array($tmp)) {
+      $flat = json_encode($tmp);
+      $is_qris = (stripos($flat, 'qris') !== false);
+    }
+  }
+  if (!$is_qris && $pm_low !== '') {
+    $is_qris = (stripos($pm_low, 'qris') !== false);
+  }
+
+  if ($is_qris) {
+    $oid = (int)$order->id;
+
+    $qrisPaths = [
+      FCPATH . "uploads/qris/order_{$oid}.png",
+      FCPATH . "uploads/qris/{$oid}.png",                 // fallback
+      FCPATH . "assets/uploads/qris/order_{$oid}.png",     // kalau pernah simpan di sini
+      FCPATH . "assets/uploads/qris/{$oid}.png",
+    ];
+
+    foreach ($qrisPaths as $p) {
+      if (is_file($p)) { @unlink($p); }
+    }
+  }
+
+  // ============================================================
+  // ✅ Reset order jadi pending + reset payment fields (AMAN)
+  // ============================================================
   $data = [
-    'status'     => 'pending',
-    'paid_method'=> null,            // reset biar user pilih lagi
-    'paid_at'    => null,          // kalau kolom ada
-    'updated_at' => date('Y-m-d H:i:s'),
+    'status'      => 'pending',
+    'paid_method' => null,
   ];
 
-  // kalau kolom paid_at tidak ada di tabel, hapus baris ini:
-  // unset($data['paid_at']);
+  if ($this->db->field_exists('paid_at', 'pesanan'))    $data['paid_at'] = null;
+  if ($this->db->field_exists('updated_at', 'pesanan')) $data['updated_at'] = date('Y-m-d H:i:s');
+
+  // opsional: bersihkan bukti transfer/qris kalau kolomnya ada (biar verifikasi tidak nyangkut)
+  foreach (['bukti_transfer','bukti','bukti_path','bukti_url','payment_proof','payment_ref'] as $col){
+    if ($this->db->field_exists($col, 'pesanan')) $data[$col] = null;
+  }
 
   $this->db->where('id', $order_id)->update('pesanan', $data);
+
+  $dbErr = $this->db->error();
+  if (!empty($dbErr['code'])) {
+    return $this->_json_out(['ok'=>false,'msg'=>'DB Error: '.$dbErr['message']]);
+  }
 
   $code = trim((string)($order->nomor ?? ''));
   if ($code === '') $code = (string)$order->id;
@@ -2773,6 +2815,7 @@ public function change_payment_method()
     'redirect' => $redirect,
   ]);
 }
+
 
 /** helper json (kalau belum punya) */
 private function _json_out(array $payload)

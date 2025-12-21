@@ -1,4 +1,23 @@
 <?php $this->load->view("front_end/head.php"); ?>
+<script>
+(function(){
+  const u = new URL(location.href);
+
+  // sekali saja: paksa reload versi bypass SW
+  if (!u.searchParams.has('sw-bypass')) {
+    u.searchParams.set('sw-bypass', '1');
+    u.searchParams.set('_', Date.now().toString()); // biar URL benar-benar unik
+    location.replace(u.toString());
+    return;
+  }
+
+  // optional: paksa browser cek update SW juga
+  if (navigator.serviceWorker?.getRegistration) {
+    navigator.serviceWorker.getRegistration().then(reg => reg && reg.update()).catch(()=>{});
+  }
+})();
+</script>
+
 <div class="container-fluid">
   <div class="hero-title">
     <h1 class="text">Pembayaran via QRIS</h1>
@@ -30,6 +49,26 @@
   $grand_display  = $grand_db ?? (int)($grand_total ?? $grand_fallback);
 
 ?>
+<?php
+  $status_now   = strtolower((string)($order->status ?? 'pending'));
+  $order_nomor  = trim((string)($order->nomor ?? ''));
+  $show_change_method_btn = ($order_nomor !== '' && !in_array($status_now, ['paid','canceled'], true));
+?>
+<?php
+  // kalau controller mengirim qris_payload, ini paling stabil untuk versioning
+  $qris_payload = $qris_payload ?? '';
+
+  $v = $qris_payload !== '' ? substr(sha1($qris_payload), 0, 12) : (string)time();
+
+  // pakai order_nomor/ref kalau qris_png kamu butuh ref.
+  // kalau qris_png kamu nanti dibuat bisa terima order_id juga, boleh pakai $order_id.
+  $qris_ref = trim((string)($order->ref ?? $order->nomor ?? ''));
+  if ($qris_ref === '') $qris_ref = (string)$order_id;
+
+  $qris_url = site_url('produk/qris_png/'.rawurlencode($qris_ref)) . '?sw-bypass=1&v=' . rawurlencode($v);
+  $qris_download_name = 'qris-' . $order_id . '.png';
+?>
+
 
   <div class="row">
     <!-- Kolom kiri: QRIS + nominal -->
@@ -44,29 +83,38 @@
         <div class="text-center">
           <!-- Area yang akan di-screenshot -->
           <div id="qris-shot" style="display:inline-block; background:#fff; padding:8px; border-radius:8px;">
-            <img
+             <img
               id="qris-img"
-              src="<?= site_url('produk/qris_png/'.$order_id) ?>"
+              src="<?= htmlspecialchars($qris_url, ENT_QUOTES, 'UTF-8'); ?>"
               alt="QRIS"
-              style="max-width: 320px; width:100%; height:auto; image-rendering: -webkit-optimize-contrast; background:#fff;"
-            >
+              style="max-width:320px;width:100%;height:auto;image-rendering:-webkit-optimize-contrast;background:#fff;"
+              >
           </div>
 
-          <div class="mt-2 d-flex justify-content-center gap-2">
-            <button
-              id="btn-screenshot-qris"
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              aria-label="Screenshot & Simpan"
-            >
-              Screenshot & Simpan
+          <!-- <div class="mt-2 mb-2 d-flex justify-content-center gap-2"> -->
+          
+
+            <div class="mt-1 mb-2 d-flex justify-content-center gap-2">
+              <a
+              id="btn-download-qris"
+              class="btn btn-sm btn-blue"
+              href="<?= htmlspecialchars($qris_url, ENT_QUOTES, 'UTF-8'); ?>"
+              download="<?= htmlspecialchars($qris_download_name, ENT_QUOTES, 'UTF-8'); ?>"
+              >
+              Download QRIS
+            </a>
+          </div>
+          <?php if ($show_change_method_btn): ?>
+          <button type="button"
+              class="btn btn-outline-danger btn-rounded btn-sm"
+              id="btn-ubah-metode"
+              data-nomor="<?= html_escape($order_nomor) ?>">
+              <i class="mdi mdi-refresh"></i> Ubah Metode Pembayaran
             </button>
-            <!-- (opsional)
-            <button id="btn-download-qris" type="button" class="btn btn-sm btn-outline-secondary" aria-label="Unduh PNG">
-              Unduh PNG
-            </button> -->
-          </div>
-
+            <small class="text-muted d-block mt-1">
+              Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
+            </small>
+          <?php endif; ?>
           <small class="text-muted d-block mt-2">
             Di Android/iOS, tombol <em>Screenshot &amp; Simpan</em> membuka Share Sheet — pilih “Simpan ke Foto/Galeri”.
           </small>
@@ -139,7 +187,8 @@
         <div class="alert alert-warning mb-3">
           Setelah pembayaran berhasil, kasir akan memverifikasi dan menandai pesanan Anda sebagai <strong>lunas</strong>.
         </div>
-
+         
+        </div>
         <!-- <div class="d-flex flex-wrap gap-2">
           <a href="<?= site_url('produk/order_success/'.$order_id) ?>" class="btn btn-primary">
             <i class="mdi mdi-swap-horizontal mr-1"></i> Kembali
@@ -211,7 +260,6 @@
 <?php $this->load->view("front_end/footer.php"); ?>
 
 <!-- html2canvas CDN -->
-<script src="<?php echo base_url("assets/js/canva.js") ?>"></script>
 
 <script>
 // ===== Utility salin ke clipboard =====
@@ -483,5 +531,71 @@ if ($__method_now === 'cash' && !in_array(strtolower($order->status ?? 'pending'
   if (document.visibilityState === "visible") check();
 })();
 </script>
+
 <?php endif; ?>
+<script>
+(function(){
+  const btn = document.getElementById('btn-ubah-metode');
+  if (!btn) return;
+
+  const nomor = btn.getAttribute('data-nomor') || '';
+  if (!nomor) return;
+
+  let CSRF_NAME = "<?= $this->security->get_csrf_token_name(); ?>";
+  let CSRF_HASH = "<?= $this->security->get_csrf_hash(); ?>";
+
+  async function postReset(){
+    const form = new URLSearchParams();
+    form.append('nomor', nomor);
+    form.append(CSRF_NAME, CSRF_HASH);
+
+    const res = await fetch("<?= site_url('produk/change_payment_method'); ?>", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Accept': 'application/json' },
+      body: form.toString(),
+      credentials: 'same-origin'
+    });
+
+    const js = await res.json().catch(() => null);
+    if (js && js.csrf) { CSRF_NAME = js.csrf.name; CSRF_HASH = js.csrf.hash; }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return js;
+  }
+
+  async function run(){
+    btn.disabled = true;
+
+    try{
+      const r = await postReset();
+      if (r && r.ok && r.redirect){
+        window.location.href = r.redirect; // balik ke order_success/nomor
+        return;
+      }
+      alert((r && r.msg) ? r.msg : 'Gagal mengubah metode pembayaran.');
+    }catch(e){
+      console.error(e);
+      alert('Gagal menghubungi server.');
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', function(){
+    // konfirmasi (Swal kalau ada, fallback confirm)
+    if (typeof Swal !== 'undefined'){
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ubah metode pembayaran?',
+        html: 'Status pesanan akan dikembalikan ke <b>PENDING</b> agar kamu bisa pilih metode bayar lagi.',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, ubah',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((x)=>{ if (x.isConfirmed) run(); });
+    } else {
+      if (confirm('Ubah metode pembayaran? Status akan kembali ke PENDING.')) run();
+    }
+  });
+})();
+</script>
 

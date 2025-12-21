@@ -1,6 +1,6 @@
 /* ===== Service Worker (AUSI) — no-504-from-SW ===== */
 
-const CACHE_NAME  = 'ausi-67';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-70';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 
@@ -85,6 +85,11 @@ const API_DENYLIST = [
   /^\/login(?:\/.*)?$/i,                   // login
   /^\/admin_permohonan\/(export_excel|cetak_pdf)(?:\/.*)?$/i
 ];
+const QRIS_BYPASS = [
+  /^\/uploads\/qris\/.*$/i,            // file png qris (kalau kamu pakai ini)
+  /^\/produk\/qris_png(?:\/.*)?$/i,    // endpoint gambar qris dari controller
+  /^\/produk\/pay_qris(?:\/.*)?$/i     // halaman bayar qris
+];
 
 const SITEMAP_BYPASS = [
   /^\/sitemap\.xml$/i,
@@ -134,6 +139,26 @@ self.addEventListener('install', (event) => {
     } catch {}
   })());
 });
+const purgeQrisFromCache = async () => {
+  const cache = await caches.open(CACHE_NAME);
+  const keys = await cache.keys();
+  await Promise.all(keys.map((r) => {
+    const u = new URL(r.url);
+    if (QRIS_BYPASS.some(rx => rx.test(u.pathname))) {
+      return cache.delete(r);
+    }
+  }));
+};
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.map((n) => (n === CACHE_NAME ? null : caches.delete(n))));
+    await purgeQrisFromCache();
+    await self.clients.claim();
+    console.log('[SW] active', CACHE_NAME);
+  })());
+});
 
 /* ===== ACTIVATE ===== */
 self.addEventListener('activate', (event) => {
@@ -179,6 +204,19 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+
+  // ✅ BYPASS QRIS: selalu network-only (jangan pernah cache)
+if (sameOrigin && QRIS_BYPASS.some(rx => rx.test(url.pathname))) {
+  event.respondWith(
+    fetch(req, { cache: 'no-store', credentials: 'include' })
+      .catch(() => new Response('Offline', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain' }
+      }))
+  );
+  return;
+}
+
 
   // 1) HTML / navigasi → network-first; cache hanya whitelist & bukan login
   if (req.mode === 'navigate' || accept.includes('text/html')) {
