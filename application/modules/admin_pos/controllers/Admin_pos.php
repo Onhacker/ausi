@@ -1984,55 +1984,59 @@ private function _indo_datetime($datetime, bool $with_day = false): string
 
 public function gmail_inbox()
 {
+  $uname = strtolower((string)$this->session->userdata('admin_username'));
+  if (in_array($uname, ['kitchen','bar'], true)){
+    return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
+  }
+
+  $limit = (int)$this->input->get('limit');
+  if ($limit < 1) $limit = 10;
+  if ($limit > 50) $limit = 50;
+
+  $page = (int)$this->input->get('page');
+  if ($page < 1) $page = 1;
+
+  $q      = trim((string)$this->input->get('q'));
+  $status = trim((string)$this->input->get('status'));
+
+  // cache base filter
+  $this->db->start_cache();
+  $this->db->from('gmail_inbox');
+
+  if ($status !== '') $this->db->where('status', $status);
+
+  if ($q !== '') {
+    $this->db->group_start()
+      ->like('subject', $q)
+      ->or_like('from_email', $q);
+
+    // snippet LONGTEXT: cari kalau query cukup panjang
+    $qLen = function_exists('mb_strlen') ? mb_strlen($q) : strlen($q);
+    if ($qLen >= 3) $this->db->or_like('snippet', $q);
+
+    $this->db->group_end();
+  }
+  $this->db->stop_cache();
+
   try {
-    $uname = strtolower((string)$this->session->userdata('admin_username'));
-    if (in_array($uname, ['kitchen','bar'], true)){
-      return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
-    }
-
-    // default 10 biar ringan
-    $limit  = (int)$this->input->get('limit');
-    if ($limit < 1) $limit = 10;
-    if ($limit > 50) $limit = 50;
-
-    $page = (int)$this->input->get('page');
-    if ($page < 1) $page = 1;
-
-    $q      = trim((string)$this->input->get('q'));
-    $status = trim((string)$this->input->get('status'));
-
-    $this->db->start_cache();
-    $this->db->from('gmail_inbox');
-
-    if ($status !== '') $this->db->where('status', $status);
-
-    if ($q !== ''){
-      $this->db->group_start()
-        ->like('subject', $q)
-        ->or_like('from_email', $q);
-
-      // SNIPPET itu LONGTEXT -> jangan cari kalau query pendek (biar nggak berat/500)
-      $qLen = function_exists('mb_strlen') ? mb_strlen($q) : strlen($q);
-      if ($qLen >= 3) $this->db->or_like('snippet', $q);
-
-      $this->db->group_end();
-    }
-
-    $this->db->stop_cache();
-
-    $filtered = (int)$this->db->count_all_results('', false);
+    // ✅ PENTING: reset default (TRUE) biar tidak dobel merge cache
+    $filtered = (int)$this->db->count_all_results();
 
     $pages = (int)ceil(max(1, $filtered) / $limit);
     if ($page > $pages) $page = $pages;
 
     $offset = ($page - 1) * $limit;
 
-    $rows = $this->db->select('id, from_email, subject, snippet, status, received_at, created_at', false)
-      ->order_by('received_at','DESC')
-      ->limit($limit, $offset)
-      ->get()->result();
+    $this->db->select('id, from_email, subject, snippet, status, received_at, created_at', false);
+    $this->db->order_by('received_at','DESC');
+    $this->db->limit($limit, $offset);
 
-    $this->db->flush_cache();
+    $qry = $this->db->get();
+    if (!$qry) {
+      $err = $this->db->error();
+      throw new Exception('DB error: '.($err['message'] ?? 'unknown'));
+    }
+    $rows = $qry->result();
 
     $total  = (int)$this->db->count_all('gmail_inbox');
     $unread = (int)$this->db->from('gmail_inbox')->where('status','baru')->count_all_results();
@@ -2059,12 +2063,12 @@ public function gmail_inbox()
       ],
       'data' => array_map(function($r){
         return [
-          'id'        => (int)$r->id,
-          'from_email'=> (string)$r->from_email,
-          'subject'   => (string)$r->subject,
-          'snippet'   => (string)$r->snippet,
-          'status'    => (string)($r->status ?? 'baru'),
-          'received_at'=> $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true),
+          'id' => (int)$r->id,
+          'from_email' => (string)$r->from_email,
+          'subject' => (string)$r->subject,
+          'snippet' => (string)$r->snippet,
+          'status' => (string)($r->status ?? 'baru'),
+          'received_at' => $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true),
         ];
       }, $rows)
     ]);
@@ -2072,6 +2076,9 @@ public function gmail_inbox()
   } catch (\Throwable $e) {
     log_message('error', 'gmail_inbox error: '.$e->getMessage());
     return $this->_json(['ok'=>false,'msg'=>'Server error (lihat log).'], 500);
+  } finally {
+    // ✅ WAJIB agar tidak nyangkut ke query lain (ci_sessions, dll)
+    $this->db->flush_cache();
   }
 }
 
