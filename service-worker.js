@@ -1,6 +1,6 @@
 /* ===== Service Worker (AUSI) — no-504-from-SW ===== */
 
-const CACHE_NAME  = 'ausi-66';                 // ⬅️ bump saat deploy
+const CACHE_NAME  = 'ausi-67';                 // ⬅️ bump saat deploy
 const OFFLINE_URL = '/assets/offline.html';
 const SUPPRESS_5XX = true;                     // true = jangan teruskan 5xx asli ke klien
 

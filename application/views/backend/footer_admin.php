@@ -797,9 +797,6 @@ if (!function_exists('nav_class')) {
   }
 </style>
 
-
-
-
   <button type="button"
           onclick="openGmailInbox()"
           class="btn btn-blue btn-sm waves-effect waves-light fab-gmail"

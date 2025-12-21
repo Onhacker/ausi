@@ -2720,5 +2720,72 @@ public function gmail_poll()
   ]);
 }
 
+public function change_payment_method()
+{
+  // $this->_nocache_headers();
+  // $this->_ensure_db();
+
+  // pastikan hanya admin yang boleh (sesuaikan dengan auth Anda)
+  // $this->_require_admin(); // jika ada
+
+  $order_id = (int)$this->input->post('order_id', true);
+  if ($order_id <= 0) {
+    return $this->_json_out(['ok'=>false,'msg'=>'Order tidak valid.']);
+  }
+
+  $order = $this->db->select('id, nomor, status')
+                    ->from('pesanan')
+                    ->where('id', $order_id)
+                    ->limit(1)->get()->row();
+
+  if (!$order) {
+    return $this->_json_out(['ok'=>false,'msg'=>'Pesanan tidak ditemukan.']);
+  }
+
+  $st = strtolower((string)$order->status);
+  $paidLike = in_array($st, ['paid','lunas','selesai','completed','success'], true);
+  if ($paidLike) {
+    return $this->_json_out(['ok'=>false,'msg'=>'Pesanan sudah lunas, tidak bisa ganti metode.']);
+  }
+
+  // UPDATE: ubah status jadi pending
+  // (opsional tapi sangat disarankan) reset paid_method/paid_at supaya order_success tampil pilihan metode lagi
+  $data = [
+    'status'     => 'pending',
+    'paid_method'=> null,            // reset biar user pilih lagi
+    'paid_at'    => null,          // kalau kolom ada
+    'updated_at' => date('Y-m-d H:i:s'),
+  ];
+
+  // kalau kolom paid_at tidak ada di tabel, hapus baris ini:
+  // unset($data['paid_at']);
+
+  $this->db->where('id', $order_id)->update('pesanan', $data);
+
+  $code = trim((string)($order->nomor ?? ''));
+  if ($code === '') $code = (string)$order->id;
+
+  $redirect = site_url('produk/order_success/'.$code);
+
+  return $this->_json_out([
+    'ok'       => true,
+    'msg'      => 'OK',
+    'redirect' => $redirect,
+  ]);
+}
+
+/** helper json (kalau belum punya) */
+private function _json_out(array $payload)
+{
+  $payload['csrf'] = [
+    'name' => $this->security->get_csrf_token_name(),
+    'hash' => $this->security->get_csrf_hash(),
+  ];
+
+  return $this->output
+    ->set_content_type('application/json')
+    ->set_output(json_encode($payload));
+}
+
 
 }

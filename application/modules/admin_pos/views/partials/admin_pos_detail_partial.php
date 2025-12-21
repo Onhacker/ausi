@@ -387,7 +387,15 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
 
         <!-- Tombol di Ringkasan -->
         <div class="summary-actions">
-          <?php if ($has_phone && !$is_paid_like): ?>
+          <?php if (!$is_paid_like): ?>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+            onclick="gantiMetodePembayaran(<?= $idForPrint ?>, this)">
+            <i class="fe-refresh-cw"></i> Ganti Metode Pembayaran
+          </button>
+
+          <?php endif; ?>
+
+         <!--  <?php if ($has_phone && !$is_paid_like): ?>
             <div class="dropdown d-inline-block">
               <button type="button" class="btn btn-sm btn-success dropdown-toggle"
                       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -409,7 +417,7 @@ $show_detail = ($customer_name !== '' || $has_phone || $is_delivery || $catatan 
                 <?php endif; ?>
               </div>
             </div>
-          <?php endif; ?>
+          <?php endif; ?> -->
 
           <?php if ($is_delivery && $canAssignKurir): ?>
             <button type="button" class="btn btn-sm btn-warning" id="btnAssignKurirHeader"
@@ -829,4 +837,71 @@ window.waReminder = function(orderId, type){
     });
   });
 };
+window.gantiMetodePembayaran = function(orderId, el){
+  const $parentModal = el ? $(el).closest('.modal') : $();
+
+  Swal.fire({
+    icon: 'warning',
+    title: 'Ganti metode pembayaran?',
+    html: 'Status pesanan akan diubah menjadi <b>pending</b> dan halaman pembayaran akan dibuka kembali.',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, ganti',
+    cancelButtonText: 'Tidak',
+    reverseButtons: true
+  }).then(function(res){
+    if (!res.isConfirmed) return;
+
+    // ✅ pre-open tab (JANGAN pakai 'noopener' di sini)
+    let win = window.open('', '_blank'); // <-- penting
+
+    if (!win) {
+      Swal.fire({ icon:'warning', title:'Popup diblokir', text:'Izinkan popup/new tab di browser, lalu coba lagi.' });
+      return;
+    }
+
+    swalLoading('Memproses...', 'Mengubah metode pembayaran');
+
+    $.ajax({
+      url: "<?= site_url('admin_pos/change_payment_method'); ?>",
+      method: "POST",
+      dataType: "json",
+      data: (function(){
+        var d = { order_id: orderId };
+        if (window.CSRF_NAME) d[window.CSRF_NAME] = window.CSRF_HASH;
+        return d;
+      })()
+    })
+    .done(function(r){
+      if (r && r.csrf) { window.CSRF_NAME = r.csrf.name; window.CSRF_HASH = r.csrf.hash; }
+      Swal.close();
+
+      if (r && r.ok && r.redirect){
+        // ✅ tutup modal
+        if ($parentModal.length) $parentModal.modal('hide');
+        else $('.modal.show').modal('hide');
+
+        setTimeout(function(){
+          $('.modal-backdrop').remove();
+          $('body').removeClass('modal-open').css('padding-right','');
+        }, 80);
+
+        // ✅ amankan opener lalu arahkan tab baru
+        try { win.opener = null; } catch(e){}
+        win.location.href = r.redirect;
+        win.focus();
+        return;
+      }
+
+      // gagal -> tutup tab kosong
+      try { win.close(); } catch(e){}
+      Swal.fire({ icon:'error', title:'Gagal', text:(r && r.msg) ? r.msg : 'Gagal mengubah metode pembayaran.' });
+    })
+    .fail(function(){
+      Swal.close();
+      try { win.close(); } catch(e){}
+      Swal.fire({ icon:'error', title:'Gagal', text:'Tidak dapat menghubungi server.' });
+    });
+  });
+};
+
 </script>
