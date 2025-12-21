@@ -817,7 +817,7 @@ $jsVer   = is_file($jsFile)  ? filemtime($jsFile)  : time();
 window.GMAIL_CFG = {
   URL_LIST:   <?= json_encode(site_url('admin_pos/gmail_inbox')) ?>,
   URL_SYNC:   <?= json_encode(site_url('admin_pos/gmail_sync')) ?>,
-  URL_DETAIL: <?= json_encode(site_url('admin_pos/gmail_detail').'/') ?>
+  URL_DETAIL: <?= json_encode(site_url('admin_pos/gmail_detail').'/') ?>,
   URL_POLL:   <?= json_encode(site_url('admin_pos/gmail_poll')) ?>
 };
 
