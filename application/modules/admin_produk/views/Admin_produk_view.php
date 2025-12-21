@@ -33,6 +33,7 @@
     <button type="button" onclick="reload_table()" class="btn btn-info btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
       <span class="btn-label"><i class="fe-refresh-ccw"></i></span>Refresh
     </button>
+  <?php if ($this->session->userdata("admin_username") == "admin") {?>
      <!-- ⬇️ TAMBAHKAN INI -->
     <button type="button" id="btn-toggle-minuman" class="btn btn-dark btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
       <span class="btn-label"><i class="fe-droplet"></i></span>
@@ -44,8 +45,6 @@
       <span class="btn-text">Aktifkan Makanan</span>
     </button>
     <!-- ⬆️ SAMPAI SINI -->
-<?php if ($this->session->userdata("admin_username") == "admin") {?>
-
     <button type="button" onclick="hapus_data()" class="btn btn-danger btn-rounded btn-sm waves-effect waves-light mr-1 mb-1">
       <span class="btn-label"><i class="fa fa-trash"></i></span>Hapus
     </button>

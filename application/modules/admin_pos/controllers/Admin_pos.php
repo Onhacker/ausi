@@ -1989,32 +1989,58 @@ public function gmail_inbox()
         return $this->_json(['ok'=>false,'msg'=>'Tidak diizinkan.'], 403);
     }
 
-    $limit = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
-    $q     = trim((string)$this->input->get('q'));
+    $limit  = (int)$this->input->get('limit'); if ($limit < 1) $limit = 20; if ($limit > 50) $limit = 50;
+    $page   = (int)$this->input->get('page');  if ($page < 1) $page = 1;
+    $offset = ($page - 1) * $limit;
 
+    $q      = trim((string)$this->input->get('q'));
+    $status = trim((string)$this->input->get('status')); // baru/dilihat/diproses (opsional)
+
+    // === cache builder biar gampang count + get ===
+    $this->db->start_cache();
     $this->db->from('gmail_inbox');
+
+    if ($status !== '') $this->db->where('status', $status);
+
     if ($q !== ''){
         $this->db->group_start()
           ->like('subject', $q)
           ->or_like('from_email', $q)
+          // kalau snippet berat, bisa kamu matikan:
           ->or_like('snippet', $q)
         ->group_end();
     }
+    $this->db->stop_cache();
 
-    $rows = $this->db->order_by('received_at','DESC')->limit($limit)->get()->result();
+    $filtered = (int)$this->db->count_all_results('', false);
+
+    $rows = $this->db->select('id, from_email, subject, snippet, status, received_at, created_at', false)
+        ->order_by('received_at','DESC')
+        ->limit($limit, $offset)
+        ->get()->result();
+
+    $this->db->flush_cache();
+
+    $total  = (int)$this->db->count_all('gmail_inbox');
+    $unread = (int)$this->db->from('gmail_inbox')->where('status','baru')->count_all_results();
 
     return $this->_json([
-      'ok'=>true,
-      'data'=>array_map(function($r){
+      'ok' => true,
+      'meta' => [
+        'page' => $page,
+        'limit' => $limit,
+        'total' => $total,
+        'filtered' => $filtered,
+        'unread' => $unread,
+      ],
+      'data' => array_map(function($r){
         return [
           "id" => (int)$r->id,
           "from_email" => (string)$r->from_email,
           "subject" => (string)$r->subject,
           "snippet" => (string)$r->snippet,
           "status" => (string)($r->status ?? 'baru'),
-          // "received_at" => (string)($r->received_at ?? $r->created_at ?? '')
-          "received_at" => $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true)
-
+          "received_at" => $this->_indo_datetime($r->received_at ?? $r->created_at ?? '', true),
         ];
       }, $rows)
     ]);
@@ -2073,6 +2099,23 @@ public function gmail_detail($id)
     try {
         $svc  = $this->_gmail_service_ready();
         $full = $svc->users_messages->get('me', $gmailId, ['format' => 'full']);
+        $atts = [];
+$this->_list_attachments_from_payload($full->getPayload(), $atts);
+
+$attHtml = '';
+if ($atts) {
+  $attHtml .= '<div class="mt-3"><b>Lampiran:</b><ul class="mb-0">';
+  foreach ($atts as $a){
+    $url = site_url('admin_pos/gmail_download_attachment/'.$id.'/'.rawurlencode($a['attachmentId']))
+     . '?name=' . rawurlencode($a['filename']);
+
+    $attHtml .= '<li><a target="_blank" href="'.html_escape($url).'">'
+             . html_escape($a['filename']).'</a> <small class="text-muted">('.html_escape($a['mime']).')</small></li>';
+  }
+  $attHtml .= '</ul></div>';
+}
+
+echo $attHtml;
 
         // headers (lebih valid dari Gmail)
         $headers = $full->getPayload() ? ($full->getPayload()->getHeaders() ?: []) : [];
@@ -2126,8 +2169,11 @@ public function gmail_detail($id)
 
         // Tab Email: kalau HTML ada tampilkan iframe, kalau tidak fallback text
         $emailView = ($srcdoc !== '')
-            ? '<iframe sandbox="" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px" srcdoc="'.$srcdoc.'"></iframe>'
-            : '<div style="white-space:pre-wrap">'.html_escape($text).'</div>';
+          ? '<iframe sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"
+                style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px"
+                srcdoc="'.$srcdoc.'"></iframe>'
+          : '<div style="white-space:pre-wrap">'.html_escape($text).'</div>';
+
 
         echo '
           <div class="mb-2"><b>Dari:</b> '.html_escape($fromShow).'</div>
@@ -2344,16 +2390,21 @@ private function _extract_body_from_payload($payload): array
 // Sanitizer ringan + kita tetap render di iframe sandbox (aman).
 private function _sanitize_html_basic(string $html): string
 {
-    // buang script/style/iframe/object/embed
-    $html = preg_replace('#<(script|style|iframe|object|embed)[^>]*>.*?</\1>#is', '', $html);
+    // buang script/iframe/object/embed (style jangan dibuang)
+    $html = preg_replace('#<(script|iframe|object|embed)[^>]*>.*?</\1>#is', '', $html);
+
     // buang on* handlers (onclick, onload, dst)
     $html = preg_replace('#\son\w+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)#is', '', $html);
+
     // cegah javascript: di href/src
     $html = preg_replace('#(href|src)\s*=\s*("|\')\s*javascript:.*?\2#is', '$1="#"', $html);
+
+    // buang meta refresh
     $html = preg_replace('#<meta[^>]+http-equiv\s*=\s*("|\')refresh\1[^>]*>#is', '', $html);
 
     return $html;
 }
+
 private function _gmail_api_retry(callable $fn, int $maxAttempts = 5)
 {
   $attempt = 0;
@@ -2462,18 +2513,37 @@ private function _gmail_sync(int $limit = 20): array
         ? date('Y-m-d H:i:s', (int)($internalMs/1000))
         : date('Y-m-d H:i:s');
 
-      $ok = $this->db->insert('gmail_inbox', [
-        'gmail_id'    => $gid,
-        'from_email'  => $from,
-        'subject'     => $subject,
-        'snippet'     => $msg->getSnippet(),
-        'raw'         => json_encode($msg),
-        'status'      => 'baru',
-        'received_at' => $receivedAt,
-        'created_at'  => date('Y-m-d H:i:s'),
-      ]);
+$snippet = (string)$msg->getSnippet();
+$trxRef = null;
+if (preg_match('/No\s*Referensi:\s*([A-Z0-9]+)/i', $snippet, $mm)) {
+  $trxRef = strtoupper($mm[1]);
+}
 
-      if ($ok) $inserted++; else $dbFail++;
+
+
+      $ok = $this->db->insert('gmail_inbox', [
+  'gmail_id'    => $gid,
+  'from_email'  => $from,
+  'subject'     => $subject,
+  'snippet'     => $msg->getSnippet(),
+  'raw'         => json_encode($msg),
+  'status'      => 'baru',
+  'received_at' => $receivedAt,
+  'created_at'  => date('Y-m-d H:i:s'),
+  'trx_ref' => $trxRef,
+]);
+
+if ($ok) {
+  $inserted++;
+} else {
+  $err = $this->db->error(); // ['code'=>..., 'message'=>...]
+  if ((int)($err['code'] ?? 0) === 1062) {
+      // duplicate key uq_gmail_id -> anggap skip
+      continue;
+  }
+  $dbFail++;
+}
+
     }
 
     // update last sync
@@ -2507,6 +2577,55 @@ private function _gmail_sync(int $limit = 20): array
   }
 }
 
+private function _list_attachments_from_payload($part, array &$out): void
+{
+    if (!$part) return;
+
+    $mime  = (string)$part->getMimeType();
+    $parts = $part->getParts();
+
+    if ($parts) {
+        foreach ($parts as $p) $this->_list_attachments_from_payload($p, $out);
+        return;
+    }
+
+    $filename = (string)($part->getFilename() ?? '');
+    $body = $part->getBody();
+    $attId = $body ? (string)$body->getAttachmentId() : '';
+
+    if ($filename !== '' && $attId !== '') {
+        $out[] = [
+            'filename' => $filename,
+            'mime' => $mime,
+            'attachmentId' => $attId,
+            'size' => (int)($body->getSize() ?? 0),
+        ];
+    }
+}
+public function gmail_download_attachment($id, $attachmentId)
+{
+    $uname = strtolower((string)$this->session->userdata('admin_username'));
+    if (in_array($uname, ['kitchen','bar'], true)) show_error('Tidak diizinkan', 403);
+
+    $id = (int)$id;
+    $row = $this->db->get_where('gmail_inbox', ['id'=>$id])->row();
+    if (!$row || empty($row->gmail_id)) show_error('Email tidak ditemukan', 404);
+
+    $svc = $this->_gmail_service_ready();
+    $att = $svc->users_messages_attachments->get('me', (string)$row->gmail_id, (string)$attachmentId);
+    $data = $att ? (string)$att->getData() : '';
+    if ($data === '') show_error('Attachment kosong', 404);
+
+    $bin = $this->_b64url_decode($data);
+
+    $name = $this->input->get('name', true) ?: 'attachment.bin';
+    $name = preg_replace('~[^a-zA-Z0-9._-]+~', '_', $name);
+
+    header('Content-Type: application/octet-stream');
+    header('Content-Length: '.strlen($bin));
+    header('Content-Disposition: attachment; filename="'.$name.'"');
+    echo $bin;
+}
 
 
 }
