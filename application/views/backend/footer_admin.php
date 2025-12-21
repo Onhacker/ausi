@@ -704,7 +704,7 @@ if (!function_exists('nav_class')) {
         <!-- Empty State -->
         <div id="gmail-empty" class="gmail-empty" style="display:none">
           <div class="gmail-empty__icon">
-            <i class="mdi mdi-inbox-arrow-down-outline"></i>
+            <i class="mdi mdi-mail-ru"></i>
           </div>
           <div class="gmail-empty__title">Belum ada email</div>
           <div class="gmail-empty__desc">Klik <b>Refresh</b> untuk mengambil email terbaru.</div>
