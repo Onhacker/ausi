@@ -2012,9 +2012,11 @@ public function gmail_inbox()
             ->or_like('from_email', $q);
 
         // ✅ snippet itu LONGTEXT, LIKE query pendek bikin berat -> bisa 500
-        if (mb_strlen($q) >= 3) {
-            $this->db->or_like('snippet', $q);
+        $qLen = function_exists('mb_strlen') ? mb_strlen($q) : strlen($q);
+        if ($qLen >= 3) {
+          $this->db->or_like('snippet', $q);
         }
+
 
         $this->db->group_end();
     }

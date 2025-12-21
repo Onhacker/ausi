@@ -190,8 +190,8 @@
     }
 
     function loadInbox(opts) {
-  opts = opts || {};
-  var q = ($('#gmail-q').val() || '').trim();
+      opts = opts || {};
+      var q = ($('#gmail-q').val() || '').trim();
 
   // kalau dipanggil tanpa page, pakai CUR.page
   var page = (opts.page != null) ? opts.page : CUR.page;
@@ -200,25 +200,25 @@
   if (!opts.silent) uiState('loading');
 
   return $.getJSON(URL_LIST, { limit: limit, page: page, q: q })
-    .done(function (res) {
-      var ok = !!(res && (res.ok === true || res.success === true));
-      if (!ok) {
-        renderInbox([]);
-        renderPager({page:1,pages:1,limit:limit,filtered:0,from:0,to:0,has_prev:false,has_next:false});
-        if (w.Swal) Swal.fire((res && (res.title || 'Gagal')) || 'Gagal',
-                             (res && (res.msg || res.pesan)) || 'Tidak bisa memuat inbox',
-                             'error');
-        return;
-      }
-      renderInbox(res.data || []);
-      renderPager(res.meta || {});
-    })
-    .fail(function (xhr) {
+  .done(function (res) {
+    var ok = !!(res && (res.ok === true || res.success === true));
+    if (!ok) {
       renderInbox([]);
       renderPager({page:1,pages:1,limit:limit,filtered:0,from:0,to:0,has_prev:false,has_next:false});
-      if (w.Swal) Swal.fire('Error', 'Koneksi bermasalah saat memuat Gmail', 'error');
-      console.error(xhr && xhr.responseText);
-    });
+      if (w.Swal) Swal.fire((res && (res.title || 'Gagal')) || 'Gagal',
+       (res && (res.msg || res.pesan)) || 'Tidak bisa memuat inbox',
+       'error');
+        return;
+    }
+    renderInbox(res.data || []);
+    renderPager(res.meta || {});
+  })
+  .fail(function (xhr) {
+    renderInbox([]);
+    renderPager({page:1,pages:1,limit:limit,filtered:0,from:0,to:0,has_prev:false,has_next:false});
+    if (w.Swal) Swal.fire('Error', 'Koneksi bermasalah saat memuat Gmail', 'error');
+    console.error(xhr && xhr.responseText);
+  });
 }
 
 
