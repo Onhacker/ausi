@@ -1206,6 +1206,24 @@ $ver  = file_exists(FCPATH.$path) ? filemtime(FCPATH.$path) : time(); // fallbac
     });
   }
 </script>
+<script>
+(function(){
+  const nav = document.querySelector('.navbar-bottom');
+  if(!nav || !window.visualViewport) return;
+
+  const vv = window.visualViewport;
+
+  function updateBottom(){
+    const gap = Math.max(0, (window.innerHeight - vv.height - vv.offsetTop));
+    nav.style.bottom = gap + 'px';
+  }
+
+  vv.addEventListener('resize', updateBottom);
+  vv.addEventListener('scroll', updateBottom);
+  window.addEventListener('orientationchange', updateBottom);
+  updateBottom();
+})();
+</script>
 
 </body>
 </html>

@@ -161,7 +161,7 @@
   .wrapper{
     box-shadow:none !important; /* matikan shadow card putih */
   }
-  #app-scroll{
+ /* #app-scroll{
     height:100%;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
@@ -169,7 +169,35 @@
     position:relative;
   }
 
- 
+ */
+html, body{ height:auto !important; }
+
+#app-scroll{
+  min-height:100% !important;
+  height:auto !important;
+  overflow:visible !important;
+  -webkit-overflow-scrolling:auto !important;
+  position:relative !important;
+}
+
+:root{ --navH: 70px; } /* sesuaikan tinggi navbar */
+
+body{
+  padding-bottom: calc(var(--navH) + env(safe-area-inset-bottom));
+}
+
+.navbar-bottom{
+  position: fixed !important;
+  left:0; right:0; bottom:0;
+  z-index:2147483640;
+  transform: translate3d(0,0,0);
+  -webkit-transform: translate3d(0,0,0);
+  will-change: transform;
+}
+
+@supports (-webkit-touch-callout: none){
+  .navbar-bottom{ padding-bottom: env(safe-area-inset-bottom); }
+}
 
   #preloader #status{
     text-align:center;

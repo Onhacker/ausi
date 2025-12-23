@@ -2219,9 +2219,15 @@ public function submit_order(){
     $base_total  = $subtotal_setelah_voucher + ($mode === 'delivery' ? (int)$delivery_fee : 0);
 
     // kode unik tetap seperti biasa
-    $kode = random_int(1, 99);
-    $kode_unik   = $kode;
-    $grand_total = $base_total + $kode_unik;
+    // kode unik: CASH = 0, QRIS/TRANSFER tetap pakai kode unik
+        if ($paid_method === 'cash') {
+            $kode_unik = 0;
+        } else {
+            $kode_unik = random_int(1, 99);
+        }
+
+        $grand_total = $base_total + (int)$kode_unik;
+
 
 
 
@@ -2256,7 +2262,7 @@ public function submit_order(){
 
         // totals
         'total'        => (int)$total,        // subtotal barang
-        'kode_unik'    => $kode_unik,
+        'kode_unik'   => (int)$kode_unik,
         'grand_total'  => (int)$grand_total,  // subtotal - voucher + ongkir + kode_unik
         'status'       => 'verifikasi',
         'paid_method'  => $paid_method,
