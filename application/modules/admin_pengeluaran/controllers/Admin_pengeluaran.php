@@ -106,11 +106,11 @@ class Admin_pengeluaran extends Admin_Controller {
                 // ====== TOMBOL EDIT ======
                 // - Admin: selalu bisa edit
                 // - Non-admin: hanya kalau datanya hari ini
-                if ($isAdmin || $isToday) {
+                // if ($isAdmin || $isToday) {
                     $actionsHtml .= '<button type="button" class="btn btn-primary ml-1" onclick="edit_one('.$id.')">
                                         <i class="fe-edit"></i>
                                      </button>';
-                }
+                // }
 
                 // ====== TOMBOL HAPUS ======
                 // Tetap hanya admin
