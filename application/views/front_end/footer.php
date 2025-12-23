@@ -1206,6 +1206,66 @@ $ver  = file_exists(FCPATH.$path) ? filemtime(FCPATH.$path) : time(); // fallbac
     });
   }
 </script>
+<script>
+(function(){
+  const nav = document.querySelector('.navbar-bottom');
+  if(!nav) return;
+
+  // iOS PWA (standalone)
+  const isStandalone =
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    (typeof navigator.standalone === 'boolean' && navigator.standalone);
+
+  if(!isStandalone) return;
+
+  // Tentukan elemen yang benar-benar scroll
+  const appScroll = document.getElementById('app-scroll');
+  const docScroll = document.scrollingElement || document.documentElement;
+
+  const appOv = appScroll ? getComputedStyle(appScroll).overflowY : '';
+  const appIsScroller = !!(appScroll && appScroll.scrollHeight > appScroll.clientHeight && appOv !== 'visible');
+
+  const scroller = appIsScroller ? appScroll : docScroll;
+
+  // Pastikan navbar tidak "ketelan" scroller
+  if (appIsScroller && appScroll.contains(nav)) {
+    document.body.appendChild(nav);
+  }
+
+  // Jadikan absolute + update top saat scroll (biar terasa fixed)
+  nav.style.position = 'absolute';
+  nav.style.bottom = 'auto';
+
+  function setBodyPad(){
+    const h = Math.ceil(nav.getBoundingClientRect().height || nav.offsetHeight || 0);
+    document.body.style.paddingBottom = h + 'px';
+  }
+
+  function update(){
+    const st = scroller.scrollTop || 0;
+    const vh = window.innerHeight;
+    const nh = Math.ceil(nav.getBoundingClientRect().height || nav.offsetHeight || 0);
+    nav.style.top = (st + vh - nh) + 'px';
+  }
+
+  let ticking = false;
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      update();
+    });
+  }
+
+  scroller.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', () => { setBodyPad(); update(); }, {passive:true});
+  window.addEventListener('orientationchange', () => setTimeout(() => { setBodyPad(); update(); }, 80));
+
+  setBodyPad();
+  update();
+})();
+</script>
 
 </body>
 </html>

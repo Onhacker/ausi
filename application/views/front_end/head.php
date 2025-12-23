@@ -169,7 +169,14 @@
     position:relative;
   }
 
- 
+ .navbar-bottom{
+  left:0; right:0;
+  z-index:2147483000;
+  transform: translate3d(0,0,0);
+  -webkit-transform: translate3d(0,0,0);
+  will-change: top;
+}
+
 
   #preloader #status{
     text-align:center;
