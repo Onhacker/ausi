@@ -1575,104 +1575,7 @@ public function analisa_tim()
         ->set_output(json_encode($out));
 }
 
-// ====== CEK: total nominal di keterangan vs kolom jumlah ======
-$parseNominalFromKet = function(string $text): array {
-    $raw = trim($text);
-    if ($raw === '') return ['sum'=>0, 'found'=>[], 'has'=>false, 'method'=>'empty'];
 
-    // normalisasi
-    $t = strtolower($raw);
-    $t = str_replace(["\r","\n","\t"], ' ', $t);
-
-    $found = [];
-    $ranges = []; // untuk hindari double count berdasar offset
-
-    $addFound = function($val, $rawToken, $offset, $len, $method) use (&$found, &$ranges){
-        // skip overlap
-        foreach ($ranges as [$s,$e]) {
-            if (!($offset+$len <= $s || $offset >= $e)) return;
-        }
-        $ranges[] = [$offset, $offset+$len];
-        $found[] = ['value'=>(int)round($val), 'raw'=>$rawToken, 'method'=>$method];
-    };
-
-    // 1) Rp 80.000 / rp80.000
-    if (preg_match_all('/\brp\.?\s*([\d\.\,]+)\b/i', $t, $m, PREG_OFFSET_CAPTURE)) {
-        foreach ($m[1] as $idx => $cap) {
-            $numStr = $cap[0];
-            $off    = $cap[1];
-            $clean  = preg_replace('/[^\d]/', '', $numStr);
-            if ($clean === '') continue;
-            $addFound((int)$clean, 'rp '.$numStr, $off, strlen($numStr), 'rp');
-        }
-    }
-
-    // 2) angka dengan suffix: k / rb / ribu / jt / juta  (contoh: 530k, 2,5jt)
-    if (preg_match_all('/\b(\d+(?:[\,\.]\d+)?)\s*(k|rb|ribu|jt|juta)\b/i', $t, $m, PREG_OFFSET_CAPTURE)) {
-        for ($i=0; $i<count($m[1]); $i++){
-            $numStr = $m[1][$i][0];
-            $off    = $m[1][$i][1];
-            $unit   = strtolower($m[2][$i][0]);
-
-            $numF = (float)str_replace(',', '.', $numStr);
-            $mul  = 1;
-            if ($unit === 'k' || $unit === 'rb' || $unit === 'ribu') $mul = 1000;
-            if ($unit === 'jt' || $unit === 'juta') $mul = 1000000;
-
-            $addFound($numF*$mul, $numStr.$unit, $off, strlen($numStr.$unit), 'suffix');
-        }
-    }
-
-    // 3) angka dengan pemisah ribuan: 2.967.000 / 2967000
-    if (preg_match_all('/\b(\d{1,3}(?:[\.\,]\d{3})+)\b/', $t, $m, PREG_OFFSET_CAPTURE)) {
-        foreach ($m[1] as $cap) {
-            $numStr = $cap[0];
-            $off    = $cap[1];
-            $clean  = preg_replace('/[^\d]/', '', $numStr);
-            if ($clean === '') continue;
-            $addFound((int)$clean, $numStr, $off, strlen($numStr), 'thousand_sep');
-        }
-    }
-
-    // 4) fallback “tanpa K”: ambil angka yang posisinya “di akhir item”:
-    //    cocok untuk format: "... air mineral 530 2 kecap ... 310 ... 15"
-    //    (angka dianggap nominal, BUKAN qty, karena setelahnya ada "qty + nama barang" atau akhir string)
-    if (preg_match_all('/\b(\d{1,7})\b(?=\s+\d{1,3}\s+[a-zA-Z]|$)/', $t, $m, PREG_OFFSET_CAPTURE)) {
-        foreach ($m[1] as $cap) {
-            $numStr = $cap[0];
-            $off    = $cap[1];
-            $n      = (int)$numStr;
-            if ($n <= 0) continue;
-
-            // heuristik: jika < 10000, anggap itu "k" yang lupa ditulis → x1000
-            $val = ($n < 10000) ? ($n * 1000) : $n;
-
-            $addFound($val, $numStr, $off, strlen($numStr), 'fallback_no_k');
-        }
-    }
-
-    $sum = 0;
-    foreach ($found as $f) $sum += (int)$f['value'];
-
-    return [
-        'sum'    => (int)$sum,
-        'found'  => $found,
-        'has'    => count($found) > 0,
-        'method' => count($found) ? 'parsed' : 'none'
-    ];
-};
-
-$ketCheckStats = [
-    'checked'   => 0,
-    'with_amt'  => 0,
-    'match'     => 0,
-    'mismatch'  => 0,
-    'no_amt'    => 0,
-];
-
-$ketMismatchLines = "";  // buat prompt AI (ringkas)
-$ketMismatchMax   = 40;  // biar prompt ga kepanjangan
-$ketMismatchN     = 0;
 
 
 
@@ -1791,6 +1694,104 @@ $ketMismatchN     = 0;
 
         // batasi maksimal 150 baris biar prompt tidak terlalu panjang
         $rowsSample = array_slice($rowsPeng, 0, 150);
+        // ====== CEK: total nominal di keterangan vs kolom jumlah ======
+$parseNominalFromKet = function(string $text): array {
+    $raw = trim($text);
+    if ($raw === '') return ['sum'=>0, 'found'=>[], 'has'=>false, 'method'=>'empty'];
+
+    // normalisasi
+    $t = strtolower($raw);
+    $t = str_replace(["\r","\n","\t"], ' ', $t);
+
+    $found = [];
+    $ranges = []; // untuk hindari double count berdasar offset
+
+    $addFound = function($val, $rawToken, $offset, $len, $method) use (&$found, &$ranges){
+        // skip overlap
+        foreach ($ranges as [$s,$e]) {
+            if (!($offset+$len <= $s || $offset >= $e)) return;
+        }
+        $ranges[] = [$offset, $offset+$len];
+        $found[] = ['value'=>(int)round($val), 'raw'=>$rawToken, 'method'=>$method];
+    };
+
+    // 1) Rp 80.000 / rp80.000
+    if (preg_match_all('/\brp\.?\s*([\d\.\,]+)\b/i', $t, $m, PREG_OFFSET_CAPTURE)) {
+        foreach ($m[1] as $idx => $cap) {
+            $numStr = $cap[0];
+            $off    = $cap[1];
+            $clean  = preg_replace('/[^\d]/', '', $numStr);
+            if ($clean === '') continue;
+            $addFound((int)$clean, 'rp '.$numStr, $off, strlen($numStr), 'rp');
+        }
+    }
+
+    // 2) angka dengan suffix: k / rb / ribu / jt / juta  (contoh: 530k, 2,5jt)
+    if (preg_match_all('/\b(\d+(?:[\,\.]\d+)?)\s*(k|rb|ribu|jt|juta)\b/i', $t, $m, PREG_OFFSET_CAPTURE)) {
+        for ($i=0; $i<count($m[1]); $i++){
+            $numStr = $m[1][$i][0];
+            $off    = $m[1][$i][1];
+            $unit   = strtolower($m[2][$i][0]);
+
+            $numF = (float)str_replace(',', '.', $numStr);
+            $mul  = 1;
+            if ($unit === 'k' || $unit === 'rb' || $unit === 'ribu') $mul = 1000;
+            if ($unit === 'jt' || $unit === 'juta') $mul = 1000000;
+
+            $addFound($numF*$mul, $numStr.$unit, $off, strlen($numStr.$unit), 'suffix');
+        }
+    }
+
+    // 3) angka dengan pemisah ribuan: 2.967.000 / 2967000
+    if (preg_match_all('/\b(\d{1,3}(?:[\.\,]\d{3})+)\b/', $t, $m, PREG_OFFSET_CAPTURE)) {
+        foreach ($m[1] as $cap) {
+            $numStr = $cap[0];
+            $off    = $cap[1];
+            $clean  = preg_replace('/[^\d]/', '', $numStr);
+            if ($clean === '') continue;
+            $addFound((int)$clean, $numStr, $off, strlen($numStr), 'thousand_sep');
+        }
+    }
+
+    // 4) fallback “tanpa K”: ambil angka yang posisinya “di akhir item”:
+    //    cocok untuk format: "... air mineral 530 2 kecap ... 310 ... 15"
+    //    (angka dianggap nominal, BUKAN qty, karena setelahnya ada "qty + nama barang" atau akhir string)
+    if (preg_match_all('/\b(\d{1,7})\b(?=\s+\d{1,3}\s+[a-zA-Z]|$)/', $t, $m, PREG_OFFSET_CAPTURE)) {
+        foreach ($m[1] as $cap) {
+            $numStr = $cap[0];
+            $off    = $cap[1];
+            $n      = (int)$numStr;
+            if ($n <= 0) continue;
+
+            // heuristik: jika < 10000, anggap itu "k" yang lupa ditulis → x1000
+            $val = ($n < 10000) ? ($n * 1000) : $n;
+
+            $addFound($val, $numStr, $off, strlen($numStr), 'fallback_no_k');
+        }
+    }
+
+    $sum = 0;
+    foreach ($found as $f) $sum += (int)$f['value'];
+
+    return [
+        'sum'    => (int)$sum,
+        'found'  => $found,
+        'has'    => count($found) > 0,
+        'method' => count($found) ? 'parsed' : 'none'
+    ];
+};
+
+$ketCheckStats = [
+    'checked'   => 0,
+    'with_amt'  => 0,
+    'match'     => 0,
+    'mismatch'  => 0,
+    'no_amt'    => 0,
+];
+
+$ketMismatchLines = "";  // buat prompt AI (ringkas)
+$ketMismatchMax   = 40;  // biar prompt ga kepanjangan
+$ketMismatchN     = 0;
 
         $detailList = "";
         $i = 0;
