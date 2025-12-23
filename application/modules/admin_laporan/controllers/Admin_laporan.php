@@ -1575,6 +1575,107 @@ public function analisa_tim()
         ->set_output(json_encode($out));
 }
 
+// ====== CEK: total nominal di keterangan vs kolom jumlah ======
+$parseNominalFromKet = function(string $text): array {
+    $raw = trim($text);
+    if ($raw === '') return ['sum'=>0, 'found'=>[], 'has'=>false, 'method'=>'empty'];
+
+    // normalisasi
+    $t = strtolower($raw);
+    $t = str_replace(["\r","\n","\t"], ' ', $t);
+
+    $found = [];
+    $ranges = []; // untuk hindari double count berdasar offset
+
+    $addFound = function($val, $rawToken, $offset, $len, $method) use (&$found, &$ranges){
+        // skip overlap
+        foreach ($ranges as [$s,$e]) {
+            if (!($offset+$len <= $s || $offset >= $e)) return;
+        }
+        $ranges[] = [$offset, $offset+$len];
+        $found[] = ['value'=>(int)round($val), 'raw'=>$rawToken, 'method'=>$method];
+    };
+
+    // 1) Rp 80.000 / rp80.000
+    if (preg_match_all('/\brp\.?\s*([\d\.\,]+)\b/i', $t, $m, PREG_OFFSET_CAPTURE)) {
+        foreach ($m[1] as $idx => $cap) {
+            $numStr = $cap[0];
+            $off    = $cap[1];
+            $clean  = preg_replace('/[^\d]/', '', $numStr);
+            if ($clean === '') continue;
+            $addFound((int)$clean, 'rp '.$numStr, $off, strlen($numStr), 'rp');
+        }
+    }
+
+    // 2) angka dengan suffix: k / rb / ribu / jt / juta  (contoh: 530k, 2,5jt)
+    if (preg_match_all('/\b(\d+(?:[\,\.]\d+)?)\s*(k|rb|ribu|jt|juta)\b/i', $t, $m, PREG_OFFSET_CAPTURE)) {
+        for ($i=0; $i<count($m[1]); $i++){
+            $numStr = $m[1][$i][0];
+            $off    = $m[1][$i][1];
+            $unit   = strtolower($m[2][$i][0]);
+
+            $numF = (float)str_replace(',', '.', $numStr);
+            $mul  = 1;
+            if ($unit === 'k' || $unit === 'rb' || $unit === 'ribu') $mul = 1000;
+            if ($unit === 'jt' || $unit === 'juta') $mul = 1000000;
+
+            $addFound($numF*$mul, $numStr.$unit, $off, strlen($numStr.$unit), 'suffix');
+        }
+    }
+
+    // 3) angka dengan pemisah ribuan: 2.967.000 / 2967000
+    if (preg_match_all('/\b(\d{1,3}(?:[\.\,]\d{3})+)\b/', $t, $m, PREG_OFFSET_CAPTURE)) {
+        foreach ($m[1] as $cap) {
+            $numStr = $cap[0];
+            $off    = $cap[1];
+            $clean  = preg_replace('/[^\d]/', '', $numStr);
+            if ($clean === '') continue;
+            $addFound((int)$clean, $numStr, $off, strlen($numStr), 'thousand_sep');
+        }
+    }
+
+    // 4) fallback “tanpa K”: ambil angka yang posisinya “di akhir item”:
+    //    cocok untuk format: "... air mineral 530 2 kecap ... 310 ... 15"
+    //    (angka dianggap nominal, BUKAN qty, karena setelahnya ada "qty + nama barang" atau akhir string)
+    if (preg_match_all('/\b(\d{1,7})\b(?=\s+\d{1,3}\s+[a-zA-Z]|$)/', $t, $m, PREG_OFFSET_CAPTURE)) {
+        foreach ($m[1] as $cap) {
+            $numStr = $cap[0];
+            $off    = $cap[1];
+            $n      = (int)$numStr;
+            if ($n <= 0) continue;
+
+            // heuristik: jika < 10000, anggap itu "k" yang lupa ditulis → x1000
+            $val = ($n < 10000) ? ($n * 1000) : $n;
+
+            $addFound($val, $numStr, $off, strlen($numStr), 'fallback_no_k');
+        }
+    }
+
+    $sum = 0;
+    foreach ($found as $f) $sum += (int)$f['value'];
+
+    return [
+        'sum'    => (int)$sum,
+        'found'  => $found,
+        'has'    => count($found) > 0,
+        'method' => count($found) ? 'parsed' : 'none'
+    ];
+};
+
+$ketCheckStats = [
+    'checked'   => 0,
+    'with_amt'  => 0,
+    'match'     => 0,
+    'mismatch'  => 0,
+    'no_amt'    => 0,
+];
+
+$ketMismatchLines = "";  // buat prompt AI (ringkas)
+$ketMismatchMax   = 40;  // biar prompt ga kepanjangan
+$ketMismatchN     = 0;
+
+
+
     /** ====== ANALISA LAPORAN PENGELUARAN (BERDASARKAN PERIODE & KATEGORI) ====== */
     public function analisa_pengeluaran()
     {
@@ -1701,14 +1802,34 @@ public function analisa_tim()
             $nom = (int)$r->jumlah;
             $ket = trim((string)$r->keterangan);
 
-            // singkatkan keterangan
-            if (mb_strlen($ket) > 80) {
-                $ket = mb_substr($ket, 0, 80) . '...';
+            if (mb_strlen($ket) > 120) {
+                $ket = mb_substr($ket, 0, 120) . '...';
             }
             $ket = str_replace(["\r","\n"], ' ', $ket);
 
+            // ===== cek nominal dari keterangan vs jumlah =====
+            $ketCheckStats['checked']++;
+            $p = $parseNominalFromKet((string)$r->keterangan);
+            $sumKet = (int)$p['sum'];
+
+            if (!$p['has']) {
+                $ketCheckStats['no_amt']++;
+            } else {
+                $ketCheckStats['with_amt']++;
+                if ($sumKet === $nom) $ketCheckStats['match']++;
+                else $ketCheckStats['mismatch']++;
+
+                // simpan mismatch untuk prompt AI (dibatasi)
+                if ($sumKet !== $nom && $ketMismatchN < $ketMismatchMax) {
+                    $ketMismatchN++;
+                    $sel = $nom - $sumKet; // (+) berarti jumlah kolom > sum keterangan
+                    $ketMismatchLines .= "- [{$i}] tgl={$tgl}, jumlah_kolom={$nom}, total_dari_keterangan={$sumKet}, selisih={$sel}, ket=\"{$ket}\"\n";
+                }
+            }
+
             $detailList .= "- [{$i}] tgl={$tgl}, kategori={$kat}, metode={$met}, jumlah={$nom}, ket=\"{$ket}\"\n";
         }
+
 
         // ========== LABEL FILTER METODE & MODE (konteks) ==========
         $metodeLabelMap = [
@@ -1775,6 +1896,17 @@ public function analisa_tim()
         $prompt .= $ringkasanKategori . "\n";
 
         $prompt .= "CONTOH TRANSAKSI PENGELUARAN (maksimal ".count($rowsSample)." baris, diurutkan dari nominal terbesar):\n";
+        // ===== CEK KETERANGAN vs JUMLAH =====
+        $prompt .= "CEK KETERANGAN vs KOLOM JUMLAH (untuk mendeteksi salah input):\n";
+        $prompt .= "- dicek={$ketCheckStats['checked']}, ada_nominal_di_keterangan={$ketCheckStats['with_amt']}, cocok={$ketCheckStats['match']}, tidak_cocok={$ketCheckStats['mismatch']}, tanpa_nominal_di_keterangan={$ketCheckStats['no_amt']}.\n";
+        $prompt .= "Aturan parsing: token seperti '530k'/'310k' dianggap ribuan, '2.967.000' dianggap rupiah, dan jika ada angka tanpa 'k' tapi berada di akhir item (mis. '... air mineral 530 2 kecap ...') dianggap '530k'.\n";
+        if ($ketMismatchLines !== "") {
+            $prompt .= "DAFTAR CONTOH YANG TIDAK COCOK (jumlah kolom vs total dari keterangan):\n";
+            $prompt .= $ketMismatchLines . "\n";
+        } else {
+            $prompt .= "Tidak ditemukan mismatch yang jelas dari sampel transaksi.\n\n";
+        }
+
         if ($detailList === "") {
             $prompt .= "- Tidak ada transaksi pengeluaran pada periode ini.\n\n";
         } else {
@@ -1810,6 +1942,9 @@ public function analisa_tim()
         $prompt .= "3. DETEKSI KEMUNGKINAN SALAH KATEGORI:\n";
         $prompt .= "   - Perhatikan contoh transaksi (deskripsi/ket) vs kategori.\n";
         $prompt .= "   - Jika menurutmu ada transaksi yang DESKRIPSINYA tidak cocok dengan kategorinya (misal keterangan jelas tentang 'beli bahan baku' tapi kategorinya bukan 'Bahan Baku'), tuliskan beberapa contoh.\n";
+        $prompt .= "6. CEK KEC0C0KAN JUMLAH:\n";
+        $prompt .= "   - Jika ada mismatch antara 'kolom jumlah' dan 'total nominal yang tertulis di keterangan', sebutkan beberapa contoh dan sarankan pembetulan input (misalnya jumlah kolom disesuaikan dengan rincian, atau rincian keterangan diperbaiki).\n\n";
+
         $prompt .= "   - Untuk tiap contoh, tulis: nomor [i], kategori_sekarang, deskripsi_singkat, dan SARAN kategori yang lebih tepat.\n";
         $prompt .= "   - Saat memberi SARAN kategori, WAJIB pilih dari daftar kategori resmi: Umum, Bahan Baku, Operasional, Gaji, Billiard, Tagihan Bulanan/Mingguan, Investasi Peralatan, Prive Pemilik, Pemasaran dan Promosi, Perlengkapan Dapur, atau Lain-lain (jangan membuat nama kategori baru).\n";
         $prompt .= "   - Jangan memaksa; jika hanya kira-kira, jelaskan bahwa ini saran saja.\n";
@@ -1868,6 +2003,7 @@ public function analisa_tim()
                 'rasio_out_in'  => $rasioPeng,
                 'by_kategori'   => $byKategori,
                 'peng_count'    => $pengCount,
+                'ket_check' => $ketCheckStats,
             ],
             'sample_count' => count($rowsSample),
         ];
