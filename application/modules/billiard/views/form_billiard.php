@@ -133,6 +133,16 @@
               <label for="<?= $id ?>" class="d-block w-100 m-0">
                 <!-- Title -->
                 <h4 class="mt-0"><b><?= html_escape($m->nama_meja) ?></b></h4>
+              <?php
+                $katLower = strtolower((string)($m->kategori ?? ''));
+                $isVipMeja = (strpos($katLower, 'vip') !== false);
+              ?>
+              <?php if ($isVipMeja): ?>
+                <div class="mt-1 mb-2 small text-danger">
+                  <i class="mdi mdi-calendar-star mr-1"></i>
+                  <b>Malam Tahun Baru</b> (31 Des 18:00 – 1 Jan 04:00): <b>Rp250.000/jam</b>
+                </div>
+              <?php endif; ?>
 
                 <!-- Weekday -->
                <!--  <div class="mb-1">
@@ -361,10 +371,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
 window.AUSI_CFG = {
   MAX_DAYS: <?= (int)($rec->maks_hari_booking ?? 3) ?>,
-  PAY_LIMIT_MIN: <?= (int)($rec->late_min ?? 60) ?> // menit tenggang pembayaran sebelum auto-cancel
+  PAY_LIMIT_MIN: <?= (int)($rec->late_min ?? 60) ?>,
+  MAX_HOURS: 10
 };
 
 
+function clampHours(v){
+  const max = Number(window.AUSI_CFG?.MAX_HOURS || 5);
+  const x = parseInt(v, 10);
+  if (isNaN(x)) return null;
+  return Math.max(1, Math.min(max, x));
+}
 
 
 // Utils umum
@@ -379,6 +396,51 @@ function sameYMD(a,b){
     a.getMonth()===b.getMonth() &&
     a.getDate()===b.getDate();
 }
+
+/* =========================================================
+ * OVERRIDE TARIF: VIP Malam Tahun Baru = 250.000 / jam
+ * Window: 31 Des 18:00 -> 1 Jan 06:00
+ * ========================================================= */
+const NY_VIP_RATE = 250000;
+const NY_START_HM = '18:00';
+const NY_END_HM   = '04:00';
+
+function isVipMeja(r){
+  const k = String(r?.dataset?.kategori || '').toLowerCase();
+  return k.includes('vip');
+}
+
+// Cek overlap slot dengan window tahun baru (berdasarkan tanggal booking)
+function isNewYearNight(dateObj, startHM, hours){
+  if (!dateObj || !startHM) return false;
+
+  const durH = Math.max(1, Math.min(12, parseInt(hours || '1', 10) || 1));
+
+  const m = dateObj.getMonth() + 1;
+  const d = dateObj.getDate();
+
+  // basis timeline: 31 Des = 0..1439, 1 Jan = 1440..2879
+  let dayOffset = 0;
+  if (m === 12 && d === 31) dayOffset = 0;
+  else if (m === 1 && d === 1) dayOffset = 1440;
+  else return false;
+
+  const slotStart = dayOffset + toMin(startHM);
+  const slotEnd   = slotStart + (durH * 60);
+
+  const winStart = toMin(NY_START_HM);        // 31 Des 18:00
+  const winEnd   = 1440 + toMin(NY_END_HM);   // 1 Jan 06:00
+
+  return Math.min(slotEnd, winEnd) > Math.max(slotStart, winStart);
+}
+
+function getRateOverrideNYVip(r, dateObj, startHM, hours){
+  if (isVipMeja(r) && isNewYearNight(dateObj, startHM, hours)) {
+    return { ok:true, rate: NY_VIP_RATE, label: 'Malam Tahun Baru (VIP)' };
+  }
+  return { ok:false };
+}
+
 function hmNow(){         // "HH:MM" waktu sekarang (lokal browser)
   const n = new Date();
   return `${pad(n.getHours())}:${pad(n.getMinutes())}`;
@@ -472,7 +534,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function refreshUI(){
   const sel = getSelectedMeja();
-  const d   = getSelectedDate() || window.__BOOKING_DATES?.today || new Date();
+  // const d   = getSelectedDate() || window.__BOOKING_DATES?.today || new Date();
+  const d = (typeof getSelectedDate === 'function' ? getSelectedDate() : null)
+       || window.__BOOKING_DATES?.today
+       || new Date();
+
 
   jamMulai.setCustomValidity('');
   if (jamInfo)    jamInfo.textContent = '';
@@ -480,8 +546,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Netralisir constraint native agar tidak muncul "maksimal XX:XX"
   jamMulai.removeAttribute('max');
-const pickedDate = getSelectedDate();
-jamMulai.min = (pickedDate && sameYMD(pickedDate, new Date())) ? hmNow() : '00:00';
+// const pickedDate = getSelectedDate();
+// jamMulai.min = (pickedDate && sameYMD(pickedDate, new Date())) ? hmNow() : '00:00';
 
 
   if (!sel) return;
@@ -491,8 +557,8 @@ jamMulai.min = (pickedDate && sameYMD(pickedDate, new Date())) ? hmNow() : '00:0
   const overnight = (toMin(close) <= toMin(open));
 
   // durasi (jam)
-  let dHours = parseInt((durasi.value || '').trim(), 10);
-  dHours = isNaN(dHours) ? null : Math.max(1, Math.min(5, dHours));
+  let dHours = clampHours(durasi.value);
+
 
   // Info display saja
   const displayClose = overnight ? `${close} (next day)` : close;
@@ -522,25 +588,38 @@ if (!band){
   // OK via rule Day→Night
   if (jamMulai) jamMulai.setCustomValidity('');
   if (jamInfo)  jamInfo.textContent = '';
-  const subtotal = cx.rate * dHours;
+ const overNY = getRateOverrideNYVip(sel, d, jamMulai.value, dHours);
+  const rateUsed  = overNY.ok ? overNY.rate : cx.rate;
+  const labelUsed = overNY.ok ? overNY.label : cx.label;
+
+  const subtotal = rateUsed * dHours;
 
   if (infoHitung){
     infoHitung.innerHTML =
-      `<b>${cx.label}</b> ${cx.startHM}–${cx.endHM} `
-      + `(pakai tarif Day Rp${cx.rate.toLocaleString('id-ID')}/jam) • `
-      + `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`;
+      `<b>${labelUsed}</b> ${cx.startHM}–${cx.endHM} `
+      + `(${overNY.ok ? 'Tarif khusus Rp' + rateUsed.toLocaleString('id-ID') : 'pakai tarif Day Rp' + rateUsed.toLocaleString('id-ID')}/jam) • `
+      + `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`
+      + (overNY.ok ? `<br><span class="badge badge-danger mt-1">Tarif Malam Tahun Baru VIP</span>` : '');
   }
+
   return;
 }
 
 // Normal (tidak lintas window)
-const subtotal = (band.rate * dHours) || 0;
+const overNY = getRateOverrideNYVip(sel, d, jamMulai.value, dHours);
+const rateUsed  = overNY.ok ? overNY.rate : band.rate;
+const labelUsed = overNY.ok ? overNY.label : band.label;
+
+const subtotal = (rateUsed * dHours) || 0;
+
 if (infoHitung) {
   infoHitung.innerHTML =
-    `<b>${band.label}</b> ${band.wStart}–${band.wEnd} `
-    + `(Rp${band.rate.toLocaleString('id-ID')}/jam) • `
-    + `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`;
+    `<b>${labelUsed}</b> ${band.wStart}–${band.wEnd} `
+    + `(Rp${rateUsed.toLocaleString('id-ID')}/jam) • `
+    + `Durasi ${dHours} jam → Estimasi: <b>Rp${subtotal.toLocaleString('id-ID')}</b>`
+    + (overNY.ok ? `<br><span class="badge badge-danger mt-1">Tarif Malam Tahun Baru VIP</span>` : '');
 }
+
 
 }
 
@@ -552,7 +631,14 @@ if (infoHitung) {
   });
   tanggalView?.addEventListener('change',refreshUI);
 
-  document.addEventListener('DOMContentLoaded',refreshUI);
+  if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', refreshUI);
+} else {
+  refreshUI();
+}
+
+
+
 })();
 </script>
 
@@ -576,24 +662,24 @@ function windowToSpan(w){
 }
 /** Kembalikan window aktif untuk slot (jamMulai, durasi) — atau null jika tidak masuk window mana pun */
 function slotBandFor(r, startHM, hours, dateObj){
-  const cfg = getCfgFor(r, dateObj); if(!cfg || !startHM) return null;
-  const dur = Math.max(1, Math.min(5, parseInt(hours||'1',10))) * 60;
+  const cfg = getCfgFor(r, dateObj); 
+  if(!cfg || !startHM) return null;
+
+  const h = clampHours(hours);
+  if (!h) return null;
+
+  const dur = h * 60;
   const start = toMin(startHM);
   const end   = start + dur;
 
   const dwin = windowToSpan(cfg.day);
   const nwin = windowToSpan(cfg.night);
 
-  // cek span, termasuk bagian "lewat 24:00" utk overnight
   function inSpan(win){
-    // non-overnight: e <= 1440
     if (win.e <= 24*60){
       return (start >= win.s && end <= win.e);
     }
-    // overnight:
-    // A) start di bagian sore (mis. 23:00)
     if (start >= win.s && end <= win.e) return true;
-    // B) start di bagian dinihari (mis. 01:00) → geser +24h
     const start2 = start + 24*60, end2 = end + 24*60;
     return (start2 >= win.s && end2 <= win.e);
   }
@@ -602,6 +688,7 @@ function slotBandFor(r, startHM, hours, dateObj){
   if (inSpan(nwin)) return { band:'night', label:cfg.night.label, rate:cfg.night.rate, wStart:cfg.night.start, wEnd:cfg.night.end };
   return null;
 }
+
 </script>
 
 <!-- ====== VALIDASI + SUBMIT (SweetAlert) ====== -->
@@ -700,7 +787,8 @@ function validateTimeRange(){
 
   if (!jamMulai.value) return true;
 
-  const dHours = Math.max(1, Math.min(5, parseInt(durasi.value||'1', 10)));
+  const dHours = clampHours(durasi.value || '1') || 1;
+
 
   const okBand = slotBandFor(sel, jamMulai.value, dHours, dObj);
   if (okBand){
@@ -736,6 +824,7 @@ function validateTimeRange(){
   document.querySelectorAll('input[name="meja_id"]').forEach(r=>{
     r.addEventListener('change', validateTimeRange);
   });
+  tanggalView?.addEventListener('change', validateTimeRange); // taruh di sini (sekali)
 
   // helper UI
   function htmlEscape(str) {
@@ -1300,6 +1389,8 @@ async function previewVoucher(payload){
   }
 
   const timeOk = validateTimeRange();
+  // document.getElementById('tanggal_view')?.addEventListener('change', validateTimeRange);
+
   const allOk  = frm.checkValidity();
   if (!allOk || !timeOk) {
     const listHtml = buildInvalidList() || '<p>Periksa kembali isian kamu ya.</p>';
@@ -1332,22 +1423,100 @@ async function previewVoucher(payload){
   // const voucherCode = (voucherInp && voucherInp.value.trim()) ? voucherInp.value.trim().toUpperCase() : '';
   const voucherCode = sanitizeVoucherCode(voucherInp && voucherInp.value ? voucherInp.value.trim() : '');
 
-  const durInt = parseInt(durVal,10);
-let labelTxt = '—', subtotal = 0;
+  const durInt = clampHours(durVal) || 1;
 
-// normal (full di satu window)
-const bandObj = slotBandFor(sel, (jamMulai.value||'00:00'), durInt, (getSelectedDate()||new Date()));
+  const dObj   = (getSelectedDate() || new Date());
+  const startHM = (jamMulai.value || '00:00');
+
+  let labelTxt = '—';
+  let subtotal = 0;
+
+// 1) hitung base (normal window)
+const bandObj = slotBandFor(sel, startHM, durInt, dObj);
 if (bandObj){
   labelTxt = bandObj.label;
   subtotal = bandObj.rate * durInt;
 } else {
-  // fallback: lintas Day→Night pakai tarif Day
-  const cx = slotDayCrossOK(sel, (jamMulai.value||'00:00'), durInt, (getSelectedDate()||new Date()));
+  // 2) fallback lintas Day→Night pakai tarif Day
+  const cx = slotDayCrossOK(sel, startHM, durInt, dObj);
   if (cx.ok){
     labelTxt = cx.label;
-    subtotal = cx.rate * durInt; // SELURUH DURASI tarif siang
+    subtotal = cx.rate * durInt;
   }
 }
+
+// 3) TERAKHIR: override Malam Tahun Baru VIP (menimpa base)
+const overNY2 = getRateOverrideNYVip(sel, dObj, startHM, durInt);
+if (overNY2.ok){
+  labelTxt = overNY2.label;
+  subtotal = overNY2.rate * durInt;
+}
+
+// =========================================================
+// HARD CODE FRONTEND: VIP Malam Tahun Baru = 250.000 / jam
+// Window: 31 Des 18:00 -> 1 Jan 04:00
+// =========================================================
+// const NY_VIP_RATE = 250000;
+// const NY_START_HM = '18:00';
+// const NY_END_HM   = '04:00';
+
+// function isVipMeja(r){
+//   const k = String(r?.dataset?.kategori || '').toLowerCase();
+//   return k.includes('vip');
+// }
+
+// // Cek overlap slot dengan window tahun baru (pakai tanggal booking, bukan "hari ini")
+// function isNewYearNight(dateObj, startHM, hours){
+//   if (!dateObj || !startHM) return false;
+
+//   const y = dateObj.getFullYear();
+//   const m = dateObj.getMonth() + 1;
+//   const d = dateObj.getDate();
+
+//   // hanya relevan untuk 31 Des atau 1 Jan
+//   let dayOffset = 0;
+//   if (m === 12 && d === 31) {
+//     dayOffset = 0;        // 31 Des
+//   } else if (m === 1 && d === 1) {
+//     dayOffset = 1440;     // 1 Jan = +1 hari dari basis 31 Des
+//   } else {
+//     return false;
+//   }
+
+//   const durH = Math.max(1, Math.min(12, parseInt(hours || '1', 10) || 1));
+//   const slotStart = dayOffset + toMin(startHM);
+//   const slotEnd   = slotStart + (durH * 60);
+
+//   const winStart = toMin(NY_START_HM);           // 18:00 = 1080
+//   const winEnd   = 1440 + toMin(NY_END_HM);      // next day 04:00 = 1800
+
+//   const ovStart = Math.max(slotStart, winStart);
+//   const ovEnd   = Math.min(slotEnd, winEnd);
+//   return ovEnd > ovStart;
+// }
+
+// function getRateOverrideNYVip(r, dateObj, startHM, hours){
+//   if (isVipMeja(r) && isNewYearNight(dateObj, startHM, hours)) {
+//     return { ok:true, rate: NY_VIP_RATE, label: 'Malam Tahun Baru (VIP)' };
+//   }
+//   return { ok:false };
+// }
+
+
+
+
+
+// if (bandObj){
+//   labelTxt = bandObj.label;
+//   subtotal = bandObj.rate * durInt;
+// } else {
+//   // fallback: lintas Day→Night pakai tarif Day
+//   const cx = slotDayCrossOK(sel, (jamMulai.value||'00:00'), durInt, (getSelectedDate()||new Date()));
+//   if (cx.ok){
+//     labelTxt = cx.label;
+//     subtotal = cx.rate * durInt; // SELURUH DURASI tarif siang
+//   }
+// }
 
 // const payMethodRaw =
 //   (frm.querySelector('[name="metode_bayar"]')?.value ||
@@ -1491,21 +1660,21 @@ if (voucherCode) {
 }
 
 // ✅ kalau tidak ada voucher, biarkan estimasi default (subtotal)
-if (voucherCode && voucherPreview && voucherPreview.success) {
-  const v = voucherPreview.data || {};
-  const jenis = String(v.jenis || '').toUpperCase();
+// if (voucherCode && voucherPreview && voucherPreview.success) {
+//   const v = voucherPreview.data || {};
+//   const jenis = String(v.jenis || '').toUpperCase();
 
-  if (jenis === 'FREE_MAIN') {
-    estimasi = 'Rp 0 (FREE_MAIN valid)';
-  } else {
-    const after = parseInt(v.subtotal_after ?? v.grand_total ?? subtotal, 10) || 0;
-    const disc  = parseInt(v.discount ?? 0, 10) || 0;
+//   if (jenis === 'FREE_MAIN') {
+//     estimasi = 'Rp 0 (FREE_MAIN valid)';
+//   } else {
+//     const after = parseInt(v.subtotal_after ?? v.grand_total ?? subtotal, 10) || 0;
+//     const disc  = parseInt(v.discount ?? 0, 10) || 0;
 
-    estimasi = isNonCash
-      ? `${fmtRp(after)} (setelah diskon ${fmtRp(disc)}) + kode unik (transfer/QRIS)`
-      : `${fmtRp(after)} (setelah diskon ${fmtRp(disc)})`;
-  }
-}
+//     estimasi = isNonCash
+//       ? `${fmtRp(after)} (setelah diskon ${fmtRp(disc)}) + kode unik (transfer/QRIS)`
+//       : `${fmtRp(after)} (setelah diskon ${fmtRp(disc)})`;
+//   }
+// }
 
 
   const html = `
@@ -1514,6 +1683,8 @@ if (voucherCode && voucherPreview && voucherPreview.success) {
       <p><b>HP (WA)</b>: ${htmlEscape(noHpVal)}</p>
       <p><b>${htmlEscape(mejaName)}</b></p>
       <p><b>Tanggal</b>: ${htmlEscape(tglLabel)}</p>
+      ${(overNY2 && overNY2.ok) ? `<p><span class="badge badge-danger">Tarif khusus Malam Tahun Baru<br>VIP: Rp250.000/jam</span></p>` : ''}
+
       ${voucherCode ? `<p><b>Voucher</b>: <span class="badge badge-success">${htmlEscape(voucherCode)}</span></p>` : ''}
 
 ${(voucherCode && voucherPreview && voucherPreview.success && String(voucherPreview.data?.jenis||'').toUpperCase()==='FREE_MAIN')
@@ -1577,22 +1748,22 @@ ${(voucherCode && voucherPreview && voucherPreview.success && ['NOMINAL','PERSEN
 document.addEventListener('DOMContentLoaded', function(){
   const jamMulai = document.getElementById('jam_mulai');
   if (!jamMulai) return;
-  jamMulai.addEventListener('input', function(){
-    if (this.value && this.value.indexOf('.') !== -1) {
-      this.value = this.value.replace(/\./g, ':');
-    }
-  });
+  // jamMulai.addEventListener('input', function(){
+  //   if (this.value && this.value.indexOf('.') !== -1) {
+  //     this.value = this.value.replace(/\./g, ':');
+  //   }
+  // });
 });
 </script>
 
 <!-- ====== HTML Escape helper ====== -->
 <script>
-function htmlEscape(str) {
-  if (!str) return '';
-  return String(str).replace(/[&<>"'`=\/]/g, function (s) {
-    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
-  });
-}
+// function htmlEscape(str) {
+//   if (!str) return '';
+//   return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+//     return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
+//   });
+// }
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -1615,10 +1786,16 @@ function getFreeHours(){
 
 <script>
 function slotErrorFor(r, startHM, hours, dateObj){
-  const cfg = getCfgFor(r, dateObj); if(!cfg || !startHM) return null;
-  const durMin = Math.max(1, Math.min(5, parseInt(hours||'1',10))) * 60;
+   const cfg = getCfgFor(r, dateObj);
+  if(!cfg || !startHM) return null;
+
+  const h = clampHours(hours);
+  if (!h) return 'Pilih durasi dulu ya.';
+
+  const durMin = h * 60;
   const s = toMin(startHM), e = s + durMin;
   const endHM = fromMin(e % (24*60));
+
   const dwin = windowToSpan(cfg.day), nwin = windowToSpan(cfg.night);
 
   // apakah slot full di salah satu window (sudah valid)?
@@ -1675,8 +1852,10 @@ function slotDayCrossOK(r, startHM, hours, dateObj){
   const cfg = getCfgFor(r, dateObj);
   if (!cfg || !startHM) return { ok:false };
 
-  const durMin = Math.max(1, Math.min(5, parseInt(hours||'1',10))) * 60;
-  const s = toMin(startHM);                 // menit dari 00:00
+  const h = clampHours(hours);
+  if (!h) return { ok:false };
+
+  const durMin = h * 60;  const s = toMin(startHM);                 // menit dari 00:00
   const dwin = windowToSpan(cfg.day);       // {s,e} dengan e bisa >1440 (overnight)
   const nwin = windowToSpan(cfg.night);     // {s,e}
 
@@ -1700,7 +1879,9 @@ function slotDayCrossOK(r, startHM, hours, dateObj){
     const t1 = mapToBase(t, nwin);
     // untuk jaga-jaga kalau masih bisa lewat +24h
     const t2 = t1 + 1440;
-    return (t1 > nwin.s && t1 <= nwin.e) || (t2 > nwin.s && t2 <= nwin.e);
+    // return (t1 > nwin.s && t1 <= nwin.e) || (t2 > nwin.s && t2 <= nwin.e);
+    return (t1 >= nwin.s && t1 <= nwin.e) || (t2 >= nwin.s && t2 <= nwin.e);
+
   }
   if (!inNight(eBase)) return { ok:false };
 

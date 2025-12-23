@@ -996,6 +996,46 @@ if ($voucher_jenis === 'FREE_MAIN') {
 }
 
 
+// =========================================================
+// HARD CODE: MALAM TAHUN BARU (VIP) = 250.000 / JAM
+// Berlaku jika slot booking OVERLAP window:
+// 31 Des 18:00 -> 1 Jan 06:00 (timezone $tz)
+// =========================================================
+$kat_meja    = strtolower((string)($meja->kategori ?? ''));
+$is_vip_meja = (strpos($kat_meja, 'vip') !== false);
+
+if ($is_vip_meja) {
+
+  $slotStart = DateTime::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jam_mulai}", $tz);
+  $slotEnd   = DateTime::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jam_selesai}", $tz);
+
+  if ($slotStart && $slotEnd) {
+
+    // kalau melewati tengah malam
+    if ($slotEnd <= $slotStart) {
+      $slotEnd->modify('+1 day');
+    }
+
+    // window tahun baru milik "tahun slotStart" (kalau 1 Jan, pakai tahun sebelumnya)
+    $y = (int)$slotStart->format('Y');
+    if ($slotStart->format('m-d') === '01-01') {
+      $y -= 1;
+    }
+
+    $nyStart = new DateTime($y . '-12-31 18:00:00', $tz);
+    $nyEnd   = new DateTime(($y + 1) . '-01-01 04:00:00', $tz);
+
+    // cek overlap
+    $ovStart = ($slotStart > $nyStart) ? $slotStart : $nyStart;
+    $ovEnd   = ($slotEnd   < $nyEnd)   ? $slotEnd   : $nyEnd;
+
+    if ($ovEnd > $ovStart) {
+      $harga = 250000; // <=== tarif VIP malam tahun baru (per jam)
+    }
+  }
+}
+
+
     // subtotal pakai durasi final (kalau voucher, pakai durasi voucher)
     $subtotal = $harga * $durasi;
 // ====== BRANCH 2: NOMINAL / PERSEN -> hitung diskon dari subtotal ======
