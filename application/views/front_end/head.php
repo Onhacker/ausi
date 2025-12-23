@@ -161,7 +161,7 @@
   .wrapper{
     box-shadow:none !important; /* matikan shadow card putih */
   }
- /* #app-scroll{
+  #app-scroll{
     height:100%;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
@@ -169,16 +169,7 @@
     position:relative;
   }
 
- */
-html, body{ height:auto !important; }
-
-#app-scroll{
-  min-height:100% !important;
-  height:auto !important;
-  overflow:visible !important;
-  -webkit-overflow-scrolling:auto !important;
-  position:relative !important;
-}
+ 
 
   #preloader #status{
     text-align:center;
