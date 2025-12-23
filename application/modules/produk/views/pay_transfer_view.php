@@ -2,7 +2,7 @@
 <div class="container-fluid">
   <div class="hero-title">
     <h1 class="text">Pembayaran via Transfer</h1>
-    <div class="text-white">Silakan transfer sesuai nominal total bayar di bawah ini.</div>
+    <!-- <div class="text-white">Silakan transfer sesuai nominal total bayar di bawah ini.</div> -->
     <span class="accent" aria-hidden="true"></span>
   </div>
 
@@ -70,115 +70,119 @@ $show_change_method_btn = ($order_nomor !== '' && !in_array($status_now, ['paid'
 </style>
 
   <div class="row">
-    <!-- Kolom kiri: Info pembayaran -->
-    <div class="col-md-6">
-      <div class="card card-body mb-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <!-- <h5 class="mb-0">Nominal Pembayaran</h5> -->
-          <?php if (!in_array($status_now, ['paid','canceled'], true)): ?>
-            <span class="chip chip-warn">
-              <i class="mdi mdi-timer-sand"></i> Menunggu Transfer
-            </span>
-          <?php endif; ?>
-        </div>
-        <?php if ($show_change_method_btn): ?>
-          <div class="mb-2">
-            <button type="button"
-                    class="btn btn-outline-danger btn-sm"
-                    id="btn-ubah-metode"
-                    data-nomor="<?= html_escape($order_nomor) ?>">
-              <i class="mdi mdi-refresh"></i> Ubah Metode Pembayaran
-            </button>
-            <small class="text-muted d-block mt-1">
-              Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
-            </small>
-          </div>
-        <?php endif; ?>
-
-        <div class="total-panel">
-          <div class="line">
-            <span class="text-dark">Subtotal</span>
-            <span>Rp <?= number_format($subtotal_view,0,',','.') ?></span>
-          </div>
-           <?php if ($has_voucher): ?>
-  <div class="line">
-    <span class="text-dark">
-      Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
-    </span>
-    <span class="text-danger">- <?= number_format($voucher_disc,0,',','.') ?></span>
-  </div>
-  <?php endif; ?>
-          <?php if ($is_delivery && $delivery_fee > 0): ?>
-          <div class="line">
-            <span class="text-dark">Ongkir</span>
-            <span>+ <?= number_format($delivery_fee,0,',','.') ?></span>
-          </div>
-          <?php endif; ?>
-
-          <?php if ($kode_unik > 0): ?>
-          <div class="line">
-            <span class="text-dark">Kode Unik</span>
-            <span>+ <?= number_format($kode_unik,0,',','.') ?></span>
-          </div>
-          <?php endif; ?>
-        </div>
-
-        <div class="total-highlight mt-2">
-          <div class="d-flex justify-content-between align-items-center">
-            <div class="h6 mb-0">Total Bayar</div>
-            <div class="text-right">
-              <div class="money-lg">Rp <?= number_format($grand_display,0,',','.') ?></div>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary mt-1 js-copy btn-icon"
-                data-copy="<?= (int)$grand_display ?>"
-                aria-label="Salin total bayar">
-                <i class="mdi mdi-content-copy"></i> Salin Total
-              </button>
-            </div>
-          </div>
-          <div class="mini-hint mt-2 text-danger">
-            * Transfer tepat sesuai <strong>angka unik</strong> agar kasir mudah mencocokkan.
-          </div>
-        </div>
-      </div>
-
-      <div class="card card-body">
-        <h5 class="mb-2">Rekening Tujuan</h5>
-
-        <?php if (!empty($bank_list)): ?>
-          <?php foreach($bank_list as $b):
-                $rek    = preg_replace('/\s+/', '', $b['no_rek']); // tanpa spasi
-                $rekRaw = preg_replace('/[^0-9]/', '', $rek);      // hanya angka
-          ?>
-            <div class="bank-item">
-              <div>
-                <div class="bank-title"><?= html_escape($b['bank']) ?></div>
-                <div class="text-dark">a.n. <?= html_escape($b['atas_nama']) ?></div>
-                <div class="mt-1">
-                  <code class="bank-rek"><?= html_escape($b['no_rek']) ?></code>
-                </div>
-              </div>
-              <div class="ml-3">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary js-copy btn-icon"
-                  data-copy="<?= html_escape($rekRaw) ?>"
-                  aria-label="Salin nomor rekening <?= html_escape($b['bank']) ?>">
-                  <i class="mdi mdi-content-copy"></i> Salin Rek.
-                </button>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <div class="alert alert-warning mb-0">Data rekening tujuan belum tersedia.</div>
-        <?php endif; ?>
-
-        <div class="alert alert-danger mt-3 mb-0">
-          * Transfer tepat sesuai <strong>Rp <?= number_format($grand_display,0,',','.') ?></strong> agar kasir mudah mencocokkan.
-        </div>
-      </div>
+    <!-- Kolom kiri: Info pembayaran (TOTAL + REKENING disatukan) -->
+<div class="col-md-6">
+  <div class="card card-body mb-3">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <?php if (!in_array($status_now, ['paid','canceled'], true)): ?>
+        <span class="chip chip-warn">
+          <i class="mdi mdi-timer-sand"></i> Menunggu Transfer
+        </span>
+      <?php endif; ?>
     </div>
+
+    <?php if ($show_change_method_btn): ?>
+      <div class="mb-2">
+        <button type="button"
+                class="btn btn-outline-danger btn-rounded btn-sm"
+                id="btn-ubah-metode"
+                data-nomor="<?= html_escape($order_nomor) ?>">
+          <i class="mdi mdi-refresh"></i> Ganti Metode Pembayaran
+        </button>
+        <small class="text-muted d-block mt-1">
+          Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
+        </small>
+      </div>
+    <?php endif; ?>
+
+    <!-- ===== Total Panel ===== -->
+    <div class="total-panel">
+      <div class="line">
+        <span class="text-dark">Subtotal</span>
+        <span>Rp <?= number_format($subtotal_view,0,',','.') ?></span>
+      </div>
+
+      <?php if ($has_voucher): ?>
+        <div class="line">
+          <span class="text-dark">
+            Voucher<?php if ($voucher_code): ?> (<?= html_escape($voucher_code) ?>)<?php endif; ?>
+          </span>
+          <span class="text-danger">- <?= number_format($voucher_disc,0,',','.') ?></span>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($is_delivery && $delivery_fee > 0): ?>
+        <div class="line">
+          <span class="text-dark">Ongkir</span>
+          <span>+ <?= number_format($delivery_fee,0,',','.') ?></span>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($kode_unik > 0): ?>
+        <div class="line">
+          <span class="text-dark">Kode Unik</span>
+          <span>+ <?= number_format($kode_unik,0,',','.') ?></span>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <div class="total-highlight mt-2">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="h6 mb-0">Total Bayar</div>
+        <div class="text-right">
+          <div class="money-lg">Rp <?= number_format($grand_display,0,',','.') ?></div>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary mt-1 js-copy btn-icon"
+            data-copy="<?= (int)$grand_display ?>"
+            aria-label="Salin total bayar">
+            <i class="mdi mdi-content-copy"></i> Salin Total
+          </button>
+        </div>
+      </div>
+     <!--  <div class="mini-hint mt-2 text-danger">
+        * Transfer tepat sesuai <strong>angka unik</strong> agar kasir mudah mencocokkan.
+      </div> -->
+    </div>
+
+    <!-- <hr class="my-1"> -->
+
+    <!-- ===== Rekening Tujuan ===== -->
+    <!-- <h4 class="mb-2"><strong>Rekening Tujuan</strong></h4> -->
+
+    <?php if (!empty($bank_list)): ?>
+      <?php foreach($bank_list as $b):
+            $rek    = preg_replace('/\s+/', '', $b['no_rek']); // tanpa spasi
+            $rekRaw = preg_replace('/[^0-9]/', '', $rek);      // hanya angka
+      ?>
+        <div class="bank-item mt-2">
+          <div>
+            <div class="bank-title">Rek. Tujuan<br><?= html_escape($b['bank']) ?></div>
+            <div class="text-dark">a.n. <?= html_escape($b['atas_nama']) ?></div>
+            <div class="mt-1">
+              <code class="bank-rek"><?= html_escape($b['no_rek']) ?></code>
+            </div>
+          </div>
+          <div class="ml-3">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary js-copy btn-icon"
+              data-copy="<?= html_escape($rekRaw) ?>"
+              aria-label="Salin nomor rekening <?= html_escape($b['bank']) ?>">
+              <i class="mdi mdi-content-copy"></i> Salin Rek.
+            </button>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <div class="alert alert-warning mb-0">Data rekening tujuan belum tersedia.</div>
+    <?php endif; ?>
+
+    <div class="alert alert-danger mt-1 mb-0">
+      * Transfer tepat sesuai <strong>Rp <?= number_format($grand_display,0,',','.') ?></strong> agar kasir mudah mencocokkan.
+    </div>
+  </div>
+</div>
 
     <!-- Kolom kanan: Ringkasan pesanan -->
     <div class="col-md-6">
@@ -393,7 +397,7 @@ $show_change_method_btn = ($order_nomor !== '' && !in_array($status_now, ['paid'
         window.location.href = r.redirect || ("<?= site_url('produk/order_success/') ?>" + encodeURIComponent(nomor));
         return;
       }
-      alert((r && r.msg) ? r.msg : 'Gagal mengubah metode pembayaran.');
+      alert((r && r.msg) ? r.msg : 'Gagal mengGanti Metode Pembayaran.');
     }catch(e){
       console.error(e);
       alert('Gagal menghubungi server.');
@@ -406,7 +410,7 @@ $show_change_method_btn = ($order_nomor !== '' && !in_array($status_now, ['paid'
     if (window.Swal){
       Swal.fire({
         icon: 'warning',
-        title: 'Ubah metode pembayaran?',
+        title: 'Ganti Metode Pembayaran?',
         html: 'Status pesanan akan dikembalikan ke <b>PENDING</b> agar kamu bisa pilih metode bayar lagi.',
         showCancelButton: true,
         confirmButtonText: 'Ya, ubah',
@@ -414,7 +418,7 @@ $show_change_method_btn = ($order_nomor !== '' && !in_array($status_now, ['paid'
         reverseButtons: true
       }).then(x => { if (x.isConfirmed) run(); });
     } else {
-      if (confirm('Ubah metode pembayaran? Status akan kembali ke PENDING.')) run();
+      if (confirm('Ganti Metode Pembayaran? Status akan kembali ke PENDING.')) run();
     }
   });
 })();

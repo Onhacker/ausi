@@ -127,7 +127,7 @@
               <div class="col-8">
                 <div class="font-weight-600"><?= html_escape($nama) ?></div>
                 <div class="muted">Harga: Rp <?= number_format($harga,0,',','.') ?></div>
-                <div class="muted">Qty: <strong><?= $qty ?></strong></div>
+                <div class="muted">Jumlah: <strong><?= $qty ?></strong></div>
               </div>
               <div class="col-4 text-right">
                 <div class="subtotal">Rp <?= number_format($sub,0,',','.') ?></div>
@@ -147,7 +147,7 @@
       <form id="form-order" onsubmit="return false;">
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label>Nama </label>
+            <label><strong>Nama</strong> </label>
             <div class="input-group">
               <div class="input-group-prepend">
                 <span class="input-group-text" id="nama-addon">
@@ -160,7 +160,7 @@
           <div class="form-group col-md-6">
           
             <label class="d-flex align-items-center">
-              <span>No. WhatsApp <small class="text-muted ml-1">(opsional)</small></span>
+              <span><strong>No. WhatsApp</strong> <small class="text-muted ml-1">(opsional)</small></span>
 
            <!--    <span class="help-icon pretty"
               data-toggle="tooltip"
@@ -182,25 +182,37 @@
             </div>
 
             <!-- EMAIL (opsional) -->
-<div class="form-group col-md-6">
+<!-- <div class="form-group col-md-6">
   <label class="d-flex align-items-center">
-    <span>Email <small class="text-muted ml-1">(opsional)</small></span>
+    <span>Email <small class="text-muted ml-1">(opsional)</small></span> -->
    <!--  <span class="help-icon pretty"
           data-toggle="tooltip"
           data-placement="right"
           title="Jika diisi, kami info promo menarik ke email ini.">?</span> -->
-  </label>
+<!--   </label>
   <input type="email"
          class="form-control"
          name="email"
          placeholder="nama@contoh.com"
          autocomplete="email">
-</div>
+</div> -->
+
+
+
+
+          <div class="form-group col-md-6">
+            <label for="catatan"><strong>Catatan</strong></label>
+            <textarea class="form-control" id="catatan" name="catatan" rows="2" placeholder="Tanpa gula / pedas / bungkus / dll" autocomplete="off" maxlength="255" aria-describedby="catatanHelp"></textarea>
+            <small id="catatanHelp" class="form-text">
+              <span class="hint">Maks. 255 karakter</span>
+              <span><span id="catatan-count">0</span>/255</span>
+            </small>
+          </div>
 
 <!-- KODE VOUCHER (opsional) -->
 <div class="form-group col-md-6">
   <label class="d-flex align-items-center">
-    <span>Kode Voucher <small class="text-muted ml-1">(opsional)</small></span>
+    <span><strong>Kode Voucher</strong> <small class="text-muted ml-1">(opsional)</small></span>
   <!--   <span class="help-icon pretty"
           data-toggle="tooltip"
           data-placement="right"
@@ -228,17 +240,170 @@
 </div>
 
 
+          <style type="text/css">
+            /* ===== Pay Methods (beautify) ===== */
+.pay-methods .pay-grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /*gap:.6rem;*/
+}
 
-          <div class="form-group col-md-6">
-            <label for="catatan">Catatan</label>
-            <textarea class="form-control" id="catatan" name="catatan" rows="2" placeholder="Tanpa gula / pedas / bungkus / dll" autocomplete="off" maxlength="255" aria-describedby="catatanHelp"></textarea>
-            <small id="catatanHelp" class="form-text">
-              <span class="hint">Maks. 255 karakter</span>
-              <span><span id="catatan-count">0</span>/255</span>
-            </small>
+@media (max-width: 767.98px){
+  .pay-methods .pay-grid{
+    grid-template-columns: 1fr; /* mobile: 1 kolom biar enak */
+  }
+}
+
+.pay-pill{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+  padding:.75rem .85rem;
+  border:1px solid rgba(2,6,23,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 10px 24px rgba(16,24,40,.05);
+  cursor:pointer;
+  user-select:none;
+  transition:transform .08s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+  min-height:60px;
+}
+
+.pay-pill:hover{
+  border-color: rgba(37,99,235,.25);
+  box-shadow:0 12px 28px rgba(37,99,235,.10);
+}
+
+.pay-pill:active{ transform:scale(.99); }
+
+.pay-pill input[type="radio"]{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.pay-icon{
+  width:40px; height:40px;
+  border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(37,99,235,.10);
+  color:#1e40af;
+  flex-shrink:0;
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.12);
+}
+.pay-icon i{ font-size:20px; line-height:1; }
+
+.pay-text{ line-height:1.15; min-width:0; }
+.pay-title{
+  display:block;
+  font-weight:800;
+  color:#0f172a;
+  font-size:.98rem;
+}
+.pay-sub{
+  display:block;
+  font-size:.8rem;
+  color:#6b7280;
+  margin-top:.15rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.pay-check{
+  margin-left:auto;
+  width:22px; height:22px;
+  border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(15,23,42,.06);
+  color:transparent;
+  box-shadow: inset 0 0 0 1px rgba(2,6,23,.10);
+  transition:all .12s ease;
+}
+.pay-check i{ font-size:14px; }
+
+/* Selected state */
+.pay-pill input:checked ~ .pay-icon{
+  background:linear-gradient(135deg, rgba(37,99,235,.18), rgba(79,70,229,.14));
+  color:#1d4ed8;
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.25);
+}
+
+.pay-pill input:checked ~ .pay-text .pay-title{
+  color:#0b2b8a;
+}
+
+.pay-pill input:checked ~ .pay-check{
+  background:linear-gradient(135deg,#ff6306,#ff2424);
+  color:#fff;
+  box-shadow:0 10px 20px rgba(34,197,94,.22);
+}
+
+.pay-pill:has(input:checked){
+  border-color: rgba(37,99,235,.35);
+  background:rgba(239,246,255,.75);
+  box-shadow:0 14px 30px rgba(37,99,235,.12);
+}
+
+          </style>
+        <!-- METODE PEMBAYARAN -->
+        <div class="form-group col-12 pay-methods">
+          <div class="d-flex align-items-end justify-content-between mb-2">
+            <label class="m-0 font-weight-700"><strong>Metode Pembayaran</strong></label>
+            <small class="text-muted">Wajib dipilih</small>
           </div>
 
-          
+          <div class="pay-grid">
+            <label class="pay-pill" for="pm_cash">
+              <input type="radio" id="pm_cash" value="cash" name="paid_method" required>
+              <span class="pay-icon" aria-hidden="true">
+                <i class="mdi mdi-cash"></i>
+              </span>
+              <span class="pay-text">
+                <span class="pay-title">Tunai</span>
+                <span class="pay-sub">Bayar di kasir</span>
+              </span>
+              <span class="pay-check" aria-hidden="true">
+                <i class="mdi mdi-check"></i>
+              </span>
+            </label>
+
+            <label class="pay-pill" for="pm_qris">
+              <input type="radio" id="pm_qris" value="qris" name="paid_method">
+              <span class="pay-icon" aria-hidden="true">
+                <i class="mdi mdi-qrcode-scan"></i>
+              </span>
+              <span class="pay-text">
+                <span class="pay-title">QRIS</span>
+                <span class="pay-sub">Scan & bayar</span>
+              </span>
+              <span class="pay-check" aria-hidden="true">
+                <i class="mdi mdi-check"></i>
+              </span>
+            </label>
+
+            <label class="pay-pill" for="pm_transfer">
+              <input type="radio" id="pm_transfer" value="transfer" name="paid_method">
+              <span class="pay-icon" aria-hidden="true">
+                <i class="mdi mdi-bank-transfer"></i>
+              </span>
+              <span class="pay-text">
+                <span class="pay-title">Transfer</span>
+                <span class="pay-sub">BNI</span>
+              </span>
+              <span class="pay-check" aria-hidden="true">
+                <i class="mdi mdi-check"></i>
+              </span>
+            </label>
+          </div>
+
+          <small class="text-muted d-block mt-2">
+            Pilih salah satu metode di atas untuk lanjut.
+          </small>
+        </div>
+
+
 
 
             <?php if ($mode === 'delivery'): ?>
@@ -252,7 +417,7 @@
 
 <div class="d-flex justify-content-between align-items-center actions-wrap mt-1">
   <button id="btn-order" class="btn btn-blue btn-block">
-    Buat Pesanan <i class="mdi mdi-check-bold" aria-hidden="true"></i>
+    Order <i class="mdi mdi-basket-fill" aria-hidden="true"></i>
   </button>
 </div>
 
@@ -282,7 +447,8 @@
       $email:   $form.find('input[name="email"]'),
       $voucher: $form.find('input[name="voucher_code"]'), // <-- NEW
       $alamat:  $form.find('textarea[name="alamat"]'),
-      $ongkir:  $form.find('input[name="ongkir"]')
+      $ongkir:  $form.find('input[name="ongkir"]'),
+      $payMethod: $form.find('input[name="paid_method"]')
     };
   }
 
@@ -291,35 +457,49 @@
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return;
     const d = JSON.parse(raw)||{};
-     const { $nama, $catatan, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems();
+    // const { $form } = getFormElems();
+    //   if (d.paid_method != null && d.paid_method !== '') {
+    //     $form.find('input[name="paid_method"][value="'+d.paid_method+'"]').prop('checked', true);
+    //   }
+
+    const { $nama, $catatan, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems();
 
     if (d.nama != null)     $nama.val(d.nama);
+    if (d.phone != null)     $phone.val(d.phone);
     if (d.email != null)    $email.val(d.email);  // <-- NEW
     if (d.voucher_code != null)$voucher.val(d.voucher_code); // <-- NEW
 
     if (MODE==='delivery'){
       if (d.phone != null)  $phone.val(d.phone);
       if (d.alamat != null) $alamat.val(d.alamat);
-      if (IS_KASIR && d.ongkir != null) $ongkir.val(d.ongkir);
+      // if (IS_KASIR && d.ongkir != null) $ongkir.val(d.ongkir);
     }
     $catatan.trigger('input');
   }catch(e){}
 }
 
 function saveDraft() {
-  const { $nama, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems(); // <-- tambah $voucher
+  const { $form, $nama, $phone, $alamat, $ongkir, $email, $voucher } = getFormElems();
+
+  // const paid_method = ($form.find('input[name="paid_method"]:checked').val() || '').trim();
+
   const data = {
     nama:  ($nama.val()||'').trim(),
-    email: ($email.val()||'').trim(),  // <-- NEW
-    voucher_code: ($voucher.val()||'').trim().toUpperCase() // <-- NEW
+    email: ($email.val()||'').trim(),
+    phone: ($phone.val()||'').trim(),
+    // voucher_code: ($voucher.val()||'').trim().toUpperCase(),
+    // paid_method: paid_method // ✅ NEW
   };
+
   if (MODE==='delivery'){
     data.phone  = ($phone.val()||'').trim();
     data.alamat = ($alamat.val()||'').trim();
-    if (IS_KASIR) data.ongkir = ($ongkir.val()||'').trim();
+    // if (IS_KASIR) data.ongkir = ($ongkir.val()||'').trim();
   }
+
   try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); }catch(e){}
 }
+
 
 
 
@@ -464,6 +644,18 @@ function ausiSaveOrderToLocal(order){
     const email = ($email.val() || '').trim();
     const voucherCode = ($voucher.val() || '').trim().toUpperCase(); // <-- NEW
     const fd    = new FormData($form[0]);
+    const paidMethod = ($form.find('input[name="paid_method"]:checked').val() || '').trim();
+
+    if (!paidMethod){
+      Swal.fire({
+        icon: 'warning',
+        title: 'Pilih metode pembayaran dulu 🙏',
+        text: 'Silakan pilih Tunai / QRIS / Transfer sebelum lanjut.',
+        allowOutsideClick: false
+      });
+      return;
+    }
+    fd.set('paid_method', paidMethod); // ✅ kirim ke server
 
     const nama    = ($nama.val() || '').trim();
     const catatan = ($catatan.val() || '').trim(); // boleh dipakai, tapi TIDAK disimpan
@@ -529,13 +721,15 @@ function ausiSaveOrderToLocal(order){
       <div style="text-align:left;line-height:1.5">
         ${mejaInfo
           ? `<div><b>Tempat</b>: <?= html_escape($meja_info) ?></div>`
-          : `<div><b>Mode</b>: ${MODE==='delivery'?'Delivery':'Walk-in'}</div>`}
+          : `<div><b>Mode</b>: ${MODE==='delivery'?'Delivery':'Bungkus'}</div>`}
         ${MODE==='delivery' ? `
           <div><b>Telepon</b>: ${$('<div>').text(phone).html()}</div>
           <div><b>Alamat</b>: ${$('<div>').text(alamat).html()}</div>
         ` : ''}
          ${email ? `<div><b>Email</b>: ${$('<div>').text(email).html()}</div>` : ''} 
           ${voucherCode ? `<div><b>Voucher</b>: ${$('<div>').text(voucherCode).html()}</div>` : ''} 
+          ${paidMethod ? `<div><b>Bayar</b>: ${$('<div>').text(paidMethod.toUpperCase()).html()}</div>` : ''}
+
         ${catatan ? `<div><b>Catatan</b>: ${$('<div>').text(catatan).html()}</div>` : ''}
         <div><b>Atas Nama</b>: ${$('<div>').text(nama).html()}</div>
       </div>

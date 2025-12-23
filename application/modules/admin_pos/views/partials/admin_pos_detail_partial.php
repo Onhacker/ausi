@@ -449,6 +449,11 @@ $qris_download_url = $qris_src; // pakai url yang sama biar selalu fresh
                   onclick="printStrukInline(<?= $idForPrint ?>, '80', true, true)">
             <i class="fe-printer"></i> Cetak Struk
           </button>
+          <a class="btn btn-primary btn-sm"
+          href="<?= site_url('produk/receipt/'.rawurlencode($idForPrint)) ?>"
+          rel="noopener" target = "_blank">
+          <i class="mdi mdi-file-document"></i> Lihat Struk
+        </a>
         </div>
       </div>
     </div>

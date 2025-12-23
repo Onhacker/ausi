@@ -1810,6 +1810,14 @@ public function submit_order(){
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return $this->_json_err('Format email tidak valid.');
     }
+    $paid_method_raw = strtolower(trim($this->input->post('paid_method', true) ?: ''));
+    $allowed_methods = ['cash','qris','transfer'];
+    $paid_method     = in_array($paid_method_raw, $allowed_methods, true) ? $paid_method_raw : '';
+
+    if ($paid_method === '') {
+        return $this->_json_err('Pilih metode pembayaran.');
+    }
+
     $voucher_code_raw = trim($this->input->post('voucher_code', true) ?: '');
     $voucher_code     = $voucher_code_raw !== '' ? strtoupper($voucher_code_raw) : '';
     $voucher_disc = 0;
@@ -2250,8 +2258,8 @@ public function submit_order(){
         'total'        => (int)$total,        // subtotal barang
         'kode_unik'    => $kode_unik,
         'grand_total'  => (int)$grand_total,  // subtotal - voucher + ongkir + kode_unik
-        'status'       => 'pending',
-        'paid_method'  => null,
+        'status'       => 'verifikasi',
+        'paid_method'  => $paid_method,
         'paid_at'      => null,
         'created_at'   => date('Y-m-d H:i:s'),
     ];
@@ -2349,7 +2357,21 @@ public function submit_order(){
     // setelah commit, baru ambil order
     $order = $this->db->get_where('pesanan', ['id' => (int)$order_id])->row();
 
-    $redirectUrl = site_url('produk/order_success/'.$nomor);
+    // default: tetap ke order_success
+        $redirectUrl = site_url('produk/order_success/'.rawurlencode($nomor));
+
+        // kalau pilih QRIS / TRANSFER -> langsung ke halaman pembayaran
+        if ($paid_method === 'qris') {
+            $redirectUrl = site_url('produk/pay_qris/'.rawurlencode($nomor));
+        } elseif ($paid_method === 'transfer') {
+            $redirectUrl = site_url('produk/pay_transfer/'.rawurlencode($nomor));
+        }
+
+        // opsional: kalau mau CASH juga langsung “lock” lewat endpoint pay_cash
+        // elseif ($paid_method === 'cash') {
+        //     $redirectUrl = site_url('produk/pay_cash/'.rawurlencode($nomor));
+        // }
+
 
     $ordForWa = (object)[
         'id'             => (int)$order->id,
@@ -2368,6 +2390,8 @@ public function submit_order(){
         'catatan'        => (string)$catatan,
         'voucher_code'   => ($voucher_disc > 0 ? $voucher_code : null),
         'voucher_disc'   => (int)$voucher_disc,
+        'paid_method'   => (string)$paid_method,
+
     ];
 
     $this->_json_ok_and_flush_then_continue([

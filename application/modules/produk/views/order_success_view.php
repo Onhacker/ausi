@@ -167,7 +167,7 @@ $is_paid       = ($status === 'paid');
 function status_badge($st){
   $st = strtolower((string)$st);
   if ($st === 'paid')       return ['LUNAS','status-paid'];
-  if ($st === 'verifikasi') return ['Menunggu Verifikasi','status-verif'];
+  if ($st === 'verifikasi') return ['Menunggu Verifikasi Kasir','status-verif'];
   if ($st === 'canceled')   return ['Dibatalkan','status-canceled'];
   return ['Menunggu Pembayaran','status-pending']; // pending / default
 }
@@ -250,23 +250,35 @@ list($status_label, $status_class) = status_badge($status);
       <!-- Kolom kanan: Status + Total + Struk + Pay -->
       <div class="col-md-5 mt-2 mt-md-0">
         <!-- Status chip selalu tampil -->
-        <div class="mb-2">
-          <span class="status-chip <?= $status_class ?>">
-            <i class="mdi <?= $is_paid ? 'mdi-check-circle' : ($status==='verifikasi' ? 'mdi-timer-sand' : ($status==='canceled'?'mdi-close-circle':'mdi-dots-horizontal')) ?>"></i>
-            <?= $status_label ?>
-          </span>
-          <?php if ($is_paid && $paid_method): ?>
-            <small class="ml-2 text-muted">
-              via <strong><?= strtoupper(html_escape($paid_method)) ?></strong>
-              <?= $paid_at_id ? ' • '.$paid_at_id : '' ?>
+      <div class="mb-2">
+        <span class="status-chip <?= $status_class ?>">
+          <i class="mdi <?= $is_paid ? 'mdi-check-circle' : ($status==='verifikasi' ? 'mdi-timer-sand' : ($status==='canceled'?'mdi-close-circle':'mdi-dots-horizontal')) ?>"></i>
+          <?= $status_label ?>
+        </span>
+
+        <?php
+          // tampilkan metode yang sudah dipilih (pakai paid_method, fallback ke locked_method)
+          $pm_now = strtolower(trim((string)($paid_method ?: $locked_method)));
+        ?>
+
+        <?php if ($pm_now): ?>
+          <div class="mt-2">
+            <small class="text-dark d-block">
+              <i class="mdi mdi-square-inc-cash mr-1"></i>
+              Metode Pembayaran: <strong><?= strtoupper(html_escape($pm_now)) ?></strong>
+              <?php if ($is_paid && $paid_at_id): ?>
+                • <?= html_escape($paid_at_id) ?>
+              <?php endif; ?>
             </small>
-          <?php endif; ?>
-        </div>
+          </div>
+        <?php endif; ?>
+      </div>
+
         <?php if ($status === 'verifikasi' && !empty($order->nomor)): ?>
           <div class="mt-2">
             <button type="button" class="btn btn-outline-danger btn-rounded btn-sm"
             onclick="ubahMetodePembayaran('<?= htmlspecialchars($order->nomor, ENT_QUOTES, 'UTF-8'); ?>')">
-            <i class="mdi mdi-refresh"></i> Ubah Metode Pembayaran
+            <i class="mdi mdi-refresh"></i> Ganti Metode Pembayaran
           </button>
           <small class="d-block text-muted mt-1">
             Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
@@ -834,12 +846,12 @@ window.CSRF_HASH = "<?= $this->security->get_csrf_hash(); ?>";
 
 window.ubahMetodePembayaran = function(nomor){
   if (typeof Swal === 'undefined'){
-    if (!confirm('Ubah metode pembayaran? Status akan kembali ke PENDING.')) return;
+    if (!confirm('Ganti Metode pembayaran? Status akan kembali ke PENDING.')) return;
   } else {
     // pakai Swal
     Swal.fire({
       icon: 'warning',
-      title: 'Ubah metode pembayaran?',
+      title: 'Ganti Metode pembayaran?',
       html: 'Status akan dikembalikan ke <b>PENDING</b> agar kamu bisa pilih metode bayar lagi.',
       showCancelButton: true,
       confirmButtonText: 'Ya, ubah',
@@ -879,9 +891,9 @@ function doReset(nomor){
       return;
     }
     if (typeof Swal !== 'undefined'){
-      Swal.fire({ icon:'error', title:'Gagal', text:(r && r.msg) ? r.msg : 'Gagal ubah metode pembayaran.' });
+      Swal.fire({ icon:'error', title:'Gagal', text:(r && r.msg) ? r.msg : 'Gagal Ganti Metode pembayaran.' });
     } else {
-      alert((r && r.msg) ? r.msg : 'Gagal ubah metode pembayaran.');
+      alert((r && r.msg) ? r.msg : 'Gagal Ganti Metode pembayaran.');
     }
   })
   .fail(function(xhr){

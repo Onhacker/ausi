@@ -115,14 +115,14 @@
               Jika salah pilih metode, klik ini untuk kembali ke pilihan pembayaran.
             </small>
           <?php endif; ?>
-          <small class="text-muted d-block mt-2">
+         <!--  <small class="text-muted d-block mt-2">
             Di Android/iOS, tombol <em>Screenshot &amp; Simpan</em> membuka Share Sheet — pilih “Simpan ke Foto/Galeri”.
-          </small>
+          </small> -->
 
           <div class="alert alert-info mt-2 mb-0 text-left" role="alert" style="max-width:420px; margin:10px auto 0;">
             <div class="font-weight-bold mb-1">Tips bila memesan & membayar dari perangkat yang sama:</div>
             <ol class="mb-0 pl-3">
-              <li>Tekan <strong>Screenshot</strong> untuk menyimpan QR ke Galeri.</li>
+              <li>Tekan <strong>Download Qris</strong> untuk menyimpan QR ke Galeri.</li>
               <li>Buka aplikasi pembayaran Anda (mis. bank/e-wallet).</li>
               <li>Pilih menu <strong>Scan</strong> lalu gunakan opsi <strong>Ambil dari Galeri</strong></li>
               <li>Pilih gambar QR yang barusan tersimpan, lalu <strong>bayar sesuai nominal</strong>.</li>

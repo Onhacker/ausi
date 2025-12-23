@@ -382,7 +382,7 @@
             <i class="mdi mdi-arrow-left"></i> Kembali
           </a>
           <button id="btn-screenshot" type="button" class="btn btn-outline-primary btn-sm">
-            <i class="mdi mdi-camera"></i> Screenshot
+            <i class="mdi mdi-cloud-print"></i> Download
           </button>
         </div>
         <div class="center small" data-html2canvas-ignore="true" style="margin-top:8px;">

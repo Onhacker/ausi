@@ -376,10 +376,13 @@ a {
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     const endIndex   = startIndex + PAGE_SIZE;
     const slice      = ordersCache.slice(startIndex, endIndex);
+    const ORDER_SUCCESS_BASE = "<?= site_url('produk/order_success/') ?>";
 
     slice.forEach(function(o, idx){
       const nomor       = o.nomor || '(tanpa nomor)';
-      const url         = o.redirect || '#';
+      const nomorClean = (o.nomor || '').trim();
+      const url = nomorClean ? (ORDER_SUCCESS_BASE + encodeURIComponent(nomorClean)) : (o.redirect || '#');
+
       const waktu       = formatWaktu(o.created_at || o.createdAt);
       const modeLabel   = mapMode(o.mode);
       const statusLabel = mapStatus(o.status);
