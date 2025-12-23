@@ -186,14 +186,18 @@ body{
   padding-bottom: calc(var(--navH) + env(safe-area-inset-bottom));
 }
 
+/* default aman */
 .navbar-bottom{
   position: fixed !important;
-  left:0; right:0; bottom:0;
-  z-index:2147483640;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2147483000;
   transform: translate3d(0,0,0);
   -webkit-transform: translate3d(0,0,0);
   will-change: transform;
 }
+
+/* padding bawah body akan di-set otomatis via JS */
+
 
 @supports (-webkit-touch-callout: none){
   .navbar-bottom{ padding-bottom: env(safe-area-inset-bottom); }

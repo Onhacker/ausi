@@ -1209,19 +1209,62 @@ $ver  = file_exists(FCPATH.$path) ? filemtime(FCPATH.$path) : time(); // fallbac
 <script>
 (function(){
   const nav = document.querySelector('.navbar-bottom');
-  if(!nav || !window.visualViewport) return;
+  if(!nav) return;
 
-  const vv = window.visualViewport;
+  // iOS detection (termasuk iPadOS yang ngaku Mac)
+  const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) ||
+                (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
 
-  function updateBottom(){
-    const gap = Math.max(0, (window.innerHeight - vv.height - vv.offsetTop));
-    nav.style.bottom = gap + 'px';
+  // Auto set padding-bottom sesuai tinggi navbar + safe area
+  function setBodyPad(){
+    const safe = parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue('--safe-bottom')) || 0;
+
+    const h = Math.ceil(nav.getBoundingClientRect().height || nav.offsetHeight || 0);
+    document.body.style.paddingBottom = (h + safe) + 'px';
   }
 
-  vv.addEventListener('resize', updateBottom);
-  vv.addEventListener('scroll', updateBottom);
-  window.addEventListener('orientationchange', updateBottom);
-  updateBottom();
+  // simpan safe-area-inset-bottom ke CSS var biar bisa dipakai JS
+  function syncSafeAreaVar(){
+    // cara "hack" baca env() lewat element dummy
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:0;bottom:0;height:constant(safe-area-inset-bottom);height:env(safe-area-inset-bottom);';
+    document.body.appendChild(d);
+    const safe = Math.ceil(d.getBoundingClientRect().height || 0);
+    document.body.removeChild(d);
+    document.documentElement.style.setProperty('--safe-bottom', safe + 'px');
+  }
+
+  // Patch geser fixed-bottom saat address bar iOS berubah
+  function iosBottomFix(){
+    if(!isIOS || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    function updateBottom(){
+      const gap = Math.max(0, (window.innerHeight - vv.height - vv.offsetTop));
+      nav.style.bottom = gap + 'px';
+    }
+    vv.addEventListener('resize', updateBottom, {passive:true});
+    vv.addEventListener('scroll', updateBottom, {passive:true});
+    window.addEventListener('orientationchange', updateBottom);
+    updateBottom();
+  }
+
+  function refreshAll(){
+    syncSafeAreaVar();
+    setBodyPad();
+  }
+
+  // init
+  refreshAll();
+  iosBottomFix();
+
+  // update kalau layout berubah
+  window.addEventListener('resize', refreshAll);
+  window.addEventListener('orientationchange', () => setTimeout(refreshAll, 80));
+
+  // kalau font/icon load bikin tinggi berubah
+  window.addEventListener('load', refreshAll);
 })();
 </script>
 
