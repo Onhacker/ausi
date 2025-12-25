@@ -150,7 +150,7 @@ class M_admin_pos extends CI_Model {
 
 
     /* >>>> TAMBAHAN: batasi ke jendela operasional hari-ini dari tabel identitas <<<< */
-    // $this->_apply_today_window();
+    $this->_apply_today_window();
 }
 
 
